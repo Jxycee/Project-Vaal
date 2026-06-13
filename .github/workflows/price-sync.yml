@@ -1,0 +1,34 @@
+name: Price Sync
+
+# Hourly price sync — calls our deployed /api/prices/sync endpoint.
+#
+# Why GitHub Actions instead of Vercel Cron: Vercel's free (Hobby) plan limits
+# how often cron jobs can run. GitHub Actions scheduled workflows are free and
+# can run hourly. This workflow does nothing until two repository secrets are
+# set (see PRICE-CHECK.md Part E):
+#   APP_URL      — your deployed app URL, e.g. https://project-vaal.vercel.app
+#   CRON_SECRET  — same value as the CRON_SECRET env var in Vercel
+
+on:
+  schedule:
+    # Every hour at minute 15 (GitHub schedules can be delayed a few minutes
+    # at popular times like :00 — :15 is quieter)
+    - cron: '15 * * * *'
+  # Allows manually triggering from the GitHub Actions tab — useful for testing
+  workflow_dispatch:
+
+jobs:
+  sync-prices:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call price sync endpoint
+        run: |
+          status=$(curl -s -o response.json -w "%{http_code}" \
+            -X POST "${{ secrets.APP_URL }}/api/prices/sync" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+          echo "HTTP status: $status"
+          cat response.json
+          if [ "$status" -ne 200 ]; then
+            echo "Price sync failed"
+            exit 1
+          fi
