@@ -22,7 +22,7 @@ function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix))
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // We must return a response and keep cookies in sync.
   // Follow the pattern from @supabase/ssr docs exactly — do not reorder.
   let supabaseResponse = NextResponse.next({ request })
