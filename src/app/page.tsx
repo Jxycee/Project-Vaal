@@ -4,6 +4,9 @@ import { Button } from '@/components/ui/button'
 export default function Home() {
   return (
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-2xl flex-col items-center justify-center px-4 py-16 text-center">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/brand/vaal-emblem.png" alt="" className="mb-6 size-20 opacity-95" />
+
       <p className="mb-3 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
         Path of Exile 2 · Console
       </p>
@@ -12,7 +15,10 @@ export default function Home() {
         Project Vaal
       </h1>
 
-      <p className="mt-4 max-w-md text-balance text-muted-foreground">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/ornaments/divider.png" alt="" className="my-5 h-auto w-56 opacity-80" />
+
+      <p className="max-w-md text-balance text-muted-foreground">
         A free companion for Path of Exile 2 on PlayStation and Xbox — the
         tools console players can&apos;t get on PC, built for your phone.
       </p>

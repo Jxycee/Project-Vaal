@@ -1,19 +1,20 @@
 'use client'
 
 // =============================================================================
-// /prices — public Price Check & Currency Exchange (no account required)
-//
+// /prices — public Price Check & Currency Exchange (no account required).
 // Reads cached prices from price_entries (synced hourly, stored in Exalted).
-// Two views:
-//   1. Exchange — pick a "from" currency, see "1 X = Y" for every currency.
-//   2. Browse   — searchable price list per category (in exalted/divine).
-//
-// All stored exalted_value figures share one unit, so the rate from A to B
-// is simply A.exalted_value / B.exalted_value.
+//   Exchange — pick a "from" currency, see every currency valued in it.
+//   Browse   — searchable price list; search spans ALL categories (Fuse.js).
+// The shared app shell provides the page container + nav.
 // =============================================================================
 
 import { useEffect, useMemo, useState } from 'react'
+import Fuse from 'fuse.js'
 import { createClient } from '@/lib/supabase/client'
+import { Icon } from '@/components/ui/icon'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 
 interface PriceRow {
   league: string
@@ -53,25 +54,65 @@ const CATEGORY_LABELS: Record<string, string> = {
   'uniques-sanctum': 'Sanctum Research',
 }
 
-// Format a quantity for at-a-glance reading. No scientific notation ever.
-// Large numbers get thousands separators; small numbers show just enough
-// decimals to be meaningful, then fall back to a "1 / N" form when they get
-// too tiny to read as a decimal.
+// No scientific notation ever. Large → separators; tiny → "1 / N".
 function fmt(n: number): string {
   if (!Number.isFinite(n)) return '—'
   if (n === 0) return '0'
-
   if (n >= 1000) return Math.round(n).toLocaleString()
   if (n >= 100) return n.toFixed(0)
   if (n >= 10) return n.toFixed(1)
   if (n >= 1) return n.toFixed(2)
-  if (n >= 0.1) return n.toFixed(2)   // 0.62, 0.42
-  if (n >= 0.01) return n.toFixed(3)  // 0.070, 0.011
-
-  // Below 0.01 a decimal becomes unreadable — show the inverse instead.
-  // e.g. 0.00099 → "1 / 1,010" meaning ~1010 of these per 1 unit.
+  if (n >= 0.1) return n.toFixed(2)
+  if (n >= 0.01) return n.toFixed(3)
   const inv = Math.round(1 / n)
   return `1 / ${inv.toLocaleString()}`
+}
+
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime()
+  const min = Math.round(diff / 60000)
+  if (min < 1) return 'just now'
+  if (min < 60) return `${min} min ago`
+  const hr = Math.round(min / 60)
+  if (hr < 24) return `${hr} hr ago`
+  const day = Math.round(hr / 24)
+  return `${day} day${day === 1 ? '' : 's'} ago`
+}
+
+// One overflow-safe row, shared by both views: icon | name(+sub) | value(+sub).
+function PriceRowItem({
+  iconUrl,
+  name,
+  sub,
+  valueMain,
+  valueSub,
+}: {
+  iconUrl: string | null
+  name: string
+  sub?: string
+  valueMain: string
+  valueSub?: string
+}) {
+  return (
+    <li className="flex items-center gap-3 py-2.5">
+      {iconUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={iconUrl} alt="" className="size-7 shrink-0 object-contain" loading="lazy" />
+      ) : (
+        <div className="size-7 shrink-0 rounded bg-muted" />
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm">{name}</div>
+        {sub && <div className="truncate text-xs text-muted-foreground">{sub}</div>}
+      </div>
+      <div className="shrink-0 text-right">
+        <div className="text-sm font-semibold tabular-nums">{valueMain}</div>
+        {valueSub && (
+          <div className="text-xs font-normal tabular-nums text-muted-foreground">{valueSub}</div>
+        )}
+      </div>
+    </li>
+  )
 }
 
 export default function PricesPage() {
@@ -82,21 +123,17 @@ export default function PricesPage() {
   const [leagues, setLeagues] = useState<string[]>([])
   const [league, setLeague] = useState<string>('')
   const [loading, setLoading] = useState(true)
+  const [reload, setReload] = useState(0)
 
-  // Exchange-view state: which currency we convert FROM (Exalted = base unit)
   const [fromId, setFromId] = useState<string>('exalted')
-  // Browse-view state
   const [category, setCategory] = useState<string>('currency')
   const [search, setSearch] = useState('')
 
-  // Discover available leagues once
+  // Discover leagues once
   useEffect(() => {
     let cancelled = false
     async function discover() {
-      const { data, error } = await supabase
-        .from('price_entries')
-        .select('league')
-        .limit(2000)
+      const { data, error } = await supabase.from('price_entries').select('league').limit(2000)
       if (cancelled) return
       if (error) {
         console.error('league discovery failed:', error)
@@ -114,22 +151,17 @@ export default function PricesPage() {
     }
   }, [supabase])
 
-  // Load all rows for the league (exchange view needs the full set;
-  // browse view filters this further by category in-memory).
+  // Load all rows for the league (re-runs when Refresh bumps `reload`).
   useEffect(() => {
     if (!league) return
     let cancelled = false
     async function load() {
-      // Yield once so this isn't a synchronous setState in the effect body,
-      // then show the loading state while the query runs.
       await Promise.resolve()
       if (cancelled) return
       setLoading(true)
       const { data, error } = await supabase
         .from('price_entries')
-        .select(
-          'league, category, api_id, name, icon_url, exalted_value, divine_value, fetched_at'
-        )
+        .select('league, category, api_id, name, icon_url, exalted_value, divine_value, fetched_at')
         .eq('league', league)
         .order('exalted_value', { ascending: false, nullsFirst: false })
         .limit(5000)
@@ -140,201 +172,199 @@ export default function PricesPage() {
       } else {
         setRows((data as PriceRow[]) ?? [])
       }
-      setLoading(false) // always clears the spinner, success or fail
+      setLoading(false)
     }
     load()
     return () => {
       cancelled = true
     }
-  }, [supabase, league])
+  }, [supabase, league, reload])
 
-  // Currencies only, for the exchange dropdown + conversion table
   const currencyRows = useMemo(
-    () =>
-      rows.filter(
-        (r) => r.category === 'currency' && (r.exalted_value ?? 0) > 0
-      ),
+    () => rows.filter((r) => r.category === 'currency' && (r.exalted_value ?? 0) > 0),
     [rows]
   )
-
   const fromRow = useMemo(
     () => currencyRows.find((r) => r.api_id === fromId) ?? currencyRows[0],
     [currencyRows, fromId]
   )
 
-  // Browse-view filtered rows
+  // Browse: search spans ALL categories via Fuse; empty search = active tab only.
+  const fuse = useMemo(
+    () => new Fuse(rows, { keys: ['name'], threshold: 0.4, ignoreLocation: true }),
+    [rows]
+  )
+  const searching = search.trim().length > 0
   const browseRows = useMemo(() => {
-    let r = rows.filter((x) => x.category === category)
-    if (search.trim()) {
-      const q = search.toLowerCase()
-      r = r.filter((x) => x.name.toLowerCase().includes(q))
-    }
-    return r
-  }, [rows, category, search])
+    if (searching) return fuse.search(search.trim()).map((r) => r.item)
+    return rows.filter((x) => x.category === category)
+  }, [rows, category, search, searching, fuse])
 
   const lastSynced = rows[0]?.fetched_at ?? null
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-6">
-      <h1 className="text-2xl font-bold">Price Check</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Updated hourly. PoE2 has one shared economy across PC, PS5 and Xbox —
-        these prices are your prices.
-      </p>
+    <div className="flex flex-col gap-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="font-heading text-2xl font-bold tracking-tight">Price Check</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Updated hourly. PoE2 has one shared economy across PC, PS5 and Xbox — these prices are
+            your prices.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setReload((n) => n + 1)}
+          disabled={loading}
+          className="shrink-0 gap-1.5"
+        >
+          <Icon name="refresh" className="size-3.5" />
+          Refresh
+        </Button>
+      </div>
 
       {leagues.length > 1 && (
         <select
-          className="mt-4 w-full rounded-md border bg-background p-2 text-sm"
+          className="h-11 w-full rounded-lg border border-input bg-card px-3 text-sm"
           value={league}
           onChange={(e) => setLeague(e.target.value)}
         >
           {leagues.map((l) => (
-            <option key={l} value={l}>{l}</option>
+            <option key={l} value={l}>
+              {l}
+            </option>
           ))}
         </select>
       )}
 
       {/* View toggle */}
-      <div className="mt-4 flex gap-2">
-        <button
-          onClick={() => setView('exchange')}
-          className={`rounded-md px-4 py-2 text-sm font-medium ${
-            view === 'exchange'
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-muted text-muted-foreground'
-          }`}
-        >
-          Currency Exchange
-        </button>
-        <button
-          onClick={() => setView('browse')}
-          className={`rounded-md px-4 py-2 text-sm font-medium ${
-            view === 'browse'
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-muted text-muted-foreground'
-          }`}
-        >
-          Browse Prices
-        </button>
+      <div className="inline-flex w-fit rounded-lg border border-border bg-card p-1 text-sm">
+        {(['exchange', 'browse'] as const).map((v) => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            className={cn(
+              'rounded-md px-4 py-1.5 font-medium transition-colors',
+              view === v
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            {v === 'exchange' ? 'Exchange' : 'Browse'}
+          </button>
+        ))}
       </div>
 
       {loading ? (
-        <p className="mt-8 text-center text-sm text-muted-foreground">Loading…</p>
+        <p className="py-12 text-center text-sm text-muted-foreground">Loading…</p>
       ) : rows.length === 0 ? (
-        <p className="mt-8 text-center text-sm text-muted-foreground">
-          No prices yet. Run the hourly sync, then refresh.
+        <p className="py-12 text-center text-sm text-muted-foreground">
+          No prices yet. Run the hourly sync, then Refresh.
         </p>
       ) : view === 'exchange' ? (
-        // ---- EXCHANGE VIEW -------------------------------------------------
-        <div className="mt-4">
-          <label className="text-sm text-muted-foreground">Convert from</label>
+        // ---- EXCHANGE ------------------------------------------------------
+        <div>
+          <label className="text-sm text-muted-foreground" htmlFor="from-currency">
+            Convert from
+          </label>
           <select
-            className="mt-1 w-full rounded-md border bg-background p-3 text-base"
+            id="from-currency"
+            className="mt-1 h-11 w-full rounded-lg border border-input bg-card px-3 text-base"
             value={fromRow?.api_id ?? ''}
             onChange={(e) => setFromId(e.target.value)}
           >
             {currencyRows.map((r) => (
-              <option key={r.api_id} value={r.api_id}>{r.name}</option>
+              <option key={r.api_id} value={r.api_id}>
+                {r.name}
+              </option>
             ))}
           </select>
 
           {fromRow && (
-            <ul className="mt-4 divide-y">
-              {currencyRows
-                .filter((r) => r.api_id !== fromRow.api_id)
-                .map((r) => {
-                  // rate = how many of the SELECTED currency equal 1 of this item.
-                  const rate =
-                    (r.exalted_value ?? 0) / (fromRow.exalted_value ?? 1)
-
-                  // Choose the readable direction:
-                  //  - rate >= 1: "1 [item]  =  rate [selected]"
-                  //  - rate < 1:  "N [item]  =  1 [selected]" (flip it)
-                  const label =
-                    rate >= 1
-                      ? {
-                          left: `1 ${r.name}`,
-                          right: `${fmt(rate)} ${fromRow.name}`,
-                        }
-                      : {
-                          left: `${fmt(1 / rate)} ${r.name}`,
-                          right: `1 ${fromRow.name}`,
-                        }
-
-                  return (
-                    <li key={r.api_id} className="flex items-center gap-2 py-2.5">
-                      {r.icon_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={r.icon_url} alt="" className="h-7 w-7 shrink-0 object-contain" loading="lazy" />
-                      ) : (
-                        <div className="h-7 w-7 shrink-0 rounded bg-muted" />
-                      )}
-                      <span className="min-w-0 flex-1 truncate text-sm">
-                        {label.left}
-                      </span>
-                      <span className="shrink-0 text-sm text-muted-foreground">=</span>
-                      <span className="shrink-0 text-sm font-semibold tabular-nums">
-                        {label.right}
-                      </span>
-                    </li>
-                  )
-                })}
-            </ul>
+            <>
+              <p className="mt-4 text-xs text-muted-foreground">
+                Each item below, valued in{' '}
+                <span className="font-medium text-foreground">{fromRow.name}</span>.
+              </p>
+              <ul className="mt-1 divide-y divide-border">
+                {currencyRows
+                  .filter((r) => r.api_id !== fromRow.api_id)
+                  .map((r) => (
+                    <PriceRowItem
+                      key={r.api_id}
+                      iconUrl={r.icon_url}
+                      name={r.name}
+                      valueMain={fmt((r.exalted_value ?? 0) / (fromRow.exalted_value ?? 1))}
+                    />
+                  ))}
+              </ul>
+            </>
           )}
-          <p className="mt-3 text-center text-xs text-muted-foreground">
-            Each row shows its value in {fromRow?.name}.
-          </p>
         </div>
       ) : (
-        // ---- BROWSE VIEW ---------------------------------------------------
-        <div className="mt-4">
-          <input
-            type="search"
-            placeholder="Search items…"
-            className="w-full rounded-md border bg-background p-3 text-base"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-2">
-            {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
-              <button
-                key={key}
-                onClick={() => setCategory(key)}
-                className={`whitespace-nowrap rounded-full px-3 py-1.5 text-sm ${
-                  category === key
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+        // ---- BROWSE --------------------------------------------------------
+        <div>
+          <div className="relative">
+            <Icon
+              name="search"
+              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            />
+            <input
+              type="search"
+              placeholder="Search all items…"
+              className="h-11 w-full rounded-lg border border-input bg-card pl-9 pr-3 text-base placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 outline-none"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
 
-          {browseRows.length === 0 ? (
-            <p className="mt-8 text-center text-sm text-muted-foreground">
-              No items in this category yet.
+          {searching ? (
+            <p className="mt-3 text-xs text-muted-foreground">
+              Showing matches across all categories.
             </p>
           ) : (
-            <ul className="mt-2 divide-y">
-              {browseRows.map((r) => (
-                <li key={r.api_id} className="flex items-center gap-3 py-2.5">
-                  {r.icon_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={r.icon_url} alt="" className="h-8 w-8 shrink-0 object-contain" loading="lazy" />
-                  ) : (
-                    <div className="h-8 w-8 shrink-0 rounded bg-muted" />
+            <div className="mt-3 flex gap-2 overflow-x-auto pb-2">
+              {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setCategory(key)}
+                  className={cn(
+                    'whitespace-nowrap rounded-full px-3 py-1.5 text-sm transition-colors',
+                    category === key
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-card text-muted-foreground hover:text-foreground'
                   )}
-                  <span className="min-w-0 flex-1 truncate text-sm">{r.name}</span>
-                  <span className="shrink-0 text-right text-sm font-semibold tabular-nums">
-                    {fmt(r.exalted_value ?? NaN)} ex
-                    {r.divine_value !== null && r.divine_value >= 0.1 && (
-                      <span className="block text-xs font-normal text-muted-foreground">
-                        {fmt(r.divine_value)} div
-                      </span>
-                    )}
-                  </span>
-                </li>
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {browseRows.length === 0 ? (
+            <div className="flex flex-col items-center py-10 text-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/illustrations/empty-prices.png" alt="" className="size-28 opacity-80" />
+              <p className="mt-3 text-sm text-muted-foreground">
+                {searching ? 'No items match your search.' : 'No items in this category yet.'}
+              </p>
+            </div>
+          ) : (
+            <ul className="mt-2 divide-y divide-border">
+              {browseRows.map((r) => (
+                <PriceRowItem
+                  key={`${r.category}:${r.api_id}`}
+                  iconUrl={r.icon_url}
+                  name={r.name}
+                  sub={searching ? CATEGORY_LABELS[r.category] ?? r.category : undefined}
+                  valueMain={`${fmt(r.exalted_value ?? NaN)} ex`}
+                  valueSub={
+                    r.divine_value !== null && r.divine_value >= 0.1
+                      ? `${fmt(r.divine_value)} div`
+                      : undefined
+                  }
+                />
               ))}
             </ul>
           )}
@@ -342,32 +372,32 @@ export default function PricesPage() {
       )}
 
       {lastSynced && (
-        <p className="mt-4 text-center text-xs text-muted-foreground">
-          Last synced: {new Date(lastSynced).toLocaleString()}
+        <p className="text-center text-xs text-muted-foreground">
+          Last synced {relativeTime(lastSynced)}
         </p>
       )}
 
       {/* Rare items deep link */}
-      <div className="mt-8 rounded-lg border p-4">
-        <h2 className="font-semibold">Looking for a rare item?</h2>
+      <Card className="mt-2 p-4">
+        <h2 className="font-heading font-semibold">Looking for a rare item?</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Rare items with specific mods can&apos;t be priced from cached data.
-          Use the official trade site — searches open in your browser with your
-          own PoE account.
+          Rare items with specific mods can&apos;t be priced from cached data. Use the official
+          trade site — searches open in your browser with your own PoE account.
         </p>
         <a
           href={`https://www.pathofexile.com/trade2/search/poe2/${encodeURIComponent(league || 'Standard')}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-3 inline-block rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+          className="mt-3 inline-flex h-11 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          Open official trade site →
+          Open official trade site
+          <Icon name="external" className="size-3.5 text-primary-foreground" />
         </a>
-      </div>
+      </Card>
 
-      <p className="mt-6 text-center text-xs text-muted-foreground">
+      <p className="text-center text-xs text-muted-foreground">
         Price data courtesy of poe2scout.com
       </p>
-    </main>
+    </div>
   )
 }
