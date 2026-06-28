@@ -5,25 +5,20 @@ export default function Home() {
   return (
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-2xl flex-col items-center justify-center px-4 py-16 text-center">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/brand/vaal-emblem.png" alt="" className="mb-6 size-20 opacity-95" />
-
-      <p className="mb-3 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-        Path of Exile 2 · Console
-      </p>
+      <img src="/brand/vaal-emblem.png" alt="" className="mb-6 size-150 opacity-95" />
 
       <h1 className="font-heading text-4xl font-semibold tracking-tight sm:text-5xl">
         Project Vaal
       </h1>
 
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/ornaments/divider.png" alt="" className="my-5 h-auto w-56 opacity-80" />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/ornaments/divider.png" alt="" className="my-5 h-auto w-72 opacity-80 sm:w-100" />
 
-      <p className="max-w-md text-balance text-muted-foreground">
-        A free companion for Path of Exile 2 on PlayStation and Xbox — the
-        tools console players can&apos;t get on PC, built for your phone.
+            <p className="mb-3 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+        Path of Exile 2 · Console Companion
       </p>
 
-      <div className="mt-8 flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:justify-center">
+      <div className="mt-4 flex items-center justify-center gap-4 flex-col sm:flex-row">
         <Button asChild size="lg" className="h-11 px-6 text-base">
           <Link href="/prices">Check prices</Link>
         </Button>
