@@ -10,7 +10,7 @@ export default function Home() {
       <img
         src="/brand/vaal-emblem.png"
         alt=""
-        className="mb-6 h-auto w-56 max-w-[70vw] opacity-95 sm:w-72"
+        className="mb-6 h-auto w-84 max-w-[88vw] opacity-95 sm:w-96"
       />
 
       <h1 className="font-heading text-4xl font-semibold tracking-tight sm:text-5xl">

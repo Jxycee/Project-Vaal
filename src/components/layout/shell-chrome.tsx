@@ -31,7 +31,7 @@ function Brand({ size = 'sm', href }: { size?: 'sm' | 'md'; href: string }) {
       <img
         src="/brand/vaal-emblem.png"
         alt=""
-        className={size === 'md' ? 'size-10' : 'size-9'}
+        className={size === 'md' ? 'size-12' : 'size-16'}
       />
       <span
         className={cn(
@@ -129,7 +129,7 @@ export function ShellChrome({
       {/* Main column */}
       <div className="flex min-h-[100dvh] flex-1 flex-col">
         {/* Mobile top bar */}
-        <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur md:hidden">
+        <header className="sticky top-0 z-20 flex h-20 items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur md:hidden">
           <Brand href={homeHref} />
           {AccountControl}
         </header>
