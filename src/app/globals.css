@@ -125,14 +125,42 @@
   }
   html {
     @apply font-sans;
+    cursor: url('/cursor.png') 2 2, auto;
+  }
+  /* Keep the text caret in fields where typing happens */
+  input[type='text'],
+  input[type='email'],
+  input[type='password'],
+  input[type='search'],
+  input[type='number'],
+  textarea {
+    cursor: text;
   }
   body {
     @apply bg-background text-foreground;
-    background-image: url('/background/app-bg.webp');
-    background-size: cover;
-    background-position: center top;
-    background-attachment: fixed;
-    background-repeat: no-repeat;
+  }
+  /* Atmospheric background as a fixed, viewport-sized layer. Avoids
+     background-attachment:fixed (which iOS scales badly). The radial vignette
+     deepens the edges and smooths the dark areas; the noise tile dithers out
+     any remaining gradient banding. */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-color: var(--background);
+    background-image:
+      url('/background/noise.png'),
+      radial-gradient(
+        130% 90% at 50% 35%,
+        rgba(18, 16, 13, 0.3),
+        rgba(11, 10, 8, 0.86) 75%
+      ),
+      url('/background/app-bg.webp');
+    background-repeat: repeat, no-repeat, no-repeat;
+    background-size: 128px 128px, cover, cover;
+    background-position: top left, center, center;
   }
 }
 
