@@ -68,6 +68,15 @@ function fmt(n: number): string {
   return `1 / ${inv.toLocaleString()}`
 }
 
+// Exchange values are always >= 1 (we flip direction otherwise), so this never
+// needs the "1 / N" form — it just keeps big numbers clean and readable.
+function fmtCount(n: number): string {
+  if (!Number.isFinite(n)) return '—'
+  if (n >= 100) return Math.round(n).toLocaleString()
+  if (n >= 10) return n.toFixed(1)
+  return n.toFixed(2)
+}
+
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
   const min = Math.round(diff / 60000)
@@ -265,7 +274,37 @@ export default function PricesPage() {
       ) : view === 'exchange' ? (
         // ---- EXCHANGE ------------------------------------------------------
         <div>
-          <label className="text-sm text-muted-foreground" htmlFor="from-currency">
+          {/* Quick picks for the two currencies people convert against most */}
+          <div className="flex gap-2">
+            {[
+              { id: 'exalted', label: 'Exalted' },
+              { id: 'divine', label: 'Divine' },
+            ].map((q) => {
+              const available = currencyRows.some((r) => r.api_id === q.id)
+              const active = (fromRow?.api_id ?? '') === q.id
+              return (
+                <button
+                  key={q.id}
+                  type="button"
+                  disabled={!available}
+                  onClick={() => setFromId(q.id)}
+                  className={cn(
+                    'rounded-lg border px-3.5 py-1.5 text-sm font-medium transition-colors disabled:opacity-40',
+                    active
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-border bg-card text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  {q.label}
+                </button>
+              )
+            })}
+          </div>
+
+          <label
+            className="mt-3 block text-sm text-muted-foreground"
+            htmlFor="from-currency"
+          >
             Convert from
           </label>
           <select
@@ -290,14 +329,23 @@ export default function PricesPage() {
               <ul className="mt-1 divide-y divide-border">
                 {currencyRows
                   .filter((r) => r.api_id !== fromRow.api_id)
-                  .map((r) => (
-                    <PriceRowItem
-                      key={r.api_id}
-                      iconUrl={r.icon_url}
-                      name={r.name}
-                      valueMain={fmt((r.exalted_value ?? 0) / (fromRow.exalted_value ?? 1))}
-                    />
-                  ))}
+                  .map((r) => {
+                    // 1 of this item = `rate` of the chosen currency. If that's
+                    // less than 1, flip it ("N per 1 currency") so the number on
+                    // screen is always readable instead of a 0.0x / "1 / N".
+                    const rate =
+                      (r.exalted_value ?? 0) / (fromRow.exalted_value ?? 1)
+                    const flipped = rate < 1
+                    return (
+                      <PriceRowItem
+                        key={r.api_id}
+                        iconUrl={r.icon_url}
+                        name={r.name}
+                        valueMain={fmtCount(flipped ? 1 / rate : rate)}
+                        valueSub={flipped ? `per ${fromRow.name}` : fromRow.name}
+                      />
+                    )
+                  })}
               </ul>
             </>
           )}

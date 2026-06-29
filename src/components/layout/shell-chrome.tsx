@@ -24,19 +24,19 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(href + '/')
 }
 
-function Brand({ size = 'sm' }: { size?: 'sm' | 'md' }) {
+function Brand({ size = 'sm', href }: { size?: 'sm' | 'md'; href: string }) {
   return (
-    <Link href="/" className="flex items-center gap-2">
+    <Link href={href} className="flex items-center gap-2.5">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/brand/vaal-emblem.png"
         alt=""
-        className={size === 'md' ? 'size-7' : 'size-6'}
+        className={size === 'md' ? 'size-10' : 'size-9'}
       />
       <span
         className={cn(
           'font-heading font-semibold tracking-wide text-foreground',
-          size === 'md' ? 'text-base' : 'text-sm'
+          size === 'md' ? 'text-lg' : 'text-base'
         )}
       >
         Project Vaal
@@ -57,6 +57,13 @@ export function ShellChrome({
   const pathname = usePathname()
   const signedIn = !!email
 
+  // When signed in, "Home" and the brand return you to the dashboard rather
+  // than the public landing page.
+  const homeHref = signedIn ? '/dashboard' : '/'
+  const navItems = NAV.map((item) =>
+    item.icon === 'home' ? { ...item, href: homeHref } : item
+  )
+
   const AccountControl = signedIn ? (
     <form action={signOutAction}>
       <Button type="submit" variant="ghost" size="sm" className="gap-2">
@@ -75,10 +82,10 @@ export function ShellChrome({
       {/* Desktop sidebar */}
       <aside className="hidden md:flex md:w-60 md:shrink-0 md:flex-col md:gap-1 md:border-r md:border-border md:bg-card/40 md:px-3 md:py-5">
         <div className="mb-4 px-2">
-          <Brand size="md" />
+          <Brand size="md" href={homeHref} />
         </div>
         <nav className="flex flex-1 flex-col gap-1">
-          {NAV.map((item) => {
+          {navItems.map((item) => {
             const active = isActive(pathname, item.href)
             const base =
               'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors'
@@ -123,7 +130,7 @@ export function ShellChrome({
       <div className="flex min-h-[100dvh] flex-1 flex-col">
         {/* Mobile top bar */}
         <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur md:hidden">
-          <Brand />
+          <Brand href={homeHref} />
           {AccountControl}
         </header>
 
@@ -134,7 +141,7 @@ export function ShellChrome({
 
       {/* Mobile bottom nav */}
       <nav className="fixed inset-x-0 bottom-0 z-20 flex h-16 items-stretch border-t border-border bg-background/90 backdrop-blur md:hidden">
-        {NAV.map((item) => {
+        {navItems.map((item) => {
           const active = isActive(pathname, item.href)
           const inner = (color: string) => (
             <>
