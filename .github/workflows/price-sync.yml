@@ -1,26 +1,32 @@
 name: Price Sync
 
-# Hourly price sync — calls our deployed /api/prices/sync endpoint.
-#
-# Why GitHub Actions instead of Vercel Cron: Vercel's free (Hobby) plan limits
-# how often cron jobs can run. GitHub Actions scheduled workflows are free and
-# can run hourly. This workflow does nothing until two repository secrets are
-# set (see PRICE-CHECK.md Part E):
-#   APP_URL      — your deployed app URL, e.g. https://project-vaal.vercel.app
+# Every 30 minutes, on the hour and half-hour — calls our deployed
+# /api/prices/sync endpoint. Requires two repository secrets (Settings →
+# Secrets and variables → Actions → Repository secrets — NOT Environment
+# secrets, which this workflow can't see):
+#   APP_URL      — e.g. https://www.project-vaal.xyz  (no trailing slash)
 #   CRON_SECRET  — same value as the CRON_SECRET env var in Vercel
 
 on:
   schedule:
-    # Every hour at minute 15 (GitHub schedules can be delayed a few minutes
-    # at popular times like :00 — :15 is quieter)
-    - cron: '15 * * * *'
-  # Allows manually triggering from the GitHub Actions tab — useful for testing
+    - cron: '0,30 * * * *'
   workflow_dispatch:
 
 jobs:
   sync-prices:
     runs-on: ubuntu-latest
     steps:
+      - name: Verify secrets are present
+        run: |
+          if [ -z "${{ secrets.APP_URL }}" ]; then
+            echo "::error::APP_URL secret is missing or not visible to this workflow (check Settings → Secrets and variables → Actions → Repository secrets, not an Environment)."
+            exit 1
+          fi
+          if [ -z "${{ secrets.CRON_SECRET }}" ]; then
+            echo "::error::CRON_SECRET secret is missing or not visible to this workflow."
+            exit 1
+          fi
+
       - name: Call price sync endpoint
         run: |
           status=$(curl -s -o response.json -w "%{http_code}" \
