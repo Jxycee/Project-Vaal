@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# one-time delivery bundles (extracted via Expand-Archive, never meant to be tracked)
+*.zip
