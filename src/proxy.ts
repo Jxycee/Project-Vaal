@@ -9,14 +9,14 @@ import { NextResponse, type NextRequest } from 'next/server'
 // NOTE on route structure:
 //   /builds          → PUBLIC   (build finder, anonymous planner, shared viewer)
 //   /wiki            → PUBLIC
-//   /tree            → PUBLIC
 //   /league          → PUBLIC
 //   /login /signup   → PUBLIC
 //   /dashboard       → PROTECTED
 //   /characters      → PROTECTED
 //   /settings        → PROTECTED
+//   /tree            → PROTECTED (account required — §12; lives at (dashboard)/tree, URL stays /tree)
 // ---------------------------------------------------------------------------
-const PROTECTED_PREFIXES = ['/dashboard', '/characters', '/settings']
+const PROTECTED_PREFIXES = ['/dashboard', '/characters', '/settings', '/tree']
 
 function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix))
