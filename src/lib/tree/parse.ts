@@ -6,6 +6,7 @@
 import type {
   Bounds,
   ClassId,
+  GroupCenter,
   NodeId,
   NodeKind,
   TreeClass,
@@ -21,6 +22,8 @@ interface RawNode {
   icon?: string;
   x?: number;
   y?: number;
+  group?: number;
+  orbit?: number;
   stats?: string[];
   isNotable?: boolean;
   isKeystone?: boolean;
@@ -28,6 +31,8 @@ interface RawNode {
   isJewelSocket?: boolean;
   isGenericAttribute?: boolean;
   isAscendancyStart?: boolean;
+  isMultipleChoiceOption?: boolean;
+  multipleChoiceParent?: number;
   classStartIndex?: number[];
   ascendancyId?: string;
   grantedStrength?: number;
@@ -40,6 +45,11 @@ interface RawNode {
   in?: string[];
 }
 
+interface RawGroup {
+  x?: number;
+  y?: number;
+}
+
 interface RawClass {
   name?: string;
   base_str?: number;
@@ -50,6 +60,7 @@ interface RawClass {
 
 interface RawTree {
   nodes?: Record<string, RawNode>;
+  groups?: Record<string, RawGroup>;
   classes?: RawClass[];
 }
 
@@ -84,6 +95,13 @@ function kindOf(raw: RawNode): NodeKind {
   return 'small';
 }
 
+// Decoration = rendered/invisible but never allocatable: masteries (decorative
+// in PoE2 0.5.x — no stats) and empty proxy connectors (no name AND no icon).
+function isDecorationNode(raw: RawNode): boolean {
+  if (raw.isMastery) return true;
+  return !raw.name && !raw.icon;
+}
+
 function ascendancyNames(raw: RawClass): string[] {
   return (raw.ascendancies ?? [])
     .map((a) => (typeof a === 'string' ? a : a?.name))
@@ -104,6 +122,18 @@ function boundsOf(nodes: Map<NodeId, TreeNode>): Bounds {
   return { minX, minY, maxX, maxY };
 }
 
+function parseGroups(raw: RawTree): Map<number, GroupCenter> {
+  const groups = new Map<number, GroupCenter>();
+  for (const [gid, g] of Object.entries(raw.groups ?? {})) {
+    const id = Number(gid);
+    if (!Number.isInteger(id)) continue;
+    if (typeof g.x === 'number' && typeof g.y === 'number') {
+      groups.set(id, { x: g.x, y: g.y });
+    }
+  }
+  return groups;
+}
+
 export function parseTreeExport(raw: unknown): TreeModel {
   if (typeof raw !== 'object' || raw === null) {
     throw new Error('parseTreeExport: root is not an object');
@@ -122,7 +152,7 @@ export function parseTreeExport(raw: unknown): TreeModel {
     if (id === null) continue; // skips "root" and any non-numeric key
 
     if (typeof rn.x !== 'number' || typeof rn.y !== 'number') {
-      // Every allocatable passive has a position; if this fires, the schema changed.
+      // Every node (incl. proxy connectors) has a position; if this fires, the schema changed.
       throw new Error(`parseTreeExport: node ${key} has no coordinates`);
     }
 
@@ -132,6 +162,8 @@ export function parseTreeExport(raw: unknown): TreeModel {
       icon: rn.icon ?? '',
       x: rn.x,
       y: rn.y,
+      group: rn.group ?? -1,
+      orbit: rn.orbit ?? 0,
       stats: Array.isArray(rn.stats) ? rn.stats : [],
       kind: kindOf(rn),
       isNotable: !!rn.isNotable,
@@ -139,8 +171,11 @@ export function parseTreeExport(raw: unknown): TreeModel {
       isMastery: !!rn.isMastery,
       isJewelSocket: !!rn.isJewelSocket,
       isAttribute: !!rn.isGenericAttribute,
+      isDecoration: isDecorationNode(rn),
+      isMultipleChoiceOption: !!rn.isMultipleChoiceOption,
       neighbors: neighborsOf(rn),
     };
+    if (rn.multipleChoiceParent !== undefined) node.multipleChoiceParent = rn.multipleChoiceParent;
     if (rn.ascendancyId !== undefined) node.ascendancyId = rn.ascendancyId;
     if (rn.grantedStrength !== undefined) node.grantedStrength = rn.grantedStrength;
     if (rn.grantedDexterity !== undefined) node.grantedDexterity = rn.grantedDexterity;
@@ -180,5 +215,5 @@ export function parseTreeExport(raw: unknown): TreeModel {
     };
   });
 
-  return { nodes, classes, bounds: boundsOf(nodes) };
+  return { nodes, classes, groups: parseGroups(root), bounds: boundsOf(nodes) };
 }
