@@ -26,7 +26,7 @@
 // =============================================================================
 
 const REALM = 'poe2'
-const BASE_URL = `https://api.poe2scout.com/api/${REALM}`
+const BASE_URL = `https://api.poe2scout.com/${REALM}`
 
 // ReferenceCurrency: the currency the API expresses prices against.
 // "exalted" makes CurrentPrice come back directly in Exalted Orbs
