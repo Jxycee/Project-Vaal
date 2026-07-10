@@ -101,7 +101,7 @@ export interface ScoutLeague {
 
 function userAgent(): string {
   const contact = process.env.PRICE_SYNC_CONTACT ?? 'no-contact-set'
-  return `ProjectVaal/0.1 (contact: ${contact})`
+  return `ProjectVaal/0.1 ~ https://project-vaal.xyz (contact: ${contact})`
 }
 
 export function sleep(ms: number): Promise<void> {
