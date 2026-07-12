@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
+import { VaalOrb } from '@/components/dashboard/vaal-orb'
 import { Icon } from '@/components/ui/icon'
 import { Card } from '@/components/ui/card'
 
@@ -20,20 +21,36 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="font-heading text-2xl font-bold tracking-tight">Welcome back</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Signed in as {account}</p>
-        {/* Same next/image treatment as the landing page's divider — real
-            intrinsic size (1096x182) instead of a bare <img>. */}
-        <Image
-          src="/ornaments/divider.png"
-          alt=""
-          width={1096}
-          height={182}
-          sizes="192px"
-          className="mt-4 h-auto w-48 opacity-80"
-        />
-      </div>
+      <section className="relative overflow-hidden rounded-xl border border-border bg-card/35">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_78%_50%,color-mix(in_oklab,var(--primary)_16%,transparent),transparent_42%)]" />
+
+        <div className="grid min-h-72 md:grid-cols-[minmax(0,1fr)_18rem] md:items-stretch">
+          <div className="relative z-10 flex flex-col justify-center p-5 sm:p-6">
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">
+              Project Vaal
+            </p>
+            <h1 className="mt-2 font-heading text-2xl font-bold tracking-tight sm:text-3xl">
+              Welcome back
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">Signed in as {account}</p>
+
+            <Image
+              src="/ornaments/divider.png"
+              alt=""
+              width={1096}
+              height={182}
+              sizes="192px"
+              className="mt-4 h-auto w-48 opacity-80"
+            />
+
+            <p className="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
+              Price checks, passive-tree planning, and character tools for Path of Exile 2.
+            </p>
+          </div>
+
+          <VaalOrb className="h-64 min-h-64 md:h-72" />
+        </div>
+      </section>
 
       <section className="flex flex-col gap-3">
         <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
