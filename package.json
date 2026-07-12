@@ -41,6 +41,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/three": "^0.178.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "patch-package": "^8.0.1",
