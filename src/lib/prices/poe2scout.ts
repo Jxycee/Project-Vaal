@@ -218,6 +218,27 @@ export async function fetchCategory(
     page += 1
     await sleep(600)
   }
+    if (
+    category === 'currency' &&
+    REFERENCE_CURRENCY === 'exalted' &&
+    !lines.some((line) => line.api_id === 'exalted')
+  ) {
+    lines.push({
+      league,
+      category: 'currency',
+      api_id: 'exalted',
+      name: 'Exalted Orb',
+      icon_url: null,
+      exalted_value: 1,
+      divine_value: divinePrice > 0 ? 1 / divinePrice : null,
+      snapshot: {
+        ApiId: 'exalted',
+        Text: 'Exalted Orb',
+        CurrentPrice: 1,
+        synthetic: true,
+      },
+    })
+  }
 
   return lines.filter((l) => l.api_id !== '' && l.name !== 'Unknown')
 }
