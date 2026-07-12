@@ -27,7 +27,11 @@
 
 // Sourced from package.json so the User-Agent version never drifts out of
 // sync with the real app version again (it previously hardcoded "0.1").
-import { version as APP_VERSION } from '../../../package.json'
+// Default import + property access, not a named import — some bundlers
+// (webpack, used for the production build per the PWA/Serwist work) warn
+// that named exports from JSON modules are being deprecated.
+import packageJson from '../../../package.json'
+const APP_VERSION = packageJson.version
 
 const REALM = 'poe2'
 const BASE_URL = `https://api.poe2scout.com/${REALM}`

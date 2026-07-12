@@ -14,6 +14,18 @@ const withSerwist = withSerwistInit({
 
 const nextConfig: NextConfig = {
   // -------------------------------------------------------------------------
+  // Explicit, empty Turbopack config. `withSerwistInit` (below) injects a
+  // `webpack` key into this config to bundle the service worker for
+  // production (`next build --webpack`). Without this, `next dev` (which
+  // defaults to Turbopack on Next 16) sees that `webpack` key with no
+  // matching `turbopack` key and treats it as an unmigrated config, hard-
+  // erroring on startup. This tells Next.js the Turbopack/webpack split is
+  // deliberate: dev stays on Turbopack with its own defaults, the webpack
+  // key only matters for the production build path.
+  // -------------------------------------------------------------------------
+  turbopack: {},
+
+  // -------------------------------------------------------------------------
   // Image optimisation
   // Add domains here as we discover which CDNs GGG / poewiki use for assets.
   // -------------------------------------------------------------------------
