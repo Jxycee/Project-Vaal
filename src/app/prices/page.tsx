@@ -218,8 +218,7 @@ export default function PricesPage() {
         <div>
           <h1 className="font-heading text-2xl font-bold tracking-tight">Price Check</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Updated hourly. PoE2 has one shared economy across PC, PS5 and Xbox — these prices are
-            your prices.
+            Updated hourly. PoE2 has one shared economy across PC, PS5 and Xbox. These prices roughly reflect the in-game Currency Exchange (Ange).
           </p>
         </div>
         <Button
@@ -261,7 +260,7 @@ export default function PricesPage() {
                 : 'text-muted-foreground hover:text-foreground'
             )}
           >
-            {v === 'exchange' ? 'Exchange' : 'Browse'}
+            {v === 'exchange' ? 'Currency Exchange' : 'Browse All'}
           </button>
         ))}
       </div>
@@ -278,8 +277,8 @@ export default function PricesPage() {
           {/* Quick picks for the two currencies people convert against most */}
           <div className="flex gap-2">
             {[
-              { id: 'exalted', label: 'Exalted' },
-              { id: 'divine', label: 'Divine' },
+              { id: 'exalted', label: 'Exalted Orb' },
+              { id: 'divine', label: 'Divine Orb' },
             ].map((q) => {
               const available = currencyRows.some((r) => r.api_id === q.id)
               const active = (fromRow?.api_id ?? '') === q.id
