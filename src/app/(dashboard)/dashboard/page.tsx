@@ -36,6 +36,14 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-8 overflow-x-clip pb-6 sm:gap-10">
+      <style>{`
+        .vaal-orb-stage canvas {
+          display: block;
+          z-index: 1;
+          touch-action: pan-y !important;
+        }
+      `}</style>
+
       <section className="grid items-center gap-6 lg:grid-cols-[minmax(0,1.08fr)_minmax(20rem,0.92fr)] lg:gap-8 xl:gap-12">
         <div className="relative overflow-hidden rounded-2xl border border-border bg-card/45 p-5 shadow-[0_24px_70px_-44px_rgba(0,0,0,0.9)] sm:p-8 lg:p-9">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,color-mix(in_oklab,var(--primary)_12%,transparent),transparent_40%)]" />
