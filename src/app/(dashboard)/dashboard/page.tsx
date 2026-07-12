@@ -5,7 +5,6 @@ import { Icon } from '@/components/ui/icon'
 import { Card } from '@/components/ui/card'
 
 const COMING_SOON = [
-  { title: 'Passive Tree', icon: 'tree', blurb: 'Interactive skill tree viewer and planner.' },
   { title: 'Campaign Tracker', icon: 'campaign', blurb: 'Per-character checklist for every act.' },
   { title: 'Build Planner', icon: 'builds', blurb: 'Create, save, and share builds via link.' },
   { title: 'Item Wiki', icon: 'wiki', blurb: 'Searchable bases, mods, and skill gems.' },
@@ -46,6 +45,23 @@ export default async function DashboardPage() {
               </div>
               <p className="mt-2 text-sm text-muted-foreground">
                 Currency exchange rates and item prices, synced hourly.
+              </p>
+            </Card>
+          </Link>
+
+          <Link href="/tree" className="group">
+            <Card className="h-full p-4 transition-colors hover:border-primary/40 hover:bg-accent/40">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <Icon name="tree" className="size-5 text-primary" />
+                  <span className="font-medium">Passive Tree</span>
+                </div>
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[0.7rem] font-medium text-primary">
+                  Live
+                </span>
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Interactive skill tree viewer and planner.
               </p>
             </Card>
           </Link>
