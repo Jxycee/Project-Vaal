@@ -8,7 +8,7 @@ on:
 
 jobs:
   check:
-    name: Type-check & Lint
+    name: Type-check, Lint & Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -29,6 +29,9 @@ jobs:
 
       - name: ESLint — lint check
         run: npm run lint
+
+      - name: Vitest — unit tests
+        run: npm test
 
   # ---------------------------------------------------------------------------
   # Ladder sync cron test — validates the sync endpoint compiles and exports

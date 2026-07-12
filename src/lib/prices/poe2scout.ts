@@ -25,6 +25,14 @@
 // Courtesy: identify with a contact email in User-Agent; gap 600ms (~under 2 req/s).
 // =============================================================================
 
+// Sourced from package.json so the User-Agent version never drifts out of
+// sync with the real app version again (it previously hardcoded "0.1").
+// Default import + property access, not a named import — some bundlers
+// (webpack, used for the production build per the PWA/Serwist work) warn
+// that named exports from JSON modules are being deprecated.
+import packageJson from '../../../package.json'
+const APP_VERSION = packageJson.version
+
 const REALM = 'poe2'
 const BASE_URL = `https://api.poe2scout.com/${REALM}`
 
@@ -101,7 +109,7 @@ export interface ScoutLeague {
 
 function userAgent(): string {
   const contact = process.env.PRICE_SYNC_CONTACT ?? 'no-contact-set'
-  return `ProjectVaal/0.1 ~ https://project-vaal.xyz (contact: ${contact})`
+  return `ProjectVaal/${APP_VERSION} ~ https://project-vaal.xyz (contact: ${contact})`
 }
 
 export function sleep(ms: number): Promise<void> {

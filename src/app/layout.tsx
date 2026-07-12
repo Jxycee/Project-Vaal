@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Cinzel, Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
@@ -18,6 +18,11 @@ export const metadata: Metadata = {
   title: "Project Vaal",
   description:
     "A free companion app for Path of Exile 2 console players — builds, passive tree, campaign tracker, and prices.",
+  manifest: "/manifest.webmanifest",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#c6a662",
 };
 
 export default function RootLayout({

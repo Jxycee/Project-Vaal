@@ -9,6 +9,7 @@
 // =============================================================================
 
 import { useEffect, useMemo, useState } from 'react'
+import Image from 'next/image'
 import Fuse from 'fuse.js'
 import { createClient } from '@/lib/supabase/client'
 import { Icon } from '@/components/ui/icon'
@@ -392,8 +393,16 @@ export default function PricesPage() {
 
           {browseRows.length === 0 ? (
             <div className="flex flex-col items-center py-10 text-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/illustrations/empty-prices.png" alt="" className="size-28 opacity-80" />
+              {/* Same next/image treatment as the other static illustrations
+                  — real intrinsic size (480x483) instead of a bare <img>. */}
+              <Image
+                src="/illustrations/empty-prices.png"
+                alt=""
+                width={480}
+                height={483}
+                sizes="112px"
+                className="size-28 opacity-80"
+              />
               <p className="mt-3 text-sm text-muted-foreground">
                 {searching ? 'No items match your search.' : 'No items in this category yet.'}
               </p>

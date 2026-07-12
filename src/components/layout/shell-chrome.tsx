@@ -4,6 +4,7 @@
 // with one centred content container. Live routes are links; unbuilt features
 // render as dimmed "Soon" items so nothing 404s. Semantic tokens only.
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { Icon } from '@/components/ui/icon'
 import { Button } from '@/components/ui/button'
@@ -25,12 +26,20 @@ function isActive(pathname: string, href: string): boolean {
 }
 
 function Brand({ size = 'sm', href }: { size?: 'sm' | 'md'; href: string }) {
+  // size-12 = 48px, size-16 = 64px — matches the two className variants below.
+  const px = size === 'md' ? 48 : 64
   return (
     <Link href={href} className="flex items-center gap-2.5">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      {/* This renders in the shared shell on every page (sidebar + mobile
+          header), so an unoptimized image here hits every page, not just
+          one — was the full 1024x1024 (1.39MB) source at a 48-64px display
+          size, the same class of problem as the landing page's emblem. */}
+      <Image
         src="/brand/vaal-emblem.png"
         alt=""
+        width={px}
+        height={px}
+        sizes={`${px}px`}
         className={size === 'md' ? 'size-12' : 'size-16'}
       />
       <span

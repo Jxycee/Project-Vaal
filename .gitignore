@@ -17,6 +17,11 @@
 /.next/
 /out/
 
+# Serwist — generated service worker bundle, regenerated on every
+# `next build`. Not hand-written source; don't track the build output.
+/public/sw.js
+/public/sw.js.map
+
 # production
 /build
 

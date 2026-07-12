@@ -83,9 +83,15 @@ export const config = {
      * Match all paths except:
      *   - Next.js internals (_next/static, _next/image)
      *   - Static files (favicon.ico and common image extensions)
+     *   - /data/** — vendored tree JSON + sprite atlases (public/data/tree/...).
+     *     These are large, cacheable, unauthenticated static assets fetched
+     *     client-side by the tree viewer; without this exclusion every one
+     *     of those fetches (data.json + ~6 atlas manifests per page load)
+     *     paid for a Supabase auth.getUser() round-trip for no reason, since
+     *     .json isn't covered by the extension list below.
      *
      * We must match API routes so session cookies are refreshed there too.
      */
-    '/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico|data/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 }

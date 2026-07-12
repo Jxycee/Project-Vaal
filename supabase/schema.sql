@@ -155,8 +155,10 @@ CREATE TABLE public.builds (
   league          text        NOT NULL DEFAULT 'Standard',
 
   -- JSONB build state — shapes documented in schema.md and §6 of planning doc
-  -- passive_state: { set1: [nodeId, ...], set2: [nodeId, ...] }
-  passive_state   jsonb       NOT NULL DEFAULT '{"set1": [], "set2": []}',
+  -- passive_state: { set1: [nodeId, ...], set2: [nodeId, ...], ascendancyNodes: [nodeId, ...] }
+  -- (matches plan §6, updated 2026-07-06 for ascendancy support — this file had
+  -- drifted behind that update; ascendancyNodes was missing from the default)
+  passive_state   jsonb       NOT NULL DEFAULT '{"set1": [], "set2": [], "ascendancyNodes": []}',
   -- gear_state:    { head: {...item}|null, body: {...item}|null, ... }
   gear_state      jsonb       NOT NULL DEFAULT '{}',
   -- gem_state:     { slots: [{ skill: {...gem}, supports: [{...gem}] }] }

@@ -1,5 +1,6 @@
 // /dashboard — authenticated landing. Live Prices tile + dimmed "Soon" tiles.
 import Link from 'next/link'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
 import { Icon } from '@/components/ui/icon'
 import { Card } from '@/components/ui/card'
@@ -22,8 +23,16 @@ export default async function DashboardPage() {
       <div>
         <h1 className="font-heading text-2xl font-bold tracking-tight">Welcome back</h1>
         <p className="mt-1 text-sm text-muted-foreground">Signed in as {account}</p>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/ornaments/divider.png" alt="" className="mt-4 h-auto w-48 opacity-80" />
+        {/* Same next/image treatment as the landing page's divider — real
+            intrinsic size (1096x182) instead of a bare <img>. */}
+        <Image
+          src="/ornaments/divider.png"
+          alt=""
+          width={1096}
+          height={182}
+          sizes="192px"
+          className="mt-4 h-auto w-48 opacity-80"
+        />
       </div>
 
       <section className="flex flex-col gap-3">

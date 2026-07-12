@@ -75,12 +75,30 @@ export default function PassiveTree({ raw }: { raw: GggTreeJson }) {
     [data, classId, ascendancyId, allocated, main.weaponSets],
   );
 
-  // Main-tree extent for the initial fit. Ring geometry is shared across every
-  // class (only the portrait differs), so this — and the credit position
-  // derived from it below — stays correct across class switches even though
-  // our TreeView patch only places world labels once, at mount.
+  // Main-tree extent for the initial fit. mainBounds is the extent of the
+  // WHOLE main tree (ascendancy discs excluded, per tree-core's own docs) —
+  // it does NOT vary by class or allocation, only by the underlying tree data
+  // itself. So this is just scene.mainBounds off the scene we've already
+  // built — no second buildScene() call needed.
+  //
+  // (Previously called buildScene() a second time with allocated: [] just to
+  // read this off a throwaway scene — needless full geometry pass. Then
+  // briefly tried classBounds(scene, classId) to scope this per-class, which
+  // was the wrong fix: mainBounds was never class-scoped to begin with, and
+  // classBounds's "closest bearing" sector assignment can't disambiguate two
+  // classes that share the exact same start node — which happens for every
+  // class pair in this tree, and breaks in practice for Witch/Sorceress and
+  // Ranger/Huntress specifically, since they're the only two pairs where both
+  // classes are real/selectable rather than one being an unreleased legacy
+  // slot filtered out of the picker.)
+  //
+  // Dependency is [data, classId] to match the original recompute cadence
+  // exactly, even though mainBounds doesn't actually need classId — `scene`
+  // isn't listed on purpose, so `frame` keeps a stable reference across
+  // allocation changes, matching TreeView's mount-once framing assumption.
   const frame = useMemo(
-    () => buildScene(data, { allocation: { classId, allocated: [] } }).mainBounds,
+    () => scene.mainBounds,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [data, classId],
   );
 
