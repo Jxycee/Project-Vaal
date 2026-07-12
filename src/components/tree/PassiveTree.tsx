@@ -24,6 +24,8 @@ import type { AllocMode, TreeData, WeaponSetAllocation } from '@poe2-toolkit/tre
 import { normalizeGggTree, type GggTreeJson } from '@poe2-toolkit/tree-core/ggg';
 import { TreeView } from '@poe2-toolkit/tree-react';
 import TreeControls, { type PickerClass } from '@/components/tree/TreeControls';
+import NodeTooltip, { type HoveredNode } from '@/components/tree/NodeTooltip';
+import NodeInfoPanel, { type SelectedNode } from '@/components/tree/NodeInfoPanel';
 import { useTreeResources, useClassCentreSprites } from '@/lib/tree/resources';
 
 const TREE_VERSION = '0_5';
@@ -45,6 +47,14 @@ export default function PassiveTree({ raw }: { raw: GggTreeJson }) {
   const [mode, setMode] = useState<AllocMode>(0);
   const [main, setMain] = useState<WeaponSetAllocation>(EMPTY_MAIN);
   const [ascendancyNodes, setAscendancyNodes] = useState<number[]>([]);
+
+  // Tooltips: real pointer hover only fires for a mouse (touch always starts
+  // a drag ref on pointerdown, so onNodeHover never fires on tap — traced in
+  // tree-react's own pointer handling, not an assumption). So hover drives a
+  // floating desktop tooltip, while every tap ALSO pins the tapped node's
+  // info into a persistent panel that works on both input types.
+  const [hoveredNode, setHoveredNode] = useState<HoveredNode | null>(null);
+  const [selectedNode, setSelectedNode] = useState<SelectedNode | null>(null);
 
   const startNode = data.classes[classId]?.startNode ?? 0;
   const activeClass = data.classes[classId];
@@ -99,6 +109,8 @@ export default function PassiveTree({ raw }: { raw: GggTreeJson }) {
       const node = data.nodes[skill];
       if (!node) return;
 
+      setSelectedNode({ name: node.name, stats: node.stats });
+
       if (node.ascendancyName) {
         if (!ascGraph) return; // clicked an ascendancy node with none active — ignore
         const next = toggleAscendancyAllocation(data, node.ascendancyName, new Set(allocated), skill, ascGraph);
@@ -111,12 +123,30 @@ export default function PassiveTree({ raw }: { raw: GggTreeJson }) {
     [data, allocated, main.allocated, ascGraph, startNode, mode, mainGraph],
   );
 
+  const handleNodeHover = useCallback(
+    (skill: number | null, screen?: { x: number; y: number }) => {
+      if (skill === null || !screen) {
+        setHoveredNode(null);
+        return;
+      }
+      const node = data.nodes[skill];
+      if (!node) {
+        setHoveredNode(null);
+        return;
+      }
+      setHoveredNode({ name: node.name, stats: node.stats, x: screen.x, y: screen.y });
+    },
+    [data],
+  );
+
   const handleClass = useCallback((id: number) => {
     setClassId(id);
     setAscendancyId(undefined);
     setMode(0);
     setMain(EMPTY_MAIN);
     setAscendancyNodes([]);
+    setSelectedNode(null);
+    setHoveredNode(null);
   }, []);
 
   const handleAscendancy = useCallback((id: string | undefined) => {
@@ -153,8 +183,11 @@ export default function PassiveTree({ raw }: { raw: GggTreeJson }) {
         focus={frame}
         worldLabels={creditLabels}
         onNodeClick={handleNodeClick}
+        onNodeHover={handleNodeHover}
         style={{ width: '100%', height: '100%' }}
       />
+      <NodeTooltip node={hoveredNode} />
+      <NodeInfoPanel node={selectedNode} onDismiss={() => setSelectedNode(null)} />
     </div>
   );
 }
