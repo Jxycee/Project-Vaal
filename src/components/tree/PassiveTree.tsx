@@ -55,6 +55,7 @@ export default function PassiveTree({ raw }: { raw: GggTreeJson }) {
   // info into a persistent panel that works on both input types.
   const [hoveredNode, setHoveredNode] = useState<HoveredNode | null>(null);
   const [selectedNode, setSelectedNode] = useState<SelectedNode | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const startNode = data.classes[classId]?.startNode ?? 0;
   const activeClass = data.classes[classId];
@@ -82,6 +83,17 @@ export default function PassiveTree({ raw }: { raw: GggTreeJson }) {
     () => buildScene(data, { allocation: { classId, allocated: [] } }).mainBounds,
     [data, classId],
   );
+
+  const highlightSet = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return null;
+    const hits = new Set<number>();
+    for (const placed of scene.nodes) {
+      const node = data.nodes[placed.skill];
+      if (node && node.name.toLowerCase().includes(q)) hits.add(placed.skill);
+    }
+    return hits.size > 0 ? hits : null;
+  }, [searchQuery, scene, data]);
 
   const creditLabels = useMemo(() => {
     const { centre, ring } = scene.centre;
@@ -154,6 +166,13 @@ export default function PassiveTree({ raw }: { raw: GggTreeJson }) {
     setAscendancyNodes([]); // a build paths one ascendancy at a time
   }, []);
 
+  const handleReset = useCallback(() => {
+    setMain(EMPTY_MAIN);
+    setAscendancyNodes([]);
+    setSelectedNode(null);
+    setHoveredNode(null);
+  }, []);
+
   const pickerClasses: PickerClass[] = useMemo(
     () =>
       data.classes
@@ -169,9 +188,13 @@ export default function PassiveTree({ raw }: { raw: GggTreeJson }) {
         classId={classId}
         ascendancyId={ascendancyId}
         mode={mode}
+        searchQuery={searchQuery}
+        hasAllocations={allocated.length > 0}
         onClass={handleClass}
         onAscendancy={handleAscendancy}
         onMode={setMode}
+        onSearchChange={setSearchQuery}
+        onReset={handleReset}
       />
       <TreeView
         scene={scene}
@@ -182,6 +205,7 @@ export default function PassiveTree({ raw }: { raw: GggTreeJson }) {
         wheelZoom
         focus={frame}
         worldLabels={creditLabels}
+        highlight={highlightSet}
         onNodeClick={handleNodeClick}
         onNodeHover={handleNodeHover}
         style={{ width: '100%', height: '100%' }}
