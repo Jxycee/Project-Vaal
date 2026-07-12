@@ -1,4 +1,16 @@
 import type { NextConfig } from 'next'
+import withSerwistInit from '@serwist/next'
+
+// Serwist generates the service worker from src/sw.ts. Disabled in
+// development — nothing to test there either way, and it sidesteps a
+// documented Turbopack/Serwist dev-mode integration gap. Production builds
+// use `next build --webpack` (see package.json) for the same reason, applied
+// to the build step instead. See docs/superpowers/specs/2026-07-12-pwa-serwist-design.md.
+const withSerwist = withSerwistInit({
+  swSrc: 'src/sw.ts',
+  swDest: 'public/sw.js',
+  disable: process.env.NODE_ENV === 'development',
+})
 
 const nextConfig: NextConfig = {
   // -------------------------------------------------------------------------
@@ -53,4 +65,4 @@ const nextConfig: NextConfig = {
   // },
 }
 
-export default nextConfig
+export default withSerwist(nextConfig)

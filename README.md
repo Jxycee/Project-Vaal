@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Project Vaal
 
-## Getting Started
+A free, mobile-first companion hub for **Path of Exile 2 console players** (PS5, Xbox Series X/S) who can't run desktop tools like Path of Building, overlays, or mods. PoE2 only — no PoE1 support.
 
-First, run the development server:
+Live at **[project-vaal.xyz](https://www.project-vaal.xyz)**.
 
-```bash
+Core features: passive skill tree viewer, currency/item price check, item wiki, build sharing, and a campaign tracker. See the [living planning document](./docs/superpowers/plans/) for full feature status, schema, and architecture — it's the single source of truth for this project, kept current with targeted section edits.
+
+## Tech stack
+
+- **Framework:** Next.js 16 (App Router), React 19, TypeScript
+- **Styling:** Tailwind CSS v4 + shadcn/ui (`radix-nova` style)
+- **Database/Auth:** Supabase (PostgreSQL + Auth, Row Level Security on every table)
+- **Passive tree:** PixiJS (WebGL) via [`@poe2-toolkit`](https://github.com/rajtik76/poe2-toolkit) (`tree-core` + `tree-react`) — see [`THIRD-PARTY-NOTICES.md`](./THIRD-PARTY-NOTICES.md)
+- **Search:** Fuse.js (client-side fuzzy search)
+- **Hosting/CI:** Vercel + GitHub Actions
+
+Exact dependency versions live in `package.json` — treat that as authoritative over anything written in prose here.
+
+## Getting started
+
+```powershell
+# Install dependencies
+npm install
+
+# Copy the environment template and fill in real values
+Copy-Item .env.local.example .env.local
+
+# Run the dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+You'll need a Supabase project (URL + anon key at minimum) for auth and any data-backed page to work — see `.env.local.example` for the full list of required and optional environment variables, and `supabase/schema.sql` + `supabase/price-check-schema.sql` for the database schema to apply.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Useful scripts
 
-## Learn More
+| Command | What it does |
+|---|---|
+| `npm run dev` | Start the dev server |
+| `npm run build` | Production build |
+| `npm run lint` | ESLint |
+| `npm run type-check` | `tsc --noEmit` |
+| `npm test` | Run the vitest suite once |
+| `npm run test:watch` | Vitest in watch mode |
+| `npm run db:types` | Regenerate `src/types/database.ts` from the live Supabase schema |
 
-To learn more about Next.js, take a look at the following resources:
+CI (`.github/workflows/ci.yml`) runs type-check + lint on every PR and push to `main`. A separate scheduled workflow (`.github/workflows/price-sync.yml`) calls `/api/prices/sync` every 30 minutes to keep currency/item prices current.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `src/app/` — routes (App Router). `(auth)` and `(dashboard)` are route groups — organizational only, they don't add a URL segment.
+- `src/components/` — UI components (`ui/` primitives, `layout/` app shell, `tree/` passive-tree viewer)
+- `src/lib/` — Supabase clients, price-check API client, passive-tree resource loading, and other pure logic
+- `public/data/tree/<version>/` — vendored GGG passive-tree export (JSON + sprite atlases), self-hosted per the scoped exception in the plan doc's design-decisions section
+- `supabase/` — SQL schema (source of truth for a fresh database setup)
+- `patches/` — a reviewed `patch-package` patch for `@poe2-toolkit/tree-react` (applied automatically via `postinstall`)
 
-## Deploy on Vercel
+## License / attribution
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Project Vaal is an independent project and is not affiliated with or endorsed by Grinding Gear Games. See [`THIRD-PARTY-NOTICES.md`](./THIRD-PARTY-NOTICES.md) for third-party licenses.
