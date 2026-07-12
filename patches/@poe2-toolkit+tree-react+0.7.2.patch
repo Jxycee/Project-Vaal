@@ -1,0 +1,80 @@
+--- a/node_modules/@poe2-toolkit/tree-react/dist/sceneStyle.js
++++ b/node_modules/@poe2-toolkit/tree-react/dist/sceneStyle.js
+@@ -31,8 +31,11 @@
+  * each weapon set reads apart in the single combined view.
+  */
+ export const WEAPON_SET_COLOR = {
+-    1: 0x4fbf7a,
+-    2: 0x4fa8ff,
++    // Patched for Project Vaal: red = Set I, green = Set II (matches the
++    // in-game weapon-swap indicator), gold stays the shared/basic tree.
++    // Upstream default was green/blue.
++    1: 0xe5484d,
++    2: 0x46a758,
+ };
+ /** Multiply tint for unallocated node icons: 50% grey = half brightness, hue kept. */
+ const ICON_DIM = 0x808080;
+--- a/node_modules/@poe2-toolkit/tree-react/dist/TreeView.js
++++ b/node_modules/@poe2-toolkit/tree-react/dist/TreeView.js
+@@ -15,7 +15,7 @@
+  * without re-rasterising any sprites. That keeps a full-tree pan/zoom smooth even
+  * on machines where Canvas2D `drawImage` falls back to the CPU.
+  */
+-export function TreeView({ scene, resources, activeClassId, activeAscendancy, centreSprites, onNodeClick, onNodeDoubleClick, onInteractStart, onNodeHover, preview, edgeOverlays, controls, wheelZoom, focus, highlight, highlightStyle, debugIds, zoom, className, style, }) {
++export function TreeView({ scene, resources, activeClassId, activeAscendancy, centreSprites, onNodeClick, onNodeDoubleClick, onInteractStart, onNodeHover, preview, edgeOverlays, controls, wheelZoom, focus, highlight, highlightStyle, debugIds, zoom, className, style, worldLabels, }) {
+     // The host element Pixi renders into. We own a wrapper <div> (stable across
+     // renders) and let Pixi create its own <canvas> inside it, rather than handing
+     // Pixi a React-owned <canvas>. A canvas hosts exactly one WebGL context for its
+@@ -127,6 +127,14 @@
+             const labelLayer = new Container();
+             labelLayer.visible = false;
+             world.addChild(centreLayer, effectLayer, connLayer, nodeLayer, ascLayer, overlay, labelLayer);
++            // Project Vaal patch: permanent world-space labels (e.g. credits),
++            // rendered once — independent of scene rebuilds and the debug
++            // label toggle. `worldLabels` is a static prop for our usage
++            // (a single credit line), so we intentionally don't diff/update
++            // this list on prop changes.
++            for (const wl of (worldLabels ?? [])) {
++                world.addChild(staticWorldLabel(wl.text, wl.x, wl.y));
++            }
+             app.stage.addChild(world);
+             appRef.current = app;
+             worldRef.current = world;
+@@ -687,6 +695,21 @@
+     group.position.set(x, y);
+     return group;
+ }
++/**
++ * A permanent world-space text label (credits, attributions) — unlike
++ * `idLabel`, not gated by the debug label-visibility toggle and not rebuilt
++ * on every scene change. Project Vaal patch: see `worldLabels` prop.
++ */
++function staticWorldLabel(text, x, y) {
++    const label = new BitmapText({
++        text,
++        style: { fontFamily: 'serif', fontSize: 26, fill: 0xc8a86a },
++    });
++    label.anchor.set(0, 0.5);
++    label.position.set(x, y);
++    label.alpha = 0.85;
++    return label;
++}
+ // ===========================================================================
+ // Overlays (hover ring, search highlight, allocation preview) — world space
+ // ===========================================================================
+--- a/node_modules/@poe2-toolkit/tree-react/dist/TreeView.d.ts
++++ b/node_modules/@poe2-toolkit/tree-react/dist/TreeView.d.ts
+@@ -92,6 +92,13 @@
+      * component's own layout styles, so it can override them (e.g. `background`).
+      */
+     style?: CSSProperties;
++    /**
++     * Project Vaal patch: permanent world-space text labels (e.g. a courtesy
++     * credit), rendered once at mount straight into the world container so
++     * they pan/zoom with the tree. Not diffed on prop changes — intended for
++     * static, one-time labels only.
++     */
++    worldLabels?: { x: number; y: number; text: string }[];
+ }
+ /** Imperative handle exposed via `controls` for external zoom buttons. */
+ export interface TreeViewControls {
