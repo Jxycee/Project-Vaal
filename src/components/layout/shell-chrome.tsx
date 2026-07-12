@@ -14,7 +14,7 @@ type NavItem = { href: string; label: string; icon: string; live: boolean }
 const NAV: NavItem[] = [
   { href: '/', label: 'Home', icon: 'home', live: true },
   { href: '/prices', label: 'Prices', icon: 'prices', live: true },
-  { href: '/tree', label: 'Tree', icon: 'tree', live: false },
+  { href: '/tree', label: 'Tree', icon: 'tree', live: true },
   { href: '/builds', label: 'Builds', icon: 'builds', live: false },
   { href: '/wiki', label: 'Wiki', icon: 'wiki', live: false },
 ]
