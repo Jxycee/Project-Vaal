@@ -98,7 +98,7 @@ export function VaalOrb({ className = '' }: VaalOrbProps) {
     scene.add(highlightLight)
 
     const emberLight = new THREE.PointLight(0xff2d08, 0.65, 4.2, 2)
-    emberLight.position.set(0, -0.55, -0.7)
+    emberLight.position.set(0, -0.88, -0.7)
     scene.add(emberLight)
 
     const orbGroup = new THREE.Group()
@@ -109,8 +109,10 @@ export function VaalOrb({ className = '' }: VaalOrbProps) {
     const emberPositions = new Float32Array(emberCount * 3)
     const emberColors = new Float32Array(emberCount * 3)
     const embers: Ember[] = []
-    const emberSourceY = -0.96
-    const emberRiseDistance = 2.58
+    const emberSourceY = -1.26
+    const emberFadeStartY = 0.78
+    const emberFadeEndY = 1.9
+    const emberRiseDistance = 3.2
 
     const warmColors = [
       new THREE.Color(0xffb347),
@@ -120,21 +122,21 @@ export function VaalOrb({ className = '' }: VaalOrbProps) {
     ]
 
     const resetEmber = (index: number, initial: boolean) => {
-      const maxLife = 3.5 + Math.random() * 2.8
+      const maxLife = 4.2 + Math.random() * 3.2
       const progress = initial ? Math.random() * 0.94 : 0
       const startX = (Math.random() - 0.5) * 2.42
-      const startY = emberSourceY + Math.random() * 0.06
+      const startY = emberSourceY + Math.random() * 0.05
       const velocity = new THREE.Vector3(
-        (Math.random() - 0.5) * 0.1,
-        (emberRiseDistance / maxLife) * (0.9 + Math.random() * 0.2),
-        (Math.random() - 0.5) * 0.02
+        (Math.random() - 0.5) * 0.12,
+        (emberRiseDistance / maxLife) * (0.88 + Math.random() * 0.24),
+        (Math.random() - 0.5) * 0.024
       )
       const age = maxLife * progress
       const color = warmColors[index % warmColors.length]
       const positionIndex = index * 3
 
       emberPositions[positionIndex] =
-        startX + velocity.x * age * 0.68 + Math.sin(progress * Math.PI * 2) * 0.04
+        startX + velocity.x * age * 0.68 + Math.sin(progress * Math.PI * 2) * 0.05
       emberPositions[positionIndex + 1] = startY + progress * emberRiseDistance
       emberPositions[positionIndex + 2] = 0.14 + Math.random() * 0.24 + velocity.z * age
 
@@ -368,22 +370,22 @@ export function VaalOrb({ className = '' }: VaalOrbProps) {
           const positionIndex = index * 3
           const progress = 1 - ember.life / ember.maxLife
           emberPositions[positionIndex] +=
-            (ember.velocity.x + Math.sin(elapsed * 2.1 + ember.phase) * 0.032) * delta
-          emberPositions[positionIndex + 1] += ember.velocity.y * delta * (0.84 + progress * 0.34)
+            (ember.velocity.x + Math.sin(elapsed * 1.75 + ember.phase) * 0.04) * delta
+          emberPositions[positionIndex + 1] += ember.velocity.y * delta * (0.82 + progress * 0.44)
           emberPositions[positionIndex + 2] += ember.velocity.z * delta
 
           const x = emberPositions[positionIndex]
           const y = emberPositions[positionIndex + 1]
-          const birthFade = 0.45 + THREE.MathUtils.smoothstep(y, emberSourceY, emberSourceY + 0.22) * 0.55
-          const heightFade = 1 - THREE.MathUtils.smoothstep(y, 0.62, 1.62)
-          const twinkle = 0.78 + Math.sin(elapsed * 7.5 + ember.phase) * 0.22
+          const birthFade = THREE.MathUtils.smoothstep(y, emberSourceY, emberSourceY + 0.18)
+          const heightFade = 1 - THREE.MathUtils.smoothstep(y, emberFadeStartY, emberFadeEndY)
+          const twinkle = 0.74 + Math.sin(elapsed * 7.5 + ember.phase) * 0.26
           const brightness = THREE.MathUtils.clamp(birthFade * heightFade * twinkle, 0, 1)
 
           emberColors[positionIndex] = ember.baseColor.r * brightness
           emberColors[positionIndex + 1] = ember.baseColor.g * brightness
           emberColors[positionIndex + 2] = ember.baseColor.b * brightness
 
-          if (ember.life <= 0 || y > 1.68 || Math.abs(x) > 1.75) {
+          if (ember.life <= 0 || y > emberFadeEndY + 0.12 || Math.abs(x) > 1.85) {
             resetEmber(index, false)
           }
         }
