@@ -95,6 +95,17 @@ export default async function DashboardPage() {
         <div className="relative mx-auto h-[20rem] w-full max-w-[30rem] overflow-visible sm:h-[24rem] lg:h-[28rem] lg:max-w-none xl:h-[30rem]">
           <div className="pointer-events-none absolute inset-[14%] rounded-full bg-[radial-gradient(circle,color-mix(in_oklab,var(--primary)_10%,transparent),transparent_68%)] blur-2xl" />
 
+          <Image
+            src="/effects/vaal-ember-bed.png"
+            alt=""
+            aria-hidden="true"
+            width={1200}
+            height={400}
+            sizes="(max-width: 640px) 36rem, (max-width: 1280px) 44rem, 52rem"
+            className="pointer-events-none absolute bottom-[1%] left-1/2 z-0 h-auto w-[122%] max-w-none -translate-x-1/2 select-none opacity-90 mix-blend-screen sm:bottom-[-1%] sm:w-[128%] lg:bottom-[2%] lg:w-[136%]"
+            priority
+          />
+
           {/* Keep positioning on a wrapper. VaalOrb itself stays relative so its
               absolutely positioned WebGL canvas receives a real width/height. */}
           <div className="absolute inset-x-0 -inset-y-8 z-10 sm:-inset-x-8 sm:-inset-y-12 lg:-inset-x-12 lg:-inset-y-14">
