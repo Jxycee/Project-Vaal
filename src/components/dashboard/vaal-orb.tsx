@@ -40,38 +40,6 @@ function createEmberTexture(): THREE.CanvasTexture {
   return texture
 }
 
-function createShadowTexture(): THREE.CanvasTexture {
-  const canvas = document.createElement('canvas')
-  canvas.width = 512
-  canvas.height = 128
-
-  const context = canvas.getContext('2d')
-  if (!context) return new THREE.CanvasTexture(canvas)
-
-  context.clearRect(0, 0, canvas.width, canvas.height)
-
-  const outer = context.createRadialGradient(256, 64, 0, 256, 64, 246)
-  outer.addColorStop(0, 'rgba(108,30,8,0.72)')
-  outer.addColorStop(0.24, 'rgba(58,13,4,0.62)')
-  outer.addColorStop(0.56, 'rgba(18,4,2,0.48)')
-  outer.addColorStop(0.82, 'rgba(0,0,0,0.24)')
-  outer.addColorStop(1, 'rgba(0,0,0,0)')
-  context.fillStyle = outer
-  context.fillRect(0, 0, canvas.width, canvas.height)
-
-  const contact = context.createRadialGradient(256, 64, 0, 256, 64, 132)
-  contact.addColorStop(0, 'rgba(0,0,0,0.82)')
-  contact.addColorStop(0.5, 'rgba(12,2,1,0.52)')
-  contact.addColorStop(1, 'rgba(0,0,0,0)')
-  context.fillStyle = contact
-  context.fillRect(0, 0, canvas.width, canvas.height)
-
-  const texture = new THREE.CanvasTexture(canvas)
-  texture.colorSpace = THREE.SRGBColorSpace
-  texture.needsUpdate = true
-  return texture
-}
-
 export function VaalOrb({ className = '' }: VaalOrbProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
@@ -136,22 +104,6 @@ export function VaalOrb({ className = '' }: VaalOrbProps) {
     const orbGroup = new THREE.Group()
     scene.add(orbGroup)
 
-    const shadowTexture = createShadowTexture()
-    const shadowMaterial = new THREE.SpriteMaterial({
-      map: shadowTexture,
-      transparent: true,
-      opacity: 0.78,
-      depthWrite: false,
-      depthTest: false,
-      color: 0xffffff,
-      toneMapped: false,
-    })
-    const shadow = new THREE.Sprite(shadowMaterial)
-    shadow.position.set(0, -1.15, -0.3)
-    shadow.scale.set(2.86, 0.56, 1)
-    shadow.renderOrder = 1
-    scene.add(shadow)
-
     const emberTexture = createEmberTexture()
     const emberCount = isMobile ? 64 : 108
     const emberPositions = new Float32Array(emberCount * 3)
@@ -169,10 +121,10 @@ export function VaalOrb({ className = '' }: VaalOrbProps) {
       const maxLife = 3.5 + Math.random() * 2.8
       const progress = initial ? Math.random() * 0.94 : 0
       const startX = (Math.random() - 0.5) * 2.42
-      const startY = -1.16 + Math.random() * 0.1
+      const startY = -1.18 + Math.random() * 0.08
       const velocity = new THREE.Vector3(
         (Math.random() - 0.5) * 0.1,
-        (2.78 / maxLife) * (0.9 + Math.random() * 0.2),
+        (2.8 / maxLife) * (0.9 + Math.random() * 0.2),
         (Math.random() - 0.5) * 0.02
       )
       const age = maxLife * progress
@@ -181,7 +133,7 @@ export function VaalOrb({ className = '' }: VaalOrbProps) {
 
       emberPositions[positionIndex] =
         startX + velocity.x * age * 0.68 + Math.sin(progress * Math.PI * 2) * 0.04
-      emberPositions[positionIndex + 1] = startY + progress * 2.78
+      emberPositions[positionIndex + 1] = startY + progress * 2.8
       emberPositions[positionIndex + 2] = 0.14 + Math.random() * 0.24 + velocity.z * age
 
       emberColors[positionIndex] = color.r
@@ -404,9 +356,6 @@ export function VaalOrb({ className = '' }: VaalOrbProps) {
       rotationCurrent = THREE.MathUtils.damp(rotationCurrent, rotationTarget, 10, delta)
       orbGroup.rotation.y = rotationCurrent
       orbGroup.rotation.x = -0.025
-
-      shadowMaterial.opacity = 0.72 + pulse * 0.08
-      shadow.scale.x = 2.82 + pulse * 0.06
       emberLight.intensity = 0.55 + pulse * 0.3
 
       if (!reducedMotion) {
@@ -423,7 +372,7 @@ export function VaalOrb({ className = '' }: VaalOrbProps) {
 
           const x = emberPositions[positionIndex]
           const y = emberPositions[positionIndex + 1]
-          const birthFade = 0.45 + THREE.MathUtils.smoothstep(y, -1.16, -0.9) * 0.55
+          const birthFade = 0.45 + THREE.MathUtils.smoothstep(y, -1.18, -0.9) * 0.55
           const heightFade = 1 - THREE.MathUtils.smoothstep(y, 0.62, 1.62)
           const twinkle = 0.78 + Math.sin(elapsed * 7.5 + ember.phase) * 0.22
           const brightness = THREE.MathUtils.clamp(birthFade * heightFade * twinkle, 0, 1)
@@ -480,8 +429,6 @@ export function VaalOrb({ className = '' }: VaalOrbProps) {
       emberHaloMaterial.dispose()
       emberCoreMaterial.dispose()
       emberTexture.dispose()
-      shadowMaterial.dispose()
-      shadowTexture.dispose()
       environment.dispose()
       renderer.dispose()
       renderer.domElement.remove()
@@ -493,7 +440,7 @@ export function VaalOrb({ className = '' }: VaalOrbProps) {
       ref={containerRef}
       className={`relative overflow-visible select-none ${className}`}
       role="img"
-      aria-label="A metallic Vaal emblem with fire embers rising from the shadow below it. Drag horizontally to rotate it."
+      aria-label="A metallic Vaal emblem with fire embers rising from the ember bed below it. Drag horizontally to rotate it."
     >
       {status === 'loading' && (
         <div className="pointer-events-none absolute inset-0 grid place-items-center text-xs uppercase tracking-[0.2em] text-muted-foreground">
