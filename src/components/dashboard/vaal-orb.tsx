@@ -14,6 +14,7 @@ type Ember = {
   life: number
   maxLife: number
   phase: number
+  baseColor: THREE.Color
 }
 
 function createEmberTexture(): THREE.CanvasTexture {
@@ -115,7 +116,7 @@ export function VaalOrb({ className = '' }: VaalOrbProps) {
     scene.add(highlightLight)
 
     const emberLight = new THREE.PointLight(0xff2d08, 0.65, 4.2, 2)
-    emberLight.position.set(0, 0.1, -0.7)
+    emberLight.position.set(0, -0.65, -0.7)
     scene.add(emberLight)
 
     const orbGroup = new THREE.Group()
@@ -136,7 +137,7 @@ export function VaalOrb({ className = '' }: VaalOrbProps) {
     scene.add(shadow)
 
     const emberTexture = createEmberTexture()
-    const emberCount = isMobile ? 54 : 88
+    const emberCount = isMobile ? 58 : 96
     const emberPositions = new Float32Array(emberCount * 3)
     const emberColors = new Float32Array(emberCount * 3)
     const embers: Ember[] = []
@@ -149,30 +150,34 @@ export function VaalOrb({ className = '' }: VaalOrbProps) {
     ]
 
     const resetEmber = (index: number, initial: boolean) => {
-      const angle = Math.random() * Math.PI * 2
-      const radius = 0.98 + Math.random() * 0.58
-      const maxLife = 1.6 + Math.random() * 3
-      const life = initial ? Math.random() * maxLife : maxLife
-      const y = -1.02 + Math.random() * 1.78
+      const maxLife = 3.4 + Math.random() * 2.6
+      const progress = initial ? Math.random() * 0.94 : 0
+      const startX = (Math.random() - 0.5) * 1.15
+      const startY = -1.14 + Math.random() * 0.1
+      const velocity = new THREE.Vector3(
+        (Math.random() - 0.5) * 0.11,
+        (2.72 / maxLife) * (0.9 + Math.random() * 0.2),
+        (Math.random() - 0.5) * 0.02
+      )
+      const age = maxLife * progress
       const color = warmColors[index % warmColors.length]
+      const positionIndex = index * 3
 
-      emberPositions[index * 3] = Math.cos(angle) * radius
-      emberPositions[index * 3 + 1] = y
-      emberPositions[index * 3 + 2] = 0.12 + Math.random() * 0.28
+      emberPositions[positionIndex] =
+        startX + velocity.x * age * 0.68 + Math.sin(progress * Math.PI * 2) * 0.035
+      emberPositions[positionIndex + 1] = startY + progress * 2.72
+      emberPositions[positionIndex + 2] = 0.12 + Math.random() * 0.24 + velocity.z * age
 
-      emberColors[index * 3] = color.r
-      emberColors[index * 3 + 1] = color.g
-      emberColors[index * 3 + 2] = color.b
+      emberColors[positionIndex] = color.r
+      emberColors[positionIndex + 1] = color.g
+      emberColors[positionIndex + 2] = color.b
 
       embers[index] = {
-        velocity: new THREE.Vector3(
-          (Math.random() - 0.5) * 0.16,
-          0.2 + Math.random() * 0.38,
-          (Math.random() - 0.5) * 0.025
-        ),
-        life,
+        velocity,
+        life: maxLife * (1 - progress),
         maxLife,
         phase: Math.random() * Math.PI * 2,
+        baseColor: color,
       }
     }
 
@@ -180,15 +185,16 @@ export function VaalOrb({ className = '' }: VaalOrbProps) {
 
     const emberGeometry = new THREE.BufferGeometry()
     const emberPositionAttribute = new THREE.BufferAttribute(emberPositions, 3)
+    const emberColorAttribute = new THREE.BufferAttribute(emberColors, 3)
     emberGeometry.setAttribute('position', emberPositionAttribute)
-    emberGeometry.setAttribute('color', new THREE.BufferAttribute(emberColors, 3))
+    emberGeometry.setAttribute('color', emberColorAttribute)
 
     const emberHaloMaterial = new THREE.PointsMaterial({
       map: emberTexture,
       size: isMobile ? 0.075 : 0.095,
       sizeAttenuation: true,
       transparent: true,
-      opacity: 0.2,
+      opacity: 0.24,
       alphaTest: 0.005,
       depthWrite: false,
       depthTest: false,
@@ -383,7 +389,7 @@ export function VaalOrb({ className = '' }: VaalOrbProps) {
       orbGroup.rotation.y = rotationCurrent
       orbGroup.rotation.x = -0.025
 
-      shadow.material.opacity = 0.3 + pulse * 0.045
+      shadowMaterial.opacity = 0.3 + pulse * 0.045
       shadow.scale.x = 1.78 + pulse * 0.05
       emberLight.intensity = 0.55 + pulse * 0.3
 
@@ -395,21 +401,31 @@ export function VaalOrb({ className = '' }: VaalOrbProps) {
           const positionIndex = index * 3
           const progress = 1 - ember.life / ember.maxLife
           emberPositions[positionIndex] +=
-            (ember.velocity.x + Math.sin(elapsed * 2.1 + ember.phase) * 0.035) * delta
-          emberPositions[positionIndex + 1] += ember.velocity.y * delta * (0.72 + progress * 0.9)
+            (ember.velocity.x + Math.sin(elapsed * 2.1 + ember.phase) * 0.032) * delta
+          emberPositions[positionIndex + 1] += ember.velocity.y * delta * (0.84 + progress * 0.34)
           emberPositions[positionIndex + 2] += ember.velocity.z * delta
 
           const x = emberPositions[positionIndex]
           const y = emberPositions[positionIndex + 1]
-          if (ember.life <= 0 || y > 1.5 || Math.abs(x) > 1.75) {
+          const birthFade = 0.45 + THREE.MathUtils.smoothstep(y, -1.14, -0.9) * 0.55
+          const heightFade = 1 - THREE.MathUtils.smoothstep(y, 0.62, 1.62)
+          const twinkle = 0.78 + Math.sin(elapsed * 7.5 + ember.phase) * 0.22
+          const brightness = THREE.MathUtils.clamp(birthFade * heightFade * twinkle, 0, 1)
+
+          emberColors[positionIndex] = ember.baseColor.r * brightness
+          emberColors[positionIndex + 1] = ember.baseColor.g * brightness
+          emberColors[positionIndex + 2] = ember.baseColor.b * brightness
+
+          if (ember.life <= 0 || y > 1.72 || Math.abs(x) > 1.65) {
             resetEmber(index, false)
           }
         }
         emberPositionAttribute.needsUpdate = true
+        emberColorAttribute.needsUpdate = true
       }
 
-      emberCoreMaterial.opacity = 0.8 + pulse * 0.18
-      emberHaloMaterial.opacity = 0.14 + pulse * 0.12
+      emberCoreMaterial.opacity = 0.82 + pulse * 0.14
+      emberHaloMaterial.opacity = 0.16 + pulse * 0.1
 
       renderer.render(scene, camera)
       animationFrame = window.requestAnimationFrame(render)
@@ -461,7 +477,7 @@ export function VaalOrb({ className = '' }: VaalOrbProps) {
       ref={containerRef}
       className={`relative overflow-visible select-none ${className}`}
       role="img"
-      aria-label="A metallic Vaal emblem surrounded by floating fire embers. Drag horizontally to rotate it."
+      aria-label="A metallic Vaal emblem with fire embers rising from the shadow below it. Drag horizontally to rotate it."
     >
       {status === 'loading' && (
         <div className="pointer-events-none absolute inset-0 grid place-items-center text-xs uppercase tracking-[0.2em] text-muted-foreground">
