@@ -101,8 +101,8 @@ export default async function DashboardPage() {
             aria-hidden="true"
             width={1200}
             height={400}
-            sizes="(max-width: 640px) 30rem, (max-width: 1280px) 38rem, 44rem"
-            className="pointer-events-none absolute bottom-[3%] left-1/2 z-0 h-auto w-[104%] max-w-none -translate-x-1/2 select-none opacity-90 mix-blend-screen sm:bottom-[3%] sm:w-[108%] lg:bottom-[4%] lg:w-[110%]"
+            sizes="(max-width: 640px) 29rem, (max-width: 1280px) 36rem, 42rem"
+            className="pointer-events-none absolute -bottom-[14%] left-1/2 z-0 h-auto w-[96%] max-w-none -translate-x-1/2 select-none opacity-95 mix-blend-screen sm:-bottom-[17%] sm:w-[94%] lg:-bottom-[19%] lg:w-[92%]"
             priority
           />
 
