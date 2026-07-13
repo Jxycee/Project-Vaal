@@ -100,10 +100,6 @@ export default async function DashboardPage() {
           <div className="absolute inset-x-0 -inset-y-8 z-10 sm:-inset-x-8 sm:-inset-y-12 lg:-inset-x-12 lg:-inset-y-14">
             <VaalOrb className="vaal-orb-stage h-full w-full" />
           </div>
-
-          <p className="pointer-events-none absolute inset-x-0 bottom-0 z-20 text-center text-[0.64rem] font-medium uppercase tracking-[0.16em] text-muted-foreground/70 sm:bottom-2 sm:text-[0.68rem] sm:tracking-[0.18em]">
-            Drag horizontally to rotate
-          </p>
         </div>
       </section>
 
