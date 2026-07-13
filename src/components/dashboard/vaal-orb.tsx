@@ -18,19 +18,20 @@ type Ember = {
 
 function createEmberTexture(): THREE.CanvasTexture {
   const canvas = document.createElement('canvas')
-  canvas.width = 32
-  canvas.height = 32
+  canvas.width = 64
+  canvas.height = 64
 
   const context = canvas.getContext('2d')
   if (!context) return new THREE.CanvasTexture(canvas)
 
-  const gradient = context.createRadialGradient(16, 16, 0, 16, 16, 16)
-  gradient.addColorStop(0, 'rgba(255,245,190,1)')
-  gradient.addColorStop(0.18, 'rgba(255,155,45,0.95)')
-  gradient.addColorStop(0.5, 'rgba(255,55,8,0.55)')
-  gradient.addColorStop(1, 'rgba(255,20,0,0)')
-  context.fillStyle = gradient
-  context.fillRect(0, 0, 32, 32)
+  const glow = context.createRadialGradient(32, 32, 0, 32, 32, 32)
+  glow.addColorStop(0, 'rgba(255,255,226,1)')
+  glow.addColorStop(0.12, 'rgba(255,224,126,1)')
+  glow.addColorStop(0.3, 'rgba(255,126,26,0.95)')
+  glow.addColorStop(0.6, 'rgba(255,48,5,0.46)')
+  glow.addColorStop(1, 'rgba(255,20,0,0)')
+  context.fillStyle = glow
+  context.fillRect(0, 0, 64, 64)
 
   const texture = new THREE.CanvasTexture(canvas)
   texture.colorSpace = THREE.SRGBColorSpace
@@ -135,26 +136,39 @@ export function VaalOrb({ className = '' }: VaalOrbProps) {
     scene.add(shadow)
 
     const emberTexture = createEmberTexture()
-    const emberCount = isMobile ? 52 : 84
+    const emberCount = isMobile ? 54 : 88
     const emberPositions = new Float32Array(emberCount * 3)
+    const emberColors = new Float32Array(emberCount * 3)
     const embers: Ember[] = []
+
+    const warmColors = [
+      new THREE.Color(0xffb347),
+      new THREE.Color(0xff6a1a),
+      new THREE.Color(0xffd27a),
+      new THREE.Color(0xff3b08),
+    ]
 
     const resetEmber = (index: number, initial: boolean) => {
       const angle = Math.random() * Math.PI * 2
-      const radius = 0.78 + Math.random() * 0.62
-      const maxLife = 1.8 + Math.random() * 2.8
+      const radius = 0.98 + Math.random() * 0.58
+      const maxLife = 1.6 + Math.random() * 3
       const life = initial ? Math.random() * maxLife : maxLife
-      const y = -0.9 + Math.random() * 1.55
+      const y = -1.02 + Math.random() * 1.78
+      const color = warmColors[index % warmColors.length]
 
       emberPositions[index * 3] = Math.cos(angle) * radius
       emberPositions[index * 3 + 1] = y
-      emberPositions[index * 3 + 2] = -0.38 + Math.random() * 0.55
+      emberPositions[index * 3 + 2] = 0.12 + Math.random() * 0.28
+
+      emberColors[index * 3] = color.r
+      emberColors[index * 3 + 1] = color.g
+      emberColors[index * 3 + 2] = color.b
 
       embers[index] = {
         velocity: new THREE.Vector3(
-          (Math.random() - 0.5) * 0.12,
-          0.18 + Math.random() * 0.34,
-          (Math.random() - 0.5) * 0.035
+          (Math.random() - 0.5) * 0.16,
+          0.2 + Math.random() * 0.38,
+          (Math.random() - 0.5) * 0.025
         ),
         life,
         maxLife,
@@ -167,22 +181,43 @@ export function VaalOrb({ className = '' }: VaalOrbProps) {
     const emberGeometry = new THREE.BufferGeometry()
     const emberPositionAttribute = new THREE.BufferAttribute(emberPositions, 3)
     emberGeometry.setAttribute('position', emberPositionAttribute)
+    emberGeometry.setAttribute('color', new THREE.BufferAttribute(emberColors, 3))
 
-    const emberMaterial = new THREE.PointsMaterial({
+    const emberHaloMaterial = new THREE.PointsMaterial({
       map: emberTexture,
-      color: 0xff661c,
-      size: isMobile ? 0.024 : 0.028,
+      size: isMobile ? 0.075 : 0.095,
       sizeAttenuation: true,
       transparent: true,
-      opacity: 0.48,
-      alphaTest: 0.02,
+      opacity: 0.2,
+      alphaTest: 0.005,
       depthWrite: false,
-      depthTest: true,
+      depthTest: false,
       blending: THREE.AdditiveBlending,
       toneMapped: false,
+      vertexColors: true,
     })
-    const emberPoints = new THREE.Points(emberGeometry, emberMaterial)
-    scene.add(emberPoints)
+
+    const emberCoreMaterial = new THREE.PointsMaterial({
+      map: emberTexture,
+      size: isMobile ? 0.032 : 0.042,
+      sizeAttenuation: true,
+      transparent: true,
+      opacity: 0.92,
+      alphaTest: 0.01,
+      depthWrite: false,
+      depthTest: false,
+      blending: THREE.AdditiveBlending,
+      toneMapped: false,
+      vertexColors: true,
+    })
+
+    const emberHalo = new THREE.Points(emberGeometry, emberHaloMaterial)
+    const emberCore = new THREE.Points(emberGeometry, emberCoreMaterial)
+    emberHalo.frustumCulled = false
+    emberCore.frustumCulled = false
+    emberHalo.renderOrder = 2
+    emberCore.renderOrder = 3
+    scene.add(emberHalo, emberCore)
 
     let loadedScene: THREE.Object3D | null = null
     const loader = new GLTFLoader()
@@ -360,18 +395,21 @@ export function VaalOrb({ className = '' }: VaalOrbProps) {
           const positionIndex = index * 3
           const progress = 1 - ember.life / ember.maxLife
           emberPositions[positionIndex] +=
-            (ember.velocity.x + Math.sin(elapsed * 2.1 + ember.phase) * 0.022) * delta
-          emberPositions[positionIndex + 1] += ember.velocity.y * delta * (0.75 + progress * 0.8)
+            (ember.velocity.x + Math.sin(elapsed * 2.1 + ember.phase) * 0.035) * delta
+          emberPositions[positionIndex + 1] += ember.velocity.y * delta * (0.72 + progress * 0.9)
           emberPositions[positionIndex + 2] += ember.velocity.z * delta
 
-          if (ember.life <= 0 || emberPositions[positionIndex + 1] > 1.5) {
+          const x = emberPositions[positionIndex]
+          const y = emberPositions[positionIndex + 1]
+          if (ember.life <= 0 || y > 1.5 || Math.abs(x) > 1.75) {
             resetEmber(index, false)
           }
         }
         emberPositionAttribute.needsUpdate = true
       }
 
-      emberMaterial.opacity = 0.38 + pulse * 0.14
+      emberCoreMaterial.opacity = 0.8 + pulse * 0.18
+      emberHaloMaterial.opacity = 0.14 + pulse * 0.12
 
       renderer.render(scene, camera)
       animationFrame = window.requestAnimationFrame(render)
@@ -407,7 +445,8 @@ export function VaalOrb({ className = '' }: VaalOrbProps) {
       }
 
       emberGeometry.dispose()
-      emberMaterial.dispose()
+      emberHaloMaterial.dispose()
+      emberCoreMaterial.dispose()
       emberTexture.dispose()
       shadowMaterial.dispose()
       shadowTexture.dispose()
