@@ -271,21 +271,31 @@ CREATE POLICY "Users can manage own bookmarks"
 -- ---------------------------------------------------------------------------
 -- Table: campaign_progress
 -- ---------------------------------------------------------------------------
--- Per-character checkpoint completion. One row per character.
+-- Checkpoint completion, optionally scoped to a character. One row per
+-- (user, character) pair.
+--
+-- character_id is nullable (loosened 2026-07-30, campaign_progress_optional_character
+-- migration): the character system isn't built yet (0 rows in `characters`,
+-- no creation UI), but the campaign tracker shipped ahead of it and is
+-- explicitly per-user. A row with character_id NULL is a user's "general"
+-- progress, not tied to any character. Once character creation ships, a
+-- per-character row can be added alongside without a schema change.
 -- JSONB merge (progress || updates) prevents concurrent overwrites.
 
 CREATE TABLE public.campaign_progress (
   id            uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id       uuid        NOT NULL REFERENCES public.user_profiles ON DELETE CASCADE,
-  character_id  uuid        NOT NULL REFERENCES public.characters ON DELETE CASCADE,
+  character_id  uuid        REFERENCES public.characters ON DELETE CASCADE,
   -- progress shape: { [checkpointId: string]: boolean }
-  -- Checkpoint IDs match the static /public/data/campaign.json file.
-  -- Example: { "a1_coast_cleared": true, "a1_passive_book_1": false }
+  -- Checkpoint IDs come from the static campaign dataset, src/lib/campaign/data.ts.
+  -- Example: { "a1-clearfell-beira-of-the-rotten-pack": true }
   progress      jsonb       NOT NULL DEFAULT '{}',
   created_at    timestamptz NOT NULL DEFAULT now(),
   updated_at    timestamptz NOT NULL DEFAULT now(),
-  -- One progress row per character (characters are already league-scoped)
-  UNIQUE (character_id)
+  -- NULLS NOT DISTINCT so a user gets exactly one character_id-less "general"
+  -- row too, not unlimited (Postgres's default unique behavior treats every
+  -- NULL as distinct from every other NULL).
+  UNIQUE NULLS NOT DISTINCT (user_id, character_id)
 );
 
 CREATE TRIGGER set_campaign_progress_updated_at

@@ -153,7 +153,7 @@ export type Database = {
       }
       campaign_progress: {
         Row: {
-          character_id: string
+          character_id: string | null
           created_at: string
           id: string
           progress: Json
@@ -161,7 +161,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          character_id: string
+          character_id?: string | null
           created_at?: string
           id?: string
           progress?: Json
@@ -169,7 +169,7 @@ export type Database = {
           user_id: string
         }
         Update: {
-          character_id?: string
+          character_id?: string | null
           created_at?: string
           id?: string
           progress?: Json
@@ -180,7 +180,7 @@ export type Database = {
           {
             foreignKeyName: "campaign_progress_character_id_fkey"
             columns: ["character_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "characters"
             referencedColumns: ["id"]
           },

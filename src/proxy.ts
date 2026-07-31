@@ -15,8 +15,9 @@ import { NextResponse, type NextRequest } from 'next/server'
 //   /characters      → PROTECTED
 //   /settings        → PROTECTED
 //   /tree            → PROTECTED (account required — §12; lives at (dashboard)/tree, URL stays /tree)
+//   /campaign        → PROTECTED (progress saves per-user; lives at (dashboard)/campaign, URL stays /campaign)
 // ---------------------------------------------------------------------------
-const PROTECTED_PREFIXES = ['/dashboard', '/characters', '/settings', '/tree']
+const PROTECTED_PREFIXES = ['/dashboard', '/characters', '/settings', '/tree', '/campaign']
 
 function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix))

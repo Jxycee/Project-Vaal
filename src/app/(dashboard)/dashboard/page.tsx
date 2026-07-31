@@ -19,10 +19,15 @@ const LIVE_TOOLS = [
     icon: 'tree',
     blurb: 'Interactive skill tree viewer and planner.',
   },
+  {
+    href: '/campaign',
+    title: 'Campaign Tracker',
+    icon: 'campaign',
+    blurb: 'Boss checkpoints and rewards, act by act.',
+  },
 ] as const
 
 const COMING_SOON = [
-  { title: 'Campaign Tracker', icon: 'campaign', blurb: 'Per-character checklist for every act.' },
   { title: 'Build Planner', icon: 'builds', blurb: 'Create, save, and share builds via link.' },
   { title: 'Item Wiki', icon: 'wiki', blurb: 'Searchable bases, mods, and skill gems.' },
 ] as const
@@ -122,10 +127,10 @@ export default async function DashboardPage() {
             </p>
             <h2 className="mt-1 font-heading text-xl font-semibold tracking-tight">Tools</h2>
           </div>
-          <span className="text-xs text-muted-foreground">2 live</span>
+          <span className="text-xs text-muted-foreground">3 live</span>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {LIVE_TOOLS.map((item) => (
             <Link key={item.href} href={item.href} className="group">
               <Card className="relative h-full overflow-hidden p-4 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-accent/35 hover:shadow-[0_18px_45px_-30px_color-mix(in_oklab,var(--primary)_45%,transparent)] sm:p-5">
@@ -164,7 +169,7 @@ export default async function DashboardPage() {
           <h2 className="mt-1 font-heading text-lg font-semibold tracking-tight">Coming next</h2>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {COMING_SOON.map((item) => (
             <Card
               key={item.title}
