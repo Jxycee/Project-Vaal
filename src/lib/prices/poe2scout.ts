@@ -4,7 +4,7 @@
 // Rewritten 2026-06-13 against the LIVE API. Confirmed working URL:
 //   /api/poe2/Leagues/{LeagueName}/Currencies/ByCategory
 //     ?Category=Currency&ReferenceCurrency=mirror
-//     &Page=1&PerPage=25&DataPoints=7&FrequencyHours=24
+//     &Page=1&PerPage=38&DataPoints=7&FrequencyHours=24
 //
 // CRITICAL details that caused earlier 404/422 failures:
 //   - Realm + league go in the PATH: /api/poe2/Leagues/{LeagueName}/...
@@ -158,7 +158,7 @@ interface ScoutPage {
 
 /**
  * Fetch one category for a league and normalize to PriceLine[].
- * Walks all pages (PerPage=25) with a polite gap between pages.
+ * Walks all pages (PerPage=38) with a polite gap between pages.
  */
 export async function fetchCategory(
   category: string,
@@ -179,7 +179,7 @@ export async function fetchCategory(
       `?Category=${encodeURIComponent(value)}` +
       `&ReferenceCurrency=${encodeURIComponent(REFERENCE_CURRENCY)}` +
       `&Page=${page}` +
-      `&PerPage=25` +
+      `&PerPage=38` +
       `&DataPoints=${DATA_POINTS}` +
       `&FrequencyHours=${FREQUENCY_HOURS}`
 
