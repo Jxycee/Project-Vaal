@@ -1,22 +1,26 @@
---- a/node_modules/@poe2-toolkit/tree-react/dist/sceneStyle.js
-+++ b/node_modules/@poe2-toolkit/tree-react/dist/sceneStyle.js
-@@ -31,8 +31,11 @@
-  * each weapon set reads apart in the single combined view.
-  */
- export const WEAPON_SET_COLOR = {
--    1: 0x4fbf7a,
--    2: 0x4fa8ff,
-+    // Patched for Project Vaal: red = Set I, green = Set II (matches the
-+    // in-game weapon-swap indicator), gold stays the shared/basic tree.
-+    // Upstream default was green/blue.
-+    1: 0xe5484d,
-+    2: 0x46a758,
- };
- /** Multiply tint for unallocated node icons: 50% grey = half brightness, hue kept. */
- const ICON_DIM = 0x808080;
+diff --git a/node_modules/@poe2-toolkit/tree-react/dist/TreeView.d.ts b/node_modules/@poe2-toolkit/tree-react/dist/TreeView.d.ts
+index 39a9b32..eb69e7c 100644
+--- a/node_modules/@poe2-toolkit/tree-react/dist/TreeView.d.ts
++++ b/node_modules/@poe2-toolkit/tree-react/dist/TreeView.d.ts
+@@ -92,6 +92,13 @@ export interface TreeViewProps {
+      * component's own layout styles, so it can override them (e.g. `background`).
+      */
+     style?: CSSProperties;
++    /**
++     * Project Vaal patch: permanent world-space text labels (e.g. a courtesy
++     * credit), rendered once at mount straight into the world container so
++     * they pan/zoom with the tree. Not diffed on prop changes — intended for
++     * static, one-time labels only.
++     */
++    worldLabels?: { x: number; y: number; text: string }[];
+ }
+ /** Imperative handle exposed via `controls` for external zoom buttons. */
+ export interface TreeViewControls {
+diff --git a/node_modules/@poe2-toolkit/tree-react/dist/TreeView.js b/node_modules/@poe2-toolkit/tree-react/dist/TreeView.js
+index d518736..6962e4b 100644
 --- a/node_modules/@poe2-toolkit/tree-react/dist/TreeView.js
 +++ b/node_modules/@poe2-toolkit/tree-react/dist/TreeView.js
-@@ -15,7 +15,7 @@
+@@ -15,7 +15,7 @@ import { centreViewport, clampViewport, edgeKey, hitTest, viewportForRect, world
   * without re-rasterising any sprites. That keeps a full-tree pan/zoom smooth even
   * on machines where Canvas2D `drawImage` falls back to the CPU.
   */
@@ -25,7 +29,19 @@
      // The host element Pixi renders into. We own a wrapper <div> (stable across
      // renders) and let Pixi create its own <canvas> inside it, rather than handing
      // Pixi a React-owned <canvas>. A canvas hosts exactly one WebGL context for its
-@@ -127,6 +127,14 @@
+@@ -52,6 +52,11 @@ export function TreeView({ scene, resources, activeClassId, activeAscendancy, ce
+     const highlightActiveRef = useRef(false);
+     const activeAscendancyRef = useRef(activeAscendancy);
+     const rebuildRef = useRef(null);
++    // Project Vaal patch: a narrower rebuild that only touches `centreLayer`
++    // (via `buildCentre`), for centre-art image loads — see the image-loading
++    // effect and `rebuildCentre` below. Kept in sync with `rebuild`'s inputs
++    // the same way (a dedicated effect sets it after every render).
++    const rebuildCentreRef = useRef(null);
+     // Resolved zoom/pan extents, in a ref so the ticker, callbacks and clamp all
+     // read the current values without re-subscribing. Kept current in the effect
+     // below (never assigned during render).
+@@ -127,6 +132,14 @@ export function TreeView({ scene, resources, activeClassId, activeAscendancy, ce
              const labelLayer = new Container();
              labelLayer.visible = false;
              world.addChild(centreLayer, effectLayer, connLayer, nodeLayer, ascLayer, overlay, labelLayer);
@@ -40,7 +56,82 @@
              app.stage.addChild(world);
              appRef.current = app;
              worldRef.current = world;
-@@ -687,6 +695,21 @@
+@@ -197,35 +210,68 @@ export function TreeView({ scene, resources, activeClassId, activeAscendancy, ce
+         }
+         sync();
+     }, [scene, resources, centreSprites, activeClassId, activeAscendancy, debugIds, sync]);
++    // Project Vaal patch: `buildCentre` only ever writes to `centreLayer` — it's
++    // not entangled with node/connection rebuilding — so a centre-art image
++    // arriving can redraw just the hub instead of paying for a full rebuild
++    // (destroying + recreating every one of the tree's 1500+ node sprites just
++    // to place 1-2 centre sprites). Only used by the image-loading effect below.
++    const rebuildCentre = useCallback(() => {
++        if (!readyRef.current) {
++            return;
++        }
++        buildCentre(centreLayerRef.current, scene, centreSprites, activeClassId, texRef.current);
++        sync();
++    }, [scene, centreSprites, activeClassId, sync]);
+     useEffect(() => {
+         rebuildRef.current = rebuild;
+         rebuild();
+     }, [rebuild]);
++    useEffect(() => {
++        rebuildCentreRef.current = rebuildCentre;
++    }, [rebuildCentre]);
+     // Load centre-art and jewel images (URLs, unlike the already-loaded atlas
+     // bitmaps); rebuild as each arrives so its sprite appears.
++    //
++    // Project Vaal patch: centre-art loads (the class portrait + rings — 1-2
++    // per page) now route through `rebuildCentreRef` instead of the full
++    // `rebuildRef`, since only `centreLayer` needs to change. Jewel-icon loads
++    // still go through the full rebuild (correctly — a jewel sprite lives in
++    // `nodeLayer`, alongside everything else); that set is empty until gear
++    // exists (no Save-to-Build yet), so this is currently a no-op path, left
++    // as-is rather than special-cased out.
+     useEffect(() => {
+-        const urls = new Set();
++        const centreUrls = new Set();
+         for (const sprite of [centreSprites?.portrait, centreSprites?.ringStatic, centreSprites?.ringActive]) {
+             if (sprite?.url) {
+-                urls.add(sprite.url);
++                centreUrls.add(sprite.url);
+             }
+         }
++        const jewelUrls = new Set();
+         for (const node of scene.nodes) {
+             if (node.jewel?.icon) {
+-                urls.add(node.jewel.icon);
++                jewelUrls.add(node.jewel.icon);
+             }
+         }
+-        for (const url of urls) {
++        const load = (url, onReady) => {
+             if (texRef.current.images.has(url)) {
+-                continue;
++                return;
+             }
+             const image = new Image();
+             image.crossOrigin = 'anonymous';
+             image.onload = () => {
+                 texRef.current.images.set(url, image);
+-                rebuildRef.current?.();
++                onReady();
+             };
+             image.src = url;
++        };
++        for (const url of centreUrls) {
++            load(url, () => rebuildCentreRef.current?.());
++        }
++        for (const url of jewelUrls) {
++            if (centreUrls.has(url)) {
++                continue; // already queued above, as a centre-art load
++            }
++            load(url, () => rebuildRef.current?.());
+         }
+     }, [scene, centreSprites]);
+     // ---- Sizing --------------------------------------------------------------
+@@ -687,6 +733,21 @@ function idLabel(skill, x, y) {
      group.position.set(x, y);
      return group;
  }
@@ -62,19 +153,21 @@
  // ===========================================================================
  // Overlays (hover ring, search highlight, allocation preview) — world space
  // ===========================================================================
---- a/node_modules/@poe2-toolkit/tree-react/dist/TreeView.d.ts
-+++ b/node_modules/@poe2-toolkit/tree-react/dist/TreeView.d.ts
-@@ -92,6 +92,13 @@
-      * component's own layout styles, so it can override them (e.g. `background`).
-      */
-     style?: CSSProperties;
-+    /**
-+     * Project Vaal patch: permanent world-space text labels (e.g. a courtesy
-+     * credit), rendered once at mount straight into the world container so
-+     * they pan/zoom with the tree. Not diffed on prop changes — intended for
-+     * static, one-time labels only.
-+     */
-+    worldLabels?: { x: number; y: number; text: string }[];
- }
- /** Imperative handle exposed via `controls` for external zoom buttons. */
- export interface TreeViewControls {
+diff --git a/node_modules/@poe2-toolkit/tree-react/dist/sceneStyle.js b/node_modules/@poe2-toolkit/tree-react/dist/sceneStyle.js
+index bedc733..880bf19 100644
+--- a/node_modules/@poe2-toolkit/tree-react/dist/sceneStyle.js
++++ b/node_modules/@poe2-toolkit/tree-react/dist/sceneStyle.js
+@@ -31,8 +31,11 @@ const RAIL_GAP_INACTIVE = 0x000000;
+  * each weapon set reads apart in the single combined view.
+  */
+ export const WEAPON_SET_COLOR = {
+-    1: 0x4fbf7a,
+-    2: 0x4fa8ff,
++    // Patched for Project Vaal: red = Set I, green = Set II (matches the
++    // in-game weapon-swap indicator), gold stays the shared/basic tree.
++    // Upstream default was green/blue.
++    1: 0xe5484d,
++    2: 0x46a758,
+ };
+ /** Multiply tint for unallocated node icons: 50% grey = half brightness, hue kept. */
+ const ICON_DIM = 0x808080;

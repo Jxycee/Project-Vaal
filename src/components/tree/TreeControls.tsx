@@ -15,11 +15,18 @@ export interface PickerClass {
   ascendancies: { id: string; name: string }[];
 }
 
+export interface PointCounts {
+  basic: number;
+  setI: number;
+  setII: number;
+}
+
 interface TreeControlsProps {
   classes: PickerClass[];
   classId: number;
   ascendancyId: string | undefined;
   mode: AllocMode;
+  pointCounts: PointCounts;
   searchQuery: string;
   hasAllocations: boolean;
   onClass: (id: number) => void;
@@ -32,11 +39,19 @@ interface TreeControlsProps {
 const MODE_LABEL: Record<AllocMode, string> = { 0: 'Main', 1: 'Set I', 2: 'Set II' };
 const MODE_DOT: Record<AllocMode, string> = { 0: 'bg-primary', 1: 'bg-[#e5484d]', 2: 'bg-[#46a758]' };
 
+// Max points obtainable in one build: 99 from levelling (2-100) + 24 from
+// quest rewards = 123 shared/basic points; each weapon set draws from its own,
+// separate 24-point pool. Matches the reference tree's budget readout — fixed
+// game constants, not derived from any save data we have.
+const MAX_BASIC_POINTS = 123;
+const MAX_SET_POINTS = 24;
+
 export default function TreeControls({
   classes,
   classId,
   ascendancyId,
   mode,
+  pointCounts,
   searchQuery,
   hasAllocations,
   onClass,
@@ -109,21 +124,32 @@ export default function TreeControls({
           )}
 
           <div className="flex gap-1 border-t border-border pt-2">
-            {([0, 1, 2] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => onMode(m)}
-                className={
-                  m === mode
-                    ? 'flex items-center gap-1.5 rounded px-2 py-1 text-xs bg-primary text-primary-foreground'
-                    : 'flex items-center gap-1.5 rounded px-2 py-1 text-xs bg-background text-muted-foreground'
-                }
-              >
-                <span className={`h-2 w-2 rounded-full ${MODE_DOT[m]}`} />
-                {MODE_LABEL[m]}
-              </button>
-            ))}
+            {([0, 1, 2] as const).map((m) => {
+              const [spent, max] =
+                m === 0
+                  ? [pointCounts.basic, MAX_BASIC_POINTS]
+                  : m === 1
+                    ? [pointCounts.setI, MAX_SET_POINTS]
+                    : [pointCounts.setII, MAX_SET_POINTS];
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => onMode(m)}
+                  className={
+                    m === mode
+                      ? 'flex items-center gap-1.5 rounded px-2 py-1 text-xs bg-primary text-primary-foreground'
+                      : 'flex items-center gap-1.5 rounded px-2 py-1 text-xs bg-background text-muted-foreground'
+                  }
+                >
+                  <span className={`h-2 w-2 rounded-full ${MODE_DOT[m]}`} />
+                  {MODE_LABEL[m]}
+                  <span className="tabular-nums opacity-80">
+                    {spent}/{max}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           <div className="flex justify-end border-t border-border pt-2">

@@ -1,0 +1,252 @@
+diff --git a/node_modules/@poe2-toolkit/tree-core/dist/ggg/normalize.d.ts b/node_modules/@poe2-toolkit/tree-core/dist/ggg/normalize.d.ts
+index f3e0200..89f97d7 100644
+--- a/node_modules/@poe2-toolkit/tree-core/dist/ggg/normalize.d.ts
++++ b/node_modules/@poe2-toolkit/tree-core/dist/ggg/normalize.d.ts
+@@ -88,6 +88,14 @@ interface GggAscendancy {
+     /** Hub-relative position of the disc centre (radius ~1332 toward the class). */
+     offsetX?: number;
+     offsetY?: number;
++    /**
++     * Project Vaal patch: per-ascendancy node display overrides — base skill id
++     * -> alternate skill id, resolved against the top-level `skillOverrides`
++     * table (e.g. Abyssal Lich's 13 swapped notables/passives over Lich's
++     * shared graph). Distinct from `GggClass.overridePairs`, a different,
++     * unrelated class-level table.
++     */
++    overridePairs?: Record<string | number, number>;
+ }
+ interface GggClass {
+     name: string;
+diff --git a/node_modules/@poe2-toolkit/tree-core/dist/ggg/normalize.js b/node_modules/@poe2-toolkit/tree-core/dist/ggg/normalize.js
+index 758b315..541a6a9 100644
+--- a/node_modules/@poe2-toolkit/tree-core/dist/ggg/normalize.js
++++ b/node_modules/@poe2-toolkit/tree-core/dist/ggg/normalize.js
+@@ -37,13 +37,15 @@ export function normalizeGggTree(raw, version) {
+     const edgeArcs = mapEdgeArcs(raw.edges);
+     const nodes = normalizeNodes(raw, ascendancyNames, attributeOptions, classNames, edgeArcs);
+     const ascendancyStarts = mapAscendancyStarts(raw.nodes);
++    // Project Vaal patch: see mapAscendancyBaseIds below.
++    const ascendancyBaseIds = mapAscendancyBaseIds(raw.classes, raw.nodes, ascendancyStarts);
+     const startNodeByClass = mapClassStartNodes(raw.nodes);
+     return {
+         version,
+         constants: { centreInnerRadius: CENTRE_INNER_RADIUS },
+         groups: normalizeGroups(raw.groups),
+         nodes,
+-        classes: raw.classes.map((cls, index) => normalizeClass(cls, index, startNodeByClass, ascendancyStarts)),
++        classes: raw.classes.map((cls, index) => normalizeClass(cls, index, startNodeByClass, ascendancyStarts, ascendancyBaseIds, ascendancyNames, raw.skillOverrides)),
+         jewelSlots: (raw.jewelSlots ?? []).map(Number),
+         bounds: { minX: raw.min_x, minY: raw.min_y, maxX: raw.max_x, maxY: raw.max_y },
+     };
+@@ -210,6 +212,60 @@ function mapAscendancyStarts(nodes) {
+     }
+     return starts;
+ }
++/**
++ * Project Vaal patch: base ascendancy id for a named ascendancy with no start
++ * node of its own that reuses another ascendancy's exact graph via per-node
++ * overrides (e.g. "Abyssal Lich" over "Lich", its 13-entry `overridePairs`
++ * swapping name/icon/stats on an otherwise identical graph). Resolved from the
++ * data itself — each override's BASE node id already carries its own real
++ * `ascendancyId` — rather than assuming an id-naming convention (e.g.
++ * "Witch3b" -> "Witch3") GGG hasn't documented and that might not hold for
++ * whatever the next such ascendancy's id looks like.
++ */
++function mapAscendancyBaseIds(classes, nodes, ascendancyStarts) {
++    const baseIds = new Map();
++    for (const cls of classes) {
++        for (const asc of cls.ascendancies ?? []) {
++            if (!asc.name || ascendancyStarts.has(asc.id)) {
++                continue; // unreleased, or already has real nodes of its own
++            }
++            const baseId = resolveBaseAscendancyId(asc.overridePairs, nodes);
++            if (baseId && ascendancyStarts.has(baseId)) {
++                baseIds.set(asc.id, baseId);
++            }
++        }
++    }
++    return baseIds;
++}
++/** First override base node's own `ascendancyId` — see {@link mapAscendancyBaseIds}. */
++function resolveBaseAscendancyId(overridePairs, nodes) {
++    for (const baseIdStr of Object.keys(overridePairs ?? {})) {
++        const node = nodes[baseIdStr];
++        if (node?.ascendancyId) {
++            return node.ascendancyId;
++        }
++    }
++    return null;
++}
++/**
++ * Project Vaal patch: resolve an ascendancy's override-pair ids (base skill
++ * id -> alternate skill id) to full display data, read from the same global
++ * `skillOverrides` table tree-core already reads for the generic attribute
++ * nodes (`mapAttributeOptions`). The alternate ids are never real positioned
++ * nodes — confirmed directly against the vendored data: Abyssal Lich's 13
++ * alternates exist only in `skillOverrides`, never in `raw.nodes`.
++ */
++function resolveAscendancyNodeOverrides(overridePairs, skillOverrides) {
++    const out = {};
++    for (const [baseIdStr, altId] of Object.entries(overridePairs ?? {})) {
++        const alt = skillOverrides?.[altId];
++        if (!alt) {
++            continue;
++        }
++        out[Number(baseIdStr)] = { name: alt.name ?? '', icon: alt.icon ?? '', stats: cleanStats(alt.stats) };
++    }
++    return out;
++}
+ /**
+  * Build a class-index -> start-node-skill-id map. A class-start node lists the
+  * class indices that start there in `classStartIndex` (often two); the same node
+@@ -227,7 +283,7 @@ function mapClassStartNodes(nodes) {
+     }
+     return byClass;
+ }
+-function normalizeClass(raw, index, startNodeByClass, ascendancyStarts) {
++function normalizeClass(raw, index, startNodeByClass, ascendancyStarts, ascendancyBaseIds, ascendancyNames, skillOverrides) {
+     return {
+         name: raw.name,
+         id: index,
+@@ -243,11 +299,13 @@ function normalizeClass(raw, index, startNodeByClass, ascendancyStarts) {
+             active: { width: RING_SIZE, height: RING_SIZE },
+             frame: { width: RING_SIZE, height: RING_SIZE },
+         },
+-        // Keep only released ascendancies — ones with a name AND a start node (i.e.
+-        // actual nodes; e.g. "Abyssal Lich" is named but has none yet, so dropped).
++        // Keep released ascendancies — ones with a name AND either a start node of
++        // their own, or (Project Vaal patch) a resolvable base ascendancy whose
++        // graph they reuse (e.g. "Abyssal Lich" has a name but no nodes of its
++        // own; unreleased ascendancies have neither and stay dropped).
+         ascendancies: (raw.ascendancies ?? [])
+-            .filter((asc) => Boolean(asc.name) && ascendancyStarts.has(asc.id))
+-            .map((asc) => normalizeAscendancy(asc, ascendancyStarts)),
++            .filter((asc) => Boolean(asc.name) && (ascendancyStarts.has(asc.id) || ascendancyBaseIds.has(asc.id)))
++            .map((asc) => normalizeAscendancy(asc, ascendancyStarts, ascendancyBaseIds, ascendancyNames, skillOverrides)),
+         ...(raw.overridePairs ? { overridePairs: normalizeOverrides(raw.overridePairs) } : {}),
+     };
+ }
+@@ -259,8 +317,12 @@ function normalizeOverrides(raw) {
+     }
+     return out;
+ }
+-function normalizeAscendancy(raw, ascendancyStarts) {
+-    const start = ascendancyStarts.get(raw.id) ?? { x: 0, y: 0 };
++function normalizeAscendancy(raw, ascendancyStarts, ascendancyBaseIds, ascendancyNames, skillOverrides) {
++    // Project Vaal patch: an ascendancy with no nodes of its own (e.g. "Abyssal
++    // Lich") has no entry in `ascendancyStarts` under its own id — fall back to
++    // the base ascendancy it reuses the graph of (mapAscendancyBaseIds above).
++    const baseId = ascendancyBaseIds.get(raw.id);
++    const start = ascendancyStarts.get(raw.id) ?? (baseId ? ascendancyStarts.get(baseId) : undefined) ?? { x: 0, y: 0 };
+     // The renderer relocates each disc node by `centre − worldAnchor`. GGG's
+     // `offsetX/offsetY` is where the start diamond must land in the hub — on the
+     // class's quatrefoil axis, 1332u out (verified against the original PoB
+@@ -275,6 +337,21 @@ function normalizeAscendancy(raw, ascendancyStarts) {
+         image: `Classes${raw.name.replace(/\s+/g, '')}`,
+         worldAnchor: { x: start.x + offsetX, y: start.y + offsetY },
+         size: { width: ASCENDANCY_DISC_SIZE, height: ASCENDANCY_DISC_SIZE },
++        // Project Vaal patch: the ascendancy whose actual node graph this one
++        // defers to — its own nodes (if any existed) would be tagged with the
++        // BASE ascendancy's display name, not this one's, since it reuses that
++        // exact graph. Callers doing graph/allocation work (buildAscendancyGraph,
++        // TreeView's `activeAscendancy`) must resolve through this instead of
++        // `id` when it's present. Absent for every ordinary ascendancy, which is
++        // its own graph.
++        ...(baseId ? { graphId: ascendancyNames.get(baseId) ?? baseId } : {}),
++        // Project Vaal patch: this ascendancy's per-node display overrides (base
++        // skill id -> the alternate name/icon/stats it shows instead), resolved
++        // against the global `skillOverrides` table. Absent when the ascendancy
++        // has none (every ordinary ascendancy today).
++        ...(raw.overridePairs && Object.keys(raw.overridePairs).length > 0
++            ? { nodeOverrides: resolveAscendancyNodeOverrides(raw.overridePairs, skillOverrides) }
++            : {}),
+     };
+ }
+ //# sourceMappingURL=normalize.js.map
+\ No newline at end of file
+diff --git a/node_modules/@poe2-toolkit/tree-core/dist/scene/buildScene.js b/node_modules/@poe2-toolkit/tree-core/dist/scene/buildScene.js
+index c7d2a56..b5aa69b 100644
+--- a/node_modules/@poe2-toolkit/tree-core/dist/scene/buildScene.js
++++ b/node_modules/@poe2-toolkit/tree-core/dist/scene/buildScene.js
+@@ -32,9 +32,19 @@ export function buildScene(data, opts = {}) {
+     // from) is implicitly allocated — you have the ascendancy — so its rails into
+     // the first allocated nodes render as active instead of looking disconnected.
+     const ascId = opts.allocation?.ascendId;
+-    if (ascId) {
++    // Project Vaal patch: the active ascendancy's own AscendancyDef, when
++    // resolvable — needed both for ascendancies that reuse another
++    // ascendancy's graph (`graphId`; e.g. "Abyssal Lich" over "Lich" — its own
++    // nodes are tagged with the BASE ascendancy's display name, not this one's,
++    // so the implicit-start match below must go through `graphId`) and for
++    // per-node display overrides (`nodeOverrides`, used for icons below).
++    const ascDef = ascId
++        ? data.classes.find((cls) => cls.id === opts.allocation?.classId)?.ascendancies.find((a) => a.id === ascId)
++        : undefined;
++    const ascGraphId = ascDef?.graphId ?? ascId;
++    if (ascGraphId) {
+         for (const node of Object.values(data.nodes)) {
+-            if (node.isAscendancyStart && node.ascendancyName === ascId) {
++            if (node.isAscendancyStart && node.ascendancyName === ascGraphId) {
+                 allocated.add(node.skill);
+                 break;
+             }
+@@ -47,6 +57,9 @@ export function buildScene(data, opts = {}) {
+     // Active class's per-node display overrides (the Witch's "Spell and Minion
+     // Damage" for the generic "Spell Damage" node, etc.).
+     const overridePairs = data.classes.find((cls) => cls.id === opts.allocation?.classId)?.overridePairs;
++    // Project Vaal patch: the active ascendancy's own per-node overrides (e.g.
++    // Abyssal Lich's 13 swapped notables/passives drawn over Lich's shared graph).
++    const ascNodeOverrides = ascDef?.nodeOverrides;
+     const nodes = [];
+     const masteryEffects = [];
+     const connections = [];
+@@ -85,13 +98,17 @@ export function buildScene(data, opts = {}) {
+         // "Spell and Minion Damage" art over the generic "Spell Damage").
+         const overrideTarget = overridePairs?.[node.skill];
+         const overrideIcon = overrideTarget !== undefined ? data.nodes[overrideTarget]?.icon : undefined;
++        // Project Vaal patch: an ascendancy-level icon override for this node,
++        // when the active ascendancy has one (see `ascNodeOverrides` above).
++        const ascOverrideIcon = ascNodeOverrides?.[node.skill]?.icon;
+         nodes.push({
+             skill: node.skill,
+             x: position.x,
+             y: position.y,
+             kind: classifyNode(node),
+-            // Attribute choice wins, then the class override, then the base icon.
+-            icon: chosenAttributeOption(node, opts.allocation)?.icon || overrideIcon || node.icon,
++            // Attribute choice wins, then the active ascendancy's override, then
++            // the class override, then the base icon.
++            icon: chosenAttributeOption(node, opts.allocation)?.icon || ascOverrideIcon || overrideIcon || node.icon,
+             // The game draws each sprite at 2*width centred on the node, so the world
+             // diameter is twice the target width. Same rule as the centre ring layers.
+             iconSize: size.icon * 2,
+diff --git a/node_modules/@poe2-toolkit/tree-core/dist/types.d.ts b/node_modules/@poe2-toolkit/tree-core/dist/types.d.ts
+index 9cd9b8f..0e03a3d 100644
+--- a/node_modules/@poe2-toolkit/tree-core/dist/types.d.ts
++++ b/node_modules/@poe2-toolkit/tree-core/dist/types.d.ts
+@@ -212,6 +212,25 @@ export interface AscendancyDef {
+     worldAnchor: Point;
+     /** Disc native size (1500²). */
+     size: Size;
++    /**
++     * Project Vaal patch: the ascendancy id whose actual node graph this one
++     * defers to, for ascendancies with no nodes of their own that reuse another
++     * ascendancy's exact graph via `nodeOverrides` (e.g. "Abyssal Lich" reusing
++     * "Lich"'s graph). Its own nodes (if it had any) would be tagged with the
++     * BASE ascendancy's display name, not this one's — so graph/allocation
++     * calls (`buildAscendancyGraph`, `toggleAscendancyAllocation`, TreeView's
++     * `activeAscendancy` prop) must resolve through this instead of `id` when
++     * it's present. Undefined for every ordinary ascendancy, which is its own
++     * graph.
++     */
++    graphId?: string;
++    /**
++     * Project Vaal patch: per-node display overrides this ascendancy applies
++     * over its (possibly borrowed, via `graphId`) graph — base skill id -> the
++     * alternate name/icon/stats it shows instead of the base node's own.
++     * Undefined when the ascendancy has none (every ordinary ascendancy today).
++     */
++    nodeOverrides?: Record<number, { name: string; icon: string; stats: string[] }>;
+ }
+ /** One sprite's location: which atlas, and its native pixel sub-rect within it. */
+ export interface SpriteFrame {

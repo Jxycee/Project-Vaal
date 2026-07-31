@@ -15,9 +15,15 @@ export interface SelectedNode {
 
 export default function NodeInfoPanel({
   node,
+  pendingKind,
+  onConfirm,
   onDismiss,
 }: {
   node: SelectedNode | null;
+  /** Set (touch-only) when this node has an unconfirmed preview pending. */
+  pendingKind?: 'add' | 'remove';
+  /** Commits the pending preview. Only passed alongside `pendingKind`. */
+  onConfirm?: () => void;
   onDismiss: () => void;
 }) {
   if (!node) return null;
@@ -44,6 +50,19 @@ export default function NodeInfoPanel({
       ) : (
         <p className="mt-1 text-xs text-muted-foreground">No effect.</p>
       )}
+      {pendingKind && onConfirm ? (
+        <button
+          type="button"
+          onClick={onConfirm}
+          className={`mt-2 w-full rounded-md px-3 py-1.5 text-xs font-heading ${
+            pendingKind === 'add'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-destructive text-destructive-foreground'
+          }`}
+        >
+          {pendingKind === 'add' ? 'Allocate' : 'Remove'}
+        </button>
+      ) : null}
     </div>
   );
 }
