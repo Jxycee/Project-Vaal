@@ -6,21 +6,21 @@ import { WIKI_DATA_VERSION } from '@/lib/wiki/types';
 import type { WikiIndexFile } from '@/lib/wiki/types';
 
 export default async function SkillsPage() {
-  let raw: string | undefined;
+  let index: WikiIndexFile | undefined;
   try {
-    raw = await readFile(
+    const raw = await readFile(
       path.join(process.cwd(), 'public', 'data', 'wiki', WIKI_DATA_VERSION, 'skill-index.json'),
       'utf8',
     );
+    index = JSON.parse(raw) as WikiIndexFile;
   } catch {
     notFound();
   }
 
-  const index = JSON.parse(raw!) as WikiIndexFile;
   return (
     <>
       <h1 className="mb-4 font-heading text-2xl text-primary">Skill Gems</h1>
-      <WikiSearch entries={index.entries} basePath="/wiki/skills" />
+      <WikiSearch entries={index!.entries} basePath="/wiki/skills" />
     </>
   );
 }
