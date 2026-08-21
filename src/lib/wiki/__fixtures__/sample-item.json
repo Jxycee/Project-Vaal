@@ -1,0 +1,22 @@
+{
+  "name": "Bramblejack",
+  "rarity": "unique",
+  "icon": "Art/2DItems/Armours/BodyArmours/Uniques/Bramblejack.dds",
+  "itemClass": null,
+  "category": "Body Armour",
+  "twoHanded": false,
+  "req": {
+    "str": 0,
+    "dex": 0,
+    "int": 0
+  },
+  "armour": null,
+  "weapon": null,
+  "spirit": 0,
+  "dropLevel": 0,
+  "flavourText": [
+    "It is safer to be feared than to be loved."
+  ],
+  "modDomain": null,
+  "tags": []
+}

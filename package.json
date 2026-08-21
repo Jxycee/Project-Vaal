@@ -14,6 +14,10 @@
     "db:types": "npx supabase gen types typescript --project-id mjxadehorflhncendqiy > src/types/database.ts"
   },
   "dependencies": {
+    "@poe2-toolkit/gem-extractor": "^1.0.0",
+    "@poe2-toolkit/ggpk": "^1.0.0",
+    "@poe2-toolkit/item-extractor": "^1.0.0",
+    "@poe2-toolkit/mod-extractor": "^1.0.0",
     "@poe2-toolkit/tree-core": "0.4.1",
     "@poe2-toolkit/tree-react": "0.7.2",
     "@serwist/next": "^9.5.11",
@@ -45,6 +49,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "patch-package": "^8.0.1",
+    "pathofexile-dat": "^15.2.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.10"

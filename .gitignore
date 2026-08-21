@@ -47,3 +47,7 @@ next-env.d.ts
 
 # one-time delivery bundles (extracted via Expand-Archive, never meant to be tracked)
 *.zip
+
+# wiki data recon/capture scratch — decoded GGPK tables + bundle cache,
+# regenerated on demand by scripts/wiki/capture-fixtures.mjs, never tracked
+/scripts/wiki/.extract/

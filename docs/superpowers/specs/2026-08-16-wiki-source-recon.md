@@ -77,9 +77,11 @@ Pulled verbatim from `poe2-toolkit`'s own `scripts/golden-fixtures/config.json` 
 
 ```ts
 import { extractItems } from '@poe2-toolkit/item-extractor'; // (source: ItemSource) => Promise<{ data: ItemData; icons: ItemIconsResult }>
-import { extractGems } from '@poe2-toolkit/gem-extractor';   // not yet confirmed to bundle icons the same way as extractItems — buildGems + buildGemIcons exist separately; verify during Task 1
-import { buildMods } from '@poe2-toolkit/mod-extractor';      // (source: GgpkSource) => Promise<ModData>  — mod-extractor has no bundled extractMods+icons wrapper since mods carry no icons
+import { extractGems } from '@poe2-toolkit/gem-extractor';   // (source: GemSource) => Promise<{ data: GemData; icons: GemIconsResult }>
+import { extractMods } from '@poe2-toolkit/mod-extractor';   // (source: GgpkSource) => Promise<{ data: ModData }>
 ```
+
+**Correction from Task 1's real fixture capture (2026-08-21):** both open questions above are resolved. `extractGems` DOES bundle data + icons in one call, exactly like `extractItems` (`GemBundle = { data: GemData; icons: GemIconsResult }`) — `buildGems`/`buildGemIcons` are the lower-level pieces it composes, still exported separately but not needed for the normal path. `extractMods` also exists (contrary to this doc's earlier claim that mod-extractor has no bundled wrapper) — it wraps `buildMods` in a `ModBundle = { data: ModData }`, just with no `icons` field since mods carry no art. `scripts/wiki/capture-fixtures.mjs` used `extractItems`/`extractGems`/`extractMods` uniformly and all three worked as documented here.
 
 `ItemData = Record<string, Item>` — keyed by **display name**, first base wins on name collision, uniques added after (never overwrite a base).
 `GemData.gems = Record<string, Gem>` — keyed by the **last path segment of the gem's base item id** (PoB's `normalizeGemId`, e.g. `SkillGemIceNova`).
@@ -103,7 +105,9 @@ Items and mods join on `(Item.modDomain === Mod.domain)` then `Item.tags` matchi
 
 ## Patch version
 
-No public "give me the current PoE2 patch" HTTP endpoint found. `poe-tool-dev/latest-patch-version`'s `latest.txt` returns a PoE1-format version (`3.29.3.1.4`) — not applicable. `poe2-toolkit`'s own build resolves `"patch": "latest"` via a raw two-byte handshake against `patch.pathofexile2.com:13060`, implemented in a `current-patch.mjs` not fetched in this recon (out of scope for M1 — see design spec's open items). **Decision: pin `WIKI_PATCH_VERSION` as a manual constant**, current value `4.5.4.10` per `poe2-toolkit`'s own docs (dated 2026-08-15, one day before this recon) — same manual-but-PR-reviewed pattern as `WIKI_DATA_VERSION`.
+No public "give me the current PoE2 patch" HTTP endpoint found. `poe-tool-dev/latest-patch-version`'s `latest.txt` returns a PoE1-format version (`3.29.3.1.4`) — not applicable. `poe2-toolkit`'s own build resolves `"patch": "latest"` via a raw two-byte handshake against `patch.pathofexile2.com:13060`, implemented in a `current-patch.mjs` not fetched in this recon (out of scope for M1 — see design spec's open items). **Decision: pin `WIKI_PATCH_VERSION` as a manual constant**, same manual-but-PR-reviewed pattern as `WIKI_DATA_VERSION`.
+
+**Correction from Task 1's real fixture capture (2026-08-21):** the value above, `4.5.4.10` (per `poe2-toolkit`'s docs dated 2026-08-15), was already stale one day later — `https://patch-poe2.poecdn.com/4.5.4.10/Bundles2/_.index.bin` 404s. Task 1 replicated the two-byte handshake this doc describes (connect to `patch.pathofexile2.com:13060`, write `[1,6,1,0,0,0,1,0]`, parse the UTF-16LE URL in the response) and got back `https://patch-poe2.poecdn.com/4.5.4.10.2/`, i.e. current patch `4.5.4.10.2` (five segments, not four — `WIKI_PATCH_VERSION`'s format regex already tolerated this). That value 200s and is what `WIKI_PATCH_VERSION`, `scripts/wiki/pathofexile-dat.config.json`, and the fixtures in `src/lib/wiki/__fixtures__/` were captured against. Confirms this field really does need hand-bumping on a short cadence (same-day-to-next-day drift observed here) — the weekly sync PR should re-run this handshake, not just eyeball a doc.
 
 ## Entity counts / payload size
 
