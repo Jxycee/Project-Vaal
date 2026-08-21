@@ -42,12 +42,12 @@ scripts/sync-wiki.ts
   → validateSyncResult (empty-check, duplicate-slug, >10%-drop guards)
   → write public/data/wiki/<version>/{item,skill,mod}-index.json
   → write public/data/wiki/<version>/{items,skills,mods}/<slug>.json
-  → write public/data/wiki/<version>/icons/<slug>.webp  (items + skills only)
+  → write public/data/wiki/<version>/icons/<slug>.png  (items + skills only)
 ```
 
 ## 2. Patch version pinning
 
-`createCdnSource` requires an explicit `patch` string (e.g. `'4.5.4.10'`). A `"latest"` resolution mechanism exists inside poe2-toolkit's own build scripts (a raw two-byte handshake against `patch.pathofexile2.com:13060`) but isn't exposed as a public API — reimplementing it is its own spike, not pursued for M1. Store `WIKI_PATCH_VERSION = '4.5.4.10'` (current per poe2-toolkit's own docs, dated 2026-08-15) as a manually-bumped constant next to `WIKI_DATA_VERSION` in `src/lib/wiki/types.ts`. The weekly sync PR (§6) is the review point where a human bumps it after a game patch — same manual-but-reviewed pattern already used for `WIKI_DATA_VERSION`.
+`createCdnSource` requires an explicit `patch` string (e.g. `'4.5.4.10.2'`). A `"latest"` resolution mechanism exists inside poe2-toolkit's own build scripts (a raw two-byte handshake against `patch.pathofexile2.com:13060`) but isn't exposed as a public API. **Update (Task 1, 2026-08-21):** this handshake was reimplemented ad-hoc during Task 1 to unblock fixture capture (the plan's pinned `4.5.4.10` had already 404'd against the CDN) and confirmed working — real current value `4.5.4.10.2`, technique documented with exact bytes in the recon doc. Still not formalized into the sync pipeline for M1 (kept as a manual constant, below) to avoid a mid-plan scope change, but the future "auto-resolve latest" open item is now de-risked, not speculative. Store `WIKI_PATCH_VERSION = '4.5.4.10.2'` as a manually-bumped constant next to `WIKI_DATA_VERSION` in `src/lib/wiki/types.ts`. The weekly sync PR (§6) is the review point where a human bumps it after a game patch — same manual-but-reviewed pattern already used for `WIKI_DATA_VERSION`.
 
 `createCdnSource`'s `tablesDir` is not self-produced — it requires a separate `pathofexile-dat`-decode step first, driven by a `config.json` (exact working table/column list captured in the recon doc, lifted verbatim from poe2-toolkit's own test fixtures). The sync script runs this as a first stage before calling the extractors.
 
@@ -147,6 +147,6 @@ Same TDD shape as the original plan: `types.test.ts`, `source.test.ts` (now test
 
 - **Unique item mod values.** Not derivable from this pipeline (see §3's "known limitation"). Would need Path of Building's community unique dataset (MIT, per its own credit in `exile2exile`) as a second source joined by item name — a real follow-up task, not a stretch goal.
 - Community build/trivia context that GGPK data can't provide — poe2wiki.net could still be added later as a secondary enrichment source per entity, if this ends up feeling thin. Not pursued now; no bot-protection workaround implied if it ever is.
-- Icon storage is per-entity webp files, not a sprite atlas like the tree's. Fine at expected item/gem counts; revisit only if entity counts are large enough that per-file HTTP overhead matters (measure during implementation, not guessed here).
+- Icon storage is per-entity PNG files (as decoded by `@poe2-toolkit/ggpk`, no extra conversion step), not webp like the tree's atlases and not a sprite atlas either. Fine at expected item/gem counts and file sizes; webp conversion (smaller files, matches tree convention) is a possible later optimization once real sizes are measured, not pursued for M1.
 - `"patch": "latest"` auto-resolution (§2) — reimplementing poe2-toolkit's patch-server handshake would remove the manual-bump step entirely. Not pursued for M1.
 - `extractGems`'s icon-bundling behavior (single-call data+icons like `extractItems`, or separate `buildGems`/`buildGemIcons` calls) wasn't fully confirmed in recon — verify in Task 1's real fixture capture, not assumed here.
