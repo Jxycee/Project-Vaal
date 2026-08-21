@@ -49,6 +49,13 @@ const PROTECTED_PREFIXES = ['/dashboard', '/characters', '/settings', '/tree', '
 // confirmed auth bypass (2026-08-21 security review) if this only checked the
 // raw pathname. Check both the raw and (single-level) decoded form; malformed
 // percent-encoding falls back to the raw check rather than throwing.
+//
+// This check is case-sensitive (`/data/WiKi/...` would not match). Not a
+// bypass: Next's static file resolver looks paths up by exact string in a
+// case-sensitive Set built from the real on-disk filenames (confirmed on
+// this Next version), so a differently-cased request just 404s rather than
+// finding the real file some other, unprotected way. Lowercasing here would
+// only widen what gets redirected, never narrow it — not worth the cost.
 function isProtectedPath(pathname: string): boolean {
   const candidates = [pathname]
   try {

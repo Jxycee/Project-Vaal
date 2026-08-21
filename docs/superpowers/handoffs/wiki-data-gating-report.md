@@ -381,3 +381,118 @@ but not one this fix round created or worsened. Flagging it as documented, not e
 All five findings (2 Critical, 2 Important actionable, 1 Important documented-not-rewritten) plus
 all four Minor items are addressed. The one deliberately-deferred item is the integration test
 noted above — flagged, not built, for the reason given.
+
+---
+
+## Addendum 2 — round-2 independent review (real build, compiled routes-manifest.json)
+
+A second independent reviewer, running an actual `npm run build` and tracing the compiled
+`.next/routes-manifest.json` against Next's own routing source, confirmed Critical 2 and
+Important 3/4/5 from Addendum 1 are genuinely fixed — including the self-reported third bypass
+(the encoded-`data`-segment case), which they determined isn't exploitable on this Next version,
+but agreed the `(?!.*%)` guard is correct hardening worth keeping regardless. One real residual
+remained on Critical 1, plus two Low/Info items.
+
+### Critical 1 residual — the sibling non-wiki `/data/**` rule was still a denylist
+
+**Finding**: Addendum 1 fixed the `/data/wiki/:path*` rule's `Cache-Control` value, but didn't
+touch its sibling rule, which was still `source: '/data/:filename((?!wiki/).*)'` →
+`public, max-age=31536000, immutable`. Header-rule matching happens on the raw, non-percent-decoded
+pathname (same class of bug as Critical 2, just in a different Next subsystem —
+`headers()`/`fsChecker.headers` instead of the proxy matcher). So
+`/data/%77iki/2026-08-21/item-index.json` fails the `(?!wiki/)` negative lookahead on the raw
+string (it doesn't literally contain `wiki/`), falls through to this denylist rule instead, and
+gets served with a full year of `public, immutable` caching — worse than the original bug, and
+worse than what Addendum 1 left in place for the primary rule. Because `fsChecker.headers` runs
+before middleware in Next's request pipeline, even the anonymous 307-to-`/login` response for that
+same encoded path would carry this header.
+
+**Fix**: `next.config.ts` — changed the sibling rule from a denylist to an allowlist scoped to
+`/data/tree/:path*` (the one thing it's actually meant to cover, matching how the `src/proxy.ts`
+matcher already scopes its own tree exclusion the same way). Any path that isn't a literal,
+undecoded `/data/tree/...` — including every percent-encoded spelling of a wiki path — now falls
+through to Next's own conservative default instead of matching either header rule. Rewrote the
+surrounding comment block to explain why, name the specific bug, and warn against reverting to a
+denylist.
+
+**Re-verified against the actual compiled artifact**, per the reviewer's instruction (re-running a
+real `npm run build`, not trusting source):
+
+```
+$ node -e "const d = require('./.next/routes-manifest.json'); for (const h of d.headers) if (h.source.includes('data')) console.log(h);"
+{ source: '/data/wiki/:path*', headers: [{ key: 'Cache-Control', value: 'private, max-age=3600, stale-while-revalidate=604800' }],
+  regex: '^/data/wiki(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$' }
+{ source: '/data/tree/:path*', headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+  regex: '^/data/tree(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$' }
+```
+
+No denylist regex remains in the compiled output. Tested the two compiled regexes directly against
+the reviewer's exact case:
+
+| path | matches `/data/wiki/:path*`? | matches `/data/tree/:path*`? |
+|---|---|---|
+| `/data/wiki/2026-08-21/item-index.json` | true | false |
+| `/data/tree/0.5.2/skills.json` | false | true |
+| `/data/%77iki/2026-08-21/item-index.json` | **false** | **false** — matches neither, falls through to Next's default (the fix) |
+| `/data/wikifoo/x.json` | false | false — sibling path doesn't spuriously match either |
+
+### Low/Info 1 — service worker doesn't purge caches from already-installed SWs
+
+**Finding**: the `/data/wiki/` `NetworkOnly` rule from Addendum 1 prevents *future* caching, but an
+already-installed service worker may have already cached gated bytes under `defaultCache`'s generic
+image/JSON buckets before the fix shipped — "survives sign-out" persists for those installs until
+they pick up the new SW.
+
+**Fix** (small and safe enough to do, not just note): `src/sw.ts` — added a one-time `activate`
+handler that walks every named cache `defaultCache` defines and deletes any entry whose URL is
+under `/data/wiki/`. Cache names are read off each rule's `handler.cacheName` at runtime (via a
+`RouteHandlerObject & { cacheName: string }` type guard) rather than hardcoded as literal strings
+like `"static-image-assets"` / `"static-data-assets"`, so this stays correct if `@serwist/next`
+ever renames its internal caches. Registered as a second, independent `activate` listener alongside
+Serwist's own (`self.addEventListener('activate', ...)` — multiple listeners on the same event are
+fine; each gets its own `event.waitUntil`). A no-op after the first activate on an already-clean
+install.
+
+Hit one type error along the way: `RuntimeCaching['handler']` is typed as
+`RouteHandlerCallback | RouteHandlerObject`, so `cacheName` isn't statically visible on it even
+though every real `defaultCache` entry is a `Strategy` instance that has one at runtime. Fixed with
+an explicit type guard (`handler is RouteHandlerObject & { cacheName: string }`) rather than an
+unsafe cast — first attempt used a bare `{cacheName: string}` predicate, which TS's `filter`
+overload silently declined to narrow with (predicate result type didn't extend the array's element
+type), caught by `type-check`, not by inspection.
+
+Verified in the compiled output: `public/sw.js` contains `/data/wiki/` twice (the runtime-caching
+matcher and the cleanup filter) and `"activate"` twice (Serwist's own + the new one).
+
+### Low/Info 2 — `isProtectedPath` is case-sensitive
+
+**Finding**: `/data/WiKi/...` wouldn't match `/data/wiki/`. Not exploitable — Next's static file
+lookup is an exact-string match against real on-disk filenames — but worth a comment saying so
+explicitly rather than leaving it looking like an oversight.
+
+**Fix**: added a one-line comment on `isProtectedPath` in `src/proxy.ts` explaining why
+case-sensitivity here is a non-issue (a differently-cased request just 404s, since it can't find a
+real file that way) and why lowercasing would only ever widen protection, never narrow it, so isn't
+worth the added complexity.
+
+### Re-verification (round 2)
+
+- `npm run type-check` — clean (after fixing the `cacheName` type-narrowing issue above).
+- `npm run lint` — clean.
+- `npm run build` — succeeds. `.next/routes-manifest.json` inspected directly and confirmed above —
+  this is the specific artifact the reviewer flagged as the thing to re-check for real, not source.
+  `public/sw.js` regenerated and confirmed to contain the new activate-time cleanup logic.
+- `npx vitest run` — **79/79 passed** (9 test files), unchanged from Addendum 1 — this round's
+  fixes are all in `next.config.ts` and `src/sw.ts`/`src/proxy.ts` comments+guards, none of which
+  have unit-testable surface beyond what was already covered (the service worker activate handler,
+  like the rest of `src/sw.ts`, isn't executable in this repo's DOM-less `vitest` environment — same
+  gap already noted for `WikiBrowse.tsx`'s rendered output).
+
+### Status of this addendum
+
+The one real residual from round 2 (Critical 1's sibling denylist rule) is fixed and verified
+against the compiled artifact. Both Low/Info items are fixed rather than just noted, since both
+turned out to be small, safe, self-contained changes. No new residuals identified in this round
+beyond what Addendum 1 already flagged (no integration test harness in this repo; the small
+double-encoding assumption in the Critical 2 discussion; no dev-server click-through in this
+sandbox).

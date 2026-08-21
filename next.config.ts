@@ -139,11 +139,32 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       // -----------------------------------------------------------------
-      // The two rules below are mutually exclusive by construction — the
-      // general one excludes /data/wiki via a negative lookahead — rather
-      // than relying on which of two overlapping matches wins. Next applies
-      // every matching rule, and depending on ordering semantics an
-      // overlapping `immutable` would quietly win over this one.
+      // The two rules below are mutually exclusive by construction — each
+      // is scoped to its own path prefix (`/data/wiki/`, `/data/tree/`)
+      // rather than one of them being a catch-all for "everything else
+      // under /data/". Next applies every matching rule, and depending on
+      // ordering semantics an overlapping `immutable` would quietly win
+      // over this one.
+      //
+      // SECURITY: the second rule below used to be a denylist —
+      // `/data/:filename((?!wiki/).*)`, i.e. "everything under /data/
+      // except /data/wiki/**" — instead of the allowlist it is now
+      // (2026-08-21 security review, round 2). `headers()` rule matching
+      // happens on the RAW, non-percent-decoded pathname, same as the
+      // src/proxy.ts matcher (see that file's comments). A request to
+      // `/data/%77iki/2026-08-21/item-index.json` (percent-encoded "wiki")
+      // does not literally match `wiki/` in the negative lookahead, so a
+      // denylist rule here would apply its `public, max-age=1y, immutable`
+      // caching to gated wiki bytes — worse than the original bug this file
+      // was first patched for, since `fsChecker.headers` in Next's pipeline
+      // runs before middleware, so even the anonymous 307-to-/login would
+      // carry that header. An allowlist scoped to `/data/tree/:path*` (the
+      // one thing actually meant to get this treatment, matching how the
+      // proxy matcher itself already scopes its tree exclusion) means any
+      // path that isn't a literal, undecoded `/data/tree/...` — including
+      // every percent-encoded spelling of a wiki path — falls through to
+      // Next's own conservative default instead of matching either rule.
+      // Do not widen this back to a denylist.
       //
       // The wiki cannot use the immutable rule. Its path segment is
       // WIKI_DATA_VERSION, a hand-bumped constant that the weekly sync does
@@ -183,8 +204,10 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // Everything under /data EXCEPT /data/wiki, which the rule above owns.
-        source: '/data/:filename((?!wiki/).*)',
+        // Allowlist, not "everything under /data except wiki" — see the
+        // SECURITY note above. Public, unauthenticated, versioned-by-path
+        // passive-tree assets only.
+        source: '/data/tree/:path*',
         headers: [
           {
             key: 'Cache-Control',
