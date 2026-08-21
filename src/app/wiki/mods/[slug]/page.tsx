@@ -33,15 +33,15 @@ export default async function ModDetailPage({
       </header>
       {mod.stats.length > 0 && (
         <ul className="space-y-1 text-sm">
-          {mod.stats.map((stat) => <li key={stat}>{stat}</li>)}
+          {mod.stats.map((stat, i) => <li key={`${i}-${stat}`}>{stat}</li>)}
         </ul>
       )}
       {spawnableOn.length > 0 && (
         <div className="border-t pt-3 text-sm">
           <p className="text-muted-foreground">Can roll on:</p>
           <ul className="flex flex-wrap gap-2 pt-1">
-            {spawnableOn.map((w) => (
-              <li key={w.tag} className="rounded border bg-card px-2 py-0.5 text-xs text-muted-foreground">
+            {spawnableOn.map((w, i) => (
+              <li key={`${i}-${w.tag}`} className="rounded border bg-card px-2 py-0.5 text-xs text-muted-foreground">
                 {w.tag}
               </li>
             ))}

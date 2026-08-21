@@ -35,8 +35,8 @@ export default async function SkillDetailPage({
       </header>
       {skill.tags.length > 0 && (
         <ul className="flex flex-wrap gap-2">
-          {skill.tags.map((tag) => (
-            <li key={tag} className="rounded border bg-card px-2 py-0.5 text-xs text-muted-foreground">
+          {skill.tags.map((tag, i) => (
+            <li key={`${i}-${tag}`} className="rounded border bg-card px-2 py-0.5 text-xs text-muted-foreground">
               {tag}
             </li>
           ))}
@@ -49,7 +49,7 @@ export default async function SkillDetailPage({
             <div key={level.level}>
               <p className="text-muted-foreground">Level {level.level}</p>
               <ul className="space-y-1">
-                {level.stats.map((stat) => <li key={stat.text}>{stat.text}</li>)}
+                {level.stats.map((stat, i) => <li key={`${i}-${stat.text}`}>{stat.text}</li>)}
               </ul>
             </div>
           ))}

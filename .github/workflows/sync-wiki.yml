@@ -5,6 +5,14 @@ on:
     - cron: '0 4 * * 1'   # weekly, Monday 04:00 UTC — patch cadence, not price cadence
   workflow_dispatch:
 
+# One sync at a time. Two overlapping runs would race the same
+# chore/wiki-data-refresh branch and the same output directory; the later
+# run's result is the one worth keeping, so cancel an in-flight run rather
+# than letting it finish and clobber.
+concurrency:
+  group: sync-wiki
+  cancel-in-progress: true
+
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -17,8 +25,11 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
-      - run: npx tsx scripts/sync-wiki.ts
-      - uses: peter-evans/create-pull-request@v6
+      # `npm run sync:wiki`, not `npx tsx ...`: npx would fetch an unpinned
+      # tsx at run time, leaving the one command the whole refresh depends on
+      # as the only thing not locked. tsx is a pinned devDependency now.
+      - run: npm run sync:wiki
+      - uses: peter-evans/create-pull-request@v7
         with:
           commit-message: 'chore(wiki): refresh wiki data'
           title: 'chore(wiki): refresh wiki data'
