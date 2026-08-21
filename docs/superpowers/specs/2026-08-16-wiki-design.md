@@ -47,9 +47,13 @@ scripts/sync-wiki.ts
 
 ## 2. Patch version pinning
 
-`createCdnSource` requires an explicit `patch` string (e.g. `'4.5.4.1'`) — no "latest" discovery API exists in the toolkit. Store `WIKI_PATCH_VERSION` as a manually-bumped constant next to `WIKI_DATA_VERSION` in `src/lib/wiki/types.ts`. The weekly sync PR (§6) is the review point where a human bumps it after a game patch — same manual-but-reviewed pattern already used for `WIKI_DATA_VERSION`.
+`createCdnSource` requires an explicit `patch` string (e.g. `'4.5.4.10'`). A `"latest"` resolution mechanism exists inside poe2-toolkit's own build scripts (a raw two-byte handshake against `patch.pathofexile2.com:13060`) but isn't exposed as a public API — reimplementing it is its own spike, not pursued for M1. Store `WIKI_PATCH_VERSION = '4.5.4.10'` (current per poe2-toolkit's own docs, dated 2026-08-15) as a manually-bumped constant next to `WIKI_DATA_VERSION` in `src/lib/wiki/types.ts`. The weekly sync PR (§6) is the review point where a human bumps it after a game patch — same manual-but-reviewed pattern already used for `WIKI_DATA_VERSION`.
+
+`createCdnSource`'s `tablesDir` is not self-produced — it requires a separate `pathofexile-dat`-decode step first, driven by a `config.json` (exact working table/column list captured in the recon doc, lifted verbatim from poe2-toolkit's own test fixtures). The sync script runs this as a first stage before calling the extractors.
 
 ## 3. Data model
+
+**Corrected against verified `@poe2-toolkit` type signatures** (recon: `docs/superpowers/specs/2026-08-16-wiki-source-recon.md`) — the shapes below match what the extractors actually return, not the poe2wiki.net-shaped guess in the original plan.
 
 ```ts
 export type WikiEntryKind = 'item' | 'skill' | 'mod';
@@ -71,30 +75,37 @@ interface WikiDetailBase {
 
 export interface WikiItemDetail extends WikiDetailBase {
   kind: 'item';
-  itemClass: string;
-  isUnique: boolean;
-  requirements: { level?: number; strength?: number; dexterity?: number; intelligence?: number };
-  implicitMods: string[];
-  explicitMods: string[];
-  flavourText?: string;
-  iconUrl: string;
+  rarity: 'normal' | 'unique';
+  itemClass: string | null;
+  twoHanded: boolean;
+  requirements: { strength: number; dexterity: number; intelligence: number };
+  armour: { armour: number; evasion: number; energyShield: number; ward: number; block: number } | null;
+  weapon: { damageMin: number; damageMax: number; critical: number; attackTime: number; rangeMax: number; reloadTime: number } | null;
+  spirit: number;
+  dropLevel: number;
+  flavourText: string[] | null;
+  modDomain: string | null;
+  tags: string[];
+  iconUrl: string | null;
 }
 
 export interface WikiSkillDetail extends WikiDetailBase {
   kind: 'skill';
   gemType: 'active' | 'support' | 'spirit';
+  color: 'r' | 'g' | 'b' | 'w';
   tags: string[];
-  description: string;
-  statText: string[];
-  iconUrl: string;
+  description: string | null;
+  requirement: { strength: number; dexterity: number; intelligence: number; level: number };
+  scaling: { level: number; cost: number | null; castTime: number | null; cooldown: number | null; reservation: number | null; stats: { text: string; min: number; max: number }[] }[];
+  iconUrl: string | null;
 }
 
 export interface WikiModDetail extends WikiDetailBase {
   kind: 'mod';
   domain: string;
   generationType: string;
-  group: string;
-  tier: number;
+  group: string | null;
+  tier: number | null;
   level: number;
   stats: string[];
   rolls: { stat: string; min: number; max: number }[];
@@ -102,6 +113,8 @@ export interface WikiModDetail extends WikiDetailBase {
   spawnWeights: { tag: string; weight: number }[];
 }
 ```
+
+**Known limitation — no explicit/implicit mod text on unique items.** `item-extractor`'s `Item` type has no mods field; GGG's `.dat` files carry no unique→rolled-affix link. `exile2exile` (the reference project built on this same toolkit) sources unique mod values from Path of Building's community data instead, not GGPK. **This M1 pipeline cannot show a unique item's actual affix values** — the item detail page shows class/requirements/base-stats/flavor/icon only. This is the single biggest open item for a follow-up milestone (see "Open items" below) — flagging prominently since a unique's mod lines are arguably the most-wanted fact on its page.
 
 `sourceUrl` (present in the original plan, for wiki-page attribution) is dropped — there is no wiki page. Attribution is handled once, at the license-notice level (§7), not per entity. `metadataId` (originally speculative, for a future Full Builds milestone) is dropped too — GGPK data doesn't need a bridge to GGG's own metadata ids the way a third-party wiki did; revisit only if a future milestone shows an actual need.
 
@@ -132,5 +145,8 @@ Same TDD shape as the original plan: `types.test.ts`, `source.test.ts` (now test
 
 ## Open items for a later milestone (not M1)
 
+- **Unique item mod values.** Not derivable from this pipeline (see §3's "known limitation"). Would need Path of Building's community unique dataset (MIT, per its own credit in `exile2exile`) as a second source joined by item name — a real follow-up task, not a stretch goal.
 - Community build/trivia context that GGPK data can't provide — poe2wiki.net could still be added later as a secondary enrichment source per entity, if this ends up feeling thin. Not pursued now; no bot-protection workaround implied if it ever is.
 - Icon storage is per-entity webp files, not a sprite atlas like the tree's. Fine at expected item/gem counts; revisit only if entity counts are large enough that per-file HTTP overhead matters (measure during implementation, not guessed here).
+- `"patch": "latest"` auto-resolution (§2) — reimplementing poe2-toolkit's patch-server handshake would remove the manual-bump step entirely. Not pursued for M1.
+- `extractGems`'s icon-bundling behavior (single-call data+icons like `extractItems`, or separate `buildGems`/`buildGemIcons` calls) wasn't fully confirmed in recon — verify in Task 1's real fixture capture, not assumed here.
