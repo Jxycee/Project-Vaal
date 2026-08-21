@@ -18,6 +18,13 @@ const eslintConfig = defineConfig([
     // under public/ is a static asset or build output; none of it should
     // ever be linted.
     "public/**",
+    // Git worktrees live under .claude/worktrees/<name>/ alongside this
+    // checkout. The patterns above only match the top-level .next/, out/,
+    // build/, and public/ — not a worktree's own nested copies of them —
+    // so a worktree's build output gets linted as if it were hand-written
+    // source. Ignore the whole tree; a worktree lints itself independently
+    // when the session is inside it.
+    ".claude/worktrees/**",
   ]),
 ]);
 
