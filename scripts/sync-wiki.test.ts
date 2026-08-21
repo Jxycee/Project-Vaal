@@ -40,6 +40,27 @@ describe('validateSyncResult', () => {
   it('skips the drop check on a first run', () => {
     expect(() => validateSyncResult([entry('a')], 0)).not.toThrow();
   });
+
+  it('names the escape hatch in the drop error so the operator can find it', () => {
+    const entries = Array.from({ length: 80 }, (_, i) => entry(`s${i}`));
+    expect(() => validateSyncResult(entries, 100)).toThrow(/--allow-shrink/);
+  });
+
+  it('waives the drop check when the shrink is declared intentional', () => {
+    const entries = Array.from({ length: 80 }, (_, i) => entry(`s${i}`));
+    expect(() => validateSyncResult(entries, 100, { allowShrink: true })).not.toThrow();
+  });
+
+  it('still refuses an empty result even with allowShrink', () => {
+    // allowShrink waives the drop check only — an empty extract is never
+    // an intentional filter outcome, it is a broken pipeline.
+    expect(() => validateSyncResult([], 100, { allowShrink: true })).toThrow(/empty/i);
+  });
+
+  it('still refuses duplicate slugs even with allowShrink', () => {
+    expect(() => validateSyncResult([entry('a'), entry('a')], 2, { allowShrink: true }))
+      .toThrow(/duplicate/i);
+  });
 });
 
 describe('ddsPathToIconKey', () => {
@@ -69,12 +90,9 @@ describe('findPreviousVersionDir / findPreviousCount', () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it('picks the most recent PRIOR version directory, not the current (in-progress) one', () => {
-    // Regression test: the plan's original sample code compared against the
-    // current, in-progress WIKI_DATA_VERSION's own directory, which is
-    // always empty at this point in a real sync (the version is bumped once
-    // per weekly PR) - so the drop guard could never fire. Two real prior
-    // syncs on disk plus a freshly-created (empty) current-version dir:
+  it('picks the most recent PRIOR version directory when the version was hand-bumped', () => {
+    // Two real prior syncs on disk plus a freshly-created (empty)
+    // current-version dir - what a hand-bumped WIKI_DATA_VERSION looks like.
     writeIndex('2026-08-01', 'skill', 5);
     writeIndex('2026-08-14', 'skill', 8);
     mkdirSync(path.join(root, '2026-08-21'), { recursive: true }); // current version, no index file yet
@@ -83,7 +101,40 @@ describe('findPreviousVersionDir / findPreviousCount', () => {
     expect(findPreviousCount(root, '2026-08-21', 'skill')).toBe(8);
   });
 
-  it('returns 0 / null when only the current version directory exists (no prior sync)', () => {
+  it('counts the CURRENT version directory when the sync re-runs against it (the weekly-CI case)', () => {
+    // The realistic scenario, and the one two earlier revisions of this code
+    // both got wrong: nothing bumps WIKI_DATA_VERSION between syncs, so the
+    // weekly workflow re-runs against the same directory it wrote last time.
+    // That directory holds the only previous count there is - if it is not
+    // counted, the drop guard is inert in exactly the automated path it was
+    // written to protect.
+    writeIndex('2026-08-21', 'skill', 1118);
+
+    expect(findPreviousVersionDir(root, '2026-08-21')).toBeNull();
+    expect(findPreviousCount(root, '2026-08-21', 'skill')).toBe(1118);
+  });
+
+  it('makes the drop guard actually fire on a truncated re-run against the current version', () => {
+    // End-to-end on the same case: a re-run that returns a fraction of last
+    // week's gems must throw rather than silently overwrite good data.
+    writeIndex('2026-08-21', 'skill', 1118);
+    const truncated = Array.from({ length: 40 }, (_, i) => entry(`s${i}`));
+
+    expect(() =>
+      validateSyncResult(truncated, findPreviousCount(root, '2026-08-21', 'skill')),
+    ).toThrow(/dropped/i);
+  });
+
+  it('prefers whichever of the current or prior directory has the higher count', () => {
+    // A partially-written or truncated current directory must not be able to
+    // lower the bar the guard checks against.
+    writeIndex('2026-08-14', 'skill', 1118);
+    writeIndex('2026-08-21', 'skill', 3);
+
+    expect(findPreviousCount(root, '2026-08-21', 'skill')).toBe(1118);
+  });
+
+  it('returns 0 / null when the current version directory exists but is empty', () => {
     mkdirSync(path.join(root, '2026-08-21'), { recursive: true });
     expect(findPreviousVersionDir(root, '2026-08-21')).toBeNull();
     expect(findPreviousCount(root, '2026-08-21', 'skill')).toBe(0);

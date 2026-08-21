@@ -7,9 +7,10 @@
  *
  * Run for real with: npx tsx scripts/sync-wiki.ts
  */
-import { mkdirSync, writeFileSync, readFileSync, readdirSync, cpSync, existsSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, cpSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
+import sharp from 'sharp';
 import { createCdnSource } from '@poe2-toolkit/ggpk';
 import { extractItems } from '@poe2-toolkit/item-extractor';
 import { extractGems } from '@poe2-toolkit/gem-extractor';
@@ -23,9 +24,30 @@ const OUT_DIR = path.join(WIKI_ROOT, WIKI_DATA_VERSION);
 const EXTRACT_DIR = path.join(process.cwd(), 'scripts', 'wiki', '.extract');
 const TABLES_DIR = path.join(EXTRACT_DIR, 'tables', 'English');
 
+/**
+ * Longest edge, in pixels, of a published icon. The extractor emits the
+ * game's source art at up to 512x1024 (~38KB average, 742KB worst case);
+ * every detail page renders it in a 48x48 box. Publishing the source
+ * resolution shipped 184MB of art nobody could see: it blew past the
+ * mobile-first budget, traced into every ISR route's serverless bundle, and
+ * landed in the PWA precache manifest. 128 keeps a 2x buffer over the 48px
+ * display box for high-DPI screens without any of that.
+ */
+const ICON_MAX_EDGE = 128;
+
+/**
+ * Waives the >10% drop check for one run. Opt-in per invocation and never
+ * set in CI (.github/workflows/sync-wiki.yml runs `npm run sync:wiki` with
+ * no flags), so an unattended weekly sync still refuses to publish a
+ * truncated extract. Use it when a filter change makes the drop expected —
+ * and say so in the sync PR.
+ */
+const ALLOW_SHRINK = process.argv.includes('--allow-shrink');
+
 export function validateSyncResult(
   entries: WikiSearchEntry[],
   previousCount: number,
+  options: { allowShrink?: boolean } = {},
 ): void {
   if (entries.length === 0) {
     throw new Error('wiki sync: result set is empty — refusing to write');
@@ -37,10 +59,16 @@ export function validateSyncResult(
     }
     slugs.add(e.slug);
   }
-  if (previousCount > 0 && entries.length < previousCount * 0.9) {
+  // The empty and duplicate checks above are unconditional. Only the drop
+  // check can be waived, and only deliberately: a >10% shrink is either
+  // truncation (the failure this guard exists for) or a filter change the
+  // operator just made on purpose. Those are indistinguishable from in here,
+  // so the caller has to say which, and the default is to refuse.
+  if (!options.allowShrink && previousCount > 0 && entries.length < previousCount * 0.9) {
     throw new Error(
       `wiki sync: count dropped from ${previousCount} to ${entries.length} ` +
-      `(>10%) — likely truncation or a bad WIKI_PATCH_VERSION, refusing to write`,
+      `(>10%) — likely truncation or a bad WIKI_PATCH_VERSION, refusing to write. ` +
+      `If this drop is intentional (a new filter, say), re-run with --allow-shrink.`,
     );
   }
 }
@@ -119,10 +147,8 @@ export function findPreviousVersionDir(wikiRoot: string, currentVersion: string)
   return path.join(wikiRoot, names[names.length - 1]);
 }
 
-/** Entry count from `<kind>-index.json` in the most recent prior sync's directory, or 0 if there is none. */
-export function findPreviousCount(wikiRoot: string, currentVersion: string, kind: string): number {
-  const dir = findPreviousVersionDir(wikiRoot, currentVersion);
-  if (!dir) return 0;
+/** Entry count in one directory's `<kind>-index.json`, or 0 if it is absent or unreadable. */
+function readIndexCount(dir: string, kind: string): number {
   try {
     const raw = readFileSync(path.join(dir, `${kind}-index.json`), 'utf8');
     return (JSON.parse(raw).entries as unknown[]).length;
@@ -131,24 +157,105 @@ export function findPreviousCount(wikiRoot: string, currentVersion: string, kind
   }
 }
 
+/**
+ * The count this run's output is checked against: the larger of
+ *
+ *   (a) the current version directory's own existing index, and
+ *   (b) the most recent *prior* version directory's index.
+ *
+ * Both are needed because `WIKI_DATA_VERSION` is bumped by hand, not by the
+ * sync, and each case is the only one that works in one of the two real
+ * workflows:
+ *
+ *   - Weekly CI (.github/workflows/sync-wiki.yml) re-runs against an
+ *     unbumped version, so it overwrites the current directory in place.
+ *     Only (a) has a count; (b) is null. This is the common case, and the
+ *     one an earlier revision of this function missed entirely - it excluded
+ *     the current directory on the assumption the version was always bumped,
+ *     which left the guard permanently inert in CI.
+ *   - A hand-bumped version writes to a fresh, empty directory. Only (b) has
+ *     a count; (a) is 0.
+ *
+ * Reading (a) is safe despite pointing at this run's own output directory:
+ * `writeKind` calls `validateSyncResult` before it writes anything, so the
+ * index on disk at that moment is still the previous run's.
+ */
+export function findPreviousCount(wikiRoot: string, currentVersion: string, kind: string): number {
+  const currentDirCount = readIndexCount(path.join(wikiRoot, currentVersion), kind);
+  const priorDir = findPreviousVersionDir(wikiRoot, currentVersion);
+  const priorDirCount = priorDir ? readIndexCount(priorDir, kind) : 0;
+  return Math.max(currentDirCount, priorDirCount);
+}
+
 function previousCount(kind: string): number {
   return findPreviousCount(WIKI_ROOT, WIKI_DATA_VERSION, kind);
 }
 
-function writeIcon(slug: string, iconKey: string | null, icons: Record<string, Buffer>): string | null {
+/**
+ * Publishes one icon, downscaled to {@link ICON_MAX_EDGE}, and returns its
+ * public URL (or `null` when the extractor had no art for this record).
+ *
+ * Icons are namespaced per kind. `dedupeSlug` only guarantees uniqueness
+ * *within* a kind, and a flat `icons/<slug>.png` therefore let kinds collide:
+ * a real extract has 1,097 slugs shared between items and skills (every skill
+ * gem also exists as a gem *item*), so whichever kind synced last silently
+ * overwrote the other's art. That happened to be harmless - the colliding
+ * pairs were all gem-item/skill pairs sharing the same source art - but it
+ * was one differently-named collision away from a page showing the wrong
+ * icon with nothing to catch it.
+ *
+ * `fit: 'inside'` preserves aspect ratio (source art is not square - weapons
+ * run 512x1024), and `withoutEnlargement` leaves already-small art untouched
+ * rather than upscaling it.
+ *
+ * `palette: true` writes PNG-8 (quantized to <=256 colours) instead of
+ * PNG-24. Measured over a 61-icon spread of the real set that is 37% of the
+ * PNG-24 size - 88.7MB down to ~33MB across the item art - and is
+ * indistinguishable at the 48px these are drawn at. WebP would be smaller
+ * again (~23MB) but the PNG output format is a settled decision; this keeps
+ * it and takes the compression instead.
+ */
+/**
+ * Clears the whole icon tree once per run, before any kind writes into it.
+ * Whole-tree rather than per-kind so a layout change cleans up after itself:
+ * icons were published flat as `icons/<slug>.png` before they were
+ * namespaced per kind, and a per-kind reset would have left all ~5k of those
+ * orphaned files sitting in the deployment forever.
+ */
+function resetIconRoot(): void {
+  rmSync(path.join(OUT_DIR, 'icons'), { recursive: true, force: true });
+}
+
+async function writeIcon(
+  kind: 'item' | 'skill',
+  slug: string,
+  iconKey: string | null,
+  icons: Record<string, Buffer>,
+): Promise<string | null> {
   if (!iconKey) return null;
   const buf = icons[iconKey];
   if (!buf) return null;
-  mkdirSync(path.join(OUT_DIR, 'icons'), { recursive: true });
-  writeFileSync(path.join(OUT_DIR, 'icons', `${slug}.png`), buf);
-  return `/data/wiki/${WIKI_DATA_VERSION}/icons/${slug}.png`;
+  const dir = path.join(OUT_DIR, 'icons', `${kind}s`);
+  mkdirSync(dir, { recursive: true });
+  const resized = await sharp(buf)
+    .resize({
+      width: ICON_MAX_EDGE,
+      height: ICON_MAX_EDGE,
+      fit: 'inside',
+      withoutEnlargement: true,
+    })
+    .png({ palette: true, quality: 90, effort: 7, compressionLevel: 9 })
+    .toBuffer();
+  writeFileSync(path.join(dir, `${slug}.png`), resized);
+  return `/data/wiki/${WIKI_DATA_VERSION}/icons/${kind}s/${slug}.png`;
 }
 
-async function syncItems(): Promise<number> {
+async function syncItems(lastSynced: string): Promise<number> {
   const source = await createCdnSource({ patch: WIKI_PATCH_VERSION, cacheDir: path.join(EXTRACT_DIR, '.cache'), tablesDir: TABLES_DIR });
   const { data, icons } = await extractItems(source);
   const usedSlugs = new Set<string>();
-  const details: WikiItemDetail[] = Object.entries(data).map(([name, item]) => {
+  const details: WikiItemDetail[] = [];
+  for (const [name, item] of Object.entries(data)) {
     // `name` doubles as both the base-slug input and the disambiguator: real
     // data currently has zero item slug collisions (ItemData is already keyed
     // by name, so two entries can only collide if two *different* names
@@ -156,37 +263,57 @@ async function syncItems(): Promise<number> {
     // `name` again is a no-op disambiguator in that edge case, but the
     // numeric fallback in dedupeSlug still guarantees uniqueness either way.
     const slug = dedupeSlug(slugify(name), name, usedSlugs);
-    const iconUrl = item.icon ? writeIcon(slug, ddsPathToIconKey(item.icon), icons.icons) : null;
-    return { ...normalizeItem(name, item, iconUrl), slug };
-  });
+    const iconUrl = item.icon
+      ? await writeIcon('item', slug, ddsPathToIconKey(item.icon), icons.icons)
+      : null;
+    details.push({ ...normalizeItem(name, item, iconUrl, lastSynced), slug });
+  }
   return writeKind('item', details);
 }
 
-async function syncSkills(): Promise<number> {
+async function syncSkills(lastSynced: string): Promise<number> {
   const source = await createCdnSource({ patch: WIKI_PATCH_VERSION, cacheDir: path.join(EXTRACT_DIR, '.cache'), tablesDir: TABLES_DIR });
   const { data, icons } = await extractGems(source);
   const usedSlugs = new Set<string>();
-  const details: WikiSkillDetail[] = Object.entries(data.gems)
+  const details: WikiSkillDetail[] = [];
+  for (const [key, gem] of Object.entries(data.gems)) {
     // "Coming Soon" is GGG's own placeholder name for dozens of unreleased,
     // content-free gem slots (verified against a live extract: 45 distinct
     // keys, all sharing this exact name) - not real wiki content.
-    .filter(([, gem]) => gem.name !== 'Coming Soon')
-    .map(([key, gem]) => {
-      const slug = dedupeSlug(slugify(gem.name), key, usedSlugs);
-      const iconUrl = gem.icon ? writeIcon(slug, ddsPathToIconKey(gem.icon), icons.icons) : null;
-      return { ...normalizeSkill(key, gem, data.requirements[key] ?? null, data.scaling[key] ?? null, iconUrl), slug };
+    if (gem.name === 'Coming Soon') continue;
+    const slug = dedupeSlug(slugify(gem.name), key, usedSlugs);
+    const iconUrl = gem.icon
+      ? await writeIcon('skill', slug, ddsPathToIconKey(gem.icon), icons.icons)
+      : null;
+    details.push({
+      ...normalizeSkill(key, gem, data.requirements[key] ?? null, data.scaling[key] ?? null, iconUrl, lastSynced),
+      slug,
     });
+  }
   return writeKind('skill', details);
 }
 
-async function syncMods(): Promise<number> {
+/**
+ * Mods with no display name are excluded. `Mod.name` is null for the bulk of
+ * `ModData` - per-unique-item mods, internal/`UNUSED` rows, and other
+ * generated entries - and `normalizeMod` falls back to the raw `Mods.Id` for
+ * those, so they surfaced in the browse list as identifiers like
+ * `UniqueAttackCriticalStrikeChance1UNUSED`. On a real extract that was
+ * 13,354 of 16,679 entries: 80% of the section, and most of the weight of
+ * the slim index every phone downloads, none of it searchable content. The
+ * named remainder is the actual player-facing affix pool. Same reasoning and
+ * shape as the "Coming Soon" gem filter above.
+ */
+async function syncMods(lastSynced: string): Promise<number> {
   const source = await createCdnSource({ patch: WIKI_PATCH_VERSION, cacheDir: path.join(EXTRACT_DIR, '.cache'), tablesDir: TABLES_DIR });
   const { data } = await extractMods(source);
   const usedSlugs = new Set<string>();
-  const details: WikiModDetail[] = Object.entries(data).map(([id, mod]) => {
-    const slug = dedupeSlug(slugify(id), id, usedSlugs);
-    return { ...normalizeMod(id, mod), slug };
-  });
+  const details: WikiModDetail[] = Object.entries(data)
+    .filter(([, mod]) => mod.name !== null && mod.name !== '')
+    .map(([id, mod]) => {
+      const slug = dedupeSlug(slugify(id), id, usedSlugs);
+      return { ...normalizeMod(id, mod, lastSynced), slug };
+    });
   return writeKind('mod', details);
 }
 
@@ -195,12 +322,27 @@ function writeKind(
   details: Array<WikiItemDetail | WikiSkillDetail | WikiModDetail>,
 ): number {
   const entries = details.map(toSearchEntry);
-  validateSyncResult(entries, previousCount(kind));
+  validateSyncResult(entries, previousCount(kind), { allowShrink: ALLOW_SHRINK });
 
+  // Rebuild the detail directory from empty rather than writing over it.
+  // Overwriting in place leaks: an entity dropped upstream (or one whose
+  // slug changed, or a whole class of records newly filtered out) left its
+  // old <slug>.json behind forever, still loadable by `loadDetail` and still
+  // counted in the deployment. Safe to do here because `validateSyncResult`
+  // has already run and the index it read lives at OUT_DIR's root, not
+  // inside this directory.
+  rmSync(path.join(OUT_DIR, `${kind}s`), { recursive: true, force: true });
   mkdirSync(path.join(OUT_DIR, `${kind}s`), { recursive: true });
+  // `generatedAt` is the one field that is expected to change on every run:
+  // it records when the sync ran, in the three index files, rather than in
+  // all ~9k detail files (see normalizeItem's note on lastSynced).
   writeFileSync(
     path.join(OUT_DIR, `${kind}-index.json`),
-    JSON.stringify({ version: WIKI_DATA_VERSION, generatedAt: new Date().toISOString(), entries }),
+    JSON.stringify({
+      version: WIKI_DATA_VERSION,
+      generatedAt: details[0]?.lastSynced ?? new Date().toISOString(),
+      entries,
+    }),
   );
   for (const detail of details) {
     writeFileSync(path.join(OUT_DIR, `${kind}s`, `${detail.slug}.json`), JSON.stringify(detail));
@@ -210,9 +352,13 @@ function writeKind(
 
 async function main(): Promise<void> {
   ensureTablesDecoded();
-  const items = await syncItems();
-  const skills = await syncSkills();
-  const mods = await syncMods();
+  // One instant for the whole run: see normalizeItem's note on why every
+  // record in a run shares a timestamp rather than reading the clock itself.
+  const lastSynced = new Date().toISOString();
+  resetIconRoot();
+  const items = await syncItems(lastSynced);
+  const skills = await syncSkills(lastSynced);
+  const mods = await syncMods(lastSynced);
   console.log(`wiki sync complete: ${items} items, ${skills} skills, ${mods} mods -> ${OUT_DIR}`);
 }
 

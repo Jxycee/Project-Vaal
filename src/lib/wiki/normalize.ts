@@ -34,8 +34,20 @@ export function slugify(name: string): string {
  * `ItemData`) since `Item` itself carries no name field. `iconUrl` is the
  * already-decoded/published icon path (or `null` when none is available
  * yet) - this function does no icon decoding of its own.
+ *
+ * `lastSynced` is supplied by the caller rather than read from the clock
+ * here: one sync run stamps every record it writes with the same instant, so
+ * a re-sync over unchanged upstream data produces byte-identical files. When
+ * each record stamped itself, every weekly sync rewrote all ~22k detail
+ * files with nothing but a new millisecond, making the sync PR unreviewable
+ * and growing git history without carrying any information.
  */
-export function normalizeItem(name: string, item: Item, iconUrl: string | null): WikiItemDetail {
+export function normalizeItem(
+  name: string,
+  item: Item,
+  iconUrl: string | null,
+  lastSynced: string,
+): WikiItemDetail {
   return {
     kind: 'item',
     slug: slugify(name),
@@ -57,7 +69,7 @@ export function normalizeItem(name: string, item: Item, iconUrl: string | null):
     modDomain: item.modDomain,
     tags: item.tags,
     iconUrl,
-    lastSynced: new Date().toISOString(),
+    lastSynced,
   };
 }
 
@@ -75,6 +87,7 @@ const GEM_CATEGORY: Record<Gem['kind'], string> = {
  * carries the display name, but accepted so callers can pass it through
  * without a lookup. `requirement`/`scaling` are `null` when the source data
  * has none for this gem (e.g. many supports have no per-level curve).
+ * `lastSynced` is the caller's single per-run timestamp (see normalizeItem).
  */
 export function normalizeSkill(
   key: string,
@@ -82,6 +95,7 @@ export function normalizeSkill(
   requirement: GemRequirement | null,
   scaling: GemScaling | null,
   iconUrl: string | null,
+  lastSynced: string,
 ): WikiSkillDetail {
   const level1 = requirement?.levels[1];
   return {
@@ -108,7 +122,7 @@ export function normalizeSkill(
       stats: l.stats.map((s) => ({ text: s.text, min: s.min, max: s.max })),
     })),
     iconUrl,
-    lastSynced: new Date().toISOString(),
+    lastSynced,
   };
 }
 
@@ -117,8 +131,9 @@ export function normalizeSkill(
  * `id` is the mod's `ModData` key (`Mods.Id`) - mods have no single display
  * name (`Mod.name` is `null` for implicits, uniques and many generated
  * mods), so the slug is derived from `id`, not `name`.
+ * `lastSynced` is the caller's single per-run timestamp (see normalizeItem).
  */
-export function normalizeMod(id: string, mod: Mod): WikiModDetail {
+export function normalizeMod(id: string, mod: Mod, lastSynced: string): WikiModDetail {
   return {
     kind: 'mod',
     slug: slugify(id),
@@ -133,7 +148,7 @@ export function normalizeMod(id: string, mod: Mod): WikiModDetail {
     rolls: mod.rolls,
     families: mod.families,
     spawnWeights: mod.spawnWeights,
-    lastSynced: new Date().toISOString(),
+    lastSynced,
   };
 }
 
