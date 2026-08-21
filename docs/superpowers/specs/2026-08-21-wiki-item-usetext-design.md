@@ -30,8 +30,18 @@ joined to `BaseItemTypes` via a `BaseItemType` foreign-row column, with:
 
 - `StackSize` (`i32`) — max stack size
 - `Description` (`string`) — the exact use-text ("Improves the quality of a martial weapon")
-- `Directions` (`string`) — right-click/left-click usage instructions
+- `Directions` (`string`) — right-click/left-click usage instructions ("Right click this item then left click
+  a martial weapon to apply it.")
 - `Action` (`string`) — short verb label
+
+**Verified against a real poe2wiki.net item page (Blacksmith's Whetstone, user-supplied screenshot, 2026-08-21):**
+the in-game tooltip shows both `Description` and `Directions` as separate lines (blue "Improves the quality of a
+martial weapon" + italic "Right click this item then left click a martial weapon to apply it."), plus
+`Stack Size: 20` and `Drop Level: 5` — all four map directly onto `CurrencyItems.Description`,
+`CurrencyItems.Directions`, `CurrencyItems.StackSize`, and the wiki's existing `dropLevel` field (already synced,
+just not rendered on our detail page today — a one-line addition alongside this work). The screenshot's
+"Item acquisition" prose ("Obtained by salvaging martial weapons with quality") and "Metadata ID" are poe2wiki-only
+enrichment with no `CurrencyItems` equivalent — out of scope, Phase 3 territory if ever pursued.
 
 Same join shape (`BaseItemType` foreign row → `BaseItemTypes` row index) that `@poe2-toolkit/item-extractor`'s own
 `buildItems.js` already uses internally for `AttributeRequirements`, `ArmourTypes`, `WeaponTypes`, `ItemSpirit` —
@@ -43,9 +53,9 @@ verification is Phase 2 below, not assumed here.
 
 ## Goal
 
-Give currency-shaped items (and whatever else `CurrencyItems` actually covers once synced for real) a use-text
-description and stack size on their wiki detail page, sourced from the same GGPK pipeline as everything else —
-no new data source, no licensing change, for this phase.
+Give currency-shaped items (and whatever else `CurrencyItems` actually covers once synced for real) their
+use-text description, usage directions, and stack size on their wiki detail page, sourced from the same GGPK
+pipeline as everything else — no new data source, no licensing change, for this phase.
 
 ## Non-goals (this spec)
 
@@ -78,20 +88,18 @@ no new data source, no licensing change, for this phase.
 
 ### 2. Types (`src/lib/wiki/types.ts`)
 
-Add two fields to `WikiItemDetail`:
+Add three fields to `WikiItemDetail`:
 
 ```ts
 export interface WikiItemDetail extends WikiDetailBase {
   // ...existing fields...
   description: string | null;   // CurrencyItems.Description — use-text, e.g. "Improves the quality of a martial weapon"
+  directions: string | null;    // CurrencyItems.Directions — usage instructions, e.g. "Right click this item then left click a martial weapon to apply it."
   stackSize: number | null;     // CurrencyItems.StackSize — max stack size; null for non-stackable/non-currency items
 }
 ```
 
-`Directions` (right-click/left-click instructions) is deliberately **not** carried into the wiki type for this
-phase — `Description` alone answers "what does this do," which is the reported gap; `Directions` is UI-chrome
-text ("Right click this item then left click an item to apply it") that's redundant once the wiki has its own
-click-to-view detail page. Can be added later if it turns out useful.
+All three default to `null` for items with no `CurrencyItems` row (i.e. most gear).
 
 ### 3. Normalization (`src/lib/wiki/normalize.ts`)
 
@@ -102,10 +110,16 @@ non-currency items — most gear will simply never populate them, same as `armou
 ### 4. Rendering (`src/app/wiki/items/[slug]/page.tsx`)
 
 Add a description block, positioned above the existing flavour-text block (functional text before flavor,
-matching in-game tooltip ordering) — rendered only when `item.description` is non-null. Add a stack-size line
-alongside the existing requirements list (or its own small line) when `item.stackSize` is non-null and greater
-than 1 (a stack size of 1 isn't worth displaying — it's the default for non-stackable items generically returned
-as `1` or `0` depending on how unpopulated rows decode, to be confirmed empirically in Phase 2).
+matching in-game tooltip ordering, and matching the reference screenshot's layout) — `item.description` rendered
+first, `item.directions` immediately below it in a lighter/italic style (mirrors the in-game tooltip's own
+blue-then-italic convention), both only when non-null. Add a stack-size line alongside the existing requirements
+list when `item.stackSize` is non-null and greater than 1 (a stack size of 1 isn't worth displaying — it's the
+default for non-stackable items generically returned as `1` or `0` depending on how unpopulated rows decode, to
+be confirmed empirically in Phase 2).
+
+Also render the existing `dropLevel` field (already synced onto every item, never displayed) as a "Drop Level: N"
+line — noticed missing from the current page while comparing against the reference screenshot's "Drop Level: 5".
+Small, free addition alongside this work, not gated on `CurrencyItems` at all since every item already carries it.
 
 ### 5. Testing
 
