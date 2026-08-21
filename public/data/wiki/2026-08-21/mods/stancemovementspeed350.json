@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"stancemovementspeed350","name":"StanceMovementSpeed350","category":"Unique","domain":"Monster","generationType":"Unique","group":"StanceMovementSpeed","tier":21,"level":1,"stats":[],"rolls":[{"stat":"stance_movement_speed_+%_final","min":350,"max":350}],"families":["Stance"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.820Z"}

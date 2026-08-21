@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"basetrapduration1","name":"BaseTrapDuration1","category":"Unique","domain":"Monster","generationType":"Unique","group":"BaseTrapDuration","tier":1,"level":1,"stats":[],"rolls":[{"stat":"base_trap_duration","min":4000,"max":4000}],"families":["BaseTrapDuration"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

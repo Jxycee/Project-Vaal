@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"uniquenoslowpotency1","name":"UniqueNoSlowPotency1","category":"Unique","domain":"Item","generationType":"Unique","group":"NoSlowPotency","tier":1,"level":1,"stats":["Your speed is unaffected by Slows"],"rolls":[{"stat":"slows_have_no_potency_on_you","min":1,"max":1}],"families":["SlowPotency"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.817Z"}

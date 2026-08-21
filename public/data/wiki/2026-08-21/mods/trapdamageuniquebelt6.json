@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"trapdamageuniquebelt6","name":"TrapDamageUniqueBelt6","category":"Unique","domain":"Item","generationType":"Unique","group":"TrapDamage","tier":1,"level":1,"stats":["(30-40)% increased Trap Damage"],"rolls":[{"stat":"trap_damage_+%","min":30,"max":40}],"families":["TrapDamage"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

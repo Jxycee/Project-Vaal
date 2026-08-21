@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"blightphysicaltype","name":"BlightPhysicalType_","category":"Unique","domain":"Monster","generationType":"Unique","group":"BlightPhysicalType","tier":1,"level":1,"stats":[],"rolls":[{"stat":"is_blight_physical_monster","min":1,"max":1}],"families":["BlightMonsterType"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.827Z"}

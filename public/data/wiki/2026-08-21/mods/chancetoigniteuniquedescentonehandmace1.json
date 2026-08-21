@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"chancetoigniteuniquedescentonehandmace1","name":"ChanceToIgniteUniqueDescentOneHandMace1","category":"Unique","domain":"Item","generationType":"Unique","group":"ChanceToIgnite","tier":9,"level":1,"stats":[],"rolls":[{"stat":"base_chance_to_ignite_%","min":30,"max":30}],"families":["ChanceToIgnite"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"incursionmonsterrarity3","name":"IncursionMonsterRarity3","category":"Unique","domain":"6","generationType":"Unique","group":"IncursionMonsterRarity","tier":3,"level":1,"stats":[],"rolls":[{"stat":"map_item_drop_rarity_+%","min":60,"max":60}],"families":["IncursionMonsterRarity"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.826Z"}

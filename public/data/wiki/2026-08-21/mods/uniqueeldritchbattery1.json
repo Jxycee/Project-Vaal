@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"uniqueeldritchbattery1","name":"UniqueEldritchBattery1","category":"Unique","domain":"Item","generationType":"Unique","group":"EldritchBattery","tier":1,"level":1,"stats":["Eldritch Battery"],"rolls":[{"stat":"keystone_eldritch_battery","min":1,"max":1}],"families":["Keystone"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.818Z"}

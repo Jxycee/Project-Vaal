@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"mapexplevelcap","name":"MapExpLevelCap","category":"Unique","domain":"6","generationType":"Unique","group":"MapExpLevelCap","tier":1,"level":1,"stats":[],"rolls":[{"stat":"map_prevent_exp_at_player_level","min":0,"max":0}],"families":["Nothing"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.835Z"}

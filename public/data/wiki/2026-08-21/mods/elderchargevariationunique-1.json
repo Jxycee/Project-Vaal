@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"elderchargevariationunique-1","name":"ElderChargeVariationUnique__1","category":"Unique","domain":"Item","generationType":"Unique","group":"ElderChargeVariation","tier":1,"level":1,"stats":[],"rolls":[{"stat":"charge_elder_art_variation","min":1,"max":1}],"families":["ElderChargeVariation"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.826Z"}

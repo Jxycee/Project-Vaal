@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"mapdarkshrine","name":"MapDarkShrine","category":"Unique","domain":"6","generationType":"Unique","group":"MapDarkShrine","tier":1,"level":1,"stats":["Shrines are corrupted by Darkness"],"rolls":[{"stat":"map_shrines_are_darkshrines","min":1,"max":1}],"families":["MapDarkShrine"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.824Z"}

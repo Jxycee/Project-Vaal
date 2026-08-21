@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"ringimplicitpercentlife","name":"RingImplicitPercentLife","category":"Unique","domain":"Item","generationType":"Unique","group":"IncreasedLifePercent","tier":1,"level":50,"stats":["(4-6)% increased maximum Life"],"rolls":[{"stat":"maximum_life_+%","min":4,"max":6}],"families":["IncreasedLife"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.814Z"}

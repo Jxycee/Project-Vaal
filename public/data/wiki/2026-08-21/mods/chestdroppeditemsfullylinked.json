@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"chestdroppeditemsfullylinked","name":"ChestDroppedItemsFullyLinked","category":"Unique","domain":"Chest","generationType":"Unique","group":"DroppedItemsFullyLinked","tier":1,"level":1,"stats":[],"rolls":[{"stat":"dropped_items_are_fully_linked","min":1,"max":1}],"families":["DroppedItemsModified"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.830Z"}

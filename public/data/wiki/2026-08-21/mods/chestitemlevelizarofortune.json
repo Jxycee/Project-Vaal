@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"chestitemlevelizarofortune","name":"ChestItemLevelIzaroFortune","category":"Unique","domain":"Chest","generationType":"Unique","group":"ChestItemLevel","tier":3,"level":1,"stats":[],"rolls":[{"stat":"chest_dropped_item_level_+","min":3,"max":3}],"families":["ChestItemLevel"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

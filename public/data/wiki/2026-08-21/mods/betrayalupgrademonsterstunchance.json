@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"betrayalupgrademonsterstunchance","name":"BetrayalUpgradeMonsterStunChance","category":"Unique","domain":"Monster","generationType":"Unique","group":"MonsterChanceToStun","tier":1,"level":1,"stats":[],"rolls":[{"stat":"base_chance_to_stun_%","min":25,"max":25}],"families":["MonsterChanceToStun"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.826Z"}

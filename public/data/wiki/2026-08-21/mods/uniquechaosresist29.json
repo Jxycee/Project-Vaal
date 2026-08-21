@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"uniquechaosresist29","name":"UniqueChaosResist29","category":"Unique","domain":"Item","generationType":"Unique","group":"ChaosResistance","tier":26,"level":1,"stats":["+(7-13)% to Chaos Resistance"],"rolls":[{"stat":"base_chaos_damage_resistance_%","min":7,"max":13}],"families":["ChaosResistance"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.815Z"}

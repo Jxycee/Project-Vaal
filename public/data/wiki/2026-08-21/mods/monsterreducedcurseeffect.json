@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"monsterreducedcurseeffect","name":"MonsterReducedCurseEffect","category":"Unique","domain":"Monster","generationType":"Unique","group":"CurseEffect","tier":6,"level":1,"stats":[],"rolls":[{"stat":"unique_boss_curse_effect_on_self_+%_final","min":-33,"max":-33}],"families":["CurseEffect"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

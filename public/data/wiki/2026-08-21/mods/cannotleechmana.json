@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"cannotleechmana","name":"CannotLeechMana","category":"Unique","domain":"Item","generationType":"Unique","group":"CannotLeechMana","tier":1,"level":1,"stats":["Cannot Leech Mana"],"rolls":[{"stat":"base_cannot_leech_mana","min":1,"max":1}],"families":["CannotLeech"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

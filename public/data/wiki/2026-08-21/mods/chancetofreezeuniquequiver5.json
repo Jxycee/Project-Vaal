@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"chancetofreezeuniquequiver5","name":"ChanceToFreezeUniqueQuiver5","category":"Unique","domain":"Item","generationType":"Unique","group":"ChanceToFreeze","tier":5,"level":1,"stats":["(7-10)% chance to Freeze"],"rolls":[{"stat":"base_chance_to_freeze_%","min":7,"max":10}],"families":["ChanceToFreeze"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

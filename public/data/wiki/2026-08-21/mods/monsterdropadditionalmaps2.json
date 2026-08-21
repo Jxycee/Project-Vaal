@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"monsterdropadditionalmaps2","name":"MonsterDropAdditionalMaps2","category":"Unique","domain":"Monster","generationType":"Unique","group":"MonsterDropAdditionalMaps","tier":2,"level":1,"stats":[],"rolls":[{"stat":"monster_drop_additional_map_items","min":3,"max":3}],"families":["MapBossMod"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.824Z"}

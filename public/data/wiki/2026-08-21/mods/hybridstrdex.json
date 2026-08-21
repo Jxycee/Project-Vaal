@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"hybridstrdex","name":"HybridStrDex","category":"Unique","domain":"Item","generationType":"Unique","group":"HybridStrDex","tier":2,"level":20,"stats":["+(16-24) to Strength and Dexterity"],"rolls":[{"stat":"additional_strength_and_dexterity","min":16,"max":24}],"families":["HybridStat"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

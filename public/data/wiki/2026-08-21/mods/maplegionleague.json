@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"maplegionleague","name":"MapLegionLeague","category":"Unique","domain":"6","generationType":"Unique","group":"MapLegionLeague","tier":1,"level":1,"stats":[],"rolls":[{"stat":"map_legion_league","min":1,"max":1},{"stat":"map_extra_content_weighting","min":1,"max":1}],"families":["MapLeagionLeague"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.827Z"}

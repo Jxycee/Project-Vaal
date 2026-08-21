@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"uniquebiometabletwater","name":"UniqueBiomeTabletWater","category":"Unique","domain":"Item","generationType":"Unique","group":"UniqueBiomeTabletWater","tier":1,"level":1,"stats":[],"rolls":[{"stat":"map_water_biome","min":1,"max":1}],"families":["Nothing"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.835Z"}

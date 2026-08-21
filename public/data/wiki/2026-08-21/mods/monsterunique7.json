@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"monsterunique7","name":"MonsterUnique7","category":"Unique","domain":"Monster","generationType":"Unique","group":"MonsterDoesNotFlee","tier":3,"level":1,"stats":[],"rolls":[{"stat":"monster_chance_to_not_flee_%","min":100,"max":100}],"families":["MonsterDoesNotFlee"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.819Z"}

@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"uniquelocalknockback1","name":"UniqueLocalKnockback1","category":"Unique","domain":"Item","generationType":"Unique","group":"LocalKnockback","tier":1,"level":1,"stats":["Knocks Back Enemies on Hit"],"rolls":[{"stat":"local_knockback","min":1,"max":1}],"families":["Knockback"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.817Z"}

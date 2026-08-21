@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"immunetoknockback","name":"ImmuneToKnockback","category":"Unique","domain":"Monster","generationType":"Unique","group":"ImmuneToKnockback","tier":1,"level":1,"stats":["Cannot be Knocked Back"],"rolls":[{"stat":"cannot_be_knocked_back","min":1,"max":1}],"families":["ImmuneToKnockback"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

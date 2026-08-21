@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"breachdomainincreasedrarity","name":"BreachDomainIncreasedRarity","category":"Unique","domain":"6","generationType":"Unique","group":"MapItemDropRarity","tier":1,"level":1,"stats":[],"rolls":[{"stat":"map_item_drop_rarity_+%","min":25,"max":25}],"families":["MapItemDropRarity"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.831Z"}

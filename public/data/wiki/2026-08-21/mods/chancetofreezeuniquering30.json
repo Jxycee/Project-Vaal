@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"chancetofreezeuniquering30","name":"ChanceToFreezeUniqueRing30","category":"Unique","domain":"Item","generationType":"Unique","group":"ChanceToFreeze","tier":6,"level":1,"stats":["10% chance to Freeze"],"rolls":[{"stat":"base_chance_to_freeze_%","min":10,"max":10}],"families":["ChanceToFreeze"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

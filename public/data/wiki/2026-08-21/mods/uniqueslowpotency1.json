@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"uniqueslowpotency1","name":"UniqueSlowPotency1","category":"Unique","domain":"Item","generationType":"Unique","group":"SlowPotency","tier":5,"level":1,"stats":["50% reduced Slowing Potency of Debuffs on You"],"rolls":[{"stat":"base_slow_potency_+%","min":-50,"max":-50}],"families":["SlowPotency"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.817Z"}

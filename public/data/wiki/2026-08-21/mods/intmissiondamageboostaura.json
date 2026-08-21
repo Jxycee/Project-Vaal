@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"intmissiondamageboostaura","name":"IntMissionDamageBoostAura","category":"Unique","domain":"Monster","generationType":"Unique","group":"MonsterAuraLargeDamageAll","tier":1,"level":1,"stats":["35% increased Damage"],"rolls":[{"stat":"damage_+%","min":35,"max":35}],"families":["MonsterAura"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

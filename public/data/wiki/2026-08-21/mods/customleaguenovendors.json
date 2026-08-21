@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"customleaguenovendors","name":"CustomLeagueNoVendors_","category":"Unique","domain":"6","generationType":"Unique","group":"CustomLeagueNoVendors","tier":1,"level":1,"stats":["Items cannot be sold to or purchased from NPCs"],"rolls":[{"stat":"map_no_vendors","min":1,"max":1}],"families":["Other"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.826Z"}

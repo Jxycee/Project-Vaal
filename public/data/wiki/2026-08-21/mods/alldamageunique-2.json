@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"alldamageunique-2","name":"AllDamageUnique__2","category":"Unique","domain":"Item","generationType":"Unique","group":"AllDamage","tier":1,"level":1,"stats":["(20-25)% increased Damage"],"rolls":[{"stat":"damage_+%","min":20,"max":25}],"families":["AllDamage"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

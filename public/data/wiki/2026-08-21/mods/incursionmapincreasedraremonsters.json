@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"incursionmapincreasedraremonsters","name":"IncursionMapIncreasedRareMonsters","category":"Unique","domain":"6","generationType":"Unique","group":"IncursionMapIncreasedRareMonsters","tier":1,"level":1,"stats":[],"rolls":[{"stat":"map_number_of_rare_packs_+%","min":8,"max":8}],"families":["Incursion"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.832Z"}

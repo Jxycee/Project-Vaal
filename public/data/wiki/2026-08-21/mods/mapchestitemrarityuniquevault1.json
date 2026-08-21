@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"mapchestitemrarityuniquevault1","name":"MapChestItemRarityUniqueVault1","category":"Unique","domain":"6","generationType":"Unique","group":"MapItemDropRarity","tier":2,"level":1,"stats":[],"rolls":[{"stat":"map_item_drop_rarity_+%","min":100,"max":200}],"families":["MapItemDropRarity"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"monsterchancetododge","name":"MonsterChanceToDodge","category":"Unique","domain":"Monster","generationType":"Unique","group":"MonsterChanceToAvoid","tier":1,"level":1,"stats":[],"rolls":[{"stat":"avoid_damage_%","min":15,"max":15}],"families":["AvoidDamage"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.825Z"}

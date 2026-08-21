@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"maparealevel","name":"MapAreaLevel","category":"Unique","domain":"6","generationType":"Unique","group":"MapAreaLevel","tier":1,"level":1,"stats":["+1 to Monster Level of Area"],"rolls":[{"stat":"map_level_+","min":1,"max":1}],"families":["MapAreaLevel"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.827Z"}

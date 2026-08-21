@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"monsterexplodesondeathtext","name":"MonsterExplodesOnDeathText","category":"Unique","domain":"Monster","generationType":"Unique","group":"MonsterExplodes","tier":1,"level":1,"stats":[],"rolls":[{"stat":"monster_explodes_on_death_text","min":2,"max":2}],"families":["MonsterExplodesOnItsTargetText"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

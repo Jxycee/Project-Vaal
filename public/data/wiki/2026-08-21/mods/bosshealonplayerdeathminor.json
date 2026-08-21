@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"bosshealonplayerdeathminor","name":"BossHealOnPlayerDeathMinor","category":"Unique","domain":"Monster","generationType":"Unique","group":"BossHealOnPlayerDeath","tier":2,"level":1,"stats":[],"rolls":[{"stat":"heal_aura_owner_%_max_life_on_death","min":0,"max":0}],"families":["BossHealOnPlayerDeath"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.819Z"}

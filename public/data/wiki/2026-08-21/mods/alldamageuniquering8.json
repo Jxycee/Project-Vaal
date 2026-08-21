@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"alldamageuniquering8","name":"AllDamageUniqueRing8","category":"Unique","domain":"Item","generationType":"Unique","group":"AllDamage","tier":5,"level":1,"stats":["10% increased Damage"],"rolls":[{"stat":"damage_+%","min":10,"max":10}],"families":["AllDamage"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

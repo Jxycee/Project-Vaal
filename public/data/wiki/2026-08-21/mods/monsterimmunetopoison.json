@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"monsterimmunetopoison","name":"MonsterImmuneToPoison_","category":"Unique","domain":"Monster","generationType":"Unique","group":"MonsterImmuneToPoison","tier":1,"level":1,"stats":["Cannot be Poisoned"],"rolls":[{"stat":"cannot_be_poisoned","min":1,"max":1}],"families":["AvoidStatusAilments"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

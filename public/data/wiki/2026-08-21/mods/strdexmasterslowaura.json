@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"strdexmasterslowaura","name":"StrDexMasterSlowAura","category":"Unique","domain":"Monster","generationType":"Unique","group":"MonsterAuraSlow","tier":2,"level":1,"stats":["25% reduced Movement Speed"],"rolls":[{"stat":"base_movement_velocity_+%","min":-25,"max":-25}],"families":["MonsterAura"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

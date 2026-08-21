@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"monsterusesgroundslamtext","name":"MonsterUsesGroundSlamText","category":"Unique","domain":"Monster","generationType":"Unique","group":"MonsterUsesGroundSlamText","tier":1,"level":1,"stats":[],"rolls":[{"stat":"monster_uses_ground_slam_text","min":1,"max":1}],"families":["MonsterUsesGroundSlamText"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

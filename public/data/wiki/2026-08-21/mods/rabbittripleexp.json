@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"rabbittripleexp","name":"Gluttony of the Beast","category":"Torment","domain":"Monster","generationType":"Torment","group":"RabbitTripleExp","tier":1,"level":1,"stats":[],"rolls":[{"stat":"monster_slain_experience_+%","min":200,"max":200}],"families":["RabbitWisp"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.831Z"}

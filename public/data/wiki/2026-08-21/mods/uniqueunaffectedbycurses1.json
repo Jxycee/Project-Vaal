@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"uniqueunaffectedbycurses1","name":"UniqueUnaffectedByCurses1","category":"Unique","domain":"Item","generationType":"Unique","group":"UnaffectedByCurses","tier":1,"level":1,"stats":["Unaffected by Curses"],"rolls":[{"stat":"unaffected_by_curses","min":1,"max":1}],"families":["UnaffectedByCurses"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.817Z"}

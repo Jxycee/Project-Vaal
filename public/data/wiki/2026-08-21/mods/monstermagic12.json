@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"monstermagic12","name":"MonsterMagic12","category":"Unique","domain":"Monster","generationType":"Unique","group":"MonsterSlowPotencyFromRarity","tier":1,"level":1,"stats":[],"rolls":[{"stat":"slow_potency_+%_final_from_rarity","min":-15,"max":-15}],"families":[],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.819Z"}

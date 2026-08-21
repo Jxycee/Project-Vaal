@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"stanceharvestbramblehulkrun","name":"StanceHarvestBrambleHulkRun","category":"Unique","domain":"Monster","generationType":"Unique","group":"StanceHarvestBrambleHulkRun","tier":1,"level":1,"stats":[],"rolls":[{"stat":"stance_movement_speed_+%_final","min":130,"max":130}],"families":["Stance"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.820Z"}

@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"uniquedoubleenergygain1","name":"UniqueDoubleEnergyGain1","category":"Unique","domain":"Item","generationType":"Unique","group":"DoubleEnergyGain","tier":1,"level":1,"stats":["Energy Generation is doubled"],"rolls":[{"stat":"energy_generation_is_doubled","min":1,"max":1}],"families":["EnergyGain"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.817Z"}

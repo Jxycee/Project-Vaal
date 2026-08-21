@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"grantedpassive","name":"GrantedPassive","category":"Unique","domain":"Item","generationType":"Unique","group":"GrantedPassive","tier":1,"level":1,"stats":["Allocates 0"],"rolls":[{"stat":"mod_granted_passive_hash","min":0,"max":0}],"families":["GrantedPassive"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.827Z"}

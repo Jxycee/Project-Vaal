@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"uniquefireresist24","name":"UniqueFireResist24","category":"Unique","domain":"Item","generationType":"Unique","group":"FireResistance","tier":20,"level":1,"stats":["+40% to Fire Resistance"],"rolls":[{"stat":"base_fire_damage_resistance_%","min":-40,"max":40}],"families":["FireResistance"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.815Z"}

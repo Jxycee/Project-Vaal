@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"quiverimplicitarrowspeed1","name":"QuiverImplicitArrowSpeed1","category":"Unique","domain":"Item","generationType":"Unique","group":"ArrowSpeed","tier":2,"level":75,"stats":["(20-30)% increased Arrow Speed"],"rolls":[{"stat":"base_arrow_speed_+%","min":20,"max":30}],"families":["ArrowSpeed"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.814Z"}

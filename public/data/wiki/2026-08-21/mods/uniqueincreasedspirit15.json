@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"uniqueincreasedspirit15","name":"UniqueIncreasedSpirit15","category":"Unique","domain":"Item","generationType":"Unique","group":"BaseSpirit","tier":10,"level":1,"stats":["+75 to Spirit"],"rolls":[{"stat":"base_spirit_from_equipment","min":75,"max":75}],"families":["BaseSpirit"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.816Z"}

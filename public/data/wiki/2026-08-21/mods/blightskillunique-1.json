@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"blightskillunique-1","name":"BlightSkillUnique__1","category":"Unique","domain":"Item","generationType":"Unique","group":"BlightSkill","tier":1,"level":1,"stats":["Grants Level 22 Blight Skill"],"rolls":[{"stat":"local_display_grants_skill_blight_level","min":22,"max":22}],"families":["GrantedSkill"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.825Z"}

@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"actorsizeuniqueringdemigods1","name":"ActorSizeUniqueRingDemigods1","category":"Unique","domain":"Item","generationType":"Unique","group":"ActorSize","tier":3,"level":1,"stats":["3% increased Character Size"],"rolls":[{"stat":"base_actor_scale_+%","min":3,"max":3}],"families":["ActorSize"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.819Z"}

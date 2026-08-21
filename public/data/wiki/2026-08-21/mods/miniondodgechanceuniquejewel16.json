@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"miniondodgechanceuniquejewel16","name":"MinionDodgeChanceUniqueJewel16","category":"Unique","domain":"Atlas","generationType":"Unique","group":"MinionSpellDodgeChance","tier":1,"level":1,"stats":[],"rolls":[{"stat":"minion_spell_suppression_chance_%","min":2,"max":5}],"families":["MinionDodgeChance"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.823Z"}

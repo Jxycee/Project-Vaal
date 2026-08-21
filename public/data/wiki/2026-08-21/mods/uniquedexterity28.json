@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"uniquedexterity28","name":"UniqueDexterity28","category":"Unique","domain":"Item","generationType":"Unique","group":"Dexterity","tier":23,"level":1,"stats":["+(5-15) to Dexterity"],"rolls":[{"stat":"additional_dexterity","min":5,"max":15}],"families":["Dexterity"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.815Z"}

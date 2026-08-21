@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"chaosskeletontrapvariation","name":"ChaosSkeletonTrapVariation","category":"Unique","domain":"Monster","generationType":"Unique","group":"MonsterTrapVariation","tier":1,"level":1,"stats":[],"rolls":[{"stat":"trap_variation","min":2,"max":2}],"families":["TrapVariation"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

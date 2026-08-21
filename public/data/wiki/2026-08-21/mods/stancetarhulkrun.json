@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"stancetarhulkrun","name":"StanceTarHulkRun","category":"Unique","domain":"Monster","generationType":"Unique","group":"StanceVelocity","tier":30,"level":1,"stats":[],"rolls":[{"stat":"stance_movement_speed_+%_final","min":148,"max":148}],"families":["Stance"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.820Z"}

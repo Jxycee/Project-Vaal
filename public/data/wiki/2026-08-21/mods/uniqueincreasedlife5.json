@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"uniqueincreasedlife5","name":"UniqueIncreasedLife5","category":"Unique","domain":"Item","generationType":"Unique","group":"IncreasedLife","tier":48,"level":1,"stats":["+(30-50) to maximum Life"],"rolls":[{"stat":"base_maximum_life","min":30,"max":50}],"families":["IncreasedLife"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.815Z"}

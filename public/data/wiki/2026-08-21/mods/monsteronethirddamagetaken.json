@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"monsteronethirddamagetaken","name":"MonsterOneThirdDamageTaken","category":"Unique","domain":"Monster","generationType":"Unique","group":"DamageTaken","tier":1,"level":1,"stats":["67% reduced Damage taken"],"rolls":[{"stat":"base_damage_taken_+%","min":-67,"max":-67}],"families":["DamageTaken"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.828Z"}

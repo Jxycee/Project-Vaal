@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"fishingrarityunique-2","name":"FishingRarityUnique__2_","category":"Unique","domain":"Item","generationType":"Unique","group":"FishingRarity","tier":2,"level":1,"stats":["(20-30)% increased Rarity of Fish Caught"],"rolls":[{"stat":"fish_rarity_+%","min":20,"max":30}],"families":["FishingRarity"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

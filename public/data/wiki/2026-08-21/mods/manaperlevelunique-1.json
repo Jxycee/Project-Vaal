@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"manaperlevelunique-1","name":"ManaPerLevelUnique__1","category":"Unique","domain":"Item","generationType":"Unique","group":"ManaPerLevel","tier":1,"level":1,"stats":["+1 Maximum Mana per Level"],"rolls":[{"stat":"mana_per_level","min":1,"max":1}],"families":["ManaPerLevel"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.825Z"}

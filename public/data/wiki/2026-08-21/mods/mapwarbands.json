@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"mapwarbands","name":"MapWarbands","category":"Unique","domain":"6","generationType":"Unique","group":"MapWarbands","tier":1,"level":1,"stats":[],"rolls":[{"stat":"map_spawn_warbands","min":1,"max":1},{"stat":"map_extra_content_weighting","min":1,"max":1}],"families":["MapWarbands"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.824Z"}

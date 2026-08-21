@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"uniqueintelligence45","name":"UniqueIntelligence45","category":"Unique","domain":"Item","generationType":"Unique","group":"Intelligence","tier":41,"level":1,"stats":["+(8-15) to Intelligence"],"rolls":[{"stat":"additional_intelligence","min":8,"max":15}],"families":["Intelligence"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.815Z"}

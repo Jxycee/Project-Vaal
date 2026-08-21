@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"chestitemsocketsizaro","name":"ChestItemSocketsIzaro","category":"Unique","domain":"Chest","generationType":"Unique","group":"ChestItemSockets","tier":1,"level":1,"stats":[],"rolls":[{"stat":"dropped_items_have_additional_sockets","min":2,"max":2}],"families":["ChestItemSockets"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

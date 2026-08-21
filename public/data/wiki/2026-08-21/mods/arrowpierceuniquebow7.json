@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"arrowpierceuniquebow7","name":"ArrowPierceUniqueBow7","category":"Unique","domain":"Item","generationType":"Unique","group":"ArrowsAlwaysPierce","tier":1,"level":1,"stats":["Arrows Pierce all Targets"],"rolls":[{"stat":"base_arrows_always_pierce","min":1,"max":1}],"families":["ArrowPierce"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

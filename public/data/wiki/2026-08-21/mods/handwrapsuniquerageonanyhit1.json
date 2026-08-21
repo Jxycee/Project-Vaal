@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"handwrapsuniquerageonanyhit1","name":"HandWrapsUniqueRageOnAnyHit1","category":"Unique","domain":"Item","generationType":"Unique","group":"RageOnAnyHit","tier":1,"level":1,"stats":["Gain (6-8) Rage on Hit"],"rolls":[{"stat":"base_gain_x_rage_on_hit","min":6,"max":8}],"families":["RageOnHit"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.835Z"}

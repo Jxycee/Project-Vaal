@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"mapchestsalwaysmagicrare1","name":"MapChestsAlwaysMagicRare1","category":"Unique","domain":"6","generationType":"Unique","group":"MapChestsAlwaysMagicRare","tier":1,"level":1,"stats":["All Chests are Magic or Rare"],"rolls":[{"stat":"map_chests_all_magic_or_rare","min":30,"max":30}],"families":[],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

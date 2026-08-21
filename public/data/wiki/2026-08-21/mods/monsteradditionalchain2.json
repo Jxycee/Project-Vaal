@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"monsteradditionalchain2","name":"MonsterAdditionalChain2","category":"Unique","domain":"Monster","generationType":"Unique","group":"AdditionalChain","tier":2,"level":1,"stats":["Skills Chain +2 times"],"rolls":[{"stat":"number_of_chains","min":2,"max":2}],"families":["Chain"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

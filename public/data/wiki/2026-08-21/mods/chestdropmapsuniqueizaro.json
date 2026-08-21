@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"chestdropmapsuniqueizaro","name":"ChestDropMapsUniqueIzaro","category":"Unique","domain":"Chest","generationType":"Unique","group":"ChestDropMapsUnique","tier":1,"level":1,"stats":[],"rolls":[{"stat":"chest_drop_additional_unique_maps","min":1,"max":1}],"families":["ChestDropMapsUnique"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

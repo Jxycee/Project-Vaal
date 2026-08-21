@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"uniquehassouleater1","name":"UniqueHasSoulEater1","category":"Unique","domain":"Item","generationType":"Unique","group":"HasSoulEater","tier":1,"level":1,"stats":["Soul Eater"],"rolls":[{"stat":"unique_gain_soul_eater","min":1,"max":1}],"families":["SoulEater"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.817Z"}

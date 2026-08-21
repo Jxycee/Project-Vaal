@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"maptierhallowedground","name":"MapTierHallowedGround_","category":"Unique","domain":"6","generationType":"Unique","group":"MapAreaLevel","tier":2,"level":1,"stats":["+2 to Monster Level of Area"],"rolls":[{"stat":"map_level_+","min":-2,"max":2}],"families":["MapAreaLevel"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.827Z"}

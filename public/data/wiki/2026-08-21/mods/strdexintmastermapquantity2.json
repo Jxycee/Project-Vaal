@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"strdexintmastermapquantity2","name":"StrDexIntMasterMapQuantity2","category":"Unique","domain":"Base Jewel","generationType":"Unique","group":"MapItemDropQuantity","tier":2,"level":0,"stats":[],"rolls":[{"stat":"map_item_drop_quantity_+%","min":2,"max":2}],"families":["MapItemDropQuantity"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

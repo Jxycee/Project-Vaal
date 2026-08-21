@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"incursionarm3","name":"IncursionArm3","category":"Unique","domain":"Idol","generationType":"Unique","group":"IncreasedCastSpeed","tier":1,"level":0,"stats":["(6-10)% increased Cast Speed"],"rolls":[{"stat":"base_cast_speed_+%","min":6,"max":10}],"families":["IncreasedCastSpeed"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.832Z"}

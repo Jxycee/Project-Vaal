@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"afflictionfragmentimplicit","name":"AfflictionFragmentImplicit","category":"Unique","domain":"Dummy","generationType":"Unique","group":"MapItemDropQuantity","tier":1,"level":1,"stats":[],"rolls":[{"stat":"map_item_drop_quantity_+%","min":5,"max":5}],"families":["MapItemDropQuantity"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

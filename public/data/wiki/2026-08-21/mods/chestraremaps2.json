@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"chestraremaps2","name":"ChestRareMaps2","category":"Unique","domain":"Chest","generationType":"Unique","group":"ChestIncreasedHiddenRarity","tier":12,"level":1,"stats":[],"rolls":[{"stat":"chest_hidden_item_rarity_+%","min":1400,"max":1400}],"families":["ChestBaseModsFromRarity"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

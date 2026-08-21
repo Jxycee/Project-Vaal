@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"castspeedcrafted","name":"CastSpeedCrafted","category":"Unique","domain":"Base Jewel","generationType":"Unique","group":"IncreasedCastSpeed","tier":1,"level":1,"stats":["(12-15)% increased Cast Speed"],"rolls":[{"stat":"base_cast_speed_+%","min":12,"max":15}],"families":["IncreasedCastSpeed"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

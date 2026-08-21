@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"cannotbeusedasminion","name":"CannotBeUsedAsMinion","category":"Unique","domain":"Monster","generationType":"Unique","group":"CannotBeUsedAsMinion","tier":1,"level":1,"stats":[],"rolls":[{"stat":"cannot_be_used_as_minion","min":1,"max":1}],"families":["CannotBeUsedAsMinion"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.825Z"}

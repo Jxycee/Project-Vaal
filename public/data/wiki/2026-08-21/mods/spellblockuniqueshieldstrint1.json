@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"spellblockuniqueshieldstrint1","name":"SpellBlockUniqueShieldStrInt1","category":"Unique","domain":"Item","generationType":"Unique","group":"BlockingBlocksSpells","tier":5,"level":1,"stats":[],"rolls":[{"stat":"dummy_stat_display_nothing","min":70,"max":80}],"families":["BlockingBlocksSpells"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.820Z"}

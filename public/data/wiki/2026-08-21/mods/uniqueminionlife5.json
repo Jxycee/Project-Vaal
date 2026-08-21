@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"uniqueminionlife5","name":"UniqueMinionLife5","category":"Unique","domain":"Item","generationType":"Unique","group":"MinionLife","tier":5,"level":1,"stats":["Minions have 50% reduced maximum Life"],"rolls":[{"stat":"minion_maximum_life_+%","min":-50,"max":-50}],"families":["MinionLife"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.816Z"}

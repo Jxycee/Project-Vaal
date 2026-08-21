@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"sidearealeveloverride","name":"SideareaLevelOverride","category":"Unique","domain":"6","generationType":"Unique","group":"SideareaLevelOverride","tier":1,"level":1,"stats":[],"rolls":[{"stat":"map_sidearea_level_override","min":0,"max":0}],"families":["SideareaLevelOverride"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.826Z"}

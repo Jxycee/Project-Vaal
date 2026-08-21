@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"grantsenvyunique-2","name":"GrantsEnvyUnique__2","category":"Unique","domain":"Item","generationType":"Unique","group":"GrantsEnvy","tier":1,"level":1,"stats":["Grants Level 15 Envy Skill"],"rolls":[{"stat":"local_display_grants_level_X_envy","min":15,"max":15}],"families":["GrantedSkill"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.824Z"}

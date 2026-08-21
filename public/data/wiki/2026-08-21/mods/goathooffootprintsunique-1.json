@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"goathooffootprintsunique-1","name":"GoatHoofFootprintsUnique__1","category":"Unique","domain":"Item","generationType":"Unique","group":"GoatHoofFootprints","tier":1,"level":1,"stats":["Burning Hoofprints"],"rolls":[{"stat":"goat_footprints_from_item","min":1,"max":1}],"families":["ItemFootprints"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.825Z"}

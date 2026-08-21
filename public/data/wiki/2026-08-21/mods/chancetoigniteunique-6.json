@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"chancetoigniteunique-6","name":"ChanceToIgniteUnique__6","category":"Unique","domain":"Item","generationType":"Unique","group":"ChanceToIgnite","tier":6,"level":1,"stats":[],"rolls":[{"stat":"base_chance_to_ignite_%","min":10,"max":15}],"families":["ChanceToIgnite"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

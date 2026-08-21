@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"uniquecannotevade1","name":"UniqueCannotEvade1","category":"Unique","domain":"Item","generationType":"Unique","group":"CannotEvade","tier":1,"level":1,"stats":["Cannot Evade Enemy Attacks"],"rolls":[{"stat":"base_cannot_evade","min":1,"max":1}],"families":["CannotEvade"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.818Z"}

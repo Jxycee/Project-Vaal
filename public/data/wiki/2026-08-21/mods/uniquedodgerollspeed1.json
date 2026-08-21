@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"uniquedodgerollspeed1","name":"UniqueDodgeRollSpeed1","category":"Unique","domain":"Item","generationType":"Unique","group":"DodgeRollSpeed","tier":1,"level":1,"stats":["(20-30)% faster Dodge Roll"],"rolls":[{"stat":"dodge_roll_speed_+%","min":20,"max":30}],"families":["DodgeRoll"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.817Z"}

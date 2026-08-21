@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"chestspawnchaoswarband","name":"ChestSpawnChaosWarband","category":"Unique","domain":"Chest","generationType":"Unique","group":"ChestSpawnChaosWarband","tier":1,"level":1,"stats":[],"rolls":[{"stat":"chest_display_summons_chaos_warband","min":1,"max":1}],"families":["ChestSpawnWarband"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

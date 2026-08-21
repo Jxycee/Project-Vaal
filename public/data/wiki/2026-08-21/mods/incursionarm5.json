@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"incursionarm5","name":"IncursionArm5","category":"Unique","domain":"Idol","generationType":"Unique","group":"GlobalDeflectionRating","tier":1,"level":0,"stats":["(6-10)% increased Deflection Rating"],"rolls":[{"stat":"deflection_rating_+%","min":6,"max":10}],"families":["GlobalDeflectionRating"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.832Z"}

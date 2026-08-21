@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"monsterrare1","name":"MonsterRare1","category":"Unique","domain":"Monster","generationType":"Unique","group":"MonsterSlainExperienceIncrease","tier":3,"level":1,"stats":[],"rolls":[{"stat":"monster_slain_experience_+%","min":400,"max":400}],"families":["MonsterSlainExperience"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.819Z"}

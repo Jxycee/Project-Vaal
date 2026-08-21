@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"movementspeedwhilespiderunique-1","name":"MovementSpeedWhileSpiderUnique__1","category":"Unique","domain":"Item","generationType":"Unique","group":"MovementSpeedWhileSpider","tier":1,"level":1,"stats":[],"rolls":[{"stat":"movement_velocity_while_spider_+%","min":30,"max":30}],"families":["IsSpider"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.825Z"}

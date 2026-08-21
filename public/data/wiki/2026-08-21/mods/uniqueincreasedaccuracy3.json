@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"uniqueincreasedaccuracy3","name":"UniqueIncreasedAccuracy3","category":"Unique","domain":"Item","generationType":"Unique","group":"IncreasedAccuracy","tier":9,"level":1,"stats":["+(0-60) to Accuracy Rating"],"rolls":[{"stat":"accuracy_rating","min":0,"max":60}],"families":["IncreasedAccuracy"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.816Z"}

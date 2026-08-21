@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"fishingluretypeunique-1","name":"FishingLureTypeUnique__1__","category":"Unique","domain":"Item","generationType":"Unique","group":"FishingLureType","tier":1,"level":1,"stats":["Thaumaturgical Lure"],"rolls":[{"stat":"fishing_lure_type","min":4,"max":4}],"families":["FishingLureType"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

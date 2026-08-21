@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"monsteralwayshits","name":"MonsterAlwaysHits","category":"Unique","domain":"Monster","generationType":"Unique","group":"AlwaysHitsGlobal","tier":1,"level":1,"stats":["Your Hits can't be Evaded"],"rolls":[{"stat":"global_always_hit","min":1,"max":1}],"families":["AlwaysHits"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.819Z"}

@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"uniquemageslegacy04","name":"UniqueMagesLegacy04","category":"Unique","domain":"Item","generationType":"Unique","group":"UniqueMagesLegacy04","tier":1,"level":1,"stats":["Legacy of (1-14)"],"rolls":[{"stat":"local_unique_mages_legacy_4","min":1,"max":14}],"families":["MagesLegacy"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.835Z"}

@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"perandusmanorcadiro","name":"PerandusManorCadiro","category":"Unique","domain":"6","generationType":"Unique","group":"PerandusManorCadiro","tier":1,"level":1,"stats":["Area contains Cadiro Perandus"],"rolls":[{"stat":"map_spawn_cadiro_%_chance","min":100,"max":100}],"families":["PerandusManorCadiro"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.826Z"}

@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"uniquelifecost1","name":"UniqueLifeCost1","category":"Unique","domain":"Item","generationType":"Unique","group":"LifeCost","tier":1,"level":1,"stats":["Skill Mana Costs Converted to Life Costs"],"rolls":[{"stat":"base_skill_cost_life_instead_of_mana_%","min":100,"max":100}],"families":["LifeCost"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.817Z"}

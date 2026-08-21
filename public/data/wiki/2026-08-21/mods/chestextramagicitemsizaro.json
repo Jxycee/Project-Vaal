@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"chestextramagicitemsizaro","name":"ChestExtraMagicItemsIzaro","category":"Unique","domain":"Chest","generationType":"Unique","group":"ChestExtraMagicItems","tier":2,"level":1,"stats":[],"rolls":[{"stat":"chest_drop_additional_magic_items_up_to","min":8,"max":15}],"families":["ChestExtraMagicItems"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"uniqueblockpercent3","name":"UniqueBlockPercent3","category":"Unique","domain":"Item","generationType":"Unique","group":"BlockPercent","tier":4,"level":1,"stats":["+12% to Block chance"],"rolls":[{"stat":"additional_block_%","min":12,"max":12}],"families":["BlockPercent"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.817Z"}

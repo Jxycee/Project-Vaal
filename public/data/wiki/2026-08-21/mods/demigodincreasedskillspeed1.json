@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"demigodincreasedskillspeed1","name":"DemigodIncreasedSkillSpeed1","category":"Unique","domain":"Item","generationType":"Unique","group":"IncreasedSkillSpeed","tier":2,"level":1,"stats":["10% increased Skill Speed"],"rolls":[{"stat":"skill_speed_+%","min":10,"max":10}],"families":["IncreasedSpeed"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.818Z"}

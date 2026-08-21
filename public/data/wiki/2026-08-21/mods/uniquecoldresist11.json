@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"uniquecoldresist11","name":"UniqueColdResist11","category":"Unique","domain":"Item","generationType":"Unique","group":"ColdResistance","tier":6,"level":1,"stats":["+(20-30)% to Cold Resistance"],"rolls":[{"stat":"base_cold_damage_resistance_%","min":20,"max":30}],"families":["ColdResistance"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.815Z"}

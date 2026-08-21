@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"ubersimulacrumlife1","name":"UberSimulacrumLife1__","category":"Unique","domain":"6","generationType":"Unique","group":"MapSimulacrumLife1","tier":4,"level":1,"stats":["(36-40)% more Monster Life"],"rolls":[{"stat":"map_monsters_life_+%","min":36,"max":40}],"families":["MapSimulacrumMonsterLife"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.827Z"}

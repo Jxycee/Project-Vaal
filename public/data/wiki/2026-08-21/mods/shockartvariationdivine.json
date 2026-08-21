@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"shockartvariationdivine","name":"ShockArtVariationDivine","category":"Unique","domain":"Monster","generationType":"Unique","group":"ShockArtVariation","tier":1,"level":1,"stats":[],"rolls":[{"stat":"shock_art_variation","min":2,"max":2}],"families":["StatusAilmentArtVariation"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.823Z"}

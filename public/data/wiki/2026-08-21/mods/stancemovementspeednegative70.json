@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"stancemovementspeednegative70","name":"StanceMovementSpeedNegative70","category":"Unique","domain":"Monster","generationType":"Unique","group":"StanceMovementSpeed","tier":54,"level":1,"stats":[],"rolls":[{"stat":"stance_movement_speed_+%_final","min":-70,"max":-70}],"families":["Stance"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.820Z"}

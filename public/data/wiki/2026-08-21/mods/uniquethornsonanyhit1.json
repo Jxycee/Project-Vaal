@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"uniquethornsonanyhit1","name":"UniqueThornsOnAnyHit1","category":"Unique","domain":"Item","generationType":"Unique","group":"ThornsOnAnyHit","tier":1,"level":1,"stats":["Thorns can Retaliate against all Hits"],"rolls":[{"stat":"thorns_proc_off_any_hit","min":1,"max":1}],"families":["Thorns"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.817Z"}

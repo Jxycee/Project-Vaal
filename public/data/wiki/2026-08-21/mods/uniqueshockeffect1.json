@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"uniqueshockeffect1","name":"UniqueShockEffect1","category":"Unique","domain":"Item","generationType":"Unique","group":"ShockEffect","tier":6,"level":1,"stats":["(10-20)% increased Magnitude of Shock you inflict"],"rolls":[{"stat":"shock_effect_+%","min":10,"max":20}],"families":["ShockEffect"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.817Z"}

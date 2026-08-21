@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"delvechestgemexperience","name":"DelveChestGemExperience_","category":"Unique","domain":"Chest","generationType":"Unique","group":"ChestGemsExperience","tier":4,"level":1,"stats":[],"rolls":[{"stat":"chest_gems_drop_with_experience","min":1,"max":1}],"families":["ChestGemsExperience"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

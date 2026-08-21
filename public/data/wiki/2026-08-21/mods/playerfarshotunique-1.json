@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"playerfarshotunique-1","name":"PlayerFarShotUnique__1","category":"Unique","domain":"Item","generationType":"Unique","group":"PlayerFarShot","tier":1,"level":1,"stats":["Far Shot"],"rolls":[{"stat":"player_far_shot","min":1,"max":1}],"families":["FarShot"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.825Z"}

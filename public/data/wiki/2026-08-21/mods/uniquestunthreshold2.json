@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"uniquestunthreshold2","name":"UniqueStunThreshold2","category":"Unique","domain":"Item","generationType":"Unique","group":"StunThreshold","tier":13,"level":1,"stats":["+(30-50) to Stun Threshold"],"rolls":[{"stat":"stun_threshold_+","min":30,"max":50}],"families":["StunThreshold"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.816Z"}

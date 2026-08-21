@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"immunetopetrification","name":"ImmuneToPetrification__","category":"Unique","domain":"Monster","generationType":"Unique","group":"ImmuneToPetrification","tier":1,"level":1,"stats":[],"rolls":[{"stat":"immune_to_petrification","min":1,"max":1}],"families":["ImmuneToPetrification"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.827Z"}

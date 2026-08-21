@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"displaymonsterdevour","name":"DisplayMonsterDevour","category":"Unique","domain":"Monster","generationType":"Unique","group":"DisplayMonsterDevour","tier":1,"level":1,"stats":[],"rolls":[{"stat":"display_monster_casts_devouring_totem_skill_text","min":1,"max":1}],"families":["DisplayMonsterDevour"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

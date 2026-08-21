@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"strengthcrafted","name":"StrengthCrafted","category":"Unique","domain":"Base Jewel","generationType":"Unique","group":"Strength","tier":1,"level":40,"stats":["+(25-30) to Strength"],"rolls":[{"stat":"additional_strength","min":25,"max":30}],"families":["Strength"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"uniquepresenceradius6","name":"UniquePresenceRadius6","category":"Unique","domain":"Item","generationType":"Unique","group":"PresenceRadius","tier":12,"level":1,"stats":["(20-40)% reduced Presence Area of Effect"],"rolls":[{"stat":"presence_area_+%","min":-40,"max":-20}],"families":["PresenceRadius"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.816Z"}

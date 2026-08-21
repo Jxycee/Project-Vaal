@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"delvezombieemergespeedhigh","name":"DelveZombieEmergeSpeedHigh","category":"Unique","domain":"Monster","generationType":"Unique","group":"VariableEmergeSpeed","tier":1,"level":1,"stats":[],"rolls":[{"stat":"emerge_speed_+%","min":30,"max":80}],"families":["VariableEmergeSpeed"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

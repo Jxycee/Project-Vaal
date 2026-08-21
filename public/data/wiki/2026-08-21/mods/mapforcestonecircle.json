@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"mapforcestonecircle","name":"MapForceStoneCircle_","category":"Unique","domain":"6","generationType":"Unique","group":"MapForceStoneCircle","tier":1,"level":1,"stats":["Area contains a Stone Circle"],"rolls":[{"stat":"map_force_stone_circle","min":1,"max":1}],"families":["MapForceStoneCircle"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.824Z"}

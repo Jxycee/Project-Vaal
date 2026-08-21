@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"uniquewarcryspeed1","name":"UniqueWarcrySpeed1","category":"Unique","domain":"Item","generationType":"Unique","group":"WarcrySpeed","tier":2,"level":1,"stats":["(20-30)% increased Warcry Speed"],"rolls":[{"stat":"warcry_speed_+%","min":20,"max":30}],"families":["WarcrySpeed"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.817Z"}

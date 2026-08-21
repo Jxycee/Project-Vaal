@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"monsterimmunetobleed","name":"MonsterImmuneToBleed","category":"Unique","domain":"Monster","generationType":"Unique","group":"MonsterImmuneToBleed","tier":1,"level":1,"stats":["You are Immune to Bleeding"],"rolls":[{"stat":"immune_to_bleeding","min":1,"max":1}],"families":["AvoidStatusAilments"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

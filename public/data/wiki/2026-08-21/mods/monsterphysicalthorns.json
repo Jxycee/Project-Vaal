@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"monsterphysicalthorns","name":"Physical Reflection Aura","category":"Unique","domain":"Monster","generationType":"Unique","group":"MonsterAuraPhysicalThorns","tier":1,"level":1,"stats":[],"rolls":[{"stat":"physical_damage_taken_%_to_deal_to_attacker","min":35,"max":35}],"families":["MonsterAura"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"uniquelightradius8","name":"UniqueLightRadius8","category":"Unique","domain":"Item","generationType":"Unique","group":"LightRadius","tier":42,"level":1,"stats":["30% increased Light Radius"],"rolls":[{"stat":"light_radius_+%","min":30,"max":30}],"families":["LightRadius"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.816Z"}

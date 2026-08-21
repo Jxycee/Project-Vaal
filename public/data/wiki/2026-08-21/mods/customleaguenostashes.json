@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"customleaguenostashes","name":"CustomLeagueNoStashes","category":"Unique","domain":"6","generationType":"Unique","group":"CustomLeagueNoStashes","tier":1,"level":1,"stats":["Stashes cannot be used"],"rolls":[{"stat":"map_no_stashes","min":1,"max":1}],"families":["Other"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.826Z"}

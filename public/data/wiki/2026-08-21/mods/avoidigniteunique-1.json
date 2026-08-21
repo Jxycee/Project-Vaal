@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"avoidigniteunique-1","name":"AvoidIgniteUnique__1","category":"Unique","domain":"Item","generationType":"Unique","group":"CannotBeIgnited","tier":1,"level":1,"stats":["Cannot be Ignited"],"rolls":[{"stat":"base_cannot_be_ignited","min":1,"max":1}],"families":["CannotBeIgnited"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

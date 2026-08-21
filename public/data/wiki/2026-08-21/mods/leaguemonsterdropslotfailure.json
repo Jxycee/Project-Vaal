@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"leaguemonsterdropslotfailure","name":"LeagueMonsterDropSlotFailure","category":"Unique","domain":"Monster","generationType":"Unique","group":"LeagueMonsterDropSlotFailure","tier":1,"level":1,"stats":[],"rolls":[{"stat":"prevent_all_drop_slots_failing","min":1,"max":1}],"families":["Nothing"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.835Z"}

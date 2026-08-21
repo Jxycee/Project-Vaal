@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"damageaurauniquehelmetdexint2","name":"DamageAuraUniqueHelmetDexInt2","category":"Unique","domain":"Item","generationType":"Unique","group":"AllDamage","tier":7,"level":1,"stats":["50% increased Damage"],"rolls":[{"stat":"damage_+%","min":50,"max":50}],"families":["AllDamage"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

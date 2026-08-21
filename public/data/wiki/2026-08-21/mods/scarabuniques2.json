@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"scarabuniques2","name":"ScarabUniques2","category":"Unique","domain":"Dummy","generationType":"Unique","group":"ScarabModUniques","tier":2,"level":1,"stats":["100% more Unique Items found in Area"],"rolls":[{"stat":"map_unique_item_drop_chance_+%","min":100,"max":100}],"families":["ScarabMod"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.826Z"}

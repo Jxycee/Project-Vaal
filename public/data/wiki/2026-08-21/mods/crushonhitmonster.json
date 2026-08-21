@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"crushonhitmonster","name":"CrushOnHitMonster","category":"Unique","domain":"Monster","generationType":"Unique","group":"CrushOnHitMonster","tier":1,"level":1,"stats":["Crush on Hit"],"rolls":[{"stat":"chance_to_crush_on_hit_%","min":100,"max":100}],"families":["CrushOnHitMonster"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.831Z"}
