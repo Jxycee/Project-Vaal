@@ -8,14 +8,15 @@ import type { WikiSearchEntry } from '@/lib/wiki/types';
 export function filterEntries(
   entries: WikiSearchEntry[],
   query: string,
+  fuse?: Fuse<WikiSearchEntry>,
 ): WikiSearchEntry[] {
   if (query.trim() === '') return entries;
-  const fuse = new Fuse(entries, {
+  const searchEngine = fuse ?? new Fuse(entries, {
     keys: ['name', 'category', 'tags'],
     threshold: 0.4,
     ignoreLocation: true,
   });
-  return fuse.search(query).map((r) => r.item);
+  return searchEngine.search(query).map((r) => r.item);
 }
 
 export function WikiSearch({
@@ -26,7 +27,19 @@ export function WikiSearch({
   basePath: string;
 }) {
   const [query, setQuery] = useState('');
-  const results = useMemo(() => filterEntries(entries, query), [entries, query]);
+
+  // Memoize the Fuse instance — only rebuild when entries change
+  const fuse = useMemo(() =>
+    new Fuse(entries, {
+      keys: ['name', 'category', 'tags'],
+      threshold: 0.4,
+      ignoreLocation: true,
+    }),
+    [entries]
+  );
+
+  // Compute results using the memoized Fuse instance
+  const results = useMemo(() => filterEntries(entries, query, fuse), [entries, query, fuse]);
 
   return (
     <div className="space-y-4">
