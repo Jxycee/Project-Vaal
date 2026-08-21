@@ -8,7 +8,6 @@ import { NextResponse, type NextRequest } from 'next/server'
 //
 // NOTE on route structure:
 //   /builds          → PUBLIC   (build finder, anonymous planner, shared viewer)
-//   /wiki            → PUBLIC
 //   /league          → PUBLIC
 //   /login /signup   → PUBLIC
 //   /dashboard       → PROTECTED
@@ -16,8 +15,9 @@ import { NextResponse, type NextRequest } from 'next/server'
 //   /settings        → PROTECTED
 //   /tree            → PROTECTED (account required — §12; lives at (dashboard)/tree, URL stays /tree)
 //   /campaign        → PROTECTED (progress saves per-user; lives at (dashboard)/campaign, URL stays /campaign)
+//   /wiki            → PROTECTED (account required — D1; lives at src/app/wiki, own layout/shell)
 // ---------------------------------------------------------------------------
-const PROTECTED_PREFIXES = ['/dashboard', '/characters', '/settings', '/tree', '/campaign']
+const PROTECTED_PREFIXES = ['/dashboard', '/characters', '/settings', '/tree', '/campaign', '/wiki']
 
 function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix))

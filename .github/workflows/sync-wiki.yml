@@ -1,0 +1,30 @@
+# .github/workflows/sync-wiki.yml
+name: Sync wiki data
+on:
+  schedule:
+    - cron: '0 4 * * 1'   # weekly, Monday 04:00 UTC — patch cadence, not price cadence
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx tsx scripts/sync-wiki.ts
+      - uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: 'chore(wiki): refresh wiki data'
+          title: 'chore(wiki): refresh wiki data'
+          branch: chore/wiki-data-refresh
+          body: |
+            Automated poe2-toolkit GGPK extraction. Review the diff before merging —
+            this catches extraction-pipeline bugs or a stale WIKI_PATCH_VERSION before
+            they reach users, not vandalism (the source is GGG's own patch server, not
+            a community-edited wiki).
