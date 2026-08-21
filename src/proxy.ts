@@ -16,8 +16,16 @@ import { NextResponse, type NextRequest } from 'next/server'
 //   /tree            → PROTECTED (account required — §12; lives at (dashboard)/tree, URL stays /tree)
 //   /campaign        → PROTECTED (progress saves per-user; lives at (dashboard)/campaign, URL stays /campaign)
 //   /wiki            → PROTECTED (account required — D1; lives at src/app/wiki, own layout/shell)
+//   /data/wiki       → PROTECTED (static wiki data assets — item/skill/mod indexes, detail JSON,
+//                      icons — must be gated the same as /wiki itself; see matcher comment below)
+//
+// NOTE on /data/**: /data/tree/** (vendored passive-tree sprite atlases) is
+// deliberately excluded from ever reaching this middleware at all — see the
+// matcher config's `data/tree/` exclusion — so it is NOT listed here even
+// though /tree the page is protected. Every other /data/** path (currently
+// just /data/wiki/**) DOES reach this middleware and must be listed below.
 // ---------------------------------------------------------------------------
-const PROTECTED_PREFIXES = ['/dashboard', '/characters', '/settings', '/tree', '/campaign', '/wiki']
+const PROTECTED_PREFIXES = ['/dashboard', '/characters', '/settings', '/tree', '/campaign', '/wiki', '/data/wiki']
 
 function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix))
@@ -83,16 +91,34 @@ export const config = {
     /*
      * Match all paths except:
      *   - Next.js internals (_next/static, _next/image)
-     *   - Static files (favicon.ico and common image extensions)
-     *   - /data/** — vendored tree JSON + sprite atlases (public/data/tree/...).
+     *   - Static files outside /data/ (favicon.ico and common image extensions
+     *     — app icons, OG images, etc. See the nested `(?!data/)` below for
+     *     why this is scoped away from /data/.)
+     *   - /data/tree/** — vendored tree JSON + sprite atlases (public/data/tree/...).
      *     These are large, cacheable, unauthenticated static assets fetched
      *     client-side by the tree viewer; without this exclusion every one
      *     of those fetches (data.json + ~6 atlas manifests per page load)
      *     paid for a Supabase auth.getUser() round-trip for no reason, since
-     *     .json isn't covered by the extension list below.
+     *     .json isn't covered by the extension rule (and .webp atlas images
+     *     are covered by the extension rule, but this prefix rule makes the
+     *     tree exclusion explicit/self-documenting rather than incidental).
+     *
+     *     This exclusion is scoped to `data/tree/` specifically (NOT a blanket
+     *     `data/` exclusion) so that /data/wiki/** — search indexes, detail
+     *     JSON, icons for the gated /wiki pages — still hits this middleware
+     *     and gets checked against PROTECTED_PREFIXES below. Do not widen this
+     *     back to `data/` without re-gating /data/wiki/** some other way.
+     *
+     *   - Image-extension files, EXCEPT under /data/: the extension rule below
+     *     has a nested `(?!data/)` guard so it only exempts image files
+     *     outside of /data/ (e.g. /favicon-32x32.png, /apple-touch-icon.png).
+     *     Without that guard, /data/wiki/<version>/icons/**\/*.png (wiki item
+     *     and skill icons) would bypass the middleware via this rule even
+     *     though the `data/tree/` prefix rule above doesn't cover them — that
+     *     would silently defeat the point of gating /data/wiki/** at all.
      *
      * We must match API routes so session cookies are refreshed there too.
      */
-    '/((?!_next/static|_next/image|favicon\\.ico|data/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico|data/tree/|(?!data/).*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 }
