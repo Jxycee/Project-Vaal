@@ -60,12 +60,17 @@ const nextConfig: NextConfig = {
   // — originally 27,771 files / 211MB each, past Vercel's 250MB uncompressed
   // function limit and enough to fail the deploy outright.
   //
-  // Two exclusions, both safe because the server never opens these files:
+  // Three exclusions, all safe because the server never opens these files:
   //   - icons/**   fetched by URL from the CDN by the browser, never read by
   //                the server. This is the bulk of the bytes.
   //   - the other two kinds' detail directories, per route. /wiki/items has
   //     no reason to carry every mod.
-  // The index files stay traced: the browse pages genuinely do read them.
+  //   - *-index.json — the item/skill/mod search index files. These used to
+  //     be read server-side by the browse pages (readFile + JSON.parse on
+  //     every request); that was moved to a client-side fetch once
+  //     /data/wiki/** became auth-gated (2026-08-21), so nothing under
+  //     src/app or src/lib opens these server-side anymore — verify with
+  //     `grep -rn "index.json" src` before assuming this is still true.
   //
   // Gate for any change here: the `files` count in
   // .next/server/app/wiki/*/[slug]/page.js.nft.json after a build. A green
@@ -86,7 +91,10 @@ const nextConfig: NextConfig = {
   // actually does that (211MB -> ~47MB, under the cap on either platform).
   // These trim it further, to ~10MB, on the platform that deploys.
   outputFileTracingExcludes: {
-    '/wiki/**': ['./public/data/wiki/**/icons/**'],
+    '/wiki/**': [
+      './public/data/wiki/**/icons/**',
+      './public/data/wiki/**/*-index.json',
+    ],
     '/wiki/items/*': [
       './public/data/wiki/**/skills/**',
       './public/data/wiki/**/mods/**',
@@ -143,17 +151,34 @@ const nextConfig: NextConfig = {
       // same URL. Under `immutable, max-age=1y` a re-synced icon would keep
       // serving the old bytes from browser and CDN caches for a year.
       //
+      // MUST be `private`, not `public`, and MUST NOT set `s-maxage`. This
+      // path is auth-gated by src/proxy.ts (2026-08-21 security review) —
+      // both the 200 JSON response for a signed-in user and the 307-to-
+      // /login redirect for an anonymous one share this Cache-Control rule
+      // (Next applies header rules by path, not by response status), and
+      // there is no `Vary: Cookie` to split the cache key by auth state. A
+      // `public`/`s-maxage` value lets a shared cache (a CDN, or any
+      // intermediary) serve a cached 200 payload to a different,
+      // unauthenticated visitor, or serve a cached 307 to a signed-in one.
+      // `private` restricts caching to the requesting browser's own cache,
+      // which is scoped per-origin per-profile and goes stale the moment
+      // the auth cookie is gone — still imperfect (a signed-out browser can
+      // keep serving its own stale cached copy until `max-age` elapses,
+      // which is why `max-age` here is 1 hour, not a day) but not shared
+      // across users the way `public` + a CDN would be.
+      //
       // A day of shared caching with stale-while-revalidate matches the
       // sync's weekly cadence and the detail pages' own `revalidate`.
       // If WIKI_DATA_VERSION ever does get bumped per sync, this can go
-      // back to immutable.
+      // back to immutable — but must stay `private`, never `public`, as
+      // long as this path requires auth.
       // -----------------------------------------------------------------
       {
         source: '/data/wiki/:path*',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800',
+            value: 'private, max-age=3600, stale-while-revalidate=604800',
           },
         ],
       },

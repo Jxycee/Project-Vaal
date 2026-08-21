@@ -173,3 +173,211 @@ touching `AppShell`, which is out of scope here.
 - `src/app/wiki/mods/page.tsx`
 - `src/components/wiki/WikiSearch.tsx` — unchanged
 - `src/components/wiki/WikiSearch.test.ts` — unchanged, still passes
+
+---
+
+## Addendum — fixes from the 2026-08-21 independent security review
+
+A fresh reviewer, tracing the compiled matcher regex against the actual `.next` build artifact
+rather than just source, found two real Critical bypasses plus several Important gaps in the work
+above. All are fixed below; findings and fixes are paired 1:1.
+
+### Critical 1 — Cache-Control still marked gated data publicly cacheable
+
+**Finding**: `next.config.ts`'s `/data/wiki/:path*` header rule was `public, max-age=3600,
+s-maxage=86400, stale-while-revalidate=604800`, unchanged from when the path was public. With no
+`Vary: Cookie`, both the 200 JSON (authed) and 307-to-`/login` (anon) response share the same
+cache key — a shared/CDN cache could serve a cached 200 to an anonymous visitor, or a cached 307 to
+a signed-in one, and `stale-while-revalidate=604800` meant a signed-out browser could keep serving
+gated content for up to a week.
+
+**Fix**: `next.config.ts` — changed the rule's `Cache-Control` value to
+`private, max-age=3600, stale-while-revalidate=604800` (dropped `public` and `s-maxage` entirely).
+Rewrote the surrounding comment to explain why `private`/no-`s-maxage` is required as long as this
+path is auth-gated, and to warn against reverting it.
+
+**Verified against the compiled artifact** (not just source), per the reviewer's own method:
+```
+$ node -e "const d = require('./.next/routes-manifest.json'); ..."
+{ source: '/data/wiki/:path*',
+  headers: [{ key: 'Cache-Control', value: 'private, max-age=3600, stale-while-revalidate=604800' }] }
+```
+
+### Critical 2 — percent-encoded paths bypassed `isProtectedPath`
+
+**Finding**: `request.nextUrl.pathname` is WHATWG-parsed, not percent-decoded. A request to
+`/data/%77iki/2026-08-21/item-index.json` passed the matcher, then `isProtectedPath` (a raw
+`startsWith` check) returned `false` since the raw pathname doesn't literally start with
+`/data/wiki` — but Next's static file resolver decodes the path and serves the real file at
+`/data/wiki/...`. Confirmed real, not theoretical.
+
+**Fix**: `src/proxy.ts` — `isProtectedPath` now checks both the raw pathname and its
+(single-level) `decodeURIComponent`'d form, falling back to the raw check only if decoding throws
+(malformed percent-encoding):
+
+```ts
+function isProtectedPath(pathname: string): boolean {
+  const candidates = [pathname]
+  try {
+    const decoded = decodeURIComponent(pathname)
+    if (decoded !== pathname) candidates.push(decoded)
+  } catch {
+    // malformed percent-encoding — raw check only
+  }
+  return candidates.some((p) => PROTECTED_PREFIXES.some((prefix) => p.startsWith(prefix)))
+}
+```
+
+**Traced the reviewer's exact case by hand and with a script.** For
+`/data/%77iki/2026-08-21/item-index.json`: `decodeURIComponent` turns `%77` into `w`, giving
+`/data/wiki/2026-08-21/item-index.json`, which `startsWith('/data/wiki/')` → `true` → now
+correctly redirected to `/login` when unauthenticated. Verified in the compiled bundle too —
+`.next/server/middleware.js` contains both the `/data/wiki/` prefix string and `decodeURIComponent`
+calls, confirming the fix reached the build, not just the source file.
+
+**An additional bypass found while fixing Critical 2, not in the reviewer's original report**:
+the matcher's own extension-based exclusion (`(?!data/).*\.(?:svg|png|...)$`, added in the base
+gating commit specifically to stop wiki icon PNGs from slipping past via extension) also runs
+against the raw, undecoded pathname. A request percent-encoding the `data` segment itself — e.g.
+`/%64ata/wiki/2026-08-21/icons/items/ab-aeterno.png` — does not literally start with `data/`, so
+the `(?!data/)` guard would pass, the extension rule would fire, and the request would be excluded
+from the middleware **entirely** — meaning it would never even reach `isProtectedPath`, so the
+Critical 2 fix above would not have helped. Closed this by adding a `(?!.*%)` guard to the same
+extension alternative: **any** percent-encoded path is now forced through the middleware rather
+than trying to reason about which specific segment might be encoded, deferring the real decision to
+`isProtectedPath`'s decode-aware check. Final matcher:
+
+```
+/((?!_next/static|_next/image|favicon\.ico|data/tree/|(?!data/)(?!.*%).*\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)
+```
+
+Re-verified all matcher and `isProtectedPath` cases (including this extra one) with a standalone
+Node script — 20 cases, all passing — and confirmed the compiled matcher string in
+`.next/server/middleware.js` matches this pattern exactly (not committed to the tree; ran from the
+scratchpad, deleted after).
+
+I did not further chase double-encoding (e.g. `%2564ata` — a literal `%64ata` after one decode
+pass, still not `data`). Reasoning: `isProtectedPath` does exactly one decode pass, matching what
+appears to be standard single-pass decoding in Next's own static file resolver per the reviewer's
+trace — if the resolver only decodes once too, a double-encoded path would 404 there as well
+(nothing to actually serve), so there's no exploit surface left to close. I did not verify this
+symmetry against Next's resolver source directly; flagging as an assumption rather than a
+confirmed fact.
+
+### Important 4 — service worker runtime-caching gated wiki data past logout
+
+**Finding**: `src/sw.ts` used `defaultCache` from `@serwist/next/worker` unmodified, whose
+production rule set includes generic matchers — `.(?:jpg|jpeg|gif|png|svg|ico|webp)$` (
+`StaleWhileRevalidate`) and `.(?:json|xml|csv)$` (`NetworkFirst`) — that also match
+`/data/wiki/**`. `StaleWhileRevalidate` in particular would serve a cached wiki icon straight from
+Cache Storage with no auth check at all on a repeat visit, and any entry cached this way survives
+sign-out (Cache Storage isn't cleared by a Supabase sign-out) — a real problem on a shared device.
+
+**Fix**: `src/sw.ts` — added an explicit `NetworkOnly` rule for `/data/wiki/` (same-origin only),
+placed first in the `runtimeCaching` array ahead of `...defaultCache`, since Serwist/Workbox routes
+match in array order and the first match wins:
+
+```ts
+runtimeCaching: [
+  {
+    matcher: ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith('/data/wiki/'),
+    handler: new NetworkOnly(),
+  },
+  ...defaultCache,
+],
+```
+
+Verified `next build` regenerates `public/sw.js` with this rule present (`grep -o "data/wiki"
+public/sw.js` matches).
+
+### Important 5 — coarse redirect detection + UI dead-end
+
+**Finding**: the non-JSON-content-type heuristic for detecting a redirect-to-login could mislabel
+an unrelated non-JSON 200 (captive portal, CDN error page, SW fallback) as "session expired."
+Separately, `WikiBrowse.tsx` rendered that message as a dead-end banner with nothing to act on it.
+
+**Fix**:
+- `src/lib/wiki/fetchIndex.ts` — added a new `WikiSessionExpiredError extends WikiIndexFetchError`,
+  thrown only when there's a direct signal: `res.redirected && new URL(res.url).pathname ===
+  '/login'`. The content-type check is now a separate, generic fallback (`WikiIndexFetchError`,
+  message "Unexpected response... (not JSON)"), no longer conflated with session expiry.
+- `src/components/wiki/WikiBrowse.tsx` — on `WikiSessionExpiredError` specifically, calls
+  `router.replace(`/login?redirect=${encodeURIComponent(window.location.pathname)}`)` instead of
+  rendering an error state — matching the exact `?redirect=` convention already used by
+  `src/proxy.ts` and `src/app/(auth)/login/page.tsx`'s `safeRedirect`. While the redirect is in
+  flight the component stays in its `loading` state (no flash of a dead-end banner first).
+- `src/lib/wiki/fetchIndex.test.ts` — added cases for: redirected-to-`/login` throws
+  `WikiSessionExpiredError`; redirected-to-somewhere-else does NOT throw session-expired (resolves
+  normally); non-ok/non-redirected throws plain `WikiIndexFetchError`, explicitly asserted
+  `not.toBeInstanceOf(WikiSessionExpiredError)`; non-JSON/non-redirected throws plain
+  `WikiIndexFetchError` with the new "Unexpected response" message, also asserted not
+  session-expired.
+
+### Important 3 — proxy-only auth is not defense-in-depth (documented, not rewritten)
+
+Per instructions, did not attempt the full fix (serving `/data/wiki/**` through a Route Handler
+with its own `getUser()` instead of raw static file serving) — that's a bigger architecture change.
+Added an explicit comment block in `src/proxy.ts` next to `PROTECTED_PREFIXES` citing
+`node_modules/next/dist/docs/01-app/01-getting-started/16-proxy.md` (confirmed it does say Proxy
+checks are "optimistic" and should not be treated as a full authorization solution), naming that
+`AppShell` reads the user but never itself redirects, and stating plainly that a future reader
+should not assume this matcher is airtight.
+
+**Judgment call on whether the two Critical fixes make this urgent**: no — I don't think the
+Critical fixes change the calculus here. Both Criticals were bugs in the *existing* proxy-only
+design (a stale cache header, an encoding edge case), not evidence that proxy-only middleware is
+structurally insufficient for this app; once fixed, the matcher + `isProtectedPath` are, as far as
+I traced, correct for every case tested including the encoding class of bug. The proxy-only
+architecture is a real trade-off (a future routing change could reintroduce a gap like this one)
+but not one this fix round created or worsened. Flagging it as documented, not escalating it.
+
+### Minor items
+
+- `next.config.ts` — `outputFileTracingExcludes['/wiki/**']` now also excludes
+  `./public/data/wiki/**/*-index.json`. Verified safe: `grep -rn "index.json" src` (excluding this
+  feature's own new client-fetch code) shows nothing server-side reads these files anymore since
+  Task 2 moved that to a client-side fetch — only `loadDetail()` (per-slug detail JSON) and
+  `loadAllSlugs()` (a `readdir`, not a read of the index file) remain in `src/lib/wiki/load.ts`.
+  Updated the stale comment that used to say "The index files stay traced: the browse pages
+  genuinely do read them." Per the existing comment's own instruction, this should still be gated
+  by checking the `files` count in `.next/server/app/wiki/*/[slug]/page.js.nft.json` on a real
+  Linux/Vercel build before relying on it — the existing PLATFORM NOTE in that file already
+  explains why a local Windows build can't verify this (the excludes are inert on Windows).
+- `src/proxy.ts` — fixed the missing trailing newline (confirmed via `tail -c` + `xxd` that the
+  file now ends `}\n`).
+- `PROTECTED_PREFIXES` — changed `'/data/wiki'` to `'/data/wiki/'` (trailing slash), so a
+  hypothetical future `/data/wikifoo` sibling path can't accidentally prefix-match. Verified with
+  the same test script: `/data/wikifoo/x.json` → not protected.
+- `entityLabel` prop on `WikiBrowse` — removed. Replaced the three call sites' redundant prop with
+  an internal `Record<WikiEntryKind, string>` lookup inside the component, so the label can't drift
+  out of sync with `kind`.
+
+### Re-verification
+
+- `npm run type-check` — clean.
+- `npm run lint` — clean.
+- `npm run build` — succeeds. `.next/routes-manifest.json` and `.next/server/middleware.js`
+  inspected directly (not just source) to confirm the Critical 1 and Critical 2 fixes reached the
+  compiled output, matching the reviewer's own verification method. `public/sw.js` confirmed to
+  contain the new `/data/wiki/` `NetworkOnly` rule.
+- `npx vitest run` — **79/79 passed** (9 test files) — 2 new cases added to `fetchIndex.test.ts`
+  for the Important 5 fix, all prior tests still passing including `WikiSearch.test.ts` unmodified.
+- Matcher/`isProtectedPath` re-verified with an expanded standalone Node script (20 cases: the
+  original set, the reviewer's exact reported Critical 2 case, and the additional encoded-`data`-
+  segment case found while fixing it) — all passing. Not committed; ran from the scratchpad.
+- Still not done, same gap as before: no dev server was run in this sandbox to click through an
+  actual browser request. The `.next` build-artifact inspection above is the closest available
+  substitute for the two Critical fixes specifically.
+- The reviewer's suggested integration test (307-for-anonymous on `/data/wiki/**`,
+  200-for-anonymous on `/data/tree/**`) was not built. This repo has no existing integration/route-
+  testing harness (no dev-server-driven test runner, no `supertest`-style setup, nothing under
+  `scripts/` or `src/**/*.test.ts` that spins up the app) — building one from scratch was
+  explicitly out of scope for this round. Residual: worth adding before/soon after merge, since (per
+  the reviewer) it would catch a regression here far better than the unit-level coverage this
+  change has.
+
+### Status of this addendum
+
+All five findings (2 Critical, 2 Important actionable, 1 Important documented-not-rewritten) plus
+all four Minor items are addressed. The one deliberately-deferred item is the integration test
+noted above — flagged, not built, for the reason given.
