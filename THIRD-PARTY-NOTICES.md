@@ -2,12 +2,18 @@
 
 Project Vaal includes or depends on the following third-party software.
 
-## @poe2-toolkit (tree-core, tree-react)
+## @poe2-toolkit (tree-core, tree-react, item-extractor, gem-extractor, mod-extractor)
 
 The passive skill tree viewer is built on the **poe2-toolkit** libraries by
 Vladislav Rajtmajer (`rajtik76`) — a headless geometry engine (`tree-core`) and
 a PixiJS React view (`tree-react`) that render the Path of Exile 2 passive tree
 faithfully from GGG's official export.
+
+The same toolkit also supplies the item/skill/mod wiki's data and icons: the
+`item-extractor`, `gem-extractor`, and `mod-extractor` packages decode item,
+gem, and mod data (and associated icons) from the game's official patch
+server, which the wiki sync script normalizes into the site's browse and
+detail pages.
 
 - Source: https://github.com/rajtik76/poe2-toolkit
 - License: MIT

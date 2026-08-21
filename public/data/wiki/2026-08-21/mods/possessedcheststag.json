@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"possessedcheststag","name":"Protected by the Fabled Stag","category":"Torment","domain":"Chest","generationType":"Torment","group":"SpiritOfTheChestPossessed","tier":11,"level":1,"stats":[],"rolls":[{"stat":"possessed_strongbox_type_id","min":8,"max":8}],"families":["Torment"],"spawnWeights":[],"lastSynced":"2026-08-21T18:36:05.655Z"}

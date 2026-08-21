@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"towerrarepackincrease1","name":"Brimming","category":"Prefix","domain":"Tincture","generationType":"Prefix","group":"MapRarePackIncrease","tier":1,"level":1,"stats":[],"rolls":[{"stat":"map_number_of_rare_packs_+%","min":25,"max":35}],"families":["MapRarePackIncrease"],"spawnWeights":[{"tag":"default","weight":1}],"lastSynced":"2026-08-21T18:36:05.655Z"}

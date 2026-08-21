@@ -1,0 +1,41 @@
+# .github/workflows/sync-wiki.yml
+name: Sync wiki data
+on:
+  schedule:
+    - cron: '0 4 * * 1'   # weekly, Monday 04:00 UTC — patch cadence, not price cadence
+  workflow_dispatch:
+
+# One sync at a time. Two overlapping runs would race the same
+# chore/wiki-data-refresh branch and the same output directory; the later
+# run's result is the one worth keeping, so cancel an in-flight run rather
+# than letting it finish and clobber.
+concurrency:
+  group: sync-wiki
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      # `npm run sync:wiki`, not `npx tsx ...`: npx would fetch an unpinned
+      # tsx at run time, leaving the one command the whole refresh depends on
+      # as the only thing not locked. tsx is a pinned devDependency now.
+      - run: npm run sync:wiki
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: 'chore(wiki): refresh wiki data'
+          title: 'chore(wiki): refresh wiki data'
+          branch: chore/wiki-data-refresh
+          body: |
+            Automated poe2-toolkit GGPK extraction. Review the diff before merging —
+            this catches extraction-pipeline bugs or a stale WIKI_PATCH_VERSION before
+            they reach users, not vandalism (the source is GGG's own patch server, not
+            a community-edited wiki).

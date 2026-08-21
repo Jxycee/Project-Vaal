@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"playermonsterimmunetoslow1","name":"of Freedom","category":"Suffix","domain":"Monster","generationType":"Suffix","group":"MonsterModSlowResist","tier":1,"level":1,"stats":[],"rolls":[{"stat":"monster_slow_potency_+%_final","min":-50,"max":-50}],"families":["SlowPotency"],"spawnWeights":[{"tag":"default","weight":0}],"lastSynced":"2026-08-21T18:36:05.655Z"}

@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"attackdamagepercent2","name":"Thug's","category":"Prefix","domain":"Item","generationType":"Prefix","group":"AttackDamage","tier":2,"level":15,"stats":["(9-16)% increased Attack Damage"],"rolls":[{"stat":"attack_damage_+%","min":9,"max":16}],"families":["AttackDamage"],"spawnWeights":[{"tag":"default","weight":0}],"lastSynced":"2026-08-21T18:36:05.655Z"}

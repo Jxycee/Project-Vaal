@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"increasedlifejewel","name":"Healthy","category":"Unique","domain":"Atlas","generationType":"Unique","group":"IncreasedLifeForJewel","tier":1,"level":1,"stats":["+(8-12) to maximum Life"],"rolls":[{"stat":"base_maximum_life","min":8,"max":12}],"families":["IncreasedLife"],"spawnWeights":[{"tag":"default","weight":0}],"lastSynced":"2026-08-21T18:36:05.655Z"}
