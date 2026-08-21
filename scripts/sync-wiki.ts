@@ -7,7 +7,7 @@
  *
  * Run for real with: npx tsx scripts/sync-wiki.ts
  */
-import { mkdirSync, writeFileSync, readFileSync, cpSync, existsSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, readdirSync, cpSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { createCdnSource } from '@poe2-toolkit/ggpk';
@@ -18,7 +18,8 @@ import { normalizeItem, normalizeSkill, normalizeMod, toSearchEntry, slugify } f
 import { WIKI_DATA_VERSION, WIKI_PATCH_VERSION } from '../src/lib/wiki/types';
 import type { WikiSearchEntry, WikiItemDetail, WikiSkillDetail, WikiModDetail } from '../src/lib/wiki/types';
 
-const OUT_DIR = path.join(process.cwd(), 'public', 'data', 'wiki', WIKI_DATA_VERSION);
+const WIKI_ROOT = path.join(process.cwd(), 'public', 'data', 'wiki');
+const OUT_DIR = path.join(WIKI_ROOT, WIKI_DATA_VERSION);
 const EXTRACT_DIR = path.join(process.cwd(), 'scripts', 'wiki', '.extract');
 const TABLES_DIR = path.join(EXTRACT_DIR, 'tables', 'English');
 
@@ -93,13 +94,45 @@ function ensureTablesDecoded(): void {
   execFileSync('npx', ['pathofexile-dat'], { cwd: EXTRACT_DIR, stdio: 'inherit', shell: true });
 }
 
-function previousCount(kind: string): number {
+/**
+ * The most recent prior sync's output directory, or `null` on a first-ever
+ * sync. Deliberately excludes `currentVersion`: that directory is the
+ * in-progress run's own `OUT_DIR`, which is always empty/nonexistent at the
+ * point the truncation guard runs (`WIKI_DATA_VERSION` is bumped once per
+ * weekly sync PR, so "compare against the current version's own directory"
+ * - the plan's original sample code, and this script's first draft - would
+ * never find a previous count in the real workflow it exists to protect).
+ * Version directories are named `YYYY-MM-DD`, so a plain string sort orders
+ * them chronologically.
+ */
+export function findPreviousVersionDir(wikiRoot: string, currentVersion: string): string | null {
+  let names: string[];
   try {
-    const raw = readFileSync(path.join(OUT_DIR, `${kind}-index.json`), 'utf8');
+    names = readdirSync(wikiRoot, { withFileTypes: true })
+      .filter((e) => e.isDirectory() && e.name !== currentVersion)
+      .map((e) => e.name);
+  } catch {
+    return null;
+  }
+  if (names.length === 0) return null;
+  names.sort();
+  return path.join(wikiRoot, names[names.length - 1]);
+}
+
+/** Entry count from `<kind>-index.json` in the most recent prior sync's directory, or 0 if there is none. */
+export function findPreviousCount(wikiRoot: string, currentVersion: string, kind: string): number {
+  const dir = findPreviousVersionDir(wikiRoot, currentVersion);
+  if (!dir) return 0;
+  try {
+    const raw = readFileSync(path.join(dir, `${kind}-index.json`), 'utf8');
     return (JSON.parse(raw).entries as unknown[]).length;
   } catch {
     return 0;
   }
+}
+
+function previousCount(kind: string): number {
+  return findPreviousCount(WIKI_ROOT, WIKI_DATA_VERSION, kind);
 }
 
 function writeIcon(slug: string, iconKey: string | null, icons: Record<string, Buffer>): string | null {
@@ -116,6 +149,12 @@ async function syncItems(): Promise<number> {
   const { data, icons } = await extractItems(source);
   const usedSlugs = new Set<string>();
   const details: WikiItemDetail[] = Object.entries(data).map(([name, item]) => {
+    // `name` doubles as both the base-slug input and the disambiguator: real
+    // data currently has zero item slug collisions (ItemData is already keyed
+    // by name, so two entries can only collide if two *different* names
+    // slugify to the same string - not observed in a real extract). Passing
+    // `name` again is a no-op disambiguator in that edge case, but the
+    // numeric fallback in dedupeSlug still guarantees uniqueness either way.
     const slug = dedupeSlug(slugify(name), name, usedSlugs);
     const iconUrl = item.icon ? writeIcon(slug, ddsPathToIconKey(item.icon), icons.icons) : null;
     return { ...normalizeItem(name, item, iconUrl), slug };
