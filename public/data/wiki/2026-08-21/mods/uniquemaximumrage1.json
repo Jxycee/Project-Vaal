@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"uniquemaximumrage1","name":"UniqueMaximumRage1","category":"Unique","domain":"Item","generationType":"Unique","group":"MaximumRage","tier":3,"level":75,"stats":["+10 to Maximum Rage"],"rolls":[{"stat":"maximum_rage","min":-10,"max":10}],"families":["MaximumRage"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.817Z"}

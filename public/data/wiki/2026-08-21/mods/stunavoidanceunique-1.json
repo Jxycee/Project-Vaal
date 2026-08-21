@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"stunavoidanceunique-1","name":"StunAvoidanceUnique___1","category":"Unique","domain":"Item","generationType":"Unique","group":"AvoidStun","tier":3,"level":1,"stats":["20% chance to Avoid being Stunned"],"rolls":[{"stat":"base_avoid_stun_%","min":20,"max":20}],"families":["AvoidStun"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.824Z"}

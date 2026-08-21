@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"avoidigniteuniqueonehandsword4","name":"AvoidIgniteUniqueOneHandSword4","category":"Unique","domain":"Item","generationType":"Unique","group":"CannotBeIgnited","tier":3,"level":1,"stats":["Cannot be Ignited"],"rolls":[{"stat":"base_cannot_be_ignited","min":1,"max":1}],"families":["CannotBeIgnited"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

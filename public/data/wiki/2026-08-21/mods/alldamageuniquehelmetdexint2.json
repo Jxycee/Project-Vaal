@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"alldamageuniquehelmetdexint2","name":"AllDamageUniqueHelmetDexInt2","category":"Unique","domain":"Item","generationType":"Unique","group":"AllDamage","tier":4,"level":1,"stats":["25% reduced Damage"],"rolls":[{"stat":"damage_+%","min":-25,"max":-25}],"families":["AllDamage"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

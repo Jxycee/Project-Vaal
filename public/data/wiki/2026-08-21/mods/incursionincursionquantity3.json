@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"incursionincursionquantity3","name":"IncursionIncursionQuantity3","category":"Unique","domain":"6","generationType":"Unique","group":"IncursionQuantity","tier":3,"level":1,"stats":[],"rolls":[{"stat":"map_item_drop_quantity_+%","min":15,"max":15}],"families":["MapQuantity"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.826Z"}

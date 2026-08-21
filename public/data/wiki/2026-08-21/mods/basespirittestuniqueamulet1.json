@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"basespirittestuniqueamulet1","name":"BaseSpiritTestUniqueAmulet1","category":"Unique","domain":"Item","generationType":"Unique","group":"BaseSpirit","tier":1,"level":1,"stats":["+500 to Spirit"],"rolls":[{"stat":"base_spirit_from_equipment","min":500,"max":500}],"families":["BaseSpirit"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.818Z"}

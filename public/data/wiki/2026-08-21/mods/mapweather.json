@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"mapweather","name":"MapWeather_","category":"Unique","domain":"6","generationType":"Unique","group":"MapWeather","tier":1,"level":1,"stats":[],"rolls":[{"stat":"map_has_weather","min":1,"max":1}],"families":["MapWeather"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.823Z"}

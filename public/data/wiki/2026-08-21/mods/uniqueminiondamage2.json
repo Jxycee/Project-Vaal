@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"uniqueminiondamage2","name":"UniqueMinionDamage2","category":"Unique","domain":"Item","generationType":"Unique","group":"MinionDamage","tier":3,"level":1,"stats":["Minions deal (80-120)% increased Damage"],"rolls":[{"stat":"minion_damage_+%","min":80,"max":120}],"families":["MinionDamage"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.816Z"}

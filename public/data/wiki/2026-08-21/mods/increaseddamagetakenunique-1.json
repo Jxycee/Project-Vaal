@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"increaseddamagetakenunique-1","name":"IncreasedDamageTakenUnique__1","category":"Unique","domain":"Item","generationType":"Unique","group":"DamageTaken","tier":2,"level":1,"stats":["10% increased Damage taken"],"rolls":[{"stat":"base_damage_taken_+%","min":10,"max":10}],"families":["DamageTaken"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.824Z"}

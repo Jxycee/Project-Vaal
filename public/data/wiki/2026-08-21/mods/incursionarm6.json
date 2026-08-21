@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"incursionarm6","name":"IncursionArm6","category":"Unique","domain":"Idol","generationType":"Unique","group":"PresenceRadius","tier":1,"level":0,"stats":["(15-25)% increased Presence Area of Effect"],"rolls":[{"stat":"presence_area_+%","min":15,"max":25}],"families":["PresenceRadius"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.832Z"}

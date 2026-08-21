@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"cannotcastspellsunique-1","name":"CannotCastSpellsUnique__1","category":"Unique","domain":"Item","generationType":"Unique","group":"CannotCastSpells","tier":1,"level":1,"stats":["Cannot Cast Spells"],"rolls":[{"stat":"cannot_cast_spells","min":1,"max":1}],"families":["CannotCastSpells"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.825Z"}

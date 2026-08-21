@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"uniquethornsdamageincrease1","name":"UniqueThornsDamageIncrease1","category":"Unique","domain":"Item","generationType":"Unique","group":"ThornsDamageIncrease","tier":2,"level":1,"stats":["100% increased Thorns damage"],"rolls":[{"stat":"thorns_damage_+%","min":100,"max":100}],"families":["Thorns"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.817Z"}

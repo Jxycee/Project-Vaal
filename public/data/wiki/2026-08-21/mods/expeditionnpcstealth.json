@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"expeditionnpcstealth","name":"ExpeditionNPCStealth_","category":"Unique","domain":"Monster","generationType":"Unique","group":"ExpeditionNPCStealth","tier":1,"level":1,"stats":["500% increased Stealth"],"rolls":[{"stat":"stealth_+%","min":500,"max":500}],"families":["Nothing"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.828Z"}

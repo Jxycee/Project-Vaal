@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"localmaimonhitunique-1","name":"LocalMaimOnHitUnique__1","category":"Unique","domain":"Item","generationType":"Unique","group":"LocalMaimOnHit","tier":1,"level":1,"stats":["Attacks with this Weapon Maim on hit"],"rolls":[{"stat":"local_maim_on_hit","min":1,"max":1}],"families":["LocalMaimOnHit"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.824Z"}

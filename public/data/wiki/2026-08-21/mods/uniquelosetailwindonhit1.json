@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"uniquelosetailwindonhit1","name":"UniqueLoseTailwindOnHit1","category":"Unique","domain":"Item","generationType":"Unique","group":"LoseTailwindOnHit","tier":1,"level":1,"stats":["Lose all Tailwind when Hit"],"rolls":[{"stat":"lose_all_tailwind_when_hit","min":1,"max":1}],"families":["Tailwind"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.817Z"}

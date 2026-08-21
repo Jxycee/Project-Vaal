@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"encasedmonsternoactionspeed","name":"EncasedMonsterNoActionSpeed","category":"Unique","domain":"Monster","generationType":"Unique","group":"EncasedMonster","tier":1,"level":1,"stats":["100% reduced Action Speed"],"rolls":[{"stat":"action_speed_-%","min":100,"max":100}],"families":["EncasedMonster"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.831Z"}

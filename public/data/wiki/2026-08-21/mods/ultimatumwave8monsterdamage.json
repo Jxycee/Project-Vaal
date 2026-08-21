@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"ultimatumwave8monsterdamage","name":"UltimatumWave8MonsterDamage__","category":"Unique","domain":"Monster","generationType":"Unique","group":"UltimatumWaveMonsterDamage","tier":7,"level":1,"stats":[],"rolls":[{"stat":"ultimatum_monster_damage_+%_final","min":18,"max":18}],"families":["MonsterDamage"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.828Z"}

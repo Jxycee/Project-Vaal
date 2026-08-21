@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"uniquearrowspeed1","name":"UniqueArrowSpeed1","category":"Unique","domain":"Item","generationType":"Unique","group":"ArrowSpeed","tier":1,"level":1,"stats":["(50-100)% increased Arrow Speed"],"rolls":[{"stat":"base_arrow_speed_+%","min":50,"max":100}],"families":["ArrowSpeed"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.817Z"}

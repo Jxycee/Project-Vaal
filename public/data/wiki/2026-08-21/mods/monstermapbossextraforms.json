@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"monstermapbossextraforms","name":"MonsterMapBossExtraForms","category":"Unique","domain":"Monster","generationType":"Unique","group":"MonsterMapBossExtraForms","tier":1,"level":1,"stats":[],"rolls":[{"stat":"monster_has_second_form","min":1,"max":1}],"families":["MonsterMapBossExtraForms"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.818Z"}

@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"mapshaperinfluence","name":"MapShaperInfluence","category":"Unique","domain":"6","generationType":"Unique","group":"MapAtlasInfluence","tier":2,"level":1,"stats":["Area is influenced by The Shaper"],"rolls":[{"stat":"map_atlas_influence_type","min":1,"max":1}],"families":["MapAtlasInfluence"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.826Z"}

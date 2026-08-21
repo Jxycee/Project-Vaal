@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"chancetofreezeunique-2","name":"ChanceToFreezeUnique__2","category":"Unique","domain":"Atlas","generationType":"Unique","group":"ChanceToFreeze","tier":1,"level":1,"stats":["2% chance to Freeze"],"rolls":[{"stat":"base_chance_to_freeze_%","min":2,"max":2}],"families":["ChanceToFreeze"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

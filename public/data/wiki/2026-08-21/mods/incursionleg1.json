@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"incursionleg1","name":"IncursionLeg1","category":"Unique","domain":"Idol","generationType":"Unique","group":"GlobalEvasionRatingPercent","tier":1,"level":0,"stats":["(20-30)% increased Evasion Rating"],"rolls":[{"stat":"evasion_rating_+%","min":20,"max":30}],"families":["EvasionRatingPercent"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.832Z"}

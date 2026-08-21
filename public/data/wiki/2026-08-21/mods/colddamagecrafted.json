@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"colddamagecrafted","name":"ColdDamageCrafted","category":"Unique","domain":"Base Jewel","generationType":"Unique","group":"ColdDamagePercentage","tier":1,"level":1,"stats":["(20-24)% increased Cold Damage"],"rolls":[{"stat":"cold_damage_+%","min":20,"max":24}],"families":["ColdDamagePercentage"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

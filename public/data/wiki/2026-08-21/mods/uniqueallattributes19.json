@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"uniqueallattributes19","name":"UniqueAllAttributes19","category":"Unique","domain":"Item","generationType":"Unique","group":"AllAttributes","tier":24,"level":78,"stats":["+(6-12) to all Attributes"],"rolls":[{"stat":"additional_all_attributes","min":6,"max":12}],"families":["AllAttributes"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.815Z"}

@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"chestunique2","name":"ChestUnique2","category":"Unique","domain":"Chest","generationType":"Unique","group":"ChestIncreasedHiddenRarity","tier":16,"level":1,"stats":[],"rolls":[{"stat":"chest_hidden_item_rarity_+%","min":100,"max":100}],"families":["ChestBaseModsFromRarity"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

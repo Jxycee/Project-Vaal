@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"uniqueadditionalblockchance1","name":"UniqueAdditionalBlockChance1","category":"Unique","domain":"Item","generationType":"Unique","group":"AdditionalBlock","tier":4,"level":1,"stats":["+25% to Block chance"],"rolls":[{"stat":"additional_block_%","min":25,"max":25}],"families":["AdditionalBlock"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

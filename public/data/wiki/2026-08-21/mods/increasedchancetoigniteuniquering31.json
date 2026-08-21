@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"increasedchancetoigniteuniquering31","name":"IncreasedChanceToIgniteUniqueRing31","category":"Unique","domain":"Item","generationType":"Unique","group":"ChanceToIgnite","tier":14,"level":1,"stats":[],"rolls":[{"stat":"base_chance_to_ignite_%","min":10,"max":10}],"families":["ChanceToIgnite"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

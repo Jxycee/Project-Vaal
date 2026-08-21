@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"chancetoigniteuniquetwohandsword6","name":"ChanceToIgniteUniqueTwoHandSword6","category":"Unique","domain":"Item","generationType":"Unique","group":"ChanceToIgnite","tier":12,"level":1,"stats":[],"rolls":[{"stat":"base_chance_to_ignite_%","min":20,"max":20}],"families":["ChanceToIgnite"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

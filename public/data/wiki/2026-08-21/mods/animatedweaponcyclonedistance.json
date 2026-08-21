@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"animatedweaponcyclonedistance","name":"AnimatedWeaponCycloneDistance","category":"Unique","domain":"Monster","generationType":"Unique","group":"CycloneExtraDistance","tier":1,"level":1,"stats":[],"rolls":[{"stat":"cyclone_extra_distance","min":10,"max":10}],"families":["CycloneExtraDistance"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.823Z"}

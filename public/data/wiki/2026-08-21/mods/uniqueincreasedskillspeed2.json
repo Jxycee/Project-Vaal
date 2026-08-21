@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"uniqueincreasedskillspeed2","name":"UniqueIncreasedSkillSpeed2","category":"Unique","domain":"Item","generationType":"Unique","group":"IncreasedSkillSpeed","tier":4,"level":1,"stats":["10% reduced Skill Speed"],"rolls":[{"stat":"skill_speed_+%","min":-10,"max":-10}],"families":["IncreasedSpeed"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.817Z"}

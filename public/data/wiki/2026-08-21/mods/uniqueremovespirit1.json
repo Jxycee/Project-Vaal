@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"uniqueremovespirit1","name":"UniqueRemoveSpirit1","category":"Unique","domain":"Item","generationType":"Unique","group":"RemoveSpirit","tier":1,"level":1,"stats":["You have no Spirit"],"rolls":[{"stat":"spirit_does_not_exist","min":1,"max":1}],"families":["BaseSpirit"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.817Z"}

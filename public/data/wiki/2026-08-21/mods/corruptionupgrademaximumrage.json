@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"corruptionupgrademaximumrage","name":"CorruptionUpgradeMaximumRage","category":"Unique","domain":"Item","generationType":"Unique","group":"MaximumRage","tier":1,"level":1,"stats":["+(5-10) to Maximum Rage"],"rolls":[{"stat":"maximum_rage","min":5,"max":10}],"families":["MaximumRage"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.833Z"}

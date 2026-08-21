@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"cannotbeshocked","name":"CannotBeShocked","category":"Unique","domain":"Item","generationType":"Unique","group":"CannotBeShocked","tier":1,"level":1,"stats":["Cannot be Shocked"],"rolls":[{"stat":"base_cannot_be_shocked","min":100,"max":100}],"families":["CannotBeShocked"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.819Z"}

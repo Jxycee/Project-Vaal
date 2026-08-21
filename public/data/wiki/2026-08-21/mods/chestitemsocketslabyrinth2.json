@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"chestitemsocketslabyrinth2","name":"ChestItemSocketsLabyrinth2","category":"Unique","domain":"Chest","generationType":"Unique","group":"ChestItemSockets","tier":3,"level":1,"stats":[],"rolls":[{"stat":"dropped_items_have_additional_sockets","min":2,"max":2}],"families":["ChestItemSockets"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

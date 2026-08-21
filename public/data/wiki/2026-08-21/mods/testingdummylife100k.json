@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"testingdummylife100k","name":"TestingDummyLife100k","category":"Unique","domain":"Monster","generationType":"Unique","group":"IncreasedLife","tier":2,"level":1,"stats":["+99999 to maximum Life"],"rolls":[{"stat":"base_maximum_life","min":99999,"max":99999}],"families":["IncreasedLife"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.824Z"}

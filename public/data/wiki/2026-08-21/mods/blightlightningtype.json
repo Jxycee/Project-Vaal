@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"blightlightningtype","name":"BlightLightningType","category":"Unique","domain":"Monster","generationType":"Unique","group":"BlightLightningType","tier":1,"level":1,"stats":[],"rolls":[{"stat":"is_blight_lightning_monster","min":1,"max":1}],"families":["BlightMonsterType"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.827Z"}

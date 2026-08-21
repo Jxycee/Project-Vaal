@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"amuletimplicitdexterity1","name":"AmuletImplicitDexterity1","category":"Unique","domain":"Item","generationType":"Unique","group":"Dexterity","tier":49,"level":10,"stats":["+(10-15) to Dexterity"],"rolls":[{"stat":"additional_dexterity","min":10,"max":15}],"families":["Dexterity"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.814Z"}

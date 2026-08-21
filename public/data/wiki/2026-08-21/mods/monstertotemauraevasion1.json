@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"monstertotemauraevasion1","name":"MonsterTotemAuraEvasion1","category":"Unique","domain":"Monster","generationType":"Unique","group":"MonsterAuraEvasion","tier":3,"level":1,"stats":["+1344 to Evasion Rating"],"rolls":[{"stat":"base_evasion_rating","min":1344,"max":1344}],"families":["MonsterAura"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

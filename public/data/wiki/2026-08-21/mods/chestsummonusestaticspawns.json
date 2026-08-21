@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"chestsummonusestaticspawns","name":"ChestSummonUseStaticSpawns","category":"Unique","domain":"Area","generationType":"Unique","group":"ChestSummonUseStaticSpawns","tier":1,"level":1,"stats":[],"rolls":[{"stat":"strongbox_use_static_spawns","min":1,"max":1}],"families":["ChestMonsters"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

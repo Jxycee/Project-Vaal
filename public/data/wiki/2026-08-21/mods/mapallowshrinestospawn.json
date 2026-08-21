@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"mapallowshrinestospawn","name":"MapAllowShrinesToSpawn","category":"Unique","domain":"6","generationType":"Unique","group":"AllowShrines","tier":1,"level":1,"stats":["Powerful Shrines can affect both Monsters and you"],"rolls":[{"stat":"map_allow_shrines","min":1,"max":1}],"families":["AllowShrines"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"jewelradiusimplicitlarge","name":"JewelRadiusImplicitLarge","category":"Unique","domain":"Atlas","generationType":"Unique","group":"JewelEffectBaseRadius","tier":3,"level":1,"stats":[],"rolls":[{"stat":"local_jewel_effect_base_radius","min":1300,"max":1300}],"families":["JewelEffectBaseRadius"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.815Z"}

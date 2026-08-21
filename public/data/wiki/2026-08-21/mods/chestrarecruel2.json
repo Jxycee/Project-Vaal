@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"chestrarecruel2","name":"ChestRareCruel2","category":"Unique","domain":"Chest","generationType":"Unique","group":"ChestIncreasedHiddenRarity","tier":11,"level":1,"stats":[],"rolls":[{"stat":"chest_hidden_item_rarity_+%","min":1050,"max":1050}],"families":["ChestBaseModsFromRarity"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

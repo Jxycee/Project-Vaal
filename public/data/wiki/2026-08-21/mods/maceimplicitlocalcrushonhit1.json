@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"maceimplicitlocalcrushonhit1","name":"MaceImplicitLocalCrushOnHit1","category":"Unique","domain":"Item","generationType":"Unique","group":"LocalCrushOnHit","tier":1,"level":1,"stats":["Crushes Enemies on Hit"],"rolls":[{"stat":"local_crush_on_hit","min":1,"max":1}],"families":["CrushOnHitChance"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.814Z"}

@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"scarabelderrares2","name":"ScarabElderRares2_","category":"Unique","domain":"Dummy","generationType":"Unique","group":"ScarabModElderRares","tier":2,"level":1,"stats":["60% more Rare Elder Items found in Area"],"rolls":[{"stat":"map_elder_rare_chance_+%","min":60,"max":60}],"families":["ScarabMod"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.826Z"}

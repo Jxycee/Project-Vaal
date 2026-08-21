@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"chestdroppeditemsfractured","name":"ChestDroppedItemsFractured","category":"Unique","domain":"Chest","generationType":"Unique","group":"DroppedItemsFractured","tier":1,"level":1,"stats":[],"rolls":[{"stat":"dropped_items_are_fractured","min":1,"max":1}],"families":["DroppedItemsModified"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.830Z"}

@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"uniquefireresist32","name":"UniqueFireResist32","category":"Unique","domain":"Item","generationType":"Unique","group":"FireResistance","tier":29,"level":1,"stats":["+(5-15)% to Fire Resistance"],"rolls":[{"stat":"base_fire_damage_resistance_%","min":5,"max":15}],"families":["FireResistance"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.815Z"}

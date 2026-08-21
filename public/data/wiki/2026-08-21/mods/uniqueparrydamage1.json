@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"uniqueparrydamage1","name":"UniqueParryDamage1","category":"Unique","domain":"Item","generationType":"Unique","group":"ParryDamage","tier":1,"level":1,"stats":["100% increased Parry Damage"],"rolls":[{"stat":"parry_damage_+%","min":100,"max":100}],"families":["AllDamage"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.817Z"}

@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"stanceheisttemplarwalk","name":"StanceHeistTemplarWalk","category":"Unique","domain":"Monster","generationType":"Unique","group":"StanceHeistMovementSpeed","tier":15,"level":1,"stats":[],"rolls":[{"stat":"stance_movement_speed_+%_final","min":-64,"max":-64}],"families":["Stance"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.820Z"}

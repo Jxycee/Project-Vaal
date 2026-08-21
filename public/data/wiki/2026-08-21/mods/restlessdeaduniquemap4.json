@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"restlessdeaduniquemap4","name":"RestlessDeadUniqueMap4","category":"Unique","domain":"6","generationType":"Unique","group":"RestlessDead","tier":1,"level":1,"stats":[],"rolls":[{"stat":"map_undead_monsters_get_up_after_X_seconds","min":10,"max":10}],"families":["RestlessDead"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

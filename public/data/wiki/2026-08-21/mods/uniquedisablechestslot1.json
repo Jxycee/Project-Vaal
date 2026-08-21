@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"uniquedisablechestslot1","name":"UniqueDisableChestSlot1","category":"Unique","domain":"Item","generationType":"Unique","group":"DisableChestSlot","tier":2,"level":1,"stats":["Can't use Body Armour"],"rolls":[{"stat":"disable_chest_slot","min":1,"max":1}],"families":["DisableChestSlot"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.817Z"}

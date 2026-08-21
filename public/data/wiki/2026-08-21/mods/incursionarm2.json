@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"incursionarm2","name":"IncursionArm2","category":"Unique","domain":"Idol","generationType":"Unique","group":"IncreasedAttackSpeed","tier":1,"level":0,"stats":["(6-10)% increased Attack Speed"],"rolls":[{"stat":"attack_speed_+%","min":6,"max":10}],"families":["IncreasedAttackSpeed"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.832Z"}

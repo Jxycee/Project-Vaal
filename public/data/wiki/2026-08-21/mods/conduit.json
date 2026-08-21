@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"conduit","name":"Conduit","category":"Unique","domain":"Item","generationType":"Unique","group":"Conduit","tier":1,"level":1,"stats":["Conduit"],"rolls":[{"stat":"keystone_conduit","min":1,"max":1}],"families":["Keystone"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.819Z"}

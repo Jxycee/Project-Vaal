@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"movedaemonxperrepeat1","name":"MoveDaemonXPerRepeat1","category":"Unique","domain":"Monster","generationType":"Unique","group":"MoveDaemonXPerRepeat","tier":1,"level":1,"stats":[],"rolls":[{"stat":"move_daemon_x_offset_per_repeat","min":20,"max":20}],"families":["Nothing"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.825Z"}

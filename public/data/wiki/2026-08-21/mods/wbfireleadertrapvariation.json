@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"wbfireleadertrapvariation","name":"WbFireLeaderTrapVariation","category":"Unique","domain":"Monster","generationType":"Unique","group":"MonsterTrapVariation","tier":3,"level":1,"stats":[],"rolls":[{"stat":"trap_variation","min":1,"max":1}],"families":["TrapVariation"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

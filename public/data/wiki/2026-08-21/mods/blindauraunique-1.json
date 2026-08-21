@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"blindauraunique-1","name":"BlindAuraUnique__1","category":"Unique","domain":"Item","generationType":"Unique","group":"BlindAura","tier":1,"level":1,"stats":[],"rolls":[{"stat":"dummy_stat_display_nothing","min":1,"max":1}],"families":["NearbyEnemiesAreBlinded"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.824Z"}

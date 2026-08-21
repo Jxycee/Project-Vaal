@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"uniquestrength6","name":"UniqueStrength6","category":"Unique","domain":"Item","generationType":"Unique","group":"Strength","tier":47,"level":1,"stats":["+(40-50) to Strength"],"rolls":[{"stat":"additional_strength","min":40,"max":50}],"families":["Strength"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.815Z"}

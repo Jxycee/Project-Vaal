@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"uniquepercentagedexterity1","name":"UniquePercentageDexterity1","category":"Unique","domain":"Item","generationType":"Unique","group":"PercentageDexterity","tier":4,"level":1,"stats":["(5-15)% increased Dexterity"],"rolls":[{"stat":"dexterity_+%","min":5,"max":15}],"families":["PercentageDexterity"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.817Z"}

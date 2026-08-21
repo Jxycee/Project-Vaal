@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"chancetoshockuniquestaff8","name":"ChanceToShockUniqueStaff8","category":"Unique","domain":"Item","generationType":"Unique","group":"ChanceToShock","tier":10,"level":1,"stats":["15% chance to Shock"],"rolls":[{"stat":"base_chance_to_shock_%","min":15,"max":15}],"families":["ChanceToShock"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"mapdisablemissions","name":"MapDisableMissions","category":"Unique","domain":"6","generationType":"Unique","group":"MapDisableMissions","tier":1,"level":1,"stats":[],"rolls":[{"stat":"map_disable_missions","min":1,"max":1}],"families":["MapMissionMods"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

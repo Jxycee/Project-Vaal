@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"chestgemlowquality","name":"ChestGemLowQuality","category":"Unique","domain":"Chest","generationType":"Unique","group":"ChestItemQuality","tier":7,"level":1,"stats":[],"rolls":[{"stat":"chest_dropped_equipment_flasks_charms_have_quality_%","min":6,"max":9}],"families":["ChestItemQuality"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

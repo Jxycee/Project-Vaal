@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"additionalchainunique-1","name":"AdditionalChainUnique__1","category":"Unique","domain":"Item","generationType":"Unique","group":"AdditionalChain","tier":1,"level":1,"stats":["Skills Chain +2 times"],"rolls":[{"stat":"number_of_chains","min":2,"max":2}],"families":["Chain"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

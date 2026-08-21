@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"damageauraskeletonmonster","name":"DamageAuraSkeletonMonster","category":"Unique","domain":"Monster","generationType":"Unique","group":"AllDamage","tier":1,"level":1,"stats":["25% increased Damage"],"rolls":[{"stat":"damage_+%","min":25,"max":25}],"families":["AllDamage"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

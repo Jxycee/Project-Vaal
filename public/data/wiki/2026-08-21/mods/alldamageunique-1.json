@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"alldamageunique-1","name":"AllDamageUnique__1","category":"Unique","domain":"Atlas","generationType":"Unique","group":"AllDamage","tier":1,"level":1,"stats":["10% increased Damage"],"rolls":[{"stat":"damage_+%","min":10,"max":10}],"families":["AllDamage"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

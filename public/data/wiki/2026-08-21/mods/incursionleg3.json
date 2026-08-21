@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"incursionleg3","name":"IncursionLeg3","category":"Unique","domain":"Idol","generationType":"Unique","group":"IncreasedStunThreshold","tier":1,"level":0,"stats":["(15-25)% increased Stun Threshold"],"rolls":[{"stat":"stun_threshold_+%","min":15,"max":25}],"families":["IncreasedStunThreshold"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.832Z"}

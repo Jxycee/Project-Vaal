@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"monstercastspeedlegends1","name":"MonsterCastSpeedLegends1","category":"Unique","domain":"Monster","generationType":"Unique","group":"IncreasedCastSpeed","tier":3,"level":1,"stats":["40% reduced Cast Speed"],"rolls":[{"stat":"base_cast_speed_+%","min":-40,"max":-40}],"families":["IncreasedCastSpeed"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.819Z"}

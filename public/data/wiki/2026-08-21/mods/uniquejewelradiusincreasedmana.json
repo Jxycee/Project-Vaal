@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"uniquejewelradiusincreasedmana","name":"UniqueJewelRadiusIncreasedMana","category":"Unique","domain":"Atlas","generationType":"Unique","group":"IncreasedMana","tier":1,"level":1,"stats":["+8 to maximum Mana"],"rolls":[{"stat":"base_maximum_mana","min":8,"max":8}],"families":["IncreasedMana"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.815Z"}

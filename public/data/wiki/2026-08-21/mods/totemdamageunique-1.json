@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"totemdamageunique-1","name":"TotemDamageUnique__1_","category":"Unique","domain":"Item","generationType":"Unique","group":"TotemDamageForJewel","tier":1,"level":1,"stats":["40% increased Totem Damage"],"rolls":[{"stat":"totem_damage_+%","min":40,"max":40}],"families":["TotemDamage"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.823Z"}

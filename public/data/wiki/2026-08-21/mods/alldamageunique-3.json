@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"alldamageunique-3","name":"AllDamageUnique__3","category":"Unique","domain":"Item","generationType":"Unique","group":"AllDamageOnWeapon","tier":1,"level":1,"stats":["(250-300)% increased Global Damage"],"rolls":[{"stat":"on_weapon_global_damage_+%","min":250,"max":300}],"families":["AllDamage"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"spectrelifeunique-1","name":"SpectreLifeUnique__1___","category":"Unique","domain":"Item","generationType":"Unique","group":"SpectreLife","tier":1,"level":1,"stats":["+1000 to Spectre maximum Life"],"rolls":[{"stat":"spectre_maximum_life_+","min":1000,"max":1000}],"families":["SpectreLife"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.825Z"}

@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"mapcastawayextragold","name":"MapCastawayExtraGold","category":"Unique","domain":"6","generationType":"Unique","group":"MapUniqueGold","tier":1,"level":1,"stats":["(500-1000)% increased Gold found in this Area"],"rolls":[{"stat":"map_gold_+%","min":500,"max":1000}],"families":["Nothing"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.831Z"}

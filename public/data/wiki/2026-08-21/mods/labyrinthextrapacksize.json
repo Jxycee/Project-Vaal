@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"labyrinthextrapacksize","name":"LabyrinthExtraPackSize","category":"Unique","domain":"6","generationType":"Unique","group":"LabyrinthExtraPackSize","tier":1,"level":1,"stats":[],"rolls":[{"stat":"map_pack_size_+%","min":50,"max":50}],"families":["MapLargePacks"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.827Z"}

@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"cannotbechilledunique-1","name":"CannotBeChilledUnique__1","category":"Unique","domain":"Item","generationType":"Unique","group":"CannotBeChilled","tier":1,"level":1,"stats":["Cannot be Chilled"],"rolls":[{"stat":"base_cannot_be_chilled","min":100,"max":100}],"families":["CannotBeChilled"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.819Z"}

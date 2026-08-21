@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"stanceheistagilitystealthwalk","name":"StanceHeistAgilityStealthWalk","category":"Unique","domain":"Monster","generationType":"Unique","group":"StanceHeistMovementSpeed","tier":1,"level":1,"stats":[],"rolls":[{"stat":"stance_movement_speed_+%_final","min":-67,"max":-67}],"families":["Stance"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.820Z"}

@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"blightphasing","name":"BlightPhasing","category":"Unique","domain":"Monster","generationType":"Unique","group":"PhasingNoVisual","tier":1,"level":1,"stats":["Phasing"],"rolls":[{"stat":"phase_through_objects","min":1,"max":1},{"stat":"suppress_phasing_visual","min":1,"max":1}],"families":["Phasing"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.823Z"}

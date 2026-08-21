@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"chestrareornate2","name":"ChestRareOrnate2","category":"Unique","domain":"Chest","generationType":"Unique","group":"ChestIncreasedHiddenRarity","tier":13,"level":1,"stats":[],"rolls":[{"stat":"chest_hidden_item_rarity_+%","min":1500,"max":1500}],"families":["ChestBaseModsFromRarity"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

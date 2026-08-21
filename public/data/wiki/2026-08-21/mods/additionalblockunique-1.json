@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"additionalblockunique-1","name":"AdditionalBlockUnique__1","category":"Unique","domain":"Atlas","generationType":"Unique","group":"AdditionalBlock","tier":1,"level":1,"stats":["+(2-4)% to Block chance"],"rolls":[{"stat":"additional_block_%","min":2,"max":4}],"families":["AdditionalBlock"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

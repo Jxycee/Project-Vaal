@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"monsterrare8","name":"MonsterRare8","category":"Unique","domain":"Monster","generationType":"Unique","group":"MonsterMovementVelocity","tier":15,"level":1,"stats":["10% increased Movement Speed"],"rolls":[{"stat":"base_movement_velocity_+%","min":10,"max":10}],"families":["MovementVelocity"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.819Z"}

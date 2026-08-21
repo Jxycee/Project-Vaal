@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"monsterdaemondamage","name":"MonsterDaemonDamage","category":"Unique","domain":"Monster","generationType":"Unique","group":"MonsterDaemonDamage","tier":1,"level":1,"stats":[],"rolls":[{"stat":"active_skill_damage_+%_final","min":200,"max":200}],"families":["MonsterDamage"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.824Z"}

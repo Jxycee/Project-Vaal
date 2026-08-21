@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"cannotrecoverlife","name":"CannotRecoverLife","category":"Unique","domain":"Monster","generationType":"Unique","group":"CannotRecoverLife","tier":1,"level":1,"stats":[],"rolls":[{"stat":"cannot_recover_life","min":1,"max":1}],"families":["CannotRecoverLife"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.830Z"}

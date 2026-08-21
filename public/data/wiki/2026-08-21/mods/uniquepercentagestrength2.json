@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"uniquepercentagestrength2","name":"UniquePercentageStrength2","category":"Unique","domain":"Item","generationType":"Unique","group":"PercentageStrength","tier":5,"level":1,"stats":["(15-30)% increased Strength"],"rolls":[{"stat":"strength_+%","min":15,"max":30}],"families":["PercentageStrength"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.817Z"}

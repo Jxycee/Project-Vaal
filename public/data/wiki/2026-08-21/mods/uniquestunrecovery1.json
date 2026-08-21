@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"uniquestunrecovery1","name":"UniqueStunRecovery1","category":"Unique","domain":"Item","generationType":"Unique","group":"StunRecovery","tier":1,"level":1,"stats":["200% increased Stun Recovery"],"rolls":[{"stat":"base_stun_recovery_+%","min":200,"max":200}],"families":["StunRecovery"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.817Z"}

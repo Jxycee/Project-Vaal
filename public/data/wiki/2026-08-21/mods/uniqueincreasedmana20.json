@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"uniqueincreasedmana20","name":"UniqueIncreasedMana20","category":"Unique","domain":"Item","generationType":"Unique","group":"IncreasedMana","tier":15,"level":1,"stats":["+(100-150) to maximum Mana"],"rolls":[{"stat":"base_maximum_mana","min":100,"max":150}],"families":["IncreasedMana"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.816Z"}

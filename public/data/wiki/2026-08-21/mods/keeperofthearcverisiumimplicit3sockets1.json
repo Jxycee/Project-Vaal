@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"keeperofthearcverisiumimplicit3sockets1","name":"KeeperOfTheArcVerisiumImplicit3Sockets1","category":"Unique","domain":"Item","generationType":"Unique","group":"HasXSockets","tier":1,"level":1,"stats":["Has 3 Sockets"],"rolls":[{"stat":"local_has_X_sockets","min":3,"max":3}],"families":["Other"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.836Z"}

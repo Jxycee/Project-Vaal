@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"mappauseinstancestartup","name":"MapPauseInstanceStartup","category":"Unique","domain":"6","generationType":"Unique","group":"MapDebugPauseInstance","tier":1,"level":1,"stats":[],"rolls":[{"stat":"map_pause_instance_debug","min":5,"max":5}],"families":["MapDebugPauseInstance"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.823Z"}

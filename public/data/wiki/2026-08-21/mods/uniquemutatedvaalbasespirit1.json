@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"uniquemutatedvaalbasespirit1","name":"UniqueMutatedVaalBaseSpirit1","category":"Unique","domain":"Item","generationType":"Unique","group":"BaseSpirit","tier":20,"level":1,"stats":["+(40-50) to Spirit"],"rolls":[{"stat":"base_spirit_from_equipment","min":40,"max":50}],"families":["BaseSpirit"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.833Z"}

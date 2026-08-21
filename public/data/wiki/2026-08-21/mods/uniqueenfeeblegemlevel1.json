@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"uniqueenfeeblegemlevel1","name":"UniqueEnfeebleGemLevel1","category":"Unique","domain":"Item","generationType":"Unique","group":"EnfeebleGemLevel","tier":1,"level":1,"stats":["+4 to Level of Enfeeble Skills"],"rolls":[{"stat":"enfeeble_gem_level_+","min":4,"max":4}],"families":["CurseCastBonus"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.818Z"}

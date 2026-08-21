@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"monstercannotblockattacks","name":"MonsterCannotBlockAttacks___","category":"Unique","domain":"Monster","generationType":"Unique","group":"CannotBlockAttacks","tier":1,"level":1,"stats":["Cannot Block"],"rolls":[{"stat":"cannot_block","min":1,"max":1}],"families":["CannotBlockAttacks"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

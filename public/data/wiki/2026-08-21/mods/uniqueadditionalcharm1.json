@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"uniqueadditionalcharm1","name":"UniqueAdditionalCharm1","category":"Unique","domain":"Item","generationType":"Unique","group":"AdditionalCharm","tier":1,"level":1,"stats":["+2 Charm Slots"],"rolls":[{"stat":"local_additional_charm_slots","min":0,"max":2}],"families":["AdditionalCharm"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.816Z"}

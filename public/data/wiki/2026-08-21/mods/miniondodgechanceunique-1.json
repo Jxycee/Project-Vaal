@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"miniondodgechanceunique-1","name":"MinionDodgeChanceUnique__1","category":"Unique","domain":"Item","generationType":"Unique","group":"MinionSpellDodgeChance","tier":1,"level":1,"stats":[],"rolls":[{"stat":"minion_spell_suppression_chance_%","min":12,"max":15}],"families":["MinionDodgeChance"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.823Z"}

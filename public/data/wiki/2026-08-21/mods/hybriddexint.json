@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"hybriddexint","name":"HybridDexInt","category":"Unique","domain":"Item","generationType":"Unique","group":"HybridDexInt","tier":1,"level":20,"stats":["+(16-24) to Dexterity and Intelligence"],"rolls":[{"stat":"additional_dexterity_and_intelligence","min":16,"max":24}],"families":["HybridStat"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

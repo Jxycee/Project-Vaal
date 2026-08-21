@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"zombiesizeuniquesceptre3","name":"ZombieSizeUniqueSceptre3_","category":"Unique","domain":"Item","generationType":"Unique","group":"ZombieSize","tier":1,"level":1,"stats":["25% increased Raised Zombie Size"],"rolls":[{"stat":"zombie_scale_+%","min":25,"max":25}],"families":["ZombieSize"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.821Z"}

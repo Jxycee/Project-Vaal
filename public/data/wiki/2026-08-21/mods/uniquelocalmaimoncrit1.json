@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"uniquelocalmaimoncrit1","name":"UniqueLocalMaimOnCrit1","category":"Unique","domain":"Item","generationType":"Unique","group":"LocalMaimOnCrit","tier":1,"level":1,"stats":["Maim on Critical Hit"],"rolls":[{"stat":"local_always_maim_on_crit","min":1,"max":1}],"families":["LocalMaimOnHit"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.817Z"}

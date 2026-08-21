@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"monstertotemlifeboss","name":"MonsterTotemLifeBoss","category":"Unique","domain":"Monster","generationType":"Unique","group":"IncreasedTotemLife","tier":4,"level":1,"stats":["500% increased Totem Life"],"rolls":[{"stat":"totem_life_+%","min":500,"max":500}],"families":["IncreasedTotemLife"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"trapdurationunique-1","name":"TrapDurationUnique__1","category":"Unique","domain":"Atlas","generationType":"Unique","group":"TrapDuration","tier":1,"level":1,"stats":["10% reduced Trap Duration"],"rolls":[{"stat":"trap_duration_+%","min":-10,"max":-10}],"families":["TrapDuration"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

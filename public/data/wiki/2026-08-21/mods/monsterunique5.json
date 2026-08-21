@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"monsterunique5","name":"MonsterUnique5","category":"Unique","domain":"Monster","generationType":"Unique","group":"MonsterDamageFromRarity","tier":3,"level":1,"stats":[],"rolls":[{"stat":"monster_rarity_damage_+%_final","min":-35,"max":-35}],"families":["MonsterDamage"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.819Z"}

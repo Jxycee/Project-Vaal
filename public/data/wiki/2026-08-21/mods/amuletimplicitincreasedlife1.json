@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"amuletimplicitincreasedlife1","name":"AmuletImplicitIncreasedLife1","category":"Unique","domain":"Item","generationType":"Unique","group":"IncreasedLife","tier":66,"level":23,"stats":["+(30-40) to maximum Life"],"rolls":[{"stat":"base_maximum_life","min":30,"max":40}],"families":["IncreasedLife"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.814Z"}

@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"uniquedecimatingstrike1","name":"UniqueDecimatingStrike1","category":"Unique","domain":"Item","generationType":"Unique","group":"DecimatingStrike","tier":1,"level":1,"stats":["Decimating Strike"],"rolls":[{"stat":"decimating_strike","min":1,"max":1}],"families":["DecimatingStrike"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.817Z"}

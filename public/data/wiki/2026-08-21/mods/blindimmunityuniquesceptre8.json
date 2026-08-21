@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"blindimmunityuniquesceptre8","name":"BlindImmunityUniqueSceptre8","category":"Unique","domain":"Item","generationType":"Unique","group":"ImmunityToBlind","tier":2,"level":1,"stats":["Cannot be Blinded"],"rolls":[{"stat":"cannot_be_blinded","min":1,"max":1}],"families":["ImmunityToBlind"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.822Z"}

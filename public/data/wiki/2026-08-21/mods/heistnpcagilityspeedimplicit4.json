@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"heistnpcagilityspeedimplicit4","name":"HeistNPCAgilitySpeedImplicit4","category":"Unique","domain":"Heist Trinket","generationType":"Unique","group":"HeistNPCAgilitySpeed","tier":4,"level":1,"stats":[],"rolls":[{"stat":"heist_job_agility_speed_+%","min":13,"max":15}],"families":["HeistNPCJobSpeed"],"spawnWeights":[],"lastSynced":"2026-08-21T17:16:07.828Z"}
