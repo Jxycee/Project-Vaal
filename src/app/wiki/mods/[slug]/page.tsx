@@ -21,6 +21,8 @@ export default async function ModDetailPage({
   const mod = await loadDetail('mod', slug);
   if (!mod) notFound();
 
+  const spawnableOn = mod.spawnWeights.filter((w) => w.weight > 0);
+
   return (
     <article className="space-y-4">
       <header>
@@ -34,11 +36,11 @@ export default async function ModDetailPage({
           {mod.stats.map((stat) => <li key={stat}>{stat}</li>)}
         </ul>
       )}
-      {mod.spawnWeights.length > 0 && (
+      {spawnableOn.length > 0 && (
         <div className="border-t pt-3 text-sm">
           <p className="text-muted-foreground">Can roll on:</p>
           <ul className="flex flex-wrap gap-2 pt-1">
-            {mod.spawnWeights.filter((w) => w.weight > 0).map((w) => (
+            {spawnableOn.map((w) => (
               <li key={w.tag} className="rounded border bg-card px-2 py-0.5 text-xs text-muted-foreground">
                 {w.tag}
               </li>

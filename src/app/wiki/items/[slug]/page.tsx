@@ -59,7 +59,7 @@ export default async function ItemDetailPage({
           <li>Attack time: {(item.weapon.attackTime / 1000).toFixed(2)}s</li>
         </ul>
       )}
-      {item.flavourText && (
+      {item.flavourText && item.flavourText.length > 0 && (
         <p className="border-t pt-3 text-sm italic text-muted-foreground">
           {item.flavourText.join(' ')}
         </p>
