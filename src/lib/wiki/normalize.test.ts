@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { Item } from '@poe2-toolkit/item-extractor';
-import { slugify, normalizeItem, normalizeSkill, normalizeMod, toSearchEntry } from './normalize';
+import { slugify, normalizeItem, normalizeSkill, normalizeMod, toSearchEntry, stripBracketMarkup } from './normalize';
 
 const fixture = (name: string) =>
   JSON.parse(readFileSync(path.join(__dirname, '__fixtures__', name), 'utf8'));
@@ -22,6 +22,26 @@ describe('slugify', () => {
   });
   it('trims leading and trailing hyphens', () => {
     expect(slugify(' -Blink- ')).toBe('blink');
+  });
+});
+
+describe('stripBracketMarkup', () => {
+  it('keeps the display half of a [Key|Display] tag', () => {
+    expect(stripBracketMarkup('Improves the [Quality|quality] of a [MartialWeapon|martial weapon]'))
+      .toBe('Improves the quality of a martial weapon');
+  });
+
+  it('keeps the key itself for a bare [Key] tag with no pipe', () => {
+    expect(stripBracketMarkup('Creates a [Mirrored] copy of an item')).toBe('Creates a Mirrored copy of an item');
+  });
+
+  it('leaves plain text with no markup unchanged', () => {
+    expect(stripBracketMarkup('Reforges a Rare item with new modifiers')).toBe('Reforges a Rare item with new modifiers');
+  });
+
+  it('strips multiple tags in one string', () => {
+    expect(stripBracketMarkup('Upgrades a [Flask|flask] to a higher [ItemRarity|Magic] rarity'))
+      .toBe('Upgrades a flask to a higher Magic rarity');
   });
 });
 
@@ -63,6 +83,34 @@ describe('normalizeItem', () => {
     const b = normalizeItem(raw.name, raw, null, SYNCED_AT);
     expect(a.lastSynced).toBe(SYNCED_AT);
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
+  });
+
+  it('defaults description, directions, and stackSize to null when no currency row is given', () => {
+    const result = normalizeItem(raw.name, raw, null, SYNCED_AT);
+    expect(result.description).toBeNull();
+    expect(result.directions).toBeNull();
+    expect(result.stackSize).toBeNull();
+  });
+
+  it('carries currency text through, stripped of bracket markup, when a currency row is given', () => {
+    const result = normalizeItem(raw.name, raw, null, SYNCED_AT, {
+      stackSize: 20,
+      description: 'Improves the [Quality|quality] of a [MartialWeapon|martial weapon]',
+      directions: 'Right click this item then left click a martial weapon to apply it.',
+    });
+    expect(result.description).toBe('Improves the quality of a martial weapon');
+    expect(result.directions).toBe('Right click this item then left click a martial weapon to apply it.');
+    expect(result.stackSize).toBe(20);
+  });
+
+  it('passes stackSize through even when it is 1 (real value for non-stackable currency) rather than nulling it', () => {
+    const result = normalizeItem(raw.name, raw, null, SYNCED_AT, {
+      stackSize: 1,
+      description: null,
+      directions: 'Right click this item then left click on the imprinted original item to restore its modifiers.',
+    });
+    expect(result.stackSize).toBe(1);
+    expect(result.description).toBeNull();
   });
 
   // sample-item.json ("Bramblejack") is a unique with no base-type link, so

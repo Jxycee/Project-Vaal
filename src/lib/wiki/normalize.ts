@@ -23,9 +23,34 @@ import type {
 export function slugify(name: string): string {
   return name
     .toLowerCase()
-    .replace(/['’]/g, '')
+    .replace(/['\']/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
+}
+
+/**
+ * Strips PoE's inline `[Key]` / `[Key|Display]` markup from GGPK text.
+ * `CurrencyItems.Description`/`.Directions` carry this formatting; no
+ * @poe2-toolkit extractor renders it for us (unlike gem/mod stat text,
+ * which the toolkit already returns pre-formatted), since this table isn't
+ * one any extractor package reads. `[Key|Display]` keeps `Display`; a bare
+ * `[Key]` (no pipe) keeps `Key` itself, e.g. `[Mirrored]` -> `Mirrored`.
+ * Verified against a live decode: 409/1518 Description rows and 19/1518
+ * Directions rows contain this markup.
+ */
+export function stripBracketMarkup(text: string): string {
+  return text.replace(/\[([^\]|]+)(?:\|([^\]]+))?\]/g, (_match, key: string, display?: string) => display ?? key);
+}
+
+/**
+ * One item's joined `CurrencyItems` row, keyed by display name in
+ * scripts/sync-wiki.ts's own join (see that file's `joinCurrencyByName`) —
+ * this module only shapes it onto `WikiItemDetail`, it doesn't do the join.
+ */
+export interface CurrencyText {
+  stackSize: number;
+  description: string | null;
+  directions: string | null;
 }
 
 /**
@@ -47,6 +72,7 @@ export function normalizeItem(
   item: Item,
   iconUrl: string | null,
   lastSynced: string,
+  currency: CurrencyText | null = null,
 ): WikiItemDetail {
   return {
     kind: 'item',
@@ -69,6 +95,9 @@ export function normalizeItem(
     modDomain: item.modDomain,
     tags: item.tags,
     iconUrl,
+    description: currency?.description != null ? stripBracketMarkup(currency.description) : null,
+    directions: currency?.directions != null ? stripBracketMarkup(currency.directions) : null,
+    stackSize: currency?.stackSize ?? null,
     lastSynced,
   };
 }

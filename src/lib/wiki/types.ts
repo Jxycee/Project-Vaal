@@ -67,6 +67,9 @@ export interface WikiItemDetail extends WikiDetailBase {
   modDomain: string | null;
   tags: string[];
   iconUrl: string | null;
+  description: string | null;
+  directions: string | null;
+  stackSize: number | null;
 }
 
 export interface WikiSkillStatLine {
