@@ -525,13 +525,23 @@ async function syncSkills(lastSynced: string): Promise<number> {
  * the slim index every phone downloads, none of it searchable content. The
  * named remainder is the actual player-facing affix pool. Same reasoning and
  * shape as the "Coming Soon" gem filter above.
+ *
+ * Of those named mods, a further slice carries no rendered stat text at all
+ * (`mod.stats` empty) - a wiki page for one would show nothing but a name.
+ * Verified against a live decode: 1,173 of 6,439 named mods (18%), heavily
+ * concentrated in `Monster Affliction` (monster debuff *names* with no
+ * player-facing description - e.g. "Banishing Flame"), `Area`/`Chest`
+ * (100% empty - internal hazard/spawn tags), and empty-roll placeholder
+ * variants within `Heist Trinket`/`Heist NPC`'s real affix groups. Every
+ * domain still has real, populated mods surviving this filter (verified per-
+ * domain) - this drops specific empty entries, not whole domains.
  */
 async function syncMods(lastSynced: string): Promise<number> {
   const source = await createCdnSource({ patch: WIKI_PATCH_VERSION, cacheDir: path.join(EXTRACT_DIR, '.cache'), tablesDir: TABLES_DIR });
   const { data } = await extractMods(source);
   const usedSlugs = new Set<string>();
   const details: WikiModDetail[] = Object.entries(data)
-    .filter(([, mod]) => mod.name !== null && mod.name !== '')
+    .filter(([, mod]) => mod.name !== null && mod.name !== '' && mod.stats.length > 0)
     .map(([id, mod]) => {
       const slug = dedupeSlug(slugify(id), id, usedSlugs);
       return { ...normalizeMod(id, mod, lastSynced), slug };

@@ -360,6 +360,26 @@ export function normalizeSkill(
 }
 
 /**
+ * `Mod.domain` falls back to the raw 1-based `ModDomains` enum index
+ * (`@poe2-toolkit`'s own `enumName` helper) whenever the schema's own name
+ * table has an unnamed slot at that position - not a mapping gap in this
+ * project, an actual gap in `poe-tool-dev/dat-schema`'s `ModDomains` table.
+ * Verified against a live decode: raw domain `"6"` is exclusively `Map...`-
+ * grouped mods (Map Device modifiers - "50% increased Monster Damage" etc.,
+ * real player-facing map affixes), and `"8"` is exclusively `Sanctum...`-
+ * grouped mods (Sanctum room-effect modifiers). Both are real, populated,
+ * player-relevant domains; they just never got a name in the upstream enum.
+ */
+const MOD_DOMAIN_DISPLAY_NAME: Record<string, string> = {
+  '6': 'Map',
+  '8': 'Sanctum',
+};
+
+function modDomainDisplayName(domain: string): string {
+  return MOD_DOMAIN_DISPLAY_NAME[domain] ?? domain;
+}
+
+/**
  * Normalizes one mod-extractor {@link Mod} into a {@link WikiModDetail}.
  * `id` is the mod's `ModData` key (`Mods.Id`) - mods have no single display
  * name (`Mod.name` is `null` for implicits, uniques and many generated
@@ -372,7 +392,7 @@ export function normalizeMod(id: string, mod: Mod, lastSynced: string): WikiModD
     slug: slugify(id),
     name: mod.name ?? id,
     category: mod.generationType,
-    domain: mod.domain,
+    domain: modDomainDisplayName(mod.domain),
     generationType: mod.generationType,
     group: mod.group,
     tier: mod.tier,

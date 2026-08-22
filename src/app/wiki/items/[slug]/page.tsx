@@ -2,7 +2,6 @@ import { notFound } from 'next/navigation';
 import { loadDetail } from '@/lib/wiki/load';
 import { itemAccentColor } from '@/lib/wiki/accent';
 import { RarityIconBox } from '@/components/wiki/RarityIconBox';
-import type { DetailRow } from '@/components/wiki/DetailInfoPanel';
 import { WikiBreadcrumb } from '@/components/wiki/WikiBreadcrumb';
 import { TooltipDivider } from '@/components/wiki/TooltipDivider';
 import { mergeDirectionsWithConsoleButtons } from '@/components/wiki/ConsoleButtonBadge';
@@ -45,7 +44,7 @@ export default async function ItemDetailPage({
 
   const accent = itemAccentColor(item.rarity);
 
-  const statRows: DetailRow[] = [];
+  const statRows: { label: string; value: string | number }[] = [];
   if (item.dropLevel > 0) statRows.push({ label: 'Drop Level', value: item.dropLevel });
   if (item.stackSize != null && item.stackSize > 1) statRows.push({ label: 'Stack Size', value: item.stackSize });
   for (const [key, value] of Object.entries(item.requirements)) {

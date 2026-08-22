@@ -1,8 +1,8 @@
 import { notFound } from 'next/navigation';
 import { loadDetail } from '@/lib/wiki/load';
 import { MOD_ACCENT_COLOR } from '@/lib/wiki/accent';
-import { DetailInfoPanel, type DetailRow } from '@/components/wiki/DetailInfoPanel';
 import { WikiBreadcrumb } from '@/components/wiki/WikiBreadcrumb';
+import { TooltipDivider } from '@/components/wiki/TooltipDivider';
 
 export const dynamicParams = true;
 export const dynamic = 'force-dynamic';
@@ -42,44 +42,62 @@ export default async function ModDetailPage({
 
   const spawnableOn = mod.spawnWeights.filter((w) => w.weight > 0);
 
-  const rows: DetailRow[] = [
+  const statRows = [
     { label: 'Domain', value: mod.domain },
-    { label: 'Generation Type', value: mod.generationType },
     { label: 'Tier', value: mod.tier ?? '—' },
     { label: 'Item Level', value: mod.level },
-    { label: 'Families', value: mod.families.join(', ') },
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="flex min-h-[60vh] flex-col">
       <WikiBreadcrumb kind="mod" name={mod.name} />
-      <div className="grid gap-8 md:grid-cols-[1fr_280px] md:items-start">
-        <article className="space-y-4">
-          <header>
-            <h1 className="font-heading text-2xl" style={{ color: MOD_ACCENT_COLOR }}>{mod.name}</h1>
-            <p className="text-sm text-muted-foreground">
-              {mod.generationType} · Tier {mod.tier ?? '—'} · Item level {mod.level}
-            </p>
-          </header>
+      <div className="flex flex-1 items-center justify-center py-8">
+        {/* No icon for mods — unlike items/skills, a mod has no art of its own,
+            so the name carries the header alone instead of sitting beside an
+            icon box. */}
+        <article
+          className="relative mx-auto max-w-md space-y-3 rounded-lg border-2 bg-card px-6 py-5 text-center shadow-lg"
+          style={{
+            borderColor: MOD_ACCENT_COLOR,
+            backgroundImage: `radial-gradient(120% 100% at 50% 0%, color-mix(in oklab, ${MOD_ACCENT_COLOR} 8%, transparent), transparent 65%)`,
+          }}
+        >
+          <div className="mx-auto w-fit">
+            <h1 className="font-heading text-xl tracking-wide" style={{ color: MOD_ACCENT_COLOR }}>{mod.name}</h1>
+            <p className="text-xs text-muted-foreground">{mod.generationType}</p>
+          </div>
+
+          <TooltipDivider />
+          <ul className="space-y-0.5 text-xs text-muted-foreground">
+            {statRows.map((row) => (
+              <li key={row.label}>
+                {row.label}: <span className="font-medium text-foreground">{row.value}</span>
+              </li>
+            ))}
+          </ul>
+
           {mod.stats.length > 0 && (
-            <ul className="space-y-1 border-t border-border pt-3 text-sm">
-              {mod.stats.map((stat, i) => <li key={`${i}-${stat}`}>{stat}</li>)}
-            </ul>
+            <>
+              <TooltipDivider />
+              <ul className="space-y-1 text-sm font-medium">
+                {mod.stats.map((stat, i) => <li key={`${i}-${stat}`}>{stat}</li>)}
+              </ul>
+            </>
           )}
+
           {spawnableOn.length > 0 && (
-            <div className="border-t border-border pt-3 text-sm">
-              <p className="text-muted-foreground">Can roll on:</p>
-              <ul className="flex flex-wrap gap-2 pt-1">
+            <>
+              <TooltipDivider />
+              <ul className="flex flex-wrap justify-center gap-1.5">
                 {spawnableOn.map((w, i) => (
                   <li key={`${i}-${w.tag}`} className="rounded border border-border bg-card px-2 py-0.5 text-xs text-muted-foreground">
                     {w.tag}
                   </li>
                 ))}
               </ul>
-            </div>
+            </>
           )}
         </article>
-        <DetailInfoPanel title={mod.name} accentColor={MOD_ACCENT_COLOR} rows={rows} />
       </div>
     </div>
   );

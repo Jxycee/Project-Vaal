@@ -480,6 +480,16 @@ describe('normalizeMod', () => {
     expect(result.rolls).toEqual(raw.rolls);
     expect(result.spawnWeights).toEqual(raw.spawnWeights);
   });
+
+  it('passes a named domain through unchanged', () => {
+    const result = normalizeMod(raw.id, raw, SYNCED_AT);
+    expect(result.domain).toBe('Item');
+  });
+
+  it('relabels the unnamed ModDomains enum slots "6" and "8" to their real, verified meaning', () => {
+    expect(normalizeMod('x', { ...raw, domain: '6' }, SYNCED_AT).domain).toBe('Map');
+    expect(normalizeMod('x', { ...raw, domain: '8' }, SYNCED_AT).domain).toBe('Sanctum');
+  });
 });
 
 describe('toSearchEntry', () => {

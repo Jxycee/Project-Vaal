@@ -1,7 +1,7 @@
 /**
- * Per-kind accent colors for the wiki's detail-page tooltip styling
- * (RarityIconBox border, DetailInfoPanel header tint). Returns CSS
- * `var(...)` references into the tokens defined in globals.css, not
+ * Per-kind accent colors for the wiki's detail-page tooltip cards
+ * (RarityIconBox border, the card's own border/background tint). Returns
+ * CSS `var(...)` references into the tokens defined in globals.css, not
  * resolved color values, so they stay theme-aware (dark/light) for free.
  */
 export function itemAccentColor(rarity: 'normal' | 'unique'): string {
