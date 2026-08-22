@@ -144,6 +144,18 @@ export default function CampaignTracker({
           />
         ))}
       </div>
+
+      <p className="mt-2 border-t border-border pt-4 text-xs text-muted-foreground">
+        Quest reward data cross-checked against{' '}
+        <a
+          href="https://github.com/PathOfBuildingCommunity/PathOfBuilding-PoE2"
+          className="underline"
+        >
+          Path of Building Community&apos;s PathOfBuilding-PoE2
+        </a>{' '}
+        (MIT). Path of Exile 2 is a trademark of Grinding Gear Games. This project is not
+        affiliated with or endorsed by Grinding Gear Games.
+      </p>
     </div>
   );
 }

@@ -12,6 +12,7 @@ const REWARD_STYLE: Record<RewardKind, string> = {
   'passive-point': 'border-primary/30 bg-primary/10 text-primary',
   stat: 'border-border bg-background/60 text-muted-foreground',
   utility: 'border-border bg-accent/50 text-foreground/80',
+  choice: 'border-dashed border-secondary-foreground/30 bg-secondary/60 text-secondary-foreground',
   unknown: 'border-dashed border-muted-foreground/40 text-muted-foreground italic',
 };
 

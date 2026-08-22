@@ -1,13 +1,15 @@
-// Static campaign checkpoint data — Acts 1-4 plus the Interlude, one entry per
-// notable area/boss reward stop. Hand-authored from the current 0.5.x
-// campaign layout (not GGG's own export — there's no official machine-
-// readable source for this), so it needs a manual pass each time a patch
-// reshuffles acts. Ids are derived from area+boss text, not hand-typed, so
-// content edits can't silently break a user's saved progress by drifting
-// from whatever id a person typed by hand.
+// Static campaign checkpoint data — Acts 1-4, the Interlude, and the
+// Epilogue, one entry per notable area/boss reward stop. Hand-authored from
+// the current 0.5.x campaign layout (not GGG's own export — there's no
+// official machine-readable source for this), cross-checked against
+// PathOfBuildingCommunity/PathOfBuilding-PoE2's QuestRewards.lua (MIT) for
+// completeness, so it needs a manual pass each time a patch reshuffles acts.
+// Ids are derived from area+boss text, not hand-typed, so content edits
+// can't silently break a user's saved progress by drifting from whatever id
+// a person typed by hand.
 
 /** What kind of reward a checkpoint grants, purely for the reward chip's styling. */
-export type RewardKind = 'passive-point' | 'stat' | 'utility' | 'unknown'
+export type RewardKind = 'passive-point' | 'stat' | 'utility' | 'choice' | 'unknown'
 
 export interface CampaignReward {
   text: string
@@ -45,6 +47,10 @@ function point(text: string): CampaignReward {
 function utility(text: string): CampaignReward {
   return { text, kind: 'utility' }
 }
+/** One option of a "pick one" reward — the quest grants only one of these, not all. */
+function choice(text: string): CampaignReward {
+  return { text: `Choice: ${text}`, kind: 'choice' }
+}
 function unknown(text: string): CampaignReward {
   return { text, kind: 'unknown' }
 }
@@ -80,7 +86,11 @@ const RAW: RawAct[] = [
       {
         area: 'Valley of the Titans',
         boss: 'Medallion',
-        rewards: [stat('30% increased Charm Effect Duration'), stat('+1 Charm Slot')],
+        rewards: [
+          choice('30% increased Charm Charges Gained'),
+          choice('30% increased Charm Effect Duration'),
+          stat('+1 Charm Slot'),
+        ],
       },
       { area: 'Deshar', boss: 'Final Letter', rewards: [point('Grants Two Weapon Set Passive Skill Points')] },
       { area: 'The Spires of Deshar', boss: 'Sisters of Garukhan', rewards: [stat('+10% to Lightning Resistance')] },
@@ -91,7 +101,15 @@ const RAW: RawAct[] = [
     name: 'Act 3',
     areas: [
       { area: 'Jungle Ruins', boss: 'Mighty Silverfist', rewards: [point('Grants Two Weapon Set Passive Skill Points')] },
-      { area: 'The Venom Crypts', boss: 'Venom Draught', rewards: [stat('25% increased Stun Threshold')] },
+      {
+        area: 'The Venom Crypts',
+        boss: 'Venom Draught',
+        rewards: [
+          choice('25% increased Stun Threshold'),
+          choice('30% increased Elemental Ailment Threshold'),
+          choice('25% increased Mana Regeneration Rate'),
+        ],
+      },
       { area: "Jiquani's Machinarium", boss: 'Blackjaw, the Remnant', rewards: [stat('+10% to Fire Resistance')] },
       { area: 'The Azak Bog', boss: 'Ignagduk, the Bog Witch', rewards: [stat('+30 to Spirit')] },
       { area: 'The Molten Vault', boss: 'The Molten Vault', rewards: [utility('Reforging Bench')] },
@@ -107,14 +125,41 @@ const RAW: RawAct[] = [
         boss: 'Captain Hartlin',
         rewards: [point('Two Weapon Set Passive Skill Points'), utility('Skill Gem (Lv 13)'), utility('Delirium Drop')],
       },
+      { area: 'Isle Of Kin', boss: 'Blind Beast', rewards: [point('Two Weapon Set Passive Skill Points')] },
       { area: 'Whakapanu Island', boss: 'Great White One', rewards: [unknown('Not specified — 2 choices')] },
       { area: 'Eye of Hinekora', boss: "Navali's Rest", rewards: [stat('5% increased Maximum Mana')] },
       { area: 'Halls of the Dead', boss: 'Yama The White', rewards: [point('Grants Two Weapon Set Passive Skill Points')] },
-      { area: 'Halls of the Dead', boss: "Tawhoa's Test", rewards: [stat('+5% to Lightning Resistance')] },
-      { area: 'Abandoned Prison', boss: 'Goddess of Justice', rewards: [stat('30% increased Mana Recovery from Flasks')] },
-      { area: 'Halls of the Dead', boss: "Tasalio's Test", rewards: [stat('+5% to Cold Resistance')] },
-      { area: 'Halls of the Dead', boss: "Ngamahu's Test", rewards: [stat('+5% to Fire Resistance')] },
-      { area: 'Halls of the Dead', boss: 'Tribal Medicine', rewards: [stat('30% increased Armour, Evasion and Energy Shield')] },
+      { area: 'Trial Of The Ancestors', boss: 'Hinekora', rewards: [point('Two Weapon Set Passive Skill Points')] },
+      {
+        area: 'Halls of the Dead',
+        boss: "Tawhoa's Test",
+        rewards: [choice('+5 to Dexterity'), choice('+5% to Lightning Resistance')],
+      },
+      {
+        area: 'Abandoned Prison',
+        boss: 'Goddess of Justice',
+        rewards: [choice('30% increased Life Recovery from Flasks'), choice('30% increased Mana Recovery from Flasks')],
+      },
+      {
+        area: 'Halls of the Dead',
+        boss: "Tasalio's Test",
+        rewards: [choice('+5 to Intelligence'), choice('+5% to Cold Resistance')],
+      },
+      {
+        area: 'Halls of the Dead',
+        boss: "Ngamahu's Test",
+        rewards: [choice('+5 to Strength'), choice('+5% to Fire Resistance')],
+      },
+      {
+        area: 'Halls of the Dead',
+        boss: 'Tribal Medicine',
+        rewards: [
+          choice('30% increased Armour, Evasion and Energy Shield'),
+          choice(
+            '+15% of Armour also applies to Elemental Damage; Gain Deflection Rating equal to 12% of Evasion Rating; 12% faster start of Energy Shield Recharge',
+          ),
+        ],
+      },
     ],
   },
   {
@@ -124,9 +169,30 @@ const RAW: RawAct[] = [
       { area: 'Wolvenhold', boss: 'Oswin, the Dread Warden', rewards: [point('Grants Two Weapon Set Passive Skill Points')] },
       { area: 'The Khari Crossing', boss: 'Akthi and Anundr', rewards: [point('Two Weapon Set Passive Skill Points')] },
       { area: 'The Khari Crossing', boss: 'Molten Shrine', rewards: [stat('5% increased Maximum Life')] },
-      { area: 'Qimah', boss: "Tabana's Pillar", rewards: [stat('15% increased Armour, Evasion and Energy Shield')] },
+      {
+        area: 'Qimah',
+        boss: "Tabana's Pillar",
+        rewards: [
+          choice('+5% to all Elemental Resistances'),
+          choice('3% increased Movement Speed'),
+          choice('15% increased Global Armour, Evasion and Energy Shield'),
+          choice('20% increased Presence Area Of Effect'),
+          choice('12% increased Cooldown Recovery Rate'),
+          choice('+5 to all Attributes'),
+          choice(
+            '5% increased Experience Gain; -5% to all Elemental Resistances; 3% reduced Movement Speed; 15% reduced Global Armour, Evasion and Energy Shield; 20% reduced Presence Area Of Effect; 12% reduced Cooldown Recovery Rate; 5% reduced Attributes',
+          ),
+        ],
+      },
       { area: 'Kriar Village', boss: 'Lythara, the Wayward Spear', rewards: [stat('+40 to Spirit')] },
       { area: 'Howling Caves', boss: 'The Abominable Yeti', rewards: [point('Grants Two Weapon Set Passive Skill Points')] },
+    ],
+  },
+  {
+    id: 'epilogue',
+    name: 'Epilogue',
+    areas: [
+      { area: 'Kingsmarch', boss: 'Siege Of Oriath', rewards: [point('Two Weapon Set Passive Skill Points')] },
     ],
   },
 ]
