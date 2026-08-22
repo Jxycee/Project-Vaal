@@ -23,6 +23,9 @@ describe('slugify', () => {
   it('trims leading and trailing hyphens', () => {
     expect(slugify(' -Blink- ')).toBe('blink');
   });
+  it('strips a curly (typographic) apostrophe, not just a straight one', () => {
+    expect(slugify('Kaom\u2019s Heart')).toBe('kaoms-heart');
+  });
 });
 
 describe('stripBracketMarkup', () => {
