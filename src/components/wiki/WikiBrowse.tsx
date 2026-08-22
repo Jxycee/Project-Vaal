@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { WikiSearch } from './WikiSearch';
+import { groupByCategory } from '@/lib/wiki/categoryGroups';
+import { CategorySidebar } from './CategorySidebar';
 import { fetchWikiIndex, WikiSessionExpiredError } from '@/lib/wiki/fetchIndex';
 import type { WikiEntryKind, WikiSearchEntry } from '@/lib/wiki/types';
 
@@ -40,6 +42,11 @@ export function WikiBrowse({
 }) {
   const router = useRouter();
   const [state, setState] = useState<LoadState>({ status: 'loading' });
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const groups = useMemo(
+    () => groupByCategory(state.status === 'ready' ? state.entries : []),
+    [state]
+  );
   const entityLabel = ENTITY_LABEL[kind];
 
   useEffect(() => {
@@ -88,5 +95,22 @@ export function WikiBrowse({
     );
   }
 
-  return <WikiSearch entries={state.entries} basePath={basePath} />;
+  const visibleEntries = selectedCategory
+    ? state.entries.filter((e) => e.category === selectedCategory)
+    : state.entries;
+
+  return (
+    <div className="flex flex-col gap-6 md:flex-row md:items-start">
+      <CategorySidebar
+        groups={groups}
+        total={state.entries.length}
+        selected={selectedCategory}
+        onSelect={setSelectedCategory}
+        kindLabel={entityLabel}
+      />
+      <div className="min-w-0 flex-1">
+        <WikiSearch entries={visibleEntries} basePath={basePath} />
+      </div>
+    </div>
+  );
 }
