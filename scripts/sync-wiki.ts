@@ -113,7 +113,8 @@ export function joinCurrencyByName(tablesDir: string): Map<string, CurrencyText>
   for (const row of currencyRows) {
     const name = nameByIndex.get(row.BaseItemType);
     // First row wins on a name collision — same convention `extractItems()`
-    // itself uses for ItemData (see normalize.ts's module docstring).
+    // itself uses for ItemData (verified in @poe2-toolkit/item-extractor's
+    // own buildItems.js: "First displayable base seen for a name wins").
     if (name && !result.has(name)) {
       result.set(name, { stackSize: row.StackSize, description: row.Description, directions: row.Directions });
     }
