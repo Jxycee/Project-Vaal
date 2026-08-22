@@ -14,7 +14,10 @@
 // (Oswin, then Azmadi, then Zolin and Zelina); the subtitle names all
 // three but the color still follows Zolin and Zelina, the one that caps
 // the section. Epilogue has no tracked boss fight at all, so it stays on
-// the app's own primary gold rather than an invented color.
+// the app's own primary gold rather than an invented color. Every base is
+// the same hue as its own accent, just darker/less saturated (Act 2's
+// `base` originally used Jamanra's sandy tan, which didn't read as
+// related to his violet-lightning accent at all — now matches it).
 export interface ActTheme {
   boss: string
   base: string
@@ -23,7 +26,7 @@ export interface ActTheme {
 
 export const ACT_THEME: Record<string, ActTheme> = {
   act1: { boss: 'Count Geonor', base: '#3d5468', accent: '#bfe3f5' },
-  act2: { boss: 'Jamanra, the Abomination', base: '#7a5a34', accent: '#c7a9ff' },
+  act2: { boss: 'Jamanra, the Abomination', base: '#382c4e', accent: '#c7a9ff' },
   act3: { boss: 'Doryani, Royal Thaumaturge', base: '#163b2a', accent: '#5fdd9e' },
   act4: { boss: 'Tavakai, the Chieftain', base: '#7a4a30', accent: '#ff9a5c' },
   interlude: { boss: 'Oswin, Azmadi, Zolin & Zelina', base: '#3a1015', accent: '#ef6b82' },
