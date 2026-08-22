@@ -51,9 +51,6 @@ function utility(text: string): CampaignReward {
 function choice(text: string): CampaignReward {
   return { text: `Choice: ${text}`, kind: 'choice' }
 }
-function unknown(text: string): CampaignReward {
-  return { text, kind: 'unknown' }
-}
 
 interface RawArea {
   area: string
@@ -126,7 +123,16 @@ const RAW: RawAct[] = [
         rewards: [point('Two Weapon Set Passive Skill Points'), utility('Skill Gem (Lv 13)'), utility('Delirium Drop')],
       },
       { area: 'Isle Of Kin', boss: 'Blind Beast', rewards: [point('Two Weapon Set Passive Skill Points')] },
-      { area: 'Whakapanu Island', boss: 'Great White One', rewards: [unknown('Not specified — 2 choices')] },
+      {
+        area: 'Whakapanu Island',
+        boss: 'Great White One',
+        rewards: [
+          choice("Kaom's Lesson — 30% increased Armour, Evasion and Energy Shield"),
+          choice(
+            "Rakiata's Lesson — +15% of Armour also applies to Elemental Damage; Gain Deflection Rating equal to 12% of Evasion Rating; 12% faster start of Energy Shield Recharge",
+          ),
+        ],
+      },
       { area: 'Eye of Hinekora', boss: "Navali's Rest", rewards: [stat('5% increased Maximum Mana')] },
       { area: 'Halls of the Dead', boss: 'Yama The White', rewards: [point('Grants Two Weapon Set Passive Skill Points')] },
       { area: 'Trial Of The Ancestors', boss: 'Hinekora', rewards: [point('Two Weapon Set Passive Skill Points')] },
@@ -149,16 +155,6 @@ const RAW: RawAct[] = [
         area: 'Halls of the Dead',
         boss: "Ngamahu's Test",
         rewards: [choice('+5 to Strength'), choice('+5% to Fire Resistance')],
-      },
-      {
-        area: 'Halls of the Dead',
-        boss: 'Tribal Medicine',
-        rewards: [
-          choice('30% increased Armour, Evasion and Energy Shield'),
-          choice(
-            '+15% of Armour also applies to Elemental Damage; Gain Deflection Rating equal to 12% of Evasion Rating; 12% faster start of Energy Shield Recharge',
-          ),
-        ],
       },
     ],
   },

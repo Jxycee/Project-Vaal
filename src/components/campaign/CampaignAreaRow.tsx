@@ -66,7 +66,7 @@ export default function CampaignAreaRow({
             <span
               key={i}
               className={cn(
-                'rounded-full border px-2 py-0.5 text-[0.7rem] leading-tight font-medium',
+                'rounded-lg border px-2 py-1 text-[0.7rem] leading-snug font-medium',
                 REWARD_STYLE[r.kind],
               )}
             >
