@@ -79,88 +79,90 @@ export default async function ItemDetailPage({
   const subtitleClass = item.uniqueMods?.baseType ?? item.itemClass ?? item.category;
 
   return (
-    <div className="space-y-4">
+    <div className="flex min-h-[60vh] flex-col">
       <WikiBreadcrumb kind="item" name={item.name} />
-      <article
-        className="relative mx-auto max-w-md space-y-3 rounded-lg border-2 bg-card px-6 py-5 text-center shadow-lg"
-        style={{
-          borderColor: accent,
-          backgroundImage: `radial-gradient(120% 100% at 50% 0%, color-mix(in oklab, ${accent} 8%, transparent), transparent 65%)`,
-        }}
-      >
-        <RarityIconBox iconUrl={item.iconUrl} accentColor={accent} size={item.rarity === 'unique' ? 110 : 64} />
-        <div className="mx-auto -mt-2 w-fit">
-          <h1
-            className="font-heading text-xl tracking-wide"
-            style={item.rarity === 'unique' ? { color: accent } : undefined}
-          >
-            {item.name}
-          </h1>
-          <p className="text-xs text-muted-foreground">
-            {subtitleClass}{item.rarity === 'unique' ? ' — Unique' : ''}
-          </p>
-        </div>
+      <div className="flex flex-1 items-center justify-center py-8">
+        <article
+          className="relative mx-auto max-w-md space-y-3 rounded-lg border-2 bg-card px-6 py-5 text-center shadow-lg"
+          style={{
+            borderColor: accent,
+            backgroundImage: `radial-gradient(120% 100% at 50% 0%, color-mix(in oklab, ${accent} 8%, transparent), transparent 65%)`,
+          }}
+        >
+          <RarityIconBox iconUrl={item.iconUrl} accentColor={accent} size={item.rarity === 'unique' ? 110 : 64} />
+          <div className="mx-auto -mt-2 w-fit">
+            <h1
+              className="font-heading text-xl tracking-wide"
+              style={item.rarity === 'unique' ? { color: accent } : undefined}
+            >
+              {item.name}
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              {subtitleClass}{item.rarity === 'unique' ? ' — Unique' : ''}
+            </p>
+          </div>
 
-        {(modLines.length > 0 || statRows.length > 0 || hasFlavour) && (
-          <>
-            <TooltipDivider />
-            {modLines.length > 0 && (
-              <ul className="space-y-1 text-sm font-medium">
-                {modLines.map((stat, i) => <li key={`${i}-${stat}`}>{stat}</li>)}
-              </ul>
-            )}
-            {statRows.length > 0 && (
-              <ul className="space-y-0.5 text-xs text-muted-foreground">
-                {statRows.map((row) => (
-                  <li key={row.label}>
-                    {row.label}: <span className="font-medium text-foreground">{row.value}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {item.flavourText && item.flavourText.length > 0 && (
-              <p className="text-sm italic text-muted-foreground">{item.flavourText.join(' ')}</p>
-            )}
-          </>
-        )}
+          {(modLines.length > 0 || statRows.length > 0 || hasFlavour) && (
+            <>
+              <TooltipDivider />
+              {modLines.length > 0 && (
+                <ul className="space-y-1 text-sm font-medium">
+                  {modLines.map((stat, i) => <li key={`${i}-${stat}`}>{stat}</li>)}
+                </ul>
+              )}
+              {statRows.length > 0 && (
+                <ul className="space-y-0.5 text-xs text-muted-foreground">
+                  {statRows.map((row) => (
+                    <li key={row.label}>
+                      {row.label}: <span className="font-medium text-foreground">{row.value}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {item.flavourText && item.flavourText.length > 0 && (
+                <p className="text-sm italic text-muted-foreground">{item.flavourText.join(' ')}</p>
+              )}
+            </>
+          )}
 
-        {hasUseText && (
-          <>
-            <TooltipDivider />
-            {item.description && (
-              <p className="text-sm whitespace-pre-line">{item.description}</p>
-            )}
-            {item.directions && item.consoleButtons && (
-              <p className="text-sm italic text-muted-foreground whitespace-pre-line">
-                {mergeDirectionsWithConsoleButtons(item.directions, item.consoleButtons)}
-              </p>
-            )}
-            {item.directions && !item.consoleButtons && (
-              <p className="text-sm italic text-muted-foreground whitespace-pre-line">{item.directions}</p>
-            )}
-            {item.consoleDirections && !item.consoleButtons && (
-              <p className="text-sm italic text-muted-foreground whitespace-pre-line">
-                <span className="not-italic font-medium text-foreground">Console: </span>
-                {item.consoleDirections}
-              </p>
-            )}
-          </>
-        )}
+          {hasUseText && (
+            <>
+              <TooltipDivider />
+              {item.description && (
+                <p className="text-sm whitespace-pre-line">{item.description}</p>
+              )}
+              {item.directions && item.consoleButtons && (
+                <p className="text-sm italic text-muted-foreground whitespace-pre-line">
+                  {mergeDirectionsWithConsoleButtons(item.directions, item.consoleButtons)}
+                </p>
+              )}
+              {item.directions && !item.consoleButtons && (
+                <p className="text-sm italic text-muted-foreground whitespace-pre-line">{item.directions}</p>
+              )}
+              {item.consoleDirections && !item.consoleButtons && (
+                <p className="text-sm italic text-muted-foreground whitespace-pre-line">
+                  <span className="not-italic font-medium text-foreground">Console: </span>
+                  {item.consoleDirections}
+                </p>
+              )}
+            </>
+          )}
 
-        {item.uniqueMods?.dropSource && (
-          <>
-            <TooltipDivider />
-            <p className="text-sm font-bold">{item.uniqueMods.dropSource}</p>
-          </>
-        )}
+          {item.uniqueMods?.dropSource && (
+            <>
+              <TooltipDivider />
+              <p className="text-sm font-bold">{item.uniqueMods.dropSource}</p>
+            </>
+          )}
 
-        {item.rarity === 'unique' && !item.uniqueMods && (
-          <p className="border-t border-border pt-3 text-[11px] text-muted-foreground">
-            This item&apos;s actual modifier values aren&apos;t available yet — see the wiki design doc&apos;s
-            known limitation on unique items.
-          </p>
-        )}
-      </article>
+          {item.rarity === 'unique' && !item.uniqueMods && (
+            <p className="border-t border-border pt-3 text-[11px] text-muted-foreground">
+              This item&apos;s actual modifier values aren&apos;t available yet — see the wiki design doc&apos;s
+              known limitation on unique items.
+            </p>
+          )}
+        </article>
+      </div>
     </div>
   );
 }

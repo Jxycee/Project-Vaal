@@ -17,7 +17,7 @@ export function RarityIconBox({
   const imageSize = size - ICON_PADDING;
   return (
     <div
-      className="grid shrink-0 place-items-center overflow-hidden rounded-lg border-2 bg-card"
+      className="mx-auto grid shrink-0 place-items-center overflow-hidden rounded-lg border-2 bg-card"
       style={{ borderColor: accentColor, width: size, height: size }}
     >
       <Image
