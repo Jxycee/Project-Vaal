@@ -1,6 +1,10 @@
 import Image from 'next/image';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { loadDetail } from '@/lib/wiki/load';
+import { itemAccentColor } from '@/lib/wiki/accent';
+import { RarityIconBox } from '@/components/wiki/RarityIconBox';
+import { DetailInfoPanel } from '@/components/wiki/DetailInfoPanel';
 
 export const dynamicParams = true;
 export const dynamic = 'force-dynamic';
@@ -38,75 +42,86 @@ export default async function ItemDetailPage({
   const item = await loadDetail('item', slug);
   if (!item) notFound();
 
-  const reqs = Object.entries(item.requirements).filter(([, v]) => v > 0);
-  const meta: [string, number][] = [];
-  if (item.dropLevel > 0) meta.push(['Drop Level', item.dropLevel]);
-  if (item.stackSize != null && item.stackSize > 1) meta.push(['Stack Size', item.stackSize]);
+  const accent = itemAccentColor(item.rarity);
+
+  const rows: { label: string; value: string | number }[] = [
+    { label: 'Item Class', value: item.itemClass ?? item.category },
+    { label: 'Rarity', value: item.rarity === 'unique' ? 'Unique' : 'Normal' },
+  ];
+  if (item.dropLevel > 0) rows.push({ label: 'Drop Level', value: item.dropLevel });
+  if (item.stackSize != null && item.stackSize > 1) rows.push({ label: 'Stack Size', value: item.stackSize });
+  for (const [key, value] of Object.entries(item.requirements)) {
+    if (value > 0) rows.push({ label: cap(key), value });
+  }
+  if (item.armour) {
+    for (const [key, value] of Object.entries(item.armour)) {
+      if (value > 0) rows.push({ label: cap(key), value });
+    }
+  }
+  if (item.weapon) {
+    rows.push({ label: 'Damage', value: `${item.weapon.damageMin}-${item.weapon.damageMax}` });
+    rows.push({ label: 'Attack Time', value: `${(item.weapon.attackTime / 1000).toFixed(2)}s` });
+  }
 
   return (
-    <article className="space-y-4">
-      <header className="flex items-start gap-3">
-        {item.iconUrl && (
-          <Image src={item.iconUrl} alt="" width={48} height={48} className="rounded border bg-card" unoptimized />
-        )}
-        <div>
-          <h1 className="font-heading text-2xl text-primary">{item.name}</h1>
-          <p className="text-sm text-muted-foreground">
-            {item.itemClass ?? item.category}{item.rarity === 'unique' ? ' — Unique' : ''}
+    <div className="space-y-4">
+      <nav className="flex items-center gap-1.5 text-xs text-muted-foreground" aria-label="Breadcrumb">
+        <Link href="/wiki" className="hover:text-primary">Wiki</Link>
+        <span>/</span>
+        <Link href="/wiki/items" className="hover:text-primary">Items</Link>
+        <span>/</span>
+        <span className="text-foreground">{item.name}</span>
+      </nav>
+      <div className="grid gap-8 md:grid-cols-[1fr_280px] md:items-start">
+        <article className="space-y-4">
+          <header className="flex items-center gap-4">
+            <RarityIconBox iconUrl={item.iconUrl} alt="" accentColor={accent} />
+            <div>
+              <h1
+                className="font-heading text-2xl"
+                style={item.rarity === 'unique' ? { color: accent } : undefined}
+              >
+                {item.name}
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                {item.itemClass ?? item.category}{item.rarity === 'unique' ? ' — Unique' : ''}
+              </p>
+            </div>
+          </header>
+          <Image
+            src="/ornaments/divider.png"
+            alt=""
+            width={1096}
+            height={182}
+            className="h-auto w-32 opacity-60"
+          />
+          {item.description && (
+            <p className="text-sm whitespace-pre-line">{item.description}</p>
+          )}
+          {item.directions && (
+            <p className="text-sm italic text-muted-foreground whitespace-pre-line">{item.directions}</p>
+          )}
+          {item.flavourText && item.flavourText.length > 0 && (
+            <p className="border-t border-border pt-3 text-sm italic text-muted-foreground">
+              {item.flavourText.join(' ')}
+            </p>
+          )}
+          {item.rarity === 'unique' && (
+            <p className="border-t border-border pt-3 text-xs text-muted-foreground">
+              This item&apos;s actual modifier values aren&apos;t available yet — see the wiki design doc&apos;s
+              known limitation on unique items.
+            </p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Extracted from Path of Exile 2&apos;s game files via poe2-toolkit (MIT).
           </p>
-        </div>
-      </header>
-      {meta.length > 0 && (
-        <ul className="space-y-1 text-sm">
-          {meta.map(([label, value]) => (
-            <li key={label} className="text-muted-foreground">
-              {label}: {value}
-            </li>
-          ))}
-        </ul>
-      )}
-      {reqs.length > 0 && (
-        <ul className="space-y-1 text-sm">
-          {reqs.map(([key, value]) => (
-            <li key={key} className="text-muted-foreground">
-              <span className="capitalize">{key}</span>: {value}
-            </li>
-          ))}
-        </ul>
-      )}
-      {item.armour && (
-        <ul className="space-y-1 text-sm">
-          {Object.entries(item.armour).filter(([, v]) => v > 0).map(([key, value]) => (
-            <li key={key}><span className="capitalize">{key}</span>: {value}</li>
-          ))}
-        </ul>
-      )}
-      {item.weapon && (
-        <ul className="space-y-1 text-sm">
-          <li>Damage: {item.weapon.damageMin}-{item.weapon.damageMax}</li>
-          <li>Attack time: {(item.weapon.attackTime / 1000).toFixed(2)}s</li>
-        </ul>
-      )}
-      {item.description && (
-        <p className="text-sm whitespace-pre-line">{item.description}</p>
-      )}
-      {item.directions && (
-        <p className="text-sm italic text-muted-foreground whitespace-pre-line">{item.directions}</p>
-      )}
-      {item.flavourText && item.flavourText.length > 0 && (
-        <p className="border-t pt-3 text-sm italic text-muted-foreground">
-          {item.flavourText.join(' ')}
-        </p>
-      )}
-      {item.rarity === 'unique' && (
-        <p className="border-t pt-3 text-xs text-muted-foreground">
-          This item&apos;s actual modifier values aren&apos;t available yet — see the wiki design doc&apos;s
-          known limitation on unique items.
-        </p>
-      )}
-      <p className="text-xs text-muted-foreground">
-        Extracted from Path of Exile 2&apos;s game files via poe2-toolkit (MIT).
-      </p>
-    </article>
+        </article>
+        <DetailInfoPanel title={item.name} accentColor={accent} rows={rows} />
+      </div>
+    </div>
   );
+}
+
+function cap(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
