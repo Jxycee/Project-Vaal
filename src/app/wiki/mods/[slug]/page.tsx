@@ -61,19 +61,19 @@ export default async function ModDetailPage({
             so the name carries the header alone instead of sitting beside an
             icon box. */}
         <article
-          className="relative mx-auto flex w-full max-w-lg min-h-[520px] flex-col justify-center space-y-3 rounded-lg border-2 bg-card px-6 py-5 text-center shadow-lg"
+          className="relative mx-auto flex w-full max-w-lg min-h-[520px] flex-col justify-center space-y-4 rounded-lg border-2 bg-card px-8 py-6 text-center shadow-lg"
           style={{
             borderColor: MOD_ACCENT_COLOR,
             backgroundImage: `radial-gradient(120% 100% at 50% 0%, color-mix(in oklab, ${MOD_ACCENT_COLOR} 8%, transparent), transparent 65%)`,
           }}
         >
           <div className="mx-auto w-fit">
-            <h1 className="font-heading text-xl tracking-wide" style={{ color: MOD_ACCENT_COLOR }}>{mod.name}</h1>
-            <p className="text-xs text-muted-foreground">{mod.generationType}</p>
+            <h1 className="font-heading text-3xl tracking-wide" style={{ color: MOD_ACCENT_COLOR }}>{mod.name}</h1>
+            <p className="text-sm text-muted-foreground">{mod.generationType}</p>
           </div>
 
           <TooltipDivider />
-          <ul className="space-y-0.5 text-xs text-muted-foreground">
+          <ul className="space-y-1 text-sm text-muted-foreground">
             {statRows.map((row) => (
               <li key={row.label}>
                 {row.label}: <span className="font-medium text-foreground">{row.value}</span>
@@ -84,7 +84,7 @@ export default async function ModDetailPage({
           {mod.stats.length > 0 && (
             <>
               <TooltipDivider />
-              <ul className="space-y-1 text-sm font-medium">
+              <ul className="space-y-1.5 text-lg font-medium">
                 {mod.stats.map((stat, i) => <li key={`${i}-${stat}`}>{linkMentions(stat, mentions, self)}</li>)}
               </ul>
             </>
@@ -95,7 +95,7 @@ export default async function ModDetailPage({
               <TooltipDivider />
               <ul className="flex flex-wrap justify-center gap-1.5">
                 {spawnableOn.map((w, i) => (
-                  <li key={`${i}-${w.tag}`} className="rounded border border-border bg-card px-2 py-0.5 text-xs text-muted-foreground">
+                  <li key={`${i}-${w.tag}`} className="rounded border border-border bg-card px-2.5 py-1 text-sm text-muted-foreground">
                     {w.tag}
                   </li>
                 ))}

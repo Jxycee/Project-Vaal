@@ -25,21 +25,27 @@ function escapeRegExp(s: string): string {
  * gem's own drop-item entry shares its name, e.g. "Ice Nova", and the skill
  * page is the more useful landing spot).
  *
- * Mod names are only included when they're 2+ words. Verified against a live
- * decode: single-word mod names collide constantly with the game's own
- * status-effect/lore vocabulary in unrelated prose - e.g. the mod "Vaal"
- * against flavour text's "Atziri, Queen of the Vaal", or the mod "Bleeding"
- * against "Bleeding you inflict deals Damage faster" (describing the
- * mechanic, not naming that mod). Measured 2,055 false-positive-shaped
- * matches across real prose fields with no such guard. Item/skill names
- * don't share this problem - they're not single common English words - and
- * are always included regardless of word count.
+ * A name is only included when it's 2+ words, for every kind. Verified
+ * against a live decode: single-word names collide constantly with the
+ * game's own status-effect/mechanic vocabulary in unrelated prose - not
+ * just mods (the mod "Vaal" against flavour text's "Atziri, Queen of the
+ * Vaal", the mod "Bleeding" against "Bleeding you inflict deals Damage
+ * faster") but skills and items too, since a skill/support gem is very
+ * often named directly after the ailment/mechanic it applies - e.g. the
+ * support gem "Maim" linked from a mod's "chance to Maim on Hit" line,
+ * which is naming the ailment, not that specific gem (real user report:
+ * every single-word skill/item mention checked was this same wrong-link
+ * shape). 190/1,118 skill names and 341/4,975 item names are single words -
+ * this isn't a small edge case for either kind. Measured 2,055 false-
+ * positive-shaped matches across real prose fields for mods alone with no
+ * guard; skills/items share the exact same failure mode, just previously
+ * un-measured.
  */
 export function buildMentionIndex(entryGroups: WikiSearchEntry[][]): MentionIndex {
   const targets = new Map<string, MentionTarget>();
   for (const entries of entryGroups) {
     for (const e of entries) {
-      if (e.kind === 'mod' && !e.name.includes(' ')) continue;
+      if (!e.name.includes(' ')) continue;
       if (!targets.has(e.name)) targets.set(e.name, { kind: e.kind, slug: e.slug });
     }
   }

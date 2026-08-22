@@ -7,25 +7,26 @@ const entry = (over: Partial<WikiSearchEntry>): WikiSearchEntry => ({
 });
 
 describe('buildMentionIndex', () => {
-  it('includes item and skill names regardless of word count', () => {
+  it('excludes single-word names for every kind, keeps multi-word ones', () => {
     const { targets } = buildMentionIndex([
-      [entry({ name: 'Spark', kind: 'skill', slug: 'spark' })],
-      [entry({ name: 'Chaos Orb', kind: 'item', slug: 'chaos-orb' })],
-    ]);
-    expect(targets.get('Spark')).toEqual({ kind: 'skill', slug: 'spark' });
-    expect(targets.get('Chaos Orb')).toEqual({ kind: 'item', slug: 'chaos-orb' });
-  });
-
-  it('excludes single-word mod names but keeps multi-word ones', () => {
-    const { targets } = buildMentionIndex([
-      [],
-      [],
+      [entry({ name: 'Maim', kind: 'skill', slug: 'maim' })],
+      [
+        entry({ name: 'Spark', kind: 'item', slug: 'spark' }),
+        entry({ name: 'Chaos Orb', kind: 'item', slug: 'chaos-orb' }),
+      ],
       [
         entry({ name: 'Vaal', kind: 'mod', slug: 'vaal-mod' }),
         entry({ name: 'of the Brute', kind: 'mod', slug: 'strength1' }),
       ],
     ]);
+    // Real user report: a mod's "chance to Maim on Hit" line linked to the
+    // "Maim" support gem instead of naming the ailment it applies - a
+    // single-word skill/item name is just as likely to collide with the
+    // game's own status-effect vocabulary as a single-word mod name is.
+    expect(targets.has('Maim')).toBe(false);
+    expect(targets.has('Spark')).toBe(false);
     expect(targets.has('Vaal')).toBe(false);
+    expect(targets.get('Chaos Orb')).toEqual({ kind: 'item', slug: 'chaos-orb' });
     expect(targets.get('of the Brute')).toEqual({ kind: 'mod', slug: 'strength1' });
   });
 
@@ -47,14 +48,14 @@ describe('buildMentionIndex', () => {
     const { pattern, targets } = buildMentionIndex([
       [],
       [
-        entry({ name: 'Scroll', kind: 'item', slug: 'scroll' }),
-        entry({ name: 'Scroll of Wisdom', kind: 'item', slug: 'scroll-of-wisdom' }),
+        entry({ name: 'Orb of Alchemy', kind: 'item', slug: 'orb-of-alchemy' }),
+        entry({ name: 'Greater Orb of Alchemy', kind: 'item', slug: 'greater-orb-of-alchemy' }),
       ],
       [],
     ]);
-    const parts = 'Use a Scroll of Wisdom.'.split(pattern);
-    expect(parts).toEqual(['Use a ', 'Scroll of Wisdom', '.']);
-    expect(targets.get(parts[1])).toEqual({ kind: 'item', slug: 'scroll-of-wisdom' });
+    const parts = 'Use a Greater Orb of Alchemy.'.split(pattern);
+    expect(parts).toEqual(['Use a ', 'Greater Orb of Alchemy', '.']);
+    expect(targets.get(parts[1])).toEqual({ kind: 'item', slug: 'greater-orb-of-alchemy' });
   });
 
   it('produces a pattern matching nothing when there are no eligible names', () => {

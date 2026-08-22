@@ -427,18 +427,25 @@ function resetIconRoot(): void {
   rmSync(path.join(OUT_DIR, 'icons'), { recursive: true, force: true });
 }
 
+interface WrittenIcon {
+  url: string;
+  /** Actual post-resize pixel dimensions (aspect-ratio preserved by `fit: 'inside'`) — most weapon/armour art is portrait, not square, so these differ per icon. Lets the detail page render icons at their real proportions instead of a forced square. */
+  width: number;
+  height: number;
+}
+
 async function writeIcon(
   kind: 'item' | 'skill',
   slug: string,
   iconKey: string | null,
   icons: Record<string, Buffer>,
-): Promise<string | null> {
+): Promise<WrittenIcon | null> {
   if (!iconKey) return null;
   const buf = icons[iconKey];
   if (!buf) return null;
   const dir = path.join(OUT_DIR, 'icons', `${kind}s`);
   mkdirSync(dir, { recursive: true });
-  const resized = await sharp(buf)
+  const { data: resized, info } = await sharp(buf)
     .resize({
       width: ICON_MAX_EDGE,
       height: ICON_MAX_EDGE,
@@ -446,9 +453,13 @@ async function writeIcon(
       withoutEnlargement: true,
     })
     .png({ palette: true, quality: 90, effort: 7, compressionLevel: 9 })
-    .toBuffer();
+    .toBuffer({ resolveWithObject: true });
   writeFileSync(path.join(dir, `${slug}.png`), resized);
-  return `/data/wiki/${WIKI_DATA_VERSION}/icons/${kind}s/${slug}.png`;
+  return {
+    url: `/data/wiki/${WIKI_DATA_VERSION}/icons/${kind}s/${slug}.png`,
+    width: info.width,
+    height: info.height,
+  };
 }
 
 async function syncItems(lastSynced: string): Promise<number> {
@@ -476,18 +487,20 @@ async function syncItems(lastSynced: string): Promise<number> {
     // `name` again is a no-op disambiguator in that edge case, but the
     // numeric fallback in dedupeSlug still guarantees uniqueness either way.
     const slug = dedupeSlug(slugify(name), name, usedSlugs);
-    const iconUrl = item.icon
+    const icon = item.icon
       ? await writeIcon('item', slug, ddsPathToIconKey(item.icon), icons.icons)
       : null;
     details.push({
       ...normalizeItem(
-        name, item, iconUrl, lastSynced,
+        name, item, icon?.url ?? null, lastSynced,
         currencyByName.get(name) ?? null,
         implicitModsByName.get(name) ?? [],
         flaskStatsByName.get(name) ?? null,
         item.rarity === 'unique' ? pobUniquesByName.get(name) ?? null : null,
       ),
       slug,
+      iconWidth: icon?.width ?? null,
+      iconHeight: icon?.height ?? null,
     });
   }
   return writeKind('item', details);
@@ -504,12 +517,14 @@ async function syncSkills(lastSynced: string): Promise<number> {
     // keys, all sharing this exact name) - not real wiki content.
     if (gem.name === 'Coming Soon') continue;
     const slug = dedupeSlug(slugify(gem.name), key, usedSlugs);
-    const iconUrl = gem.icon
+    const icon = gem.icon
       ? await writeIcon('skill', slug, ddsPathToIconKey(gem.icon), icons.icons)
       : null;
     details.push({
-      ...normalizeSkill(key, gem, data.requirements[key] ?? null, data.scaling[key] ?? null, iconUrl, lastSynced),
+      ...normalizeSkill(key, gem, data.requirements[key] ?? null, data.scaling[key] ?? null, icon?.url ?? null, lastSynced),
       slug,
+      iconWidth: icon?.width ?? null,
+      iconHeight: icon?.height ?? null,
     });
   }
   return writeKind('skill', details);

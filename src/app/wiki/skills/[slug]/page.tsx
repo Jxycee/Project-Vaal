@@ -68,22 +68,28 @@ export default async function SkillDetailPage({
       <WikiBreadcrumb kind="skill" name={skill.name} />
       <div className="flex flex-1 items-center justify-center py-8">
         <article
-          className="relative mx-auto flex w-full max-w-lg min-h-[520px] flex-col justify-center space-y-3 rounded-lg border-2 bg-card px-6 py-5 text-center shadow-lg"
+          className="relative mx-auto flex w-full max-w-lg min-h-[520px] flex-col justify-center space-y-4 rounded-lg border-2 bg-card px-8 py-6 text-center shadow-lg"
           style={{
             borderColor: accent,
             backgroundImage: `radial-gradient(120% 100% at 50% 0%, color-mix(in oklab, ${accent} 8%, transparent), transparent 65%)`,
           }}
         >
-          <RarityIconBox iconUrl={skill.iconUrl} accentColor={accent} size={96} />
+          <RarityIconBox
+            iconUrl={skill.iconUrl}
+            accentColor={accent}
+            size={96}
+            iconWidth={skill.iconWidth}
+            iconHeight={skill.iconHeight}
+          />
           <div className="mx-auto -mt-2 w-fit">
-            <h1 className="font-heading text-xl tracking-wide" style={{ color: accent }}>{skill.name}</h1>
-            <p className="text-xs text-muted-foreground">{skill.category} — {COLOR_NAME[skill.color]}</p>
+            <h1 className="font-heading text-2xl tracking-wide" style={{ color: accent }}>{skill.name}</h1>
+            <p className="text-sm text-muted-foreground">{skill.category} — {COLOR_NAME[skill.color]}</p>
           </div>
 
           {skill.tags.length > 0 && (
             <ul className="flex flex-wrap justify-center gap-1.5">
               {skill.tags.map((tag, i) => (
-                <li key={`${i}-${tag}`} className="rounded border border-border bg-card px-2 py-0.5 text-xs text-muted-foreground">
+                <li key={`${i}-${tag}`} className="rounded border border-border bg-card px-2.5 py-1 text-sm text-muted-foreground">
                   {tag}
                 </li>
               ))}
@@ -91,7 +97,7 @@ export default async function SkillDetailPage({
           )}
 
           <TooltipDivider />
-          <ul className="space-y-0.5 text-xs text-muted-foreground">
+          <ul className="space-y-1 text-sm text-muted-foreground">
             {statRows.map((row) => (
               <li key={row.label}>
                 {row.label}: <span className="font-medium text-foreground">{row.value}</span>
@@ -102,7 +108,7 @@ export default async function SkillDetailPage({
           {skill.description && (
             <>
               <TooltipDivider />
-              <p className="text-sm whitespace-pre-line">{linkMentions(skill.description, mentions, self)}</p>
+              <p className="text-base whitespace-pre-line">{linkMentions(skill.description, mentions, self)}</p>
             </>
           )}
 

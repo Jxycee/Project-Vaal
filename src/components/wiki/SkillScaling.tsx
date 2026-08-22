@@ -19,10 +19,10 @@ export function SkillScaling({ levels }: { levels: SkillScalingLevel[] }) {
   const hiddenCount = levels.length - COLLAPSED_COUNT;
 
   return (
-    <div className="space-y-3 text-sm">
+    <div className="space-y-3 text-base">
       {visible.map((level) => (
         <div key={level.level}>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Level {level.level}</p>
+          <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Level {level.level}</p>
           {level.content}
         </div>
       ))}
