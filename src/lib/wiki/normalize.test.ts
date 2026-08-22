@@ -133,6 +133,16 @@ describe('normalizeItem', () => {
     expect(result.consoleDirections).toBe('X to use, then A on martial weapon to apply it.');
   });
 
+  it('also strips bracket markup from consoleDirections, same as directions', () => {
+    const result = normalizeItem(raw.name, raw, null, SYNCED_AT, {
+      stackSize: 10,
+      description: null,
+      directions: 'A stack of 10 shards becomes an Orb of Alchemy',
+      xboxDirections: 'A stack of 10 shards becomes an [OrbOfAlchemy|Orb of Alchemy]',
+    });
+    expect(result.consoleDirections).toBe('A stack of 10 shards becomes an Orb of Alchemy');
+  });
+
   it('passes stackSize through even when it is 1 (real value for non-stackable currency) rather than nulling it', () => {
     const result = normalizeItem(raw.name, raw, null, SYNCED_AT, {
       stackSize: 1,

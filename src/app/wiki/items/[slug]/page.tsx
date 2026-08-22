@@ -145,7 +145,7 @@ export default async function ItemDetailPage({
               {item.directions && !item.consoleButtons && (
                 <p className="text-sm italic text-muted-foreground whitespace-pre-line">{linkMentions(item.directions, mentions, self)}</p>
               )}
-              {item.consoleDirections && !item.consoleButtons && (
+              {item.consoleDirections && !item.consoleButtons && item.consoleDirections !== item.directions && (
                 <p className="text-sm italic text-muted-foreground whitespace-pre-line">
                   <span className="not-italic font-medium text-foreground">Console: </span>
                   {linkMentions(item.consoleDirections, mentions, self)}

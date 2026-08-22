@@ -291,7 +291,7 @@ export function normalizeItem(
     iconUrl,
     description: currency?.description ? stripBracketMarkup(currency.description) : null,
     directions: currency?.directions ? stripBracketMarkup(currency.directions) : null,
-    consoleDirections: currency?.xboxDirections ? stripXboxButtonTokens(currency.xboxDirections) : null,
+    consoleDirections: currency?.xboxDirections ? stripBracketMarkup(stripXboxButtonTokens(currency.xboxDirections)) : null,
     consoleButtons: extractConsoleButtons(currency?.directions ?? null, currency?.xboxDirections ?? null),
     stackSize: currency?.stackSize ?? null,
     implicitMods: pobUnique ? pobUnique.implicitMods : implicitMods,
