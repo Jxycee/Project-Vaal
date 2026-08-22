@@ -93,7 +93,13 @@ export default async function ItemDetailPage({
             backgroundImage: `radial-gradient(120% 100% at 50% 0%, color-mix(in oklab, ${accent} 8%, transparent), transparent 65%)`,
           }}
         >
-          <RarityIconBox iconUrl={item.iconUrl} accentColor={accent} size={item.rarity === 'unique' ? 120 : 96} />
+          <RarityIconBox
+            iconUrl={item.iconUrl}
+            accentColor={accent}
+            size={item.rarity === 'unique' ? 120 : 96}
+            iconWidth={item.iconWidth}
+            iconHeight={item.iconHeight}
+          />
           <div className="mx-auto -mt-2 w-fit">
             <h1
               className="font-heading text-2xl tracking-wide"

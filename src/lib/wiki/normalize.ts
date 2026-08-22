@@ -289,6 +289,8 @@ export function normalizeItem(
     modDomain: item.modDomain,
     tags: item.tags,
     iconUrl,
+    iconWidth: null,
+    iconHeight: null,
     description: currency?.description ? stripBracketMarkup(currency.description) : null,
     directions: currency?.directions ? stripBracketMarkup(currency.directions) : null,
     consoleDirections: currency?.xboxDirections ? stripBracketMarkup(stripXboxButtonTokens(currency.xboxDirections)) : null,
@@ -355,6 +357,8 @@ export function normalizeSkill(
       stats: l.stats.map((s) => ({ text: s.text, min: s.min, max: s.max })),
     })),
     iconUrl,
+    iconWidth: null,
+    iconHeight: null,
     lastSynced,
   };
 }

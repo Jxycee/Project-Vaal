@@ -102,6 +102,15 @@ export interface WikiItemDetail extends WikiDetailBase {
   modDomain: string | null;
   tags: string[];
   iconUrl: string | null;
+  /**
+   * Intrinsic icon dimensions after the sync step's aspect-ratio-preserving
+   * resize (`fit: 'inside'`) — most weapon/armour art is portrait, not
+   * square (e.g. a crossbow's real icon is 65x128). `null` when `iconUrl`
+   * is itself `null`. Lets the detail page render the icon at its real
+   * proportions instead of squeezing it into a forced square box.
+   */
+  iconWidth: number | null;
+  iconHeight: number | null;
   description: string | null;
   directions: string | null;
   consoleDirections: string | null;
@@ -136,6 +145,9 @@ export interface WikiSkillDetail extends WikiDetailBase {
   requirement: { strength: number; dexterity: number; intelligence: number; level: number };
   scaling: WikiSkillLevelScaling[];
   iconUrl: string | null;
+  /** See {@link WikiItemDetail.iconWidth}. */
+  iconWidth: number | null;
+  iconHeight: number | null;
 }
 
 export interface WikiModRoll {

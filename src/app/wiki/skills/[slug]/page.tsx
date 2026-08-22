@@ -74,7 +74,13 @@ export default async function SkillDetailPage({
             backgroundImage: `radial-gradient(120% 100% at 50% 0%, color-mix(in oklab, ${accent} 8%, transparent), transparent 65%)`,
           }}
         >
-          <RarityIconBox iconUrl={skill.iconUrl} accentColor={accent} size={96} />
+          <RarityIconBox
+            iconUrl={skill.iconUrl}
+            accentColor={accent}
+            size={96}
+            iconWidth={skill.iconWidth}
+            iconHeight={skill.iconHeight}
+          />
           <div className="mx-auto -mt-2 w-fit">
             <h1 className="font-heading text-2xl tracking-wide" style={{ color: accent }}>{skill.name}</h1>
             <p className="text-sm text-muted-foreground">{skill.category} — {COLOR_NAME[skill.color]}</p>
