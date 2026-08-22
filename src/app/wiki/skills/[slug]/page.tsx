@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { loadDetail } from '@/lib/wiki/load';
 import { skillAccentColor } from '@/lib/wiki/accent';
 import { RarityIconBox } from '@/components/wiki/RarityIconBox';
-import { DetailInfoPanel } from '@/components/wiki/DetailInfoPanel';
+import { DetailInfoPanel, type DetailRow } from '@/components/wiki/DetailInfoPanel';
 import { WikiBreadcrumb } from '@/components/wiki/WikiBreadcrumb';
 
 export const dynamicParams = true;
@@ -50,7 +50,7 @@ export default async function SkillDetailPage({
     w: 'White (Universal)',
   };
 
-  const rows: { label: string; value: string | number }[] = [
+  const rows: DetailRow[] = [
     { label: 'Gem Type', value: cap(skill.gemType) },
     { label: 'Color', value: colorName[skill.color] },
     { label: 'Level', value: skill.requirement.level },

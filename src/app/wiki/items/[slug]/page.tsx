@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { loadDetail } from '@/lib/wiki/load';
 import { itemAccentColor } from '@/lib/wiki/accent';
 import { RarityIconBox } from '@/components/wiki/RarityIconBox';
-import { DetailInfoPanel } from '@/components/wiki/DetailInfoPanel';
+import { DetailInfoPanel, type DetailRow } from '@/components/wiki/DetailInfoPanel';
 import { WikiBreadcrumb } from '@/components/wiki/WikiBreadcrumb';
 
 export const dynamicParams = true;
@@ -44,7 +44,7 @@ export default async function ItemDetailPage({
 
   const accent = itemAccentColor(item.rarity);
 
-  const rows: { label: string; value: string | number }[] = [
+  const rows: DetailRow[] = [
     { label: 'Item Class', value: item.itemClass ?? item.category },
     { label: 'Rarity', value: item.rarity === 'unique' ? 'Unique' : 'Normal' },
   ];

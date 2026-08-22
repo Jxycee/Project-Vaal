@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { loadDetail } from '@/lib/wiki/load';
 import { MOD_ACCENT_COLOR } from '@/lib/wiki/accent';
-import { DetailInfoPanel } from '@/components/wiki/DetailInfoPanel';
+import { DetailInfoPanel, type DetailRow } from '@/components/wiki/DetailInfoPanel';
 import { WikiBreadcrumb } from '@/components/wiki/WikiBreadcrumb';
 
 export const dynamicParams = true;
@@ -42,7 +42,7 @@ export default async function ModDetailPage({
 
   const spawnableOn = mod.spawnWeights.filter((w) => w.weight > 0);
 
-  const rows: { label: string; value: string | number }[] = [
+  const rows: DetailRow[] = [
     { label: 'Domain', value: mod.domain },
     { label: 'Generation Type', value: mod.generationType },
     { label: 'Tier', value: mod.tier ?? '—' },

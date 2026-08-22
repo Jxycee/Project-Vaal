@@ -1,3 +1,8 @@
+export interface DetailRow {
+  label: string;
+  value: string | number;
+}
+
 export function DetailInfoPanel({
   title,
   accentColor,
@@ -5,7 +10,7 @@ export function DetailInfoPanel({
 }: {
   title: string;
   accentColor: string;
-  rows: { label: string; value: string | number }[];
+  rows: DetailRow[];
 }) {
   if (rows.length === 0) return null;
   return (
