@@ -3,6 +3,8 @@ import { loadDetail } from '@/lib/wiki/load';
 import { MOD_ACCENT_COLOR } from '@/lib/wiki/accent';
 import { WikiBreadcrumb } from '@/components/wiki/WikiBreadcrumb';
 import { TooltipDivider } from '@/components/wiki/TooltipDivider';
+import { linkMentions } from '@/components/wiki/MentionLinks';
+import { loadMentionIndex } from '@/lib/wiki/mentions';
 
 export const dynamicParams = true;
 export const dynamic = 'force-dynamic';
@@ -39,6 +41,9 @@ export default async function ModDetailPage({
   const { slug } = await params;
   const mod = await loadDetail('mod', slug);
   if (!mod) notFound();
+
+  const mentions = await loadMentionIndex();
+  const self = { kind: 'mod' as const, slug: mod.slug };
 
   const spawnableOn = mod.spawnWeights.filter((w) => w.weight > 0);
 
@@ -80,7 +85,7 @@ export default async function ModDetailPage({
             <>
               <TooltipDivider />
               <ul className="space-y-1 text-sm font-medium">
-                {mod.stats.map((stat, i) => <li key={`${i}-${stat}`}>{stat}</li>)}
+                {mod.stats.map((stat, i) => <li key={`${i}-${stat}`}>{linkMentions(stat, mentions, self)}</li>)}
               </ul>
             </>
           )}

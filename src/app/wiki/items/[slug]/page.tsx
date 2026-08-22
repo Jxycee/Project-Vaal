@@ -5,6 +5,8 @@ import { RarityIconBox } from '@/components/wiki/RarityIconBox';
 import { WikiBreadcrumb } from '@/components/wiki/WikiBreadcrumb';
 import { TooltipDivider } from '@/components/wiki/TooltipDivider';
 import { mergeDirectionsWithConsoleButtons } from '@/components/wiki/ConsoleButtonBadge';
+import { linkMentions } from '@/components/wiki/MentionLinks';
+import { loadMentionIndex } from '@/lib/wiki/mentions';
 
 export const dynamicParams = true;
 export const dynamic = 'force-dynamic';
@@ -41,6 +43,9 @@ export default async function ItemDetailPage({
   const { slug } = await params;
   const item = await loadDetail('item', slug);
   if (!item) notFound();
+
+  const mentions = await loadMentionIndex();
+  const self = { kind: 'item' as const, slug: item.slug };
 
   const accent = itemAccentColor(item.rarity);
 
@@ -106,7 +111,7 @@ export default async function ItemDetailPage({
               <TooltipDivider />
               {modLines.length > 0 && (
                 <ul className="space-y-1 text-sm font-medium">
-                  {modLines.map((stat, i) => <li key={`${i}-${stat}`}>{stat}</li>)}
+                  {modLines.map((stat, i) => <li key={`${i}-${stat}`}>{linkMentions(stat, mentions, self)}</li>)}
                 </ul>
               )}
               {statRows.length > 0 && (
@@ -119,7 +124,7 @@ export default async function ItemDetailPage({
                 </ul>
               )}
               {item.flavourText && item.flavourText.length > 0 && (
-                <p className="text-sm italic text-muted-foreground">{item.flavourText.join(' ')}</p>
+                <p className="text-sm italic text-muted-foreground">{linkMentions(item.flavourText.join(' '), mentions, self)}</p>
               )}
             </>
           )}
@@ -128,20 +133,22 @@ export default async function ItemDetailPage({
             <>
               <TooltipDivider />
               {item.description && (
-                <p className="text-sm whitespace-pre-line">{item.description}</p>
+                <p className="text-sm whitespace-pre-line">{linkMentions(item.description, mentions, self)}</p>
               )}
               {item.directions && item.consoleButtons && (
                 <p className="text-sm italic text-muted-foreground whitespace-pre-line">
-                  {mergeDirectionsWithConsoleButtons(item.directions, item.consoleButtons)}
+                  {mergeDirectionsWithConsoleButtons(item.directions, item.consoleButtons).map((node, i) => (
+                    <span key={i}>{typeof node === 'string' ? linkMentions(node, mentions, self) : node}</span>
+                  ))}
                 </p>
               )}
               {item.directions && !item.consoleButtons && (
-                <p className="text-sm italic text-muted-foreground whitespace-pre-line">{item.directions}</p>
+                <p className="text-sm italic text-muted-foreground whitespace-pre-line">{linkMentions(item.directions, mentions, self)}</p>
               )}
               {item.consoleDirections && !item.consoleButtons && (
                 <p className="text-sm italic text-muted-foreground whitespace-pre-line">
                   <span className="not-italic font-medium text-foreground">Console: </span>
-                  {item.consoleDirections}
+                  {linkMentions(item.consoleDirections, mentions, self)}
                 </p>
               )}
             </>
@@ -150,7 +157,7 @@ export default async function ItemDetailPage({
           {item.uniqueMods?.dropSource && (
             <>
               <TooltipDivider />
-              <p className="text-sm font-bold">{item.uniqueMods.dropSource}</p>
+              <p className="text-sm font-bold">{linkMentions(item.uniqueMods.dropSource, mentions, self)}</p>
             </>
           )}
 

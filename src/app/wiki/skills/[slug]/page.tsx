@@ -5,6 +5,8 @@ import { RarityIconBox } from '@/components/wiki/RarityIconBox';
 import { WikiBreadcrumb } from '@/components/wiki/WikiBreadcrumb';
 import { TooltipDivider } from '@/components/wiki/TooltipDivider';
 import { SkillScaling } from '@/components/wiki/SkillScaling';
+import { linkMentions } from '@/components/wiki/MentionLinks';
+import { loadMentionIndex } from '@/lib/wiki/mentions';
 
 export const dynamicParams = true;
 export const dynamic = 'force-dynamic';
@@ -48,6 +50,9 @@ export default async function SkillDetailPage({
   const { slug } = await params;
   const skill = await loadDetail('skill', slug);
   if (!skill) notFound();
+
+  const mentions = await loadMentionIndex();
+  const self = { kind: 'skill' as const, slug: skill.slug };
 
   const accent = skillAccentColor(skill.color);
 
@@ -97,14 +102,25 @@ export default async function SkillDetailPage({
           {skill.description && (
             <>
               <TooltipDivider />
-              <p className="text-sm whitespace-pre-line">{skill.description}</p>
+              <p className="text-sm whitespace-pre-line">{linkMentions(skill.description, mentions, self)}</p>
             </>
           )}
 
           {skill.scaling.length > 0 && (
             <>
               <TooltipDivider />
-              <SkillScaling scaling={skill.scaling} />
+              <SkillScaling
+                levels={skill.scaling.map((level) => ({
+                  level: level.level,
+                  content: (
+                    <ul className="space-y-0.5 font-medium">
+                      {level.stats.map((stat, i) => (
+                        <li key={`${i}-${stat.text}`}>{linkMentions(stat.text, mentions, self)}</li>
+                      ))}
+                    </ul>
+                  ),
+                }))}
+              />
             </>
           )}
         </article>
