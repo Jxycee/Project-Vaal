@@ -3,22 +3,28 @@ import { notFound } from 'next/navigation';
 import { loadDetail } from '@/lib/wiki/load';
 
 export const dynamicParams = true;
+export const dynamic = 'force-dynamic';
 
 // Detail pages are rendered on request rather than pre-built at build time
 // — with ~4,975 items (and ~1,118 skills / ~16,679 mods across the sibling
 // routes), generating all of them statically would make `next build`
 // prohibitively slow. See Task 5 brief deviation notes.
 //
-// Deliberately NOT `export const revalidate = ...` (ISR): every /wiki route
+// `dynamic = 'force-dynamic'` is required, not optional: every /wiki route
 // renders through AppShell (src/components/layout/app-shell.tsx), which
 // calls `supabase.auth.getUser()` — a dynamic API (reads cookies via
-// next/headers) on every request, required for the auth gate. Next.js
-// forbids a dynamic API call inside an ISR-cached render path and throws
-// `DYNAMIC_SERVER_USAGE` at runtime if one slips through — confirmed via
-// production runtime-error logs (2026-08-22) after `revalidate = 86400` was
-// here. Since these pages can't be safely cached across users anyway (the
-// render depends on per-request auth state), plain dynamic rendering is not
-// a compromise — it's the only correct mode while AppShell reads cookies.
+// next/headers) on every request, required for the auth gate. `dynamicParams
+// = true` plus an empty `generateStaticParams()` puts this route in Next's
+// on-demand static-generation path (render once per param on first request,
+// then cache the result like ISR) unless told otherwise — and a dynamic API
+// call from an ancestor layout during that path throws `DYNAMIC_SERVER_USAGE`
+// at request time instead of gracefully falling back, confirmed via
+// production runtime-error logs (2026-08-22): removing just
+// `revalidate = 86400` was NOT sufficient, the crash persisted until this
+// explicit `force-dynamic` was added. These pages can't be safely cached
+// across users anyway (the render depends on per-request auth state), so
+// unconditional per-request rendering isn't a compromise — it's the only
+// correct mode while AppShell reads cookies.
 export async function generateStaticParams() {
   return [];
 }
