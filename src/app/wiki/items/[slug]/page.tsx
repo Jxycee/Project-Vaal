@@ -87,7 +87,7 @@ export default async function ItemDetailPage({
       <WikiBreadcrumb kind="item" name={item.name} />
       <div className="flex flex-1 items-center justify-center py-8">
         <article
-          className="relative mx-auto max-w-md space-y-3 rounded-lg border-2 bg-card px-6 py-5 text-center shadow-lg"
+          className="relative mx-auto flex w-full max-w-lg min-h-[520px] flex-col justify-center space-y-3 rounded-lg border-2 bg-card px-6 py-5 text-center shadow-lg"
           style={{
             borderColor: accent,
             backgroundImage: `radial-gradient(120% 100% at 50% 0%, color-mix(in oklab, ${accent} 8%, transparent), transparent 65%)`,
