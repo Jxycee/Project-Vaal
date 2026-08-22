@@ -1,10 +1,10 @@
-import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { loadDetail } from '@/lib/wiki/load';
 import { skillAccentColor } from '@/lib/wiki/accent';
 import { RarityIconBox } from '@/components/wiki/RarityIconBox';
-import { DetailInfoPanel, type DetailRow } from '@/components/wiki/DetailInfoPanel';
 import { WikiBreadcrumb } from '@/components/wiki/WikiBreadcrumb';
+import { TooltipDivider } from '@/components/wiki/TooltipDivider';
+import { SkillScaling } from '@/components/wiki/SkillScaling';
 
 export const dynamicParams = true;
 export const dynamic = 'force-dynamic';
@@ -33,6 +33,13 @@ export async function generateStaticParams() {
   return [];
 }
 
+const COLOR_NAME: Record<'r' | 'g' | 'b' | 'w', string> = {
+  r: 'Red (Strength)',
+  g: 'Green (Dexterity)',
+  b: 'Blue (Intelligence)',
+  w: 'White (Universal)',
+};
+
 export default async function SkillDetailPage({
   params,
 }: {
@@ -43,43 +50,33 @@ export default async function SkillDetailPage({
   if (!skill) notFound();
 
   const accent = skillAccentColor(skill.color);
-  const colorName: Record<'r' | 'g' | 'b' | 'w', string> = {
-    r: 'Red (Strength)',
-    g: 'Green (Dexterity)',
-    b: 'Blue (Intelligence)',
-    w: 'White (Universal)',
-  };
 
-  const rows: DetailRow[] = [
-    { label: 'Gem Type', value: cap(skill.gemType) },
-    { label: 'Color', value: colorName[skill.color] },
+  const statRows: { label: string; value: string | number }[] = [
     { label: 'Level', value: skill.requirement.level },
   ];
-  if (skill.requirement.strength > 0) rows.push({ label: 'Strength', value: skill.requirement.strength });
-  if (skill.requirement.dexterity > 0) rows.push({ label: 'Dexterity', value: skill.requirement.dexterity });
-  if (skill.requirement.intelligence > 0) rows.push({ label: 'Intelligence', value: skill.requirement.intelligence });
+  if (skill.requirement.strength > 0) statRows.push({ label: 'Strength', value: skill.requirement.strength });
+  if (skill.requirement.dexterity > 0) statRows.push({ label: 'Dexterity', value: skill.requirement.dexterity });
+  if (skill.requirement.intelligence > 0) statRows.push({ label: 'Intelligence', value: skill.requirement.intelligence });
 
   return (
-    <div className="space-y-4">
+    <div className="flex min-h-[60vh] flex-col">
       <WikiBreadcrumb kind="skill" name={skill.name} />
-      <div className="grid gap-8 md:grid-cols-[1fr_280px] md:items-start">
-        <article className="space-y-4">
-          <header className="flex items-center gap-4">
-            <RarityIconBox iconUrl={skill.iconUrl} accentColor={accent} />
-            <div>
-              <h1 className="font-heading text-2xl" style={{ color: accent }}>{skill.name}</h1>
-              <p className="text-sm text-muted-foreground">{skill.category}</p>
-            </div>
-          </header>
-          <Image
-            src="/ornaments/divider.png"
-            alt=""
-            width={1096}
-            height={182}
-            className="h-auto w-32 opacity-60"
-          />
+      <div className="flex flex-1 items-center justify-center py-8">
+        <article
+          className="relative mx-auto max-w-md space-y-3 rounded-lg border-2 bg-card px-6 py-5 text-center shadow-lg"
+          style={{
+            borderColor: accent,
+            backgroundImage: `radial-gradient(120% 100% at 50% 0%, color-mix(in oklab, ${accent} 8%, transparent), transparent 65%)`,
+          }}
+        >
+          <RarityIconBox iconUrl={skill.iconUrl} accentColor={accent} size={96} />
+          <div className="mx-auto -mt-2 w-fit">
+            <h1 className="font-heading text-xl tracking-wide" style={{ color: accent }}>{skill.name}</h1>
+            <p className="text-xs text-muted-foreground">{skill.category} — {COLOR_NAME[skill.color]}</p>
+          </div>
+
           {skill.tags.length > 0 && (
-            <ul className="flex flex-wrap gap-2">
+            <ul className="flex flex-wrap justify-center gap-1.5">
               {skill.tags.map((tag, i) => (
                 <li key={`${i}-${tag}`} className="rounded border border-border bg-card px-2 py-0.5 text-xs text-muted-foreground">
                   {tag}
@@ -87,26 +84,31 @@ export default async function SkillDetailPage({
               ))}
             </ul>
           )}
-          {skill.description && <p className="text-sm whitespace-pre-line">{skill.description}</p>}
+
+          <TooltipDivider />
+          <ul className="space-y-0.5 text-xs text-muted-foreground">
+            {statRows.map((row) => (
+              <li key={row.label}>
+                {row.label}: <span className="font-medium text-foreground">{row.value}</span>
+              </li>
+            ))}
+          </ul>
+
+          {skill.description && (
+            <>
+              <TooltipDivider />
+              <p className="text-sm whitespace-pre-line">{skill.description}</p>
+            </>
+          )}
+
           {skill.scaling.length > 0 && (
-            <div className="space-y-2 border-t border-border pt-3 text-sm">
-              {skill.scaling.map((level) => (
-                <div key={level.level}>
-                  <p className="text-muted-foreground">Level {level.level}</p>
-                  <ul className="space-y-1">
-                    {level.stats.map((stat, i) => <li key={`${i}-${stat.text}`}>{stat.text}</li>)}
-                  </ul>
-                </div>
-              ))}
-            </div>
+            <>
+              <TooltipDivider />
+              <SkillScaling scaling={skill.scaling} />
+            </>
           )}
         </article>
-        <DetailInfoPanel title={skill.name} accentColor={accent} rows={rows} />
       </div>
     </div>
   );
-}
-
-function cap(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1);
 }

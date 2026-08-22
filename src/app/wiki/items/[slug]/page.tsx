@@ -1,10 +1,10 @@
-import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { loadDetail } from '@/lib/wiki/load';
 import { itemAccentColor } from '@/lib/wiki/accent';
 import { RarityIconBox } from '@/components/wiki/RarityIconBox';
 import type { DetailRow } from '@/components/wiki/DetailInfoPanel';
 import { WikiBreadcrumb } from '@/components/wiki/WikiBreadcrumb';
+import { TooltipDivider } from '@/components/wiki/TooltipDivider';
 import { mergeDirectionsWithConsoleButtons } from '@/components/wiki/ConsoleButtonBadge';
 
 export const dynamicParams = true;
@@ -164,18 +164,6 @@ export default async function ItemDetailPage({
         </article>
       </div>
     </div>
-  );
-}
-
-function TooltipDivider() {
-  return (
-    <Image
-      src="/ornaments/divider.png"
-      alt=""
-      width={1096}
-      height={182}
-      className="mx-auto h-auto w-24 opacity-60"
-    />
   );
 }
 
