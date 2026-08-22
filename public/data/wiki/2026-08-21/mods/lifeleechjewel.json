@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"lifeleechjewel","name":"Hungering","category":"Unique","domain":"Atlas","generationType":"Unique","group":"LifeLeechForJewel","tier":1,"level":1,"stats":[],"rolls":[{"stat":"dummy_stat_display_nothing","min":1,"max":2}],"families":["LifeLeech"],"spawnWeights":[{"tag":"not_str","weight":0},{"tag":"default","weight":1}],"lastSynced":"2026-08-22T18:00:48.113Z"}

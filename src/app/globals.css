@@ -88,6 +88,11 @@
   --wiki-gem-g: oklch(0.55 0.15 150);
   --wiki-gem-b: oklch(0.52 0.16 250);
   --wiki-gem-w: oklch(0.35 0.01 80);
+  /* In-page cross-links (item/skill/mod name mentions) — a lighter,
+     lower-chroma "clover" green, distinct hue from --wiki-gem-g's more
+     saturated skill-gem green so the two colors don't get read as the
+     same signal. */
+  --wiki-mention: oklch(0.52 0.12 135);
 }
 
 /* Dark-first palette — warm charcoal + aged gold */
@@ -131,6 +136,9 @@
   --wiki-gem-g: oklch(0.68 0.15 150);
   --wiki-gem-b: oklch(0.65 0.16 250);
   --wiki-gem-w: oklch(0.90 0.01 85);
+  /* Lighter/lower-chroma than --wiki-gem-g so a "Chaos Orb" mention link
+     doesn't read as the same signal as a green skill gem's own color. */
+  --wiki-mention: oklch(0.80 0.10 135);
 }
 
 @layer base {

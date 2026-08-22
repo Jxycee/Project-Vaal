@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"maptempestadditionalexperience","name":"of Inspiration","category":"Tempest","domain":"6","generationType":"Tempest","group":"TempestIncreasedExperienceGain","tier":1,"level":1,"stats":[],"rolls":[{"stat":"map_hidden_experience_gain_+%","min":15,"max":15}],"families":["MapEclipse"],"spawnWeights":[],"lastSynced":"2026-08-22T18:00:48.113Z"}

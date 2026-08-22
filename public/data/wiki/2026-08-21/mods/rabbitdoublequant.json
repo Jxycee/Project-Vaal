@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"rabbitdoublequant","name":"Bounty of the Hunt","category":"Torment","domain":"Monster","generationType":"Torment","group":"RabbitDoubleQuant","tier":1,"level":1,"stats":[],"rolls":[{"stat":"monster_double_dropped_item_quantity","min":1,"max":1}],"families":["RabbitWisp"],"spawnWeights":[],"lastSynced":"2026-08-22T18:00:48.113Z"}

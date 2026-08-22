@@ -1,10 +1,12 @@
-import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { loadDetail } from '@/lib/wiki/load';
 import { itemAccentColor } from '@/lib/wiki/accent';
 import { RarityIconBox } from '@/components/wiki/RarityIconBox';
-import { DetailInfoPanel, type DetailRow } from '@/components/wiki/DetailInfoPanel';
 import { WikiBreadcrumb } from '@/components/wiki/WikiBreadcrumb';
+import { TooltipDivider } from '@/components/wiki/TooltipDivider';
+import { mergeDirectionsWithConsoleButtons } from '@/components/wiki/ConsoleButtonBadge';
+import { linkMentions } from '@/components/wiki/MentionLinks';
+import { loadMentionIndex } from '@/lib/wiki/mentions';
 
 export const dynamicParams = true;
 export const dynamic = 'force-dynamic';
@@ -42,16 +44,16 @@ export default async function ItemDetailPage({
   const item = await loadDetail('item', slug);
   if (!item) notFound();
 
+  const mentions = await loadMentionIndex();
+  const self = { kind: 'item' as const, slug: item.slug };
+
   const accent = itemAccentColor(item.rarity);
 
-  const rows: DetailRow[] = [
-    { label: 'Item Class', value: item.itemClass ?? item.category },
-    { label: 'Rarity', value: item.rarity === 'unique' ? 'Unique' : 'Normal' },
-  ];
-  if (item.dropLevel > 0) rows.push({ label: 'Drop Level', value: item.dropLevel });
-  if (item.stackSize != null && item.stackSize > 1) rows.push({ label: 'Stack Size', value: item.stackSize });
+  const statRows: { label: string; value: string | number }[] = [];
+  if (item.dropLevel > 0) statRows.push({ label: 'Drop Level', value: item.dropLevel });
+  if (item.stackSize != null && item.stackSize > 1) statRows.push({ label: 'Stack Size', value: item.stackSize });
   for (const [key, value] of Object.entries(item.requirements)) {
-    if (value > 0) rows.push({ label: cap(key), value });
+    if (value > 0) statRows.push({ label: cap(key), value });
   }
   if (item.armour) {
     const ARMOUR_LABEL: Record<string, string> = {
@@ -62,75 +64,110 @@ export default async function ItemDetailPage({
       block: 'Block',
     };
     for (const [key, value] of Object.entries(item.armour)) {
-      if (value > 0) rows.push({ label: ARMOUR_LABEL[key], value });
+      if (value > 0) statRows.push({ label: ARMOUR_LABEL[key], value });
     }
   }
   if (item.weapon) {
-    rows.push({ label: 'Damage', value: `${item.weapon.damageMin}-${item.weapon.damageMax}` });
-    rows.push({ label: 'Attack Time', value: `${(item.weapon.attackTime / 1000).toFixed(2)}s` });
+    statRows.push({ label: 'Damage', value: `${item.weapon.damageMin}-${item.weapon.damageMax}` });
+    statRows.push({ label: 'Attack Time', value: `${(item.weapon.attackTime / 1000).toFixed(2)}s` });
   }
   if (item.flask) {
-    if (item.flask.lifeRecovery > 0) rows.push({ label: 'Life Recovery', value: item.flask.lifeRecovery });
-    if (item.flask.manaRecovery > 0) rows.push({ label: 'Mana Recovery', value: item.flask.manaRecovery });
-    rows.push({ label: 'Duration', value: `${item.flask.duration.toFixed(1)}s` });
+    if (item.flask.lifeRecovery > 0) statRows.push({ label: 'Life Recovery', value: item.flask.lifeRecovery });
+    if (item.flask.manaRecovery > 0) statRows.push({ label: 'Mana Recovery', value: item.flask.manaRecovery });
+    statRows.push({ label: 'Duration', value: `${item.flask.duration.toFixed(1)}s` });
   }
 
+  const hasUseText = Boolean(item.description || item.directions || item.consoleDirections);
+  const modLines = [...item.implicitMods, ...(item.uniqueMods?.explicitMods ?? [])];
+  const hasFlavour = Boolean(item.flavourText && item.flavourText.length > 0);
+  const subtitleClass = item.uniqueMods?.baseType ?? item.itemClass ?? item.category;
+
   return (
-    <div className="space-y-4">
+    <div className="flex min-h-[60vh] flex-col">
       <WikiBreadcrumb kind="item" name={item.name} />
-      <div className="grid gap-8 md:grid-cols-[1fr_280px] md:items-start">
-        <article className="space-y-4">
-          <header className="flex items-center gap-4">
-            <RarityIconBox iconUrl={item.iconUrl} accentColor={accent} />
-            <div>
-              <h1
-                className="font-heading text-2xl"
-                style={item.rarity === 'unique' ? { color: accent } : undefined}
-              >
-                {item.name}
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                {item.itemClass ?? item.category}{item.rarity === 'unique' ? ' — Unique' : ''}
-              </p>
-            </div>
-          </header>
-          <Image
-            src="/ornaments/divider.png"
-            alt=""
-            width={1096}
-            height={182}
-            className="h-auto w-32 opacity-60"
-          />
-          {item.implicitMods.length > 0 && (
-            <ul className="space-y-1 text-sm font-medium">
-              {item.implicitMods.map((stat, i) => <li key={`${i}-${stat}`}>{stat}</li>)}
-            </ul>
-          )}
-          {item.description && (
-            <p className="text-sm whitespace-pre-line">{item.description}</p>
-          )}
-          {item.directions && (
-            <p className="text-sm italic text-muted-foreground whitespace-pre-line">{item.directions}</p>
-          )}
-          {item.consoleDirections && (
-            <p className="text-sm italic text-muted-foreground whitespace-pre-line">
-              <span className="not-italic font-medium text-foreground">Console: </span>
-              {item.consoleDirections}
+      <div className="flex flex-1 items-center justify-center py-8">
+        <article
+          className="relative mx-auto max-w-md space-y-3 rounded-lg border-2 bg-card px-6 py-5 text-center shadow-lg"
+          style={{
+            borderColor: accent,
+            backgroundImage: `radial-gradient(120% 100% at 50% 0%, color-mix(in oklab, ${accent} 8%, transparent), transparent 65%)`,
+          }}
+        >
+          <RarityIconBox iconUrl={item.iconUrl} accentColor={accent} size={item.rarity === 'unique' ? 110 : 64} />
+          <div className="mx-auto -mt-2 w-fit">
+            <h1
+              className="font-heading text-xl tracking-wide"
+              style={item.rarity === 'unique' ? { color: accent } : undefined}
+            >
+              {item.name}
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              {subtitleClass}{item.rarity === 'unique' ? ' — Unique' : ''}
             </p>
+          </div>
+
+          {(modLines.length > 0 || statRows.length > 0 || hasFlavour) && (
+            <>
+              <TooltipDivider />
+              {modLines.length > 0 && (
+                <ul className="space-y-1 text-sm font-medium">
+                  {modLines.map((stat, i) => <li key={`${i}-${stat}`}>{linkMentions(stat, mentions, self)}</li>)}
+                </ul>
+              )}
+              {statRows.length > 0 && (
+                <ul className="space-y-0.5 text-xs text-muted-foreground">
+                  {statRows.map((row) => (
+                    <li key={row.label}>
+                      {row.label}: <span className="font-medium text-foreground">{row.value}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {item.flavourText && item.flavourText.length > 0 && (
+                <p className="text-sm italic text-muted-foreground">{linkMentions(item.flavourText.join(' '), mentions, self)}</p>
+              )}
+            </>
           )}
-          {item.flavourText && item.flavourText.length > 0 && (
-            <p className="border-t border-border pt-3 text-sm italic text-muted-foreground">
-              {item.flavourText.join(' ')}
-            </p>
+
+          {hasUseText && (
+            <>
+              <TooltipDivider />
+              {item.description && (
+                <p className="text-sm whitespace-pre-line">{linkMentions(item.description, mentions, self)}</p>
+              )}
+              {item.directions && item.consoleButtons && (
+                <p className="text-sm italic text-muted-foreground whitespace-pre-line">
+                  {mergeDirectionsWithConsoleButtons(item.directions, item.consoleButtons).map((node, i) => (
+                    <span key={i}>{typeof node === 'string' ? linkMentions(node, mentions, self) : node}</span>
+                  ))}
+                </p>
+              )}
+              {item.directions && !item.consoleButtons && (
+                <p className="text-sm italic text-muted-foreground whitespace-pre-line">{linkMentions(item.directions, mentions, self)}</p>
+              )}
+              {item.consoleDirections && !item.consoleButtons && item.consoleDirections !== item.directions && (
+                <p className="text-sm italic text-muted-foreground whitespace-pre-line">
+                  <span className="not-italic font-medium text-foreground">Console: </span>
+                  {linkMentions(item.consoleDirections, mentions, self)}
+                </p>
+              )}
+            </>
           )}
-          {item.rarity === 'unique' && (
-            <p className="border-t border-border pt-3 text-xs text-muted-foreground">
+
+          {item.uniqueMods?.dropSource && (
+            <>
+              <TooltipDivider />
+              <p className="text-sm font-bold">{linkMentions(item.uniqueMods.dropSource, mentions, self)}</p>
+            </>
+          )}
+
+          {item.rarity === 'unique' && !item.uniqueMods && (
+            <p className="border-t border-border pt-3 text-[11px] text-muted-foreground">
               This item&apos;s actual modifier values aren&apos;t available yet — see the wiki design doc&apos;s
               known limitation on unique items.
             </p>
           )}
         </article>
-        <DetailInfoPanel title={item.name} accentColor={accent} rows={rows} />
       </div>
     </div>
   );

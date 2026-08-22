@@ -60,6 +60,34 @@ export interface WikiItemFlask {
   duration: number;
 }
 
+/**
+ * A unique item's actual mods and roll ranges — GGPK has no unique->base-type
+ * link (the base a unique rolls on is decided at drop generation, not
+ * stored, per @poe2-toolkit's own item-extractor docs), so this can't come
+ * from the sync's usual GGPK tables. Sourced instead from Path of Building
+ * Community's hand-maintained `Uniques/*.lua` data (MIT licensed) — see
+ * `parsePobUniqueFile` in normalize.ts. `null` when no matching entry was
+ * found for this unique's name.
+ *
+ * Implicit lines from this source are folded into the item's own top-level
+ * `implicitMods` instead of duplicated here — GGPK-sourced implicits (normal
+ * items) and PoB-sourced implicits (uniques) are the same concept from a
+ * renderer's point of view, and a unique never has both.
+ */
+export interface WikiUniqueMods {
+  /**
+   * The unique's specific base type (e.g. "Sacrificial Regalia"), more exact
+   * than the item's own GGPK-sourced `category` ("Body Armour" — the closest
+   * .dat gets, per the unique/base-link gap above). `null` if PoB's entry
+   * didn't carry one either.
+   */
+  baseType: string | null;
+  requiresLevel: number | null;
+  /** Plain-text drop source, e.g. "Drops from Olroth, Origin of the Fall". `null` when PoB has none on file (many basic-drop uniques don't). */
+  dropSource: string | null;
+  explicitMods: string[];
+}
+
 export interface WikiItemDetail extends WikiDetailBase {
   kind: 'item';
   rarity: 'normal' | 'unique';
@@ -77,9 +105,11 @@ export interface WikiItemDetail extends WikiDetailBase {
   description: string | null;
   directions: string | null;
   consoleDirections: string | null;
+  consoleButtons: string[] | null;
   stackSize: number | null;
   implicitMods: string[];
   flask: WikiItemFlask | null;
+  uniqueMods: WikiUniqueMods | null;
 }
 
 export interface WikiSkillStatLine {

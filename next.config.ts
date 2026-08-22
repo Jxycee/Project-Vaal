@@ -60,22 +60,28 @@ const nextConfig: NextConfig = {
   // — originally 27,771 files / 211MB each, past Vercel's 250MB uncompressed
   // function limit and enough to fail the deploy outright.
   //
-  // Three exclusions, all safe because the server never opens these files:
+  // Two exclusions, both safe because the server never opens these files:
   //   - icons/**   fetched by URL from the CDN by the browser, never read by
   //                the server. This is the bulk of the bytes.
   //   - the other two kinds' detail directories, per route. /wiki/items has
   //     no reason to carry every mod.
-  //   - *-index.json — the item/skill/mod search index files. These used to
-  //     be read server-side by the browse pages (readFile + JSON.parse on
-  //     every request); that was moved to a client-side fetch once
-  //     /data/wiki/** became auth-gated (2026-08-21), so nothing under
-  //     src/app or src/lib opens these server-side anymore — verify with
-  //     `grep -rn "index.json" src` before assuming this is still true.
+  //
+  // *-index.json is NOT excluded (2026-08-22 fix): src/lib/wiki/mentions.ts
+  // reads all three kinds' index files server-side, on every detail page
+  // (loadMentionIndex, for cross-page name-mention linking), regardless of
+  // which of the three routes is rendering — confirmed live in production
+  // via Vercel runtime error logs (ENOENT on skill-index.json from
+  // /wiki/items/[slug] and /wiki/skills/[slug]) after this same exclusion
+  // silently dropped them from the bundle. Before re-excluding these again,
+  // `grep -rn "index.json" src` and confirm nothing server-side still reads
+  // them — the same check this comment asked for last time, which is
+  // exactly the step that got skipped and broke production.
   //
   // Gate for any change here: the `files` count in
   // .next/server/app/wiki/*/[slug]/page.js.nft.json after a build. A green
   // `next build` does not prove this is right — it was green when the
-  // functions were 211MB.
+  // functions were 211MB, and green again the day this exclusion broke
+  // every wiki detail page in production.
   // -------------------------------------------------------------------------
   // PLATFORM NOTE: these excludes apply on Linux (what Vercel builds on) but
   // are inert on a Windows build. Next resolves each value with
@@ -93,7 +99,6 @@ const nextConfig: NextConfig = {
   outputFileTracingExcludes: {
     '/wiki/**': [
       './public/data/wiki/**/icons/**',
-      './public/data/wiki/**/*-index.json',
     ],
     '/wiki/items/*': [
       './public/data/wiki/**/skills/**',
