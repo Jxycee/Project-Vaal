@@ -12,7 +12,7 @@ export const WIKI_DATA_VERSION = '2026-08-21';
  */
 export const WIKI_PATCH_VERSION = '4.5.4.10.2';
 
-export type WikiEntryKind = 'item' | 'skill' | 'mod';
+export type WikiEntryKind = 'item' | 'skill' | 'mod' | 'effect';
 
 /** Slim entry — this is what ships to the browser for search. Keep it small. */
 export interface WikiSearchEntry {
@@ -174,7 +174,22 @@ export interface WikiModDetail extends WikiDetailBase {
   spawnWeights: WikiModSpawnWeight[];
 }
 
-const KINDS: readonly string[] = ['item', 'skill', 'mod'];
+/**
+ * A buff or ailment (Bleeding, Chilled, Maimed, Righteous Fire, ...), from
+ * GGPK's `BuffDefinitions` table — `Id`/`Name`/`Description` only; no icon
+ * art is referenced anywhere in that table, and `Description` is already
+ * player-facing prose (same `[Key|Display]` bracket markup convention as
+ * `CurrencyItems.Description`), so no stat-translation step is needed.
+ * `category` is always `"Effect"` — the table has no further
+ * classification to group by (ailment vs. buff vs. utility effect aren't
+ * distinguished in the source data).
+ */
+export interface WikiEffectDetail extends WikiDetailBase {
+  kind: 'effect';
+  description: string;
+}
+
+const KINDS: readonly string[] = ['item', 'skill', 'mod', 'effect'];
 
 export function isWikiSearchEntry(value: unknown): value is WikiSearchEntry {
   if (typeof value !== 'object' || value === null) return false;

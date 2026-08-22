@@ -21,6 +21,7 @@ const ENTITY_LABEL: Record<WikiEntryKind, string> = {
   item: 'items',
   skill: 'skill gems',
   mod: 'mods',
+  effect: 'effects',
 };
 
 /**

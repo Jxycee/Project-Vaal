@@ -15,10 +15,10 @@ import { createCdnSource } from '@poe2-toolkit/ggpk';
 import { extractItems } from '@poe2-toolkit/item-extractor';
 import { extractGems } from '@poe2-toolkit/gem-extractor';
 import { extractMods } from '@poe2-toolkit/mod-extractor';
-import { normalizeItem, normalizeSkill, normalizeMod, toSearchEntry, slugify, parsePobUniqueFile } from '../src/lib/wiki/normalize';
-import type { CurrencyText, PobUniqueEntry } from '../src/lib/wiki/normalize';
+import { normalizeItem, normalizeSkill, normalizeMod, normalizeEffect, toSearchEntry, slugify, parsePobUniqueFile } from '../src/lib/wiki/normalize';
+import type { CurrencyText, PobUniqueEntry, EffectRow } from '../src/lib/wiki/normalize';
 import { WIKI_DATA_VERSION, WIKI_PATCH_VERSION } from '../src/lib/wiki/types';
-import type { WikiSearchEntry, WikiItemDetail, WikiSkillDetail, WikiModDetail, WikiItemFlask } from '../src/lib/wiki/types';
+import type { WikiSearchEntry, WikiItemDetail, WikiSkillDetail, WikiModDetail, WikiEffectDetail, WikiItemFlask } from '../src/lib/wiki/types';
 
 const WIKI_ROOT = path.join(process.cwd(), 'public', 'data', 'wiki');
 const OUT_DIR = path.join(WIKI_ROOT, WIKI_DATA_VERSION);
@@ -564,9 +564,45 @@ async function syncMods(lastSynced: string): Promise<number> {
   return writeKind('mod', details);
 }
 
+/**
+ * `BuffDefinitions` (ailments and buffs - Bleeding, Chilled, Maimed,
+ * Righteous Fire, ...) isn't behind a @poe2-toolkit extractor package;
+ * read directly from the decoded table, same as `joinCurrencyByName`.
+ *
+ * Filtered to rows with both a real `Name` and `Description` - most of the
+ * table is internal hook rows with neither (verified against a live
+ * decode: 1,489 of 3,217 rows have both), same "no usable definition, drop
+ * it" reasoning as the mods filter above. Deduped by name, first row wins
+ * (same convention as every other by-name join in this file) - 181 real
+ * name collisions in a live decode, e.g. "Righteous Fire" as both the
+ * caster's own buff and the nearby-player debuff.
+ */
+export function readEffectRows(tablesDir: string): EffectRow[] {
+  const rows: { Id: string; Name: string | null; Description: string | null }[] =
+    JSON.parse(readFileSync(path.join(tablesDir, 'BuffDefinitions.json'), 'utf8'));
+  const seenNames = new Set<string>();
+  const result: EffectRow[] = [];
+  for (const row of rows) {
+    if (!row.Name || !row.Description) continue;
+    if (seenNames.has(row.Name)) continue;
+    seenNames.add(row.Name);
+    result.push({ id: row.Id, name: row.Name, description: row.Description });
+  }
+  return result;
+}
+
+function syncEffects(lastSynced: string): number {
+  const usedSlugs = new Set<string>();
+  const details: WikiEffectDetail[] = readEffectRows(TABLES_DIR).map((row) => {
+    const slug = dedupeSlug(slugify(row.name), row.id, usedSlugs);
+    return { ...normalizeEffect(row, lastSynced), slug };
+  });
+  return writeKind('effect', details);
+}
+
 function writeKind(
-  kind: 'item' | 'skill' | 'mod',
-  details: Array<WikiItemDetail | WikiSkillDetail | WikiModDetail>,
+  kind: 'item' | 'skill' | 'mod' | 'effect',
+  details: Array<WikiItemDetail | WikiSkillDetail | WikiModDetail | WikiEffectDetail>,
 ): number {
   const entries = details.map(toSearchEntry);
   validateSyncResult(entries, previousCount(kind), { allowShrink: ALLOW_SHRINK });
@@ -606,7 +642,8 @@ async function main(): Promise<void> {
   const items = await syncItems(lastSynced);
   const skills = await syncSkills(lastSynced);
   const mods = await syncMods(lastSynced);
-  console.log(`wiki sync complete: ${items} items, ${skills} skills, ${mods} mods -> ${OUT_DIR}`);
+  const effects = syncEffects(lastSynced);
+  console.log(`wiki sync complete: ${items} items, ${skills} skills, ${mods} mods, ${effects} effects -> ${OUT_DIR}`);
 }
 
 if (process.argv[1]?.includes('sync-wiki')) {

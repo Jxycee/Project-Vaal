@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { Item } from '@poe2-toolkit/item-extractor';
-import { slugify, normalizeItem, normalizeSkill, normalizeMod, toSearchEntry, stripBracketMarkup, stripXboxButtonTokens, extractConsoleButtons, stripPobSourceMarkup, parsePobUniqueBlock, parsePobUniqueFile } from './normalize';
+import { slugify, normalizeItem, normalizeSkill, normalizeMod, normalizeEffect, toSearchEntry, stripBracketMarkup, stripXboxButtonTokens, extractConsoleButtons, stripPobSourceMarkup, parsePobUniqueBlock, parsePobUniqueFile } from './normalize';
 
 const fixture = (name: string) =>
   JSON.parse(readFileSync(path.join(__dirname, '__fixtures__', name), 'utf8'));
@@ -499,6 +499,21 @@ describe('normalizeMod', () => {
   it('relabels the unnamed ModDomains enum slots "6" and "8" to their real, verified meaning', () => {
     expect(normalizeMod('x', { ...raw, domain: '6' }, SYNCED_AT).domain).toBe('Map');
     expect(normalizeMod('x', { ...raw, domain: '8' }, SYNCED_AT).domain).toBe('Sanctum');
+  });
+});
+
+describe('normalizeEffect', () => {
+  it('slugs from name, strips bracket markup from the description, and always categorizes as "Effect"', () => {
+    const result = normalizeEffect(
+      { id: 'maim', name: 'Maimed', description: 'Reduced [Evasion] and movement speed [Slow|Slowed].' },
+      SYNCED_AT,
+    );
+    expect(result.kind).toBe('effect');
+    expect(result.slug).toBe('maimed');
+    expect(result.name).toBe('Maimed');
+    expect(result.category).toBe('Effect');
+    expect(result.description).toBe('Reduced Evasion and movement speed Slowed.');
+    expect(result.lastSynced).toBe(SYNCED_AT);
   });
 });
 

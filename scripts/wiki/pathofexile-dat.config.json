@@ -5,6 +5,7 @@
   "tables": [
     { "name": "BaseItemTypes", "columns": ["Id", "Name", "ItemClass", "Tags", "ItemVisualIdentity", "DropLevel", "ModDomain", "IsCorrupted", "Implicit_Mods", "FlavourText"] },
     { "name": "CurrencyItems", "columns": ["BaseItemType", "StackSize", "Description", "Directions", "XBoxDirections"] },
+    { "name": "BuffDefinitions", "columns": ["Id", "Name", "Description"] },
     { "name": "Flasks", "columns": ["BaseItemType", "LifePerUse", "ManaPerUse", "RecoveryTime"] },
     { "name": "ItemClasses", "columns": ["Id", "Name", "ItemClassCategory"] },
     { "name": "ItemVisualIdentity", "columns": ["Id", "DDSFile", "AOFile"] },

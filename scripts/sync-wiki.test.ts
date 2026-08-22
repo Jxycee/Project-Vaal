@@ -11,6 +11,7 @@ import {
   joinCurrencyByName,
   joinImplicitModsByName,
   joinFlaskStatsByName,
+  readEffectRows,
 } from './sync-wiki';
 
 const entry = (slug: string) => ({
@@ -391,5 +392,63 @@ describe('joinFlaskStatsByName', () => {
       manaRecovery: 0,
       duration: 3,
     });
+  });
+});
+
+describe('readEffectRows', () => {
+  let root: string;
+
+  const writeTable = (buffDefinitions: object[]) => {
+    const dir = path.join(root, 'tables', 'English');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, 'BuffDefinitions.json'), JSON.stringify(buffDefinitions));
+    return dir;
+  };
+
+  beforeEach(() => {
+    root = mkdtempSync(path.join(tmpdir(), 'wiki-effect-test-'));
+  });
+
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('keeps a row with both a real Name and Description', () => {
+    const dir = writeTable([
+      { _index: 0, Id: 'maim', Name: 'Maimed', Description: 'Reduced [Evasion] and movement speed [Slow|Slowed].' },
+    ]);
+
+    expect(readEffectRows(dir)).toEqual([
+      { id: 'maim', name: 'Maimed', description: 'Reduced [Evasion] and movement speed [Slow|Slowed].' },
+    ]);
+  });
+
+  it('drops rows with no Name, no Description, or neither — internal hook rows with no usable definition', () => {
+    const dir = writeTable([
+      { _index: 0, Id: 'have_killed_a_maimed_enemy_recently', Name: '', Description: '' },
+      { _index: 1, Id: 'no_description', Name: 'Something', Description: '' },
+      { _index: 2, Id: 'no_name', Name: '', Description: 'Something happens.' },
+      { _index: 3, Id: 'bleeding', Name: 'Bleeding', Description: 'Debuff inflicts damage over time.' },
+    ]);
+
+    expect(readEffectRows(dir)).toEqual([
+      { id: 'bleeding', name: 'Bleeding', description: 'Debuff inflicts damage over time.' },
+    ]);
+  });
+
+  it('keeps the first row on a name collision, same convention as joinCurrencyByName', () => {
+    const dir = writeTable([
+      { _index: 0, Id: 'righteous_fire', Name: 'Righteous Fire', Description: 'You take burning damage.' },
+      { _index: 1, Id: 'righteous_fire_aura', Name: 'Righteous Fire', Description: 'You are near someone using Righteous Fire.' },
+    ]);
+
+    expect(readEffectRows(dir)).toEqual([
+      { id: 'righteous_fire', name: 'Righteous Fire', description: 'You take burning damage.' },
+    ]);
+  });
+
+  it('returns an empty array when the table has no usable rows', () => {
+    const dir = writeTable([{ _index: 0, Id: 'x', Name: '', Description: '' }]);
+    expect(readEffectRows(dir)).toEqual([]);
   });
 });

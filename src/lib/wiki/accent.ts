@@ -24,3 +24,10 @@ export function skillAccentColor(color: 'r' | 'g' | 'b' | 'w'): string {
  * — a flat brand-gold accent is the correct choice here, not a compromise.
  */
 export const MOD_ACCENT_COLOR = 'var(--primary)';
+
+/**
+ * Effects (ailments/buffs) have no per-entry color axis either, but reuse
+ * MOD_ACCENT_COLOR would make effect cards indistinguishable from mod cards
+ * at a glance — a distinct flat violet keeps the two kinds visually apart.
+ */
+export const EFFECT_ACCENT_COLOR = 'var(--wiki-effect)';

@@ -5,6 +5,7 @@ const NAV = [
   { href: '/wiki/items', label: 'Items' },
   { href: '/wiki/skills', label: 'Skills' },
   { href: '/wiki/mods', label: 'Mods' },
+  { href: '/wiki/effects', label: 'Effects' },
 ];
 
 export default function WikiLayout({ children }: { children: React.ReactNode }) {

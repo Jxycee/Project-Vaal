@@ -1,11 +1,13 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import type { MentionIndex } from '@/lib/wiki/mentions';
+import type { WikiEntryKind } from '@/lib/wiki/types';
 
-const KIND_PATH: Record<'item' | 'skill' | 'mod', string> = {
+const KIND_PATH: Record<WikiEntryKind, string> = {
   item: '/wiki/items',
   skill: '/wiki/skills',
   mod: '/wiki/mods',
+  effect: '/wiki/effects',
 };
 
 /**
@@ -35,6 +37,6 @@ export function linkMentions(text: string, index: MentionIndex, self?: MentionTa
 }
 
 interface MentionTargetLike {
-  kind: 'item' | 'skill' | 'mod';
+  kind: WikiEntryKind;
   slug: string;
 }

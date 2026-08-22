@@ -11,6 +11,7 @@ import type {
   WikiItemDetail,
   WikiSkillDetail,
   WikiModDetail,
+  WikiEffectDetail,
   WikiSearchEntry,
   WikiItemFlask,
 } from './types';
@@ -410,15 +411,45 @@ export function normalizeMod(id: string, mod: Mod, lastSynced: string): WikiModD
 }
 
 /**
+ * One `BuffDefinitions` row this project cares about - `Id`/`Name`/
+ * `Description` only. Read and filtered by `scripts/sync-wiki.ts` directly
+ * from the decoded table (not through a @poe2-toolkit extractor package,
+ * same as `CurrencyText` above); this type is just the shape it hands off
+ * to {@link normalizeEffect}.
+ */
+export interface EffectRow {
+  id: string;
+  name: string;
+  description: string;
+}
+
+/**
+ * Normalizes one filtered {@link EffectRow} into a {@link WikiEffectDetail}.
+ * Slugged from `name`, not `id` - unlike mods, effects are pre-filtered to
+ * rows with a real name before this ever runs (see `syncEffects`), so
+ * there's no `id`-fallback case to cover.
+ */
+export function normalizeEffect(row: EffectRow, lastSynced: string): WikiEffectDetail {
+  return {
+    kind: 'effect',
+    slug: slugify(row.name),
+    name: row.name,
+    category: 'Effect',
+    description: stripBracketMarkup(row.description),
+    lastSynced,
+  };
+}
+
+/**
  * Slims a detail record down to the {@link WikiSearchEntry} shape shipped to
  * the browser for search. Mods have no `tags` field of their own; their
  * mutual-exclusion `families` (the closest analog - what determines which
  * other mods they compete with) stand in for search tags.
  */
 export function toSearchEntry(
-  detail: WikiItemDetail | WikiSkillDetail | WikiModDetail,
+  detail: WikiItemDetail | WikiSkillDetail | WikiModDetail | WikiEffectDetail,
 ): WikiSearchEntry {
-  const tags = detail.kind === 'mod' ? detail.families : detail.tags;
+  const tags = detail.kind === 'mod' ? detail.families : detail.kind === 'effect' ? [] : detail.tags;
   return {
     slug: detail.slug,
     name: detail.name,

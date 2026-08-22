@@ -74,7 +74,8 @@ let cached: Promise<MentionIndex> | null = null;
  * worth guarding against here.
  */
 export function loadMentionIndex(): Promise<MentionIndex> {
-  cached ??= Promise.all([readSearchIndex('skill'), readSearchIndex('item'), readSearchIndex('mod')])
-    .then(([skills, items, mods]) => buildMentionIndex([skills, items, mods]));
+  cached ??= Promise
+    .all([readSearchIndex('skill'), readSearchIndex('item'), readSearchIndex('mod'), readSearchIndex('effect')])
+    .then(([skills, items, mods, effects]) => buildMentionIndex([skills, items, mods, effects]));
   return cached;
 }
