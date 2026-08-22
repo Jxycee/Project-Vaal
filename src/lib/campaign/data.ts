@@ -51,6 +51,10 @@ function utility(text: string): CampaignReward {
 function choice(text: string): CampaignReward {
   return { text: `Choice: ${text}`, kind: 'choice' }
 }
+/** The act/interlude's mandatory story-ending fight — no passive/stat reward tracked for these. */
+function finale(): CampaignReward {
+  return { text: 'Story finale — no additional stat reward', kind: 'utility' }
+}
 
 interface RawArea {
   area: string
@@ -73,6 +77,7 @@ const RAW: RawAct[] = [
       { area: 'Freythorn', boss: 'The King in the Mists', rewards: [stat('+30 to Spirit')] },
       { area: 'Ogham Farmlands', boss: "Una's Hut", rewards: [point('Grants Two Weapon Set Passive Skill Points')] },
       { area: 'Ogham Manor', boss: 'Candlemass, the Living Rite', rewards: [stat('+20 to maximum Life')] },
+      { area: 'Ogham Manor', boss: 'Count Geonor', rewards: [finale()] },
     ],
   },
   {
@@ -91,6 +96,7 @@ const RAW: RawAct[] = [
       },
       { area: 'Deshar', boss: 'Final Letter', rewards: [point('Grants Two Weapon Set Passive Skill Points')] },
       { area: 'The Spires of Deshar', boss: 'Sisters of Garukhan', rewards: [stat('+10% to Lightning Resistance')] },
+      { area: 'Dreadnought Vanguard', boss: 'Jamanra, the Abomination', rewards: [finale()] },
     ],
   },
   {
@@ -111,6 +117,7 @@ const RAW: RawAct[] = [
       { area: 'The Azak Bog', boss: 'Ignagduk, the Bog Witch', rewards: [stat('+30 to Spirit')] },
       { area: 'The Molten Vault', boss: 'The Molten Vault', rewards: [utility('Reforging Bench')] },
       { area: 'Aggorat', boss: 'Blood Sacrifice', rewards: [point('Grants Two Weapon Set Passive Skill Points')] },
+      { area: 'The Black Chambers', boss: 'Doryani, Royal Thaumaturge', rewards: [finale()] },
     ],
   },
   {
@@ -156,6 +163,7 @@ const RAW: RawAct[] = [
         boss: "Ngamahu's Test",
         rewards: [choice('+5 to Strength'), choice('+5% to Fire Resistance')],
       },
+      { area: 'Heart of the Tribe', boss: 'Tavakai, the Chieftain', rewards: [finale()] },
     ],
   },
   {
@@ -180,8 +188,10 @@ const RAW: RawAct[] = [
           ),
         ],
       },
+      { area: 'Qimah Reservoir', boss: 'Azmadi, the Faridun Prince', rewards: [finale()] },
       { area: 'Kriar Village', boss: 'Lythara, the Wayward Spear', rewards: [stat('+40 to Spirit')] },
       { area: 'Howling Caves', boss: 'The Abominable Yeti', rewards: [point('Grants Two Weapon Set Passive Skill Points')] },
+      { area: 'The Cuachic Vault', boss: 'Zolin and Zelina', rewards: [finale()] },
     ],
   },
   {
