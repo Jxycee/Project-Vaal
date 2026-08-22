@@ -100,12 +100,15 @@ export function ddsPathToIconKey(ddsPath: string): string {
  * (260/295), MapFragment (125/132), Omen (49/50), Incubator (30/30),
  * Breachstone (26/26), the three UncutXGemStackable classes, and several
  * smaller categories. Does not cover QuestItem, Jewel, flasks, or gear —
- * consistent with those genuinely carrying no in-game use-text.
+ * consistent with those genuinely carrying no in-game use-text. Of those
+ * 1,518 rows, 683 also have a populated `XBoxDirections` (console button
+ * prompts, e.g. "<<xbox_button_x>> to use...") — the other 835 have none in
+ * the game's own data, not a gap in this join.
  */
 export function joinCurrencyByName(tablesDir: string): Map<string, CurrencyText> {
   const baseRows: { _index: number; Name: string }[] =
     JSON.parse(readFileSync(path.join(tablesDir, 'BaseItemTypes.json'), 'utf8'));
-  const currencyRows: { BaseItemType: number; StackSize: number; Description: string | null; Directions: string | null }[] =
+  const currencyRows: { BaseItemType: number; StackSize: number; Description: string | null; Directions: string | null; XBoxDirections: string | null }[] =
     JSON.parse(readFileSync(path.join(tablesDir, 'CurrencyItems.json'), 'utf8'));
 
   const nameByIndex = new Map(baseRows.map((r) => [r._index, r.Name]));
@@ -116,7 +119,12 @@ export function joinCurrencyByName(tablesDir: string): Map<string, CurrencyText>
     // itself uses for ItemData (verified in @poe2-toolkit/item-extractor's
     // own buildItems.js: "First displayable base seen for a name wins").
     if (name && !result.has(name)) {
-      result.set(name, { stackSize: row.StackSize, description: row.Description, directions: row.Directions });
+      result.set(name, {
+        stackSize: row.StackSize,
+        description: row.Description,
+        directions: row.Directions,
+        xboxDirections: row.XBoxDirections,
+      });
     }
   }
   return result;

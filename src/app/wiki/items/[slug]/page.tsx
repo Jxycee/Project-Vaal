@@ -102,6 +102,12 @@ export default async function ItemDetailPage({
           {item.directions && (
             <p className="text-sm italic text-muted-foreground whitespace-pre-line">{item.directions}</p>
           )}
+          {item.consoleDirections && (
+            <p className="text-sm italic text-muted-foreground whitespace-pre-line">
+              <span className="not-italic font-medium text-foreground">Console: </span>
+              {item.consoleDirections}
+            </p>
+          )}
           {item.flavourText && item.flavourText.length > 0 && (
             <p className="border-t border-border pt-3 text-sm italic text-muted-foreground">
               {item.flavourText.join(' ')}
@@ -113,9 +119,6 @@ export default async function ItemDetailPage({
               known limitation on unique items.
             </p>
           )}
-          <p className="text-xs text-muted-foreground">
-            Extracted from Path of Exile 2&apos;s game files via poe2-toolkit (MIT).
-          </p>
         </article>
         <DetailInfoPanel title={item.name} accentColor={accent} rows={rows} />
       </div>

@@ -78,9 +78,6 @@ export default async function ModDetailPage({
               </ul>
             </div>
           )}
-          <p className="text-xs text-muted-foreground">
-            Extracted from Path of Exile 2&apos;s game files via poe2-toolkit (MIT).
-          </p>
         </article>
         <DetailInfoPanel title={mod.name} accentColor={MOD_ACCENT_COLOR} rows={rows} />
       </div>

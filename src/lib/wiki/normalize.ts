@@ -43,6 +43,23 @@ export function stripBracketMarkup(text: string): string {
 }
 
 /**
+ * Maps PoE's `<<xbox_button_x>>` style button-glyph placeholders (from
+ * `CurrencyItems.XBoxDirections`) to a plain-text button name. Verified
+ * against a live decode: exactly two tokens appear across the whole table,
+ * `xbox_button_x` and `xbox_button_a` — both currency-item action buttons
+ * (X to use the item, A to apply it to a target). An unrecognized future
+ * token falls back to its raw inner name rather than vanishing silently.
+ */
+const XBOX_BUTTON_NAME: Record<string, string> = {
+  xbox_button_x: 'X',
+  xbox_button_a: 'A',
+};
+
+export function stripXboxButtonTokens(text: string): string {
+  return text.replace(/<<xbox_button_([a-z0-9_]+)>>/g, (_match, key: string) => XBOX_BUTTON_NAME[`xbox_button_${key}`] ?? key);
+}
+
+/**
  * One item's joined `CurrencyItems` row, keyed by display name in
  * scripts/sync-wiki.ts's own join (see that file's `joinCurrencyByName`) —
  * this module only shapes it onto `WikiItemDetail`, it doesn't do the join.
@@ -51,6 +68,7 @@ export interface CurrencyText {
   stackSize: number;
   description: string | null;
   directions: string | null;
+  xboxDirections: string | null;
 }
 
 /**
@@ -97,6 +115,7 @@ export function normalizeItem(
     iconUrl,
     description: currency?.description ? stripBracketMarkup(currency.description) : null,
     directions: currency?.directions ? stripBracketMarkup(currency.directions) : null,
+    consoleDirections: currency?.xboxDirections ? stripXboxButtonTokens(currency.xboxDirections) : null,
     stackSize: currency?.stackSize ?? null,
     lastSynced,
   };

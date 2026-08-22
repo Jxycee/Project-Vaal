@@ -4,7 +4,7 @@
   "files": [],
   "tables": [
     { "name": "BaseItemTypes", "columns": ["Id", "Name", "ItemClass", "Tags", "ItemVisualIdentity", "DropLevel", "ModDomain", "IsCorrupted", "Implicit_Mods", "FlavourText"] },
-    { "name": "CurrencyItems", "columns": ["BaseItemType", "StackSize", "Description", "Directions"] },
+    { "name": "CurrencyItems", "columns": ["BaseItemType", "StackSize", "Description", "Directions", "XBoxDirections"] },
     { "name": "ItemClasses", "columns": ["Id", "Name", "ItemClassCategory"] },
     { "name": "ItemVisualIdentity", "columns": ["Id", "DDSFile", "AOFile"] },
     { "name": "UniqueStashLayout", "columns": ["WordsKey", "ItemVisualIdentityKey", "UniqueStashTypesKey"] },

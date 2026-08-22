@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { Item } from '@poe2-toolkit/item-extractor';
-import { slugify, normalizeItem, normalizeSkill, normalizeMod, toSearchEntry, stripBracketMarkup } from './normalize';
+import { slugify, normalizeItem, normalizeSkill, normalizeMod, toSearchEntry, stripBracketMarkup, stripXboxButtonTokens } from './normalize';
 
 const fixture = (name: string) =>
   JSON.parse(readFileSync(path.join(__dirname, '__fixtures__', name), 'utf8'));
@@ -48,6 +48,21 @@ describe('stripBracketMarkup', () => {
   });
 });
 
+describe('stripXboxButtonTokens', () => {
+  it('replaces xbox_button_x with X', () => {
+    expect(stripXboxButtonTokens('<<xbox_button_x>> to use, then <<xbox_button_a>> on martial weapon to apply it.'))
+      .toBe('X to use, then A on martial weapon to apply it.');
+  });
+
+  it('leaves plain text with no button tokens unchanged', () => {
+    expect(stripXboxButtonTokens('Right click this item to apply it.')).toBe('Right click this item to apply it.');
+  });
+
+  it('falls back to the raw key for an unrecognized button token instead of vanishing it', () => {
+    expect(stripXboxButtonTokens('Press <<xbox_button_y>> to cancel.')).toBe('Press y to cancel.');
+  });
+});
+
 describe('normalizeItem', () => {
   const raw = fixture('sample-item.json');
 
@@ -88,10 +103,11 @@ describe('normalizeItem', () => {
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
   });
 
-  it('defaults description, directions, and stackSize to null when no currency row is given', () => {
+  it('defaults description, directions, consoleDirections, and stackSize to null when no currency row is given', () => {
     const result = normalizeItem(raw.name, raw, null, SYNCED_AT);
     expect(result.description).toBeNull();
     expect(result.directions).toBeNull();
+    expect(result.consoleDirections).toBeNull();
     expect(result.stackSize).toBeNull();
   });
 
@@ -100,10 +116,21 @@ describe('normalizeItem', () => {
       stackSize: 20,
       description: 'Improves the [Quality|quality] of a [MartialWeapon|martial weapon]',
       directions: 'Right click this item then left click a martial weapon to apply it.',
+      xboxDirections: null,
     });
     expect(result.description).toBe('Improves the quality of a martial weapon');
     expect(result.directions).toBe('Right click this item then left click a martial weapon to apply it.');
     expect(result.stackSize).toBe(20);
+  });
+
+  it('carries consoleDirections through, stripped of xbox button tokens, when present', () => {
+    const result = normalizeItem(raw.name, raw, null, SYNCED_AT, {
+      stackSize: 20,
+      description: null,
+      directions: 'Right click this item then left click a martial weapon to apply it.',
+      xboxDirections: '<<xbox_button_x>> to use, then <<xbox_button_a>> on martial weapon to apply it.',
+    });
+    expect(result.consoleDirections).toBe('X to use, then A on martial weapon to apply it.');
   });
 
   it('passes stackSize through even when it is 1 (real value for non-stackable currency) rather than nulling it', () => {
@@ -111,19 +138,22 @@ describe('normalizeItem', () => {
       stackSize: 1,
       description: null,
       directions: 'Right click this item then left click on the imprinted original item to restore its modifiers.',
+      xboxDirections: null,
     });
     expect(result.stackSize).toBe(1);
     expect(result.description).toBeNull();
   });
 
-  it('normalizes an empty-string description/directions to null, matching the real table\'s "no text" convention', () => {
+  it('normalizes an empty-string description/directions/xboxDirections to null, matching the real table\'s "no text" convention', () => {
     const result = normalizeItem(raw.name, raw, null, SYNCED_AT, {
       stackSize: 10,
       description: '',
       directions: '',
+      xboxDirections: '',
     });
     expect(result.description).toBeNull();
     expect(result.directions).toBeNull();
+    expect(result.consoleDirections).toBeNull();
   });
 
   // sample-item.json ("Bramblejack") is a unique with no base-type link, so

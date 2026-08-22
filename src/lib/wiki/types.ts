@@ -69,6 +69,7 @@ export interface WikiItemDetail extends WikiDetailBase {
   iconUrl: string | null;
   description: string | null;
   directions: string | null;
+  consoleDirections: string | null;
   stackSize: number | null;
 }
 

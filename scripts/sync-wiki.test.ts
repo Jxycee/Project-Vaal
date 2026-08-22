@@ -202,7 +202,12 @@ describe('joinCurrencyByName', () => {
   it('joins a CurrencyItems row to its BaseItemTypes name by row index', () => {
     const dir = writeTables(
       [{ _index: 0, Id: 'Metadata/Items/Currency/CurrencyWeaponQuality', Name: "Blacksmith's Whetstone" }],
-      [{ _index: 15, BaseItemType: 0, StackSize: 20, Directions: 'Right click this item then left click a martial weapon to apply it.', Description: 'Improves the [Quality|quality] of a [MartialWeapon|martial weapon]' }],
+      [{
+        _index: 15, BaseItemType: 0, StackSize: 20,
+        Directions: 'Right click this item then left click a martial weapon to apply it.',
+        Description: 'Improves the [Quality|quality] of a [MartialWeapon|martial weapon]',
+        XBoxDirections: '<<xbox_button_x>> to use, then <<xbox_button_a>> on martial weapon to apply it.',
+      }],
     );
 
     const result = joinCurrencyByName(dir);
@@ -211,13 +216,14 @@ describe('joinCurrencyByName', () => {
       stackSize: 20,
       description: 'Improves the [Quality|quality] of a [MartialWeapon|martial weapon]',
       directions: 'Right click this item then left click a martial weapon to apply it.',
+      xboxDirections: '<<xbox_button_x>> to use, then <<xbox_button_a>> on martial weapon to apply it.',
     });
   });
 
   it('leaves bracket markup un-stripped — that is normalizeItem/stripBracketMarkup\'s job, not the join\'s', () => {
     const dir = writeTables(
       [{ _index: 0, Id: 'Metadata/Items/Currency/CurrencyMirroredItem', Name: 'Mirror of Kalandra' }],
-      [{ _index: 5, BaseItemType: 0, StackSize: 1, Directions: null, Description: 'Creates a [Mirrored] copy of an item' }],
+      [{ _index: 5, BaseItemType: 0, StackSize: 1, Directions: null, Description: 'Creates a [Mirrored] copy of an item', XBoxDirections: null }],
     );
 
     expect(joinCurrencyByName(dir).get('Mirror of Kalandra')?.description).toBe('Creates a [Mirrored] copy of an item');
@@ -239,8 +245,8 @@ describe('joinCurrencyByName', () => {
         { _index: 1, Id: 'Metadata/Items/Currency/B', Name: 'Duplicate Name' },
       ],
       [
-        { _index: 0, BaseItemType: 0, StackSize: 10, Directions: null, Description: 'first' },
-        { _index: 1, BaseItemType: 1, StackSize: 99, Directions: null, Description: 'second' },
+        { _index: 0, BaseItemType: 0, StackSize: 10, Directions: null, Description: 'first', XBoxDirections: null },
+        { _index: 1, BaseItemType: 1, StackSize: 99, Directions: null, Description: 'second', XBoxDirections: null },
       ],
     );
 
