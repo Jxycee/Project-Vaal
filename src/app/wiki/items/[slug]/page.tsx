@@ -3,12 +3,22 @@ import { notFound } from 'next/navigation';
 import { loadDetail } from '@/lib/wiki/load';
 
 export const dynamicParams = true;
-export const revalidate = 86400;
 
-// Detail pages are rendered on first request and cached via ISR rather than
-// pre-built at build time — with ~4,975 items (and ~1,118 skills / ~16,679
-// mods across the sibling routes), generating all of them statically would
-// make `next build` prohibitively slow. See Task 5 brief deviation notes.
+// Detail pages are rendered on request rather than pre-built at build time
+// — with ~4,975 items (and ~1,118 skills / ~16,679 mods across the sibling
+// routes), generating all of them statically would make `next build`
+// prohibitively slow. See Task 5 brief deviation notes.
+//
+// Deliberately NOT `export const revalidate = ...` (ISR): every /wiki route
+// renders through AppShell (src/components/layout/app-shell.tsx), which
+// calls `supabase.auth.getUser()` — a dynamic API (reads cookies via
+// next/headers) on every request, required for the auth gate. Next.js
+// forbids a dynamic API call inside an ISR-cached render path and throws
+// `DYNAMIC_SERVER_USAGE` at runtime if one slips through — confirmed via
+// production runtime-error logs (2026-08-22) after `revalidate = 86400` was
+// here. Since these pages can't be safely cached across users anyway (the
+// render depends on per-request auth state), plain dynamic rendering is not
+// a compromise — it's the only correct mode while AppShell reads cookies.
 export async function generateStaticParams() {
   return [];
 }
