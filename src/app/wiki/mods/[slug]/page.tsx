@@ -47,6 +47,7 @@ export default async function ModDetailPage({
     { label: 'Generation Type', value: mod.generationType },
     { label: 'Tier', value: mod.tier ?? '—' },
     { label: 'Item Level', value: mod.level },
+    { label: 'Families', value: mod.families.join(', ') },
   ];
 
   return (
