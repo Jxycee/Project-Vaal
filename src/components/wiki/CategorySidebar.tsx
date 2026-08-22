@@ -29,7 +29,12 @@ export function CategorySidebar({
       aria-label={`${kindLabel} categories`}
       className="flex max-h-32 flex-row flex-wrap gap-1.5 overflow-y-auto md:w-56 md:max-h-[calc(100vh-6rem)] md:shrink-0 md:flex-col md:gap-1 md:sticky md:top-6 md:overflow-y-auto"
     >
-      <button type="button" className={pillClass(selected === null)} onClick={() => onSelect(null)}>
+      <button
+        type="button"
+        className={pillClass(selected === null)}
+        aria-pressed={selected === null}
+        onClick={() => onSelect(null)}
+      >
         <span>All {kindLabel}</span>
         <span className="text-xs text-muted-foreground">{total}</span>
       </button>
@@ -38,6 +43,7 @@ export function CategorySidebar({
           key={g.category}
           type="button"
           className={pillClass(selected === g.category)}
+          aria-pressed={selected === g.category}
           onClick={() => onSelect(g.category)}
         >
           <span className="truncate">{g.category}</span>
