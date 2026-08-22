@@ -1,8 +1,8 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { loadDetail } from '@/lib/wiki/load';
 import { MOD_ACCENT_COLOR } from '@/lib/wiki/accent';
 import { DetailInfoPanel } from '@/components/wiki/DetailInfoPanel';
+import { WikiBreadcrumb } from '@/components/wiki/WikiBreadcrumb';
 
 export const dynamicParams = true;
 export const dynamic = 'force-dynamic';
@@ -52,13 +52,7 @@ export default async function ModDetailPage({
 
   return (
     <div className="space-y-4">
-      <nav className="flex items-center gap-1.5 text-xs text-muted-foreground" aria-label="Breadcrumb">
-        <Link href="/wiki" className="hover:text-primary">Wiki</Link>
-        <span>/</span>
-        <Link href="/wiki/mods" className="hover:text-primary">Mods</Link>
-        <span>/</span>
-        <span className="text-foreground">{mod.name}</span>
-      </nav>
+      <WikiBreadcrumb kind="mod" name={mod.name} />
       <div className="grid gap-8 md:grid-cols-[1fr_280px] md:items-start">
         <article className="space-y-4">
           <header>

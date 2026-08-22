@@ -1,10 +1,10 @@
 import Image from 'next/image';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { loadDetail } from '@/lib/wiki/load';
 import { skillAccentColor } from '@/lib/wiki/accent';
 import { RarityIconBox } from '@/components/wiki/RarityIconBox';
 import { DetailInfoPanel } from '@/components/wiki/DetailInfoPanel';
+import { WikiBreadcrumb } from '@/components/wiki/WikiBreadcrumb';
 
 export const dynamicParams = true;
 export const dynamic = 'force-dynamic';
@@ -61,13 +61,7 @@ export default async function SkillDetailPage({
 
   return (
     <div className="space-y-4">
-      <nav className="flex items-center gap-1.5 text-xs text-muted-foreground" aria-label="Breadcrumb">
-        <Link href="/wiki" className="hover:text-primary">Wiki</Link>
-        <span>/</span>
-        <Link href="/wiki/skills" className="hover:text-primary">Skills</Link>
-        <span>/</span>
-        <span className="text-foreground">{skill.name}</span>
-      </nav>
+      <WikiBreadcrumb kind="skill" name={skill.name} />
       <div className="grid gap-8 md:grid-cols-[1fr_280px] md:items-start">
         <article className="space-y-4">
           <header className="flex items-center gap-4">
