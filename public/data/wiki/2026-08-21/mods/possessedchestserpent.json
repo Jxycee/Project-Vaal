@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"possessedchestserpent","name":"Protected by the Ancient Serpent","category":"Torment","domain":"Chest","generationType":"Torment","group":"SpiritOfTheChestPossessed","tier":10,"level":1,"stats":[],"rolls":[{"stat":"possessed_strongbox_type_id","min":2,"max":2}],"families":["Torment"],"spawnWeights":[],"lastSynced":"2026-08-22T19:56:45.082Z"}

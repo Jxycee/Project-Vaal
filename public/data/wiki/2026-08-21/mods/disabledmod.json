@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"disabledmod","name":"[DNT-UNUSED] [Disabled]","category":"Unique","domain":"Monster","generationType":"Unique","group":"LocalDisabledModDatabaseHash","tier":1,"level":1,"stats":[],"rolls":[{"stat":"local_disabled_mod_database_hash","min":0,"max":0}],"families":["DisableMonsterModifier"],"spawnWeights":[],"lastSynced":"2026-08-22T19:56:45.082Z"}

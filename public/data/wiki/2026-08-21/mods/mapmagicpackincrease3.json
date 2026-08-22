@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"mapmagicpackincrease3","name":"Teeming","category":"Unique","domain":"6","generationType":"Unique","group":"MapMagicPackIncrease","tier":3,"level":1,"stats":[],"rolls":[{"stat":"map_number_of_magic_packs_+%","min":80,"max":100}],"families":["MapMagicPackIncrease"],"spawnWeights":[{"tag":"default","weight":0}],"lastSynced":"2026-08-22T19:56:45.082Z"}
