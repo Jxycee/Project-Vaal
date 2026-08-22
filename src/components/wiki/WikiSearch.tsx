@@ -66,7 +66,7 @@ export function WikiSearch({
         </p>
       )}
       {results.length > 0 && (
-        <ul className="overflow-hidden rounded-lg border border-border">
+        <ul className="rounded-lg border border-border">
           {results.slice(0, 100).map((entry, i) => (
             <li key={entry.slug}>
               <Link
