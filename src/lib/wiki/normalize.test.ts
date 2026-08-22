@@ -156,6 +156,18 @@ describe('normalizeItem', () => {
     expect(result.consoleDirections).toBeNull();
   });
 
+  it('defaults implicitMods to an empty array when none is given', () => {
+    const result = normalizeItem(raw.name, raw, null, SYNCED_AT);
+    expect(result.implicitMods).toEqual([]);
+  });
+
+  it('carries implicitMods through unchanged when given', () => {
+    const result = normalizeItem(raw.name, raw, null, SYNCED_AT, null, [
+      'Bleeding you inflict deals Damage (10-20)% faster',
+    ]);
+    expect(result.implicitMods).toEqual(['Bleeding you inflict deals Damage (10-20)% faster']);
+  });
+
   // sample-item.json ("Bramblejack") is a unique with no base-type link, so
   // its armour/weapon/req are genuinely null/zero for that item - the real
   // fixture can't exercise the armour- or weapon-populated branches of

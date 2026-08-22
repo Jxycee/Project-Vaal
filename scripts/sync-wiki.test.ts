@@ -9,6 +9,7 @@ import {
   findPreviousVersionDir,
   findPreviousCount,
   joinCurrencyByName,
+  joinImplicitModsByName,
 } from './sync-wiki';
 
 const entry = (slug: string) => ({
@@ -251,5 +252,82 @@ describe('joinCurrencyByName', () => {
     );
 
     expect(joinCurrencyByName(dir).get('Duplicate Name')?.description).toBe('first');
+  });
+});
+
+describe('joinImplicitModsByName', () => {
+  let root: string;
+
+  const writeTables = (baseItemTypes: object[], mods: object[]) => {
+    const dir = path.join(root, 'tables', 'English');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, 'BaseItemTypes.json'), JSON.stringify(baseItemTypes));
+    writeFileSync(path.join(dir, 'Mods.json'), JSON.stringify(mods));
+    return dir;
+  };
+
+  beforeEach(() => {
+    root = mkdtempSync(path.join(tmpdir(), 'wiki-implicit-test-'));
+  });
+
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('joins a base\'s Implicit_Mods indices to their rendered stat text by name', () => {
+    const dir = writeTables(
+      [{ _index: 0, Id: 'Metadata/Items/Weapons/OneHandSpears/FourSpear7', Name: 'Barbed Spear', Implicit_Mods: [5] }],
+      [{ _index: 5, Id: 'SpearImplicitFasterBleed1' }],
+    );
+    const modData = { SpearImplicitFasterBleed1: { stats: ['Bleeding you inflict deals Damage (10-20)% faster'] } };
+
+    expect(joinImplicitModsByName(dir, modData).get('Barbed Spear'))
+      .toEqual(['Bleeding you inflict deals Damage (10-20)% faster']);
+  });
+
+  it('flattens stats across multiple implicit mods on one base', () => {
+    const dir = writeTables(
+      [{ _index: 0, Id: 'Metadata/Items/X', Name: 'Two-Implicit Base', Implicit_Mods: [1, 2] }],
+      [{ _index: 1, Id: 'ModA' }, { _index: 2, Id: 'ModB' }],
+    );
+    const modData = {
+      ModA: { stats: ['First implicit line'] },
+      ModB: { stats: ['Second implicit line'] },
+    };
+
+    expect(joinImplicitModsByName(dir, modData).get('Two-Implicit Base'))
+      .toEqual(['First implicit line', 'Second implicit line']);
+  });
+
+  it('drops a base whose implicit mod has no rendered stat line (e.g. a skill-granting flag mod)', () => {
+    const dir = writeTables(
+      [{ _index: 0, Id: 'Metadata/Items/X', Name: 'Flag-Only Base', Implicit_Mods: [3] }],
+      [{ _index: 3, Id: 'DisplayOnlyMod' }],
+    );
+    const modData = { DisplayOnlyMod: { stats: [] } };
+
+    expect(joinImplicitModsByName(dir, modData).has('Flag-Only Base')).toBe(false);
+  });
+
+  it('does not include a base with an empty Implicit_Mods array', () => {
+    const dir = writeTables(
+      [{ _index: 0, Id: 'Metadata/Items/X', Name: 'No Implicits Base', Implicit_Mods: [] }],
+      [],
+    );
+
+    expect(joinImplicitModsByName(dir, {}).has('No Implicits Base')).toBe(false);
+  });
+
+  it('keeps the first base on a name collision, same convention as joinCurrencyByName', () => {
+    const dir = writeTables(
+      [
+        { _index: 0, Id: 'Metadata/Items/A', Name: 'Duplicate Name', Implicit_Mods: [1] },
+        { _index: 1, Id: 'Metadata/Items/B', Name: 'Duplicate Name', Implicit_Mods: [2] },
+      ],
+      [{ _index: 1, Id: 'ModA' }, { _index: 2, Id: 'ModB' }],
+    );
+    const modData = { ModA: { stats: ['first'] }, ModB: { stats: ['second'] } };
+
+    expect(joinImplicitModsByName(dir, modData).get('Duplicate Name')).toEqual(['first']);
   });
 });

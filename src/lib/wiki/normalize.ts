@@ -91,6 +91,7 @@ export function normalizeItem(
   iconUrl: string | null,
   lastSynced: string,
   currency: CurrencyText | null = null,
+  implicitMods: string[] = [],
 ): WikiItemDetail {
   return {
     kind: 'item',
@@ -117,6 +118,7 @@ export function normalizeItem(
     directions: currency?.directions ? stripBracketMarkup(currency.directions) : null,
     consoleDirections: currency?.xboxDirections ? stripXboxButtonTokens(currency.xboxDirections) : null,
     stackSize: currency?.stackSize ?? null,
+    implicitMods,
     lastSynced,
   };
 }

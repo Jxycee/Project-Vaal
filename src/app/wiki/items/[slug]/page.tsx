@@ -96,6 +96,11 @@ export default async function ItemDetailPage({
             height={182}
             className="h-auto w-32 opacity-60"
           />
+          {item.implicitMods.length > 0 && (
+            <ul className="space-y-1 text-sm font-medium">
+              {item.implicitMods.map((stat, i) => <li key={`${i}-${stat}`}>{stat}</li>)}
+            </ul>
+          )}
           {item.description && (
             <p className="text-sm whitespace-pre-line">{item.description}</p>
           )}

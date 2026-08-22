@@ -131,6 +131,55 @@ export function joinCurrencyByName(tablesDir: string): Map<string, CurrencyText>
 }
 
 /**
+ * Joins each base item's `BaseItemTypes.Implicit_Mods` (an array of row
+ * indices into `Mods`) to that mod's rendered stat text, keyed by display
+ * name so it lines up with `extractItems()`'s `ItemData` keys — the same
+ * join shape as {@link joinCurrencyByName}.
+ *
+ * Unlike currency text, this covers gear: 519/5,476 real `BaseItemTypes`
+ * rows (2026-08-22 live decode) have at least one implicit mod — e.g.
+ * "Barbed Spear" carries `SpearImplicitFasterBleed1`, which
+ * `@poe2-toolkit/mod-extractor`'s raw (pre-filter) `ModData` renders as
+ * "Bleeding you inflict deals Damage (10-20)% faster". `modData` is the
+ * caller's own `extractMods(source)` result, passed in rather than
+ * re-extracted here, so `syncItems` and `syncMods` share one extraction
+ * pass instead of paying for it twice per sync run.
+ *
+ * Some implicits carry no player-facing stat line at all (e.g.
+ * `SpearImplicitDisplaySpearThrow1`, which just flags that the base grants
+ * a skill — `stats: []`, verified against a live decode) — those are
+ * dropped rather than rendered as an empty row. A base whose implicits are
+ * ALL like that (or that has none) is simply absent from the returned map,
+ * same "no entry, not an empty array" convention as `joinCurrencyByName`.
+ */
+export function joinImplicitModsByName(
+  tablesDir: string,
+  modData: Record<string, { stats: string[] }>
+): Map<string, string[]> {
+  const baseRows: { _index: number; Name: string; Implicit_Mods: number[] }[] =
+    JSON.parse(readFileSync(path.join(tablesDir, 'BaseItemTypes.json'), 'utf8'));
+  const modRows: { _index: number; Id: string }[] =
+    JSON.parse(readFileSync(path.join(tablesDir, 'Mods.json'), 'utf8'));
+
+  const modIdByIndex = new Map(modRows.map((r) => [r._index, r.Id]));
+  const result = new Map<string, string[]>();
+  for (const row of baseRows) {
+    if (!row.Implicit_Mods || row.Implicit_Mods.length === 0) continue;
+    const stats: string[] = [];
+    for (const modIndex of row.Implicit_Mods) {
+      const modId = modIdByIndex.get(modIndex);
+      const mod = modId ? modData[modId] : undefined;
+      if (mod) stats.push(...mod.stats);
+    }
+    // First base wins on a name collision — same convention as joinCurrencyByName.
+    if (stats.length > 0 && !result.has(row.Name)) {
+      result.set(row.Name, stats);
+    }
+  }
+  return result;
+}
+
+/**
  * Real GGPK data has legitimate slug collisions that a single Task-1-style
  * fixture never exercised: distinct gems sharing a display name (e.g. a
  * unique-item-triggered "Herald of Ash" alongside the ordinary skill gem, or
@@ -306,6 +355,15 @@ async function syncItems(lastSynced: string): Promise<number> {
   const source = await createCdnSource({ patch: WIKI_PATCH_VERSION, cacheDir: path.join(EXTRACT_DIR, '.cache'), tablesDir: TABLES_DIR });
   const { data, icons } = await extractItems(source);
   const currencyByName = joinCurrencyByName(TABLES_DIR);
+  // syncMods() also calls extractMods() on its own separately-created
+  // source — same repeated-but-cheap pattern this file already uses for
+  // createCdnSource itself across syncItems/syncSkills/syncMods (each
+  // points fresh readers at the already-downloaded local cache, not a
+  // network re-fetch). joinImplicitModsByName needs the raw (pre-name-
+  // filter) ModData to resolve implicit-mod stat text, which syncMods()'s
+  // own filtered copy wouldn't have.
+  const { data: modData } = await extractMods(source);
+  const implicitModsByName = joinImplicitModsByName(TABLES_DIR, modData);
   const usedSlugs = new Set<string>();
   const details: WikiItemDetail[] = [];
   for (const [name, item] of Object.entries(data)) {
@@ -319,7 +377,10 @@ async function syncItems(lastSynced: string): Promise<number> {
     const iconUrl = item.icon
       ? await writeIcon('item', slug, ddsPathToIconKey(item.icon), icons.icons)
       : null;
-    details.push({ ...normalizeItem(name, item, iconUrl, lastSynced, currencyByName.get(name) ?? null), slug });
+    details.push({
+      ...normalizeItem(name, item, iconUrl, lastSynced, currencyByName.get(name) ?? null, implicitModsByName.get(name) ?? []),
+      slug,
+    });
   }
   return writeKind('item', details);
 }

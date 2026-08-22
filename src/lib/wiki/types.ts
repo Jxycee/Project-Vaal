@@ -71,6 +71,7 @@ export interface WikiItemDetail extends WikiDetailBase {
   directions: string | null;
   consoleDirections: string | null;
   stackSize: number | null;
+  implicitMods: string[];
 }
 
 export interface WikiSkillStatLine {
