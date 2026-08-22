@@ -53,6 +53,13 @@ export interface WikiItemWeapon {
   reloadTime: number;
 }
 
+export interface WikiItemFlask {
+  lifeRecovery: number;
+  manaRecovery: number;
+  /** Seconds. Source `Flasks.RecoveryTime` is in tenths of a second. */
+  duration: number;
+}
+
 export interface WikiItemDetail extends WikiDetailBase {
   kind: 'item';
   rarity: 'normal' | 'unique';
@@ -72,6 +79,7 @@ export interface WikiItemDetail extends WikiDetailBase {
   consoleDirections: string | null;
   stackSize: number | null;
   implicitMods: string[];
+  flask: WikiItemFlask | null;
 }
 
 export interface WikiSkillStatLine {

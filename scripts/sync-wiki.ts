@@ -18,7 +18,7 @@ import { extractMods } from '@poe2-toolkit/mod-extractor';
 import { normalizeItem, normalizeSkill, normalizeMod, toSearchEntry, slugify } from '../src/lib/wiki/normalize';
 import type { CurrencyText } from '../src/lib/wiki/normalize';
 import { WIKI_DATA_VERSION, WIKI_PATCH_VERSION } from '../src/lib/wiki/types';
-import type { WikiSearchEntry, WikiItemDetail, WikiSkillDetail, WikiModDetail } from '../src/lib/wiki/types';
+import type { WikiSearchEntry, WikiItemDetail, WikiSkillDetail, WikiModDetail, WikiItemFlask } from '../src/lib/wiki/types';
 
 const WIKI_ROOT = path.join(process.cwd(), 'public', 'data', 'wiki');
 const OUT_DIR = path.join(WIKI_ROOT, WIKI_DATA_VERSION);
@@ -174,6 +174,46 @@ export function joinImplicitModsByName(
     // First base wins on a name collision — same convention as joinCurrencyByName.
     if (stats.length > 0 && !result.has(row.Name)) {
       result.set(row.Name, stats);
+    }
+  }
+  return result;
+}
+
+/**
+ * Joins `Flasks` (life/mana recovery, recovery time) to display name, same
+ * join shape as {@link joinCurrencyByName}. `CurrencyItems` doesn't cover
+ * flasks at all — flasks are `ModDomain: 'Flask'`, not currency — so this
+ * is what fills in the "what does this flask actually do" gap for
+ * LifeFlask/ManaFlask/UtilityFlask bases specifically, e.g. "Transcendent
+ * Mana Flask" (verified against a live decode: 31 real Flasks rows, 100%
+ * of the flask-domain bases).
+ *
+ * `Flasks.RecoveryTime` is in tenths of a second (schema's own inline
+ * comment, confirmed against real values — a Lesser Life Flask's
+ * `RecoveryTime: 30` matches its well-known 3-second recovery). Divided by
+ * 10 here so `WikiItemFlask.duration` is real seconds, not a raw game unit
+ * a page would have to know to reinterpret. `Flasks.RecoveryTime2` is not
+ * read at all: every sampled row has `RecoveryTime2 === RecoveryTime`
+ * (verified against a live decode), so it carries no information this
+ * join doesn't already have.
+ */
+export function joinFlaskStatsByName(tablesDir: string): Map<string, WikiItemFlask> {
+  const baseRows: { _index: number; Name: string }[] =
+    JSON.parse(readFileSync(path.join(tablesDir, 'BaseItemTypes.json'), 'utf8'));
+  const flaskRows: { BaseItemType: number; LifePerUse: number; ManaPerUse: number; RecoveryTime: number }[] =
+    JSON.parse(readFileSync(path.join(tablesDir, 'Flasks.json'), 'utf8'));
+
+  const nameByIndex = new Map(baseRows.map((r) => [r._index, r.Name]));
+  const result = new Map<string, WikiItemFlask>();
+  for (const row of flaskRows) {
+    const name = nameByIndex.get(row.BaseItemType);
+    // First row wins on a name collision — same convention as joinCurrencyByName.
+    if (name && !result.has(name)) {
+      result.set(name, {
+        lifeRecovery: row.LifePerUse,
+        manaRecovery: row.ManaPerUse,
+        duration: row.RecoveryTime / 10,
+      });
     }
   }
   return result;
@@ -364,6 +404,7 @@ async function syncItems(lastSynced: string): Promise<number> {
   // own filtered copy wouldn't have.
   const { data: modData } = await extractMods(source);
   const implicitModsByName = joinImplicitModsByName(TABLES_DIR, modData);
+  const flaskStatsByName = joinFlaskStatsByName(TABLES_DIR);
   const usedSlugs = new Set<string>();
   const details: WikiItemDetail[] = [];
   for (const [name, item] of Object.entries(data)) {
@@ -378,7 +419,12 @@ async function syncItems(lastSynced: string): Promise<number> {
       ? await writeIcon('item', slug, ddsPathToIconKey(item.icon), icons.icons)
       : null;
     details.push({
-      ...normalizeItem(name, item, iconUrl, lastSynced, currencyByName.get(name) ?? null, implicitModsByName.get(name) ?? []),
+      ...normalizeItem(
+        name, item, iconUrl, lastSynced,
+        currencyByName.get(name) ?? null,
+        implicitModsByName.get(name) ?? [],
+        flaskStatsByName.get(name) ?? null,
+      ),
       slug,
     });
   }

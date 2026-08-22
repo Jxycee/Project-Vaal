@@ -69,6 +69,11 @@ export default async function ItemDetailPage({
     rows.push({ label: 'Damage', value: `${item.weapon.damageMin}-${item.weapon.damageMax}` });
     rows.push({ label: 'Attack Time', value: `${(item.weapon.attackTime / 1000).toFixed(2)}s` });
   }
+  if (item.flask) {
+    if (item.flask.lifeRecovery > 0) rows.push({ label: 'Life Recovery', value: item.flask.lifeRecovery });
+    if (item.flask.manaRecovery > 0) rows.push({ label: 'Mana Recovery', value: item.flask.manaRecovery });
+    rows.push({ label: 'Duration', value: `${item.flask.duration.toFixed(1)}s` });
+  }
 
   return (
     <div className="space-y-4">

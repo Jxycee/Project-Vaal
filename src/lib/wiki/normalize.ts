@@ -12,6 +12,7 @@ import type {
   WikiSkillDetail,
   WikiModDetail,
   WikiSearchEntry,
+  WikiItemFlask,
 } from './types';
 
 /**
@@ -92,6 +93,7 @@ export function normalizeItem(
   lastSynced: string,
   currency: CurrencyText | null = null,
   implicitMods: string[] = [],
+  flask: WikiItemFlask | null = null,
 ): WikiItemDetail {
   return {
     kind: 'item',
@@ -119,6 +121,7 @@ export function normalizeItem(
     consoleDirections: currency?.xboxDirections ? stripXboxButtonTokens(currency.xboxDirections) : null,
     stackSize: currency?.stackSize ?? null,
     implicitMods,
+    flask,
     lastSynced,
   };
 }

@@ -168,6 +168,20 @@ describe('normalizeItem', () => {
     expect(result.implicitMods).toEqual(['Bleeding you inflict deals Damage (10-20)% faster']);
   });
 
+  it('defaults flask to null when none is given', () => {
+    const result = normalizeItem(raw.name, raw, null, SYNCED_AT);
+    expect(result.flask).toBeNull();
+  });
+
+  it('carries flask stats through unchanged when given', () => {
+    const result = normalizeItem(raw.name, raw, null, SYNCED_AT, null, [], {
+      lifeRecovery: 0,
+      manaRecovery: 285,
+      duration: 3.5,
+    });
+    expect(result.flask).toEqual({ lifeRecovery: 0, manaRecovery: 285, duration: 3.5 });
+  });
+
   // sample-item.json ("Bramblejack") is a unique with no base-type link, so
   // its armour/weapon/req are genuinely null/zero for that item - the real
   // fixture can't exercise the armour- or weapon-populated branches of

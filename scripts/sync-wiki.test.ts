@@ -10,6 +10,7 @@ import {
   findPreviousCount,
   joinCurrencyByName,
   joinImplicitModsByName,
+  joinFlaskStatsByName,
 } from './sync-wiki';
 
 const entry = (slug: string) => ({
@@ -329,5 +330,66 @@ describe('joinImplicitModsByName', () => {
     const modData = { ModA: { stats: ['first'] }, ModB: { stats: ['second'] } };
 
     expect(joinImplicitModsByName(dir, modData).get('Duplicate Name')).toEqual(['first']);
+  });
+});
+
+describe('joinFlaskStatsByName', () => {
+  let root: string;
+
+  const writeTables = (baseItemTypes: object[], flasks: object[]) => {
+    const dir = path.join(root, 'tables', 'English');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, 'BaseItemTypes.json'), JSON.stringify(baseItemTypes));
+    writeFileSync(path.join(dir, 'Flasks.json'), JSON.stringify(flasks));
+    return dir;
+  };
+
+  beforeEach(() => {
+    root = mkdtempSync(path.join(tmpdir(), 'wiki-flask-test-'));
+  });
+
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('joins a Flasks row to its BaseItemTypes name, converting RecoveryTime to real seconds', () => {
+    const dir = writeTables(
+      [{ _index: 0, Id: 'Metadata/Items/Flasks/FlaskUniqueMana2', Name: 'Transcendent Mana Flask' }],
+      [{ _index: 16, BaseItemType: 0, LifePerUse: 0, ManaPerUse: 285, RecoveryTime: 35 }],
+    );
+
+    expect(joinFlaskStatsByName(dir).get('Transcendent Mana Flask')).toEqual({
+      lifeRecovery: 0,
+      manaRecovery: 285,
+      duration: 3.5,
+    });
+  });
+
+  it('returns an empty map when a name has no matching flask row', () => {
+    const dir = writeTables(
+      [{ _index: 0, Id: 'Metadata/Items/Currency/X', Name: 'Chaos Orb' }],
+      [],
+    );
+
+    expect(joinFlaskStatsByName(dir).size).toBe(0);
+  });
+
+  it('keeps the first row on a name collision, same convention as joinCurrencyByName', () => {
+    const dir = writeTables(
+      [
+        { _index: 0, Id: 'Metadata/Items/A', Name: 'Duplicate Name' },
+        { _index: 1, Id: 'Metadata/Items/B', Name: 'Duplicate Name' },
+      ],
+      [
+        { _index: 0, BaseItemType: 0, LifePerUse: 50, ManaPerUse: 0, RecoveryTime: 30 },
+        { _index: 1, BaseItemType: 1, LifePerUse: 999, ManaPerUse: 0, RecoveryTime: 99 },
+      ],
+    );
+
+    expect(joinFlaskStatsByName(dir).get('Duplicate Name')).toEqual({
+      lifeRecovery: 50,
+      manaRecovery: 0,
+      duration: 3,
+    });
   });
 });
