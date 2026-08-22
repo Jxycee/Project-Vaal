@@ -60,32 +60,33 @@ export function WikiSearch({
       <p className="text-sm text-muted-foreground">
         {results.length} of {entries.length}
       </p>
-      <div className="overflow-hidden rounded-lg border border-border">
+      <ul className="overflow-hidden rounded-lg border border-border">
         {results.slice(0, 100).map((entry, i) => (
-          <Link
-            key={entry.slug}
-            href={`${basePath}/${entry.slug}`}
-            className={cn(
-              'flex items-center justify-between gap-3 border-b border-border px-4 py-2.5 transition-colors last:border-b-0 hover:bg-accent/50',
-              i % 2 === 1 && 'bg-card/40'
-            )}
-          >
-            <div className="min-w-0">
-              <p className="truncate font-heading text-sm text-primary">{entry.name}</p>
-              <p className="truncate text-xs text-muted-foreground">{entry.category}</p>
-            </div>
-            {entry.tags.length > 0 && (
-              <div className="hidden shrink-0 gap-1.5 sm:flex">
-                {entry.tags.slice(0, 2).map((tag) => (
-                  <span key={tag} className="rounded border border-border px-1.5 py-0.5 text-[0.65rem] text-muted-foreground">
-                    {tag}
-                  </span>
-                ))}
+          <li key={entry.slug}>
+            <Link
+              href={`${basePath}/${entry.slug}`}
+              className={cn(
+                'flex items-center justify-between gap-3 border-b border-border px-4 py-2.5 transition-colors last:border-b-0 hover:bg-accent/50',
+                i % 2 === 1 && 'bg-card/40'
+              )}
+            >
+              <div className="min-w-0">
+                <p className="truncate font-heading text-sm text-primary">{entry.name}</p>
+                <p className="truncate text-xs text-muted-foreground">{entry.category}</p>
               </div>
-            )}
-          </Link>
+              {entry.tags.length > 0 && (
+                <div className="hidden shrink-0 gap-1.5 sm:flex">
+                  {entry.tags.slice(0, 2).map((tag) => (
+                    <span key={tag} className="rounded border border-border px-1.5 py-0.5 text-[0.65rem] text-muted-foreground">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </Link>
+          </li>
         ))}
-      </div>
+      </ul>
       {results.length > 100 && (
         <p className="text-sm text-muted-foreground">
           Showing the first 100 results — refine your search to narrow them.
