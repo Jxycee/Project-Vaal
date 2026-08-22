@@ -95,8 +95,8 @@ export function normalizeItem(
     modDomain: item.modDomain,
     tags: item.tags,
     iconUrl,
-    description: currency?.description != null ? stripBracketMarkup(currency.description) : null,
-    directions: currency?.directions != null ? stripBracketMarkup(currency.directions) : null,
+    description: currency?.description ? stripBracketMarkup(currency.description) : null,
+    directions: currency?.directions ? stripBracketMarkup(currency.directions) : null,
     stackSize: currency?.stackSize ?? null,
     lastSynced,
   };

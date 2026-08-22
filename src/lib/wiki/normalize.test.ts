@@ -116,6 +116,16 @@ describe('normalizeItem', () => {
     expect(result.description).toBeNull();
   });
 
+  it('normalizes an empty-string description/directions to null, matching the real table\'s "no text" convention', () => {
+    const result = normalizeItem(raw.name, raw, null, SYNCED_AT, {
+      stackSize: 10,
+      description: '',
+      directions: '',
+    });
+    expect(result.description).toBeNull();
+    expect(result.directions).toBeNull();
+  });
+
   // sample-item.json ("Bramblejack") is a unique with no base-type link, so
   // its armour/weapon/req are genuinely null/zero for that item - the real
   // fixture can't exercise the armour- or weapon-populated branches of
