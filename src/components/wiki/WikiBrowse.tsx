@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { WikiSearch } from './WikiSearch';
 import { groupByCategory } from '@/lib/wiki/categoryGroups';
+import { groupByTaxonomy, ITEM_CATEGORY_GROUPS } from '@/lib/wiki/categoryTaxonomy';
 import { CategorySidebar } from './CategorySidebar';
 import { fetchWikiIndex, WikiSessionExpiredError } from '@/lib/wiki/fetchIndex';
 import type { WikiEntryKind, WikiSearchEntry } from '@/lib/wiki/types';
@@ -46,6 +47,12 @@ export function WikiBrowse({
   const groups = useMemo(
     () => groupByCategory(state.status === 'ready' ? state.entries : []),
     [state]
+  );
+  // Only items has enough real categories (~92) to be worth grouping into
+  // top-level sections — skills (3) and mods (13) stay flat.
+  const sections = useMemo(
+    () => (kind === 'item' ? groupByTaxonomy(groups, ITEM_CATEGORY_GROUPS) : null),
+    [kind, groups]
   );
   const entityLabel = ENTITY_LABEL[kind];
 
@@ -107,6 +114,7 @@ export function WikiBrowse({
     <div className="flex flex-col gap-6 md:flex-row md:items-start">
       <CategorySidebar
         groups={groups}
+        sections={sections}
         total={state.entries.length}
         selected={selectedCategory}
         onSelect={setSelectedCategory}
