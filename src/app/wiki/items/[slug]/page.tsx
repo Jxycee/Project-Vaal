@@ -23,6 +23,9 @@ export default async function ItemDetailPage({
   if (!item) notFound();
 
   const reqs = Object.entries(item.requirements).filter(([, v]) => v > 0);
+  const meta: [string, number][] = [];
+  if (item.dropLevel > 0) meta.push(['Drop Level', item.dropLevel]);
+  if (item.stackSize != null && item.stackSize > 1) meta.push(['Stack Size', item.stackSize]);
 
   return (
     <article className="space-y-4">
@@ -37,6 +40,15 @@ export default async function ItemDetailPage({
           </p>
         </div>
       </header>
+      {meta.length > 0 && (
+        <ul className="space-y-1 text-sm">
+          {meta.map(([label, value]) => (
+            <li key={label} className="text-muted-foreground">
+              {label}: {value}
+            </li>
+          ))}
+        </ul>
+      )}
       {reqs.length > 0 && (
         <ul className="space-y-1 text-sm">
           {reqs.map(([key, value]) => (
@@ -58,6 +70,12 @@ export default async function ItemDetailPage({
           <li>Damage: {item.weapon.damageMin}-{item.weapon.damageMax}</li>
           <li>Attack time: {(item.weapon.attackTime / 1000).toFixed(2)}s</li>
         </ul>
+      )}
+      {item.description && (
+        <p className="text-sm">{item.description}</p>
+      )}
+      {item.directions && (
+        <p className="text-sm italic text-muted-foreground">{item.directions}</p>
       )}
       {item.flavourText && item.flavourText.length > 0 && (
         <p className="border-t pt-3 text-sm italic text-muted-foreground">
