@@ -72,10 +72,10 @@ export default async function ItemDetailPage({
         </ul>
       )}
       {item.description && (
-        <p className="text-sm">{item.description}</p>
+        <p className="text-sm whitespace-pre-line">{item.description}</p>
       )}
       {item.directions && (
-        <p className="text-sm italic text-muted-foreground">{item.directions}</p>
+        <p className="text-sm italic text-muted-foreground whitespace-pre-line">{item.directions}</p>
       )}
       {item.flavourText && item.flavourText.length > 0 && (
         <p className="border-t pt-3 text-sm italic text-muted-foreground">
