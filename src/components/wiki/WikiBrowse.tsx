@@ -95,7 +95,11 @@ export function WikiBrowse({
     );
   }
 
-  const visibleEntries = selectedCategory
+  // If entries reload and the previously-selected category no longer
+  // exists in the new set, fall back to showing all entries instead of
+  // silently filtering to zero.
+  const categoryStillExists = groups.some((g) => g.category === selectedCategory);
+  const visibleEntries = selectedCategory && categoryStillExists
     ? state.entries.filter((e) => e.category === selectedCategory)
     : state.entries;
 
