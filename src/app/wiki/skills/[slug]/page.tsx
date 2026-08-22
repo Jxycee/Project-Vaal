@@ -65,7 +65,7 @@ export default async function SkillDetailPage({
       <div className="grid gap-8 md:grid-cols-[1fr_280px] md:items-start">
         <article className="space-y-4">
           <header className="flex items-center gap-4">
-            <RarityIconBox iconUrl={skill.iconUrl} alt="" accentColor={accent} />
+            <RarityIconBox iconUrl={skill.iconUrl} accentColor={accent} />
             <div>
               <h1 className="font-heading text-2xl" style={{ color: accent }}>{skill.name}</h1>
               <p className="text-sm text-muted-foreground">{skill.category}</p>

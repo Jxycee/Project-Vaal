@@ -76,7 +76,7 @@ export default async function ItemDetailPage({
       <div className="grid gap-8 md:grid-cols-[1fr_280px] md:items-start">
         <article className="space-y-4">
           <header className="flex items-center gap-4">
-            <RarityIconBox iconUrl={item.iconUrl} alt="" accentColor={accent} />
+            <RarityIconBox iconUrl={item.iconUrl} accentColor={accent} />
             <div>
               <h1
                 className="font-heading text-2xl"
