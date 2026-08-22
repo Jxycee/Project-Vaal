@@ -8,6 +8,7 @@ import {
   dedupeSlug,
   findPreviousVersionDir,
   findPreviousCount,
+  joinCurrencyByName,
 } from './sync-wiki';
 
 const entry = (slug: string) => ({
@@ -176,5 +177,73 @@ describe('dedupeSlug', () => {
     const b = dedupeSlug('sword-slash', 'SkillGemPlayerDefault2HSword', used);
     const c = dedupeSlug('sword-slash', 'SkillGemPlayerDefaultSwordSword', used);
     expect(new Set([a, b, c]).size).toBe(3);
+  });
+});
+
+describe('joinCurrencyByName', () => {
+  let root: string;
+
+  const writeTables = (baseItemTypes: object[], currencyItems: object[]) => {
+    const dir = path.join(root, 'tables', 'English');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, 'BaseItemTypes.json'), JSON.stringify(baseItemTypes));
+    writeFileSync(path.join(dir, 'CurrencyItems.json'), JSON.stringify(currencyItems));
+    return dir;
+  };
+
+  beforeEach(() => {
+    root = mkdtempSync(path.join(tmpdir(), 'wiki-currency-test-'));
+  });
+
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('joins a CurrencyItems row to its BaseItemTypes name by row index', () => {
+    const dir = writeTables(
+      [{ _index: 0, Id: 'Metadata/Items/Currency/CurrencyWeaponQuality', Name: "Blacksmith's Whetstone" }],
+      [{ _index: 15, BaseItemType: 0, StackSize: 20, Directions: 'Right click this item then left click a martial weapon to apply it.', Description: 'Improves the [Quality|quality] of a [MartialWeapon|martial weapon]' }],
+    );
+
+    const result = joinCurrencyByName(dir);
+
+    expect(result.get("Blacksmith's Whetstone")).toEqual({
+      stackSize: 20,
+      description: 'Improves the [Quality|quality] of a [MartialWeapon|martial weapon]',
+      directions: 'Right click this item then left click a martial weapon to apply it.',
+    });
+  });
+
+  it('leaves bracket markup un-stripped — that is normalizeItem/stripBracketMarkup\'s job, not the join\'s', () => {
+    const dir = writeTables(
+      [{ _index: 0, Id: 'Metadata/Items/Currency/CurrencyMirroredItem', Name: 'Mirror of Kalandra' }],
+      [{ _index: 5, BaseItemType: 0, StackSize: 1, Directions: null, Description: 'Creates a [Mirrored] copy of an item' }],
+    );
+
+    expect(joinCurrencyByName(dir).get('Mirror of Kalandra')?.description).toBe('Creates a [Mirrored] copy of an item');
+  });
+
+  it('returns an empty map when a name has no matching currency row', () => {
+    const dir = writeTables(
+      [{ _index: 0, Id: 'Metadata/Items/Gear/Sword', Name: 'Rusted Sword' }],
+      [],
+    );
+
+    expect(joinCurrencyByName(dir).size).toBe(0);
+  });
+
+  it('keeps the first row on a name collision, same convention as ItemData itself', () => {
+    const dir = writeTables(
+      [
+        { _index: 0, Id: 'Metadata/Items/Currency/A', Name: 'Duplicate Name' },
+        { _index: 1, Id: 'Metadata/Items/Currency/B', Name: 'Duplicate Name' },
+      ],
+      [
+        { _index: 0, BaseItemType: 0, StackSize: 10, Directions: null, Description: 'first' },
+        { _index: 1, BaseItemType: 1, StackSize: 99, Directions: null, Description: 'second' },
+      ],
+    );
+
+    expect(joinCurrencyByName(dir).get('Duplicate Name')?.description).toBe('first');
   });
 });

@@ -16,6 +16,7 @@ import { extractItems } from '@poe2-toolkit/item-extractor';
 import { extractGems } from '@poe2-toolkit/gem-extractor';
 import { extractMods } from '@poe2-toolkit/mod-extractor';
 import { normalizeItem, normalizeSkill, normalizeMod, toSearchEntry, slugify } from '../src/lib/wiki/normalize';
+import type { CurrencyText } from '../src/lib/wiki/normalize';
 import { WIKI_DATA_VERSION, WIKI_PATCH_VERSION } from '../src/lib/wiki/types';
 import type { WikiSearchEntry, WikiItemDetail, WikiSkillDetail, WikiModDetail } from '../src/lib/wiki/types';
 
@@ -76,6 +77,48 @@ export function validateSyncResult(
 /** Icon PNG results are keyed by "<dds path minus extension>.png" (@poe2-toolkit/ggpk convention). */
 export function ddsPathToIconKey(ddsPath: string): string {
   return /\.dds$/i.test(ddsPath) ? ddsPath.replace(/\.dds$/i, '.png') : ddsPath;
+}
+
+/**
+ * Joins PoE2's `CurrencyItems` table to `BaseItemTypes` by row index — the
+ * same `BaseItemType`-keyed join `@poe2-toolkit/item-extractor`'s own
+ * `buildItems.js` already uses internally for `AttributeRequirements`/
+ * `ArmourTypes`/`WeaponTypes`/`ItemSpirit` — then re-keys the result by
+ * display `Name` so it lines up with `extractItems()`'s `ItemData` keys
+ * (item-extractor exposes no row index on its own `Item` type, so `Name`
+ * is the only join key available on the consuming side).
+ *
+ * Reads the tables directly off disk rather than through `GgpkSource`:
+ * `item-extractor` doesn't read this table at all, so there's no extractor
+ * API to ask for it — `pathofexile-dat` already decoded it to
+ * `<tablesDir>/CurrencyItems.json` as a flat JSON array (same place/shape
+ * every other table in `scripts/wiki/pathofexile-dat.config.json` lands),
+ * so a plain read is the whole job.
+ *
+ * Verified against a live decode (2026-08-21): 1,518 CurrencyItems rows /
+ * 1,007 distinct names, covering StackableCurrency (437/437), SoulCore
+ * (260/295), MapFragment (125/132), Omen (49/50), Incubator (30/30),
+ * Breachstone (26/26), the three UncutXGemStackable classes, and several
+ * smaller categories. Does not cover QuestItem, Jewel, flasks, or gear —
+ * consistent with those genuinely carrying no in-game use-text.
+ */
+export function joinCurrencyByName(tablesDir: string): Map<string, CurrencyText> {
+  const baseRows: { _index: number; Name: string }[] =
+    JSON.parse(readFileSync(path.join(tablesDir, 'BaseItemTypes.json'), 'utf8'));
+  const currencyRows: { BaseItemType: number; StackSize: number; Description: string | null; Directions: string | null }[] =
+    JSON.parse(readFileSync(path.join(tablesDir, 'CurrencyItems.json'), 'utf8'));
+
+  const nameByIndex = new Map(baseRows.map((r) => [r._index, r.Name]));
+  const result = new Map<string, CurrencyText>();
+  for (const row of currencyRows) {
+    const name = nameByIndex.get(row.BaseItemType);
+    // First row wins on a name collision — same convention `extractItems()`
+    // itself uses for ItemData (see normalize.ts's module docstring).
+    if (name && !result.has(name)) {
+      result.set(name, { stackSize: row.StackSize, description: row.Description, directions: row.Directions });
+    }
+  }
+  return result;
 }
 
 /**
@@ -253,6 +296,7 @@ async function writeIcon(
 async function syncItems(lastSynced: string): Promise<number> {
   const source = await createCdnSource({ patch: WIKI_PATCH_VERSION, cacheDir: path.join(EXTRACT_DIR, '.cache'), tablesDir: TABLES_DIR });
   const { data, icons } = await extractItems(source);
+  const currencyByName = joinCurrencyByName(TABLES_DIR);
   const usedSlugs = new Set<string>();
   const details: WikiItemDetail[] = [];
   for (const [name, item] of Object.entries(data)) {
@@ -266,7 +310,7 @@ async function syncItems(lastSynced: string): Promise<number> {
     const iconUrl = item.icon
       ? await writeIcon('item', slug, ddsPathToIconKey(item.icon), icons.icons)
       : null;
-    details.push({ ...normalizeItem(name, item, iconUrl, lastSynced), slug });
+    details.push({ ...normalizeItem(name, item, iconUrl, lastSynced, currencyByName.get(name) ?? null), slug });
   }
   return writeKind('item', details);
 }
