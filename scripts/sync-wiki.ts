@@ -15,8 +15,8 @@ import { createCdnSource } from '@poe2-toolkit/ggpk';
 import { extractItems } from '@poe2-toolkit/item-extractor';
 import { extractGems } from '@poe2-toolkit/gem-extractor';
 import { extractMods } from '@poe2-toolkit/mod-extractor';
-import { normalizeItem, normalizeSkill, normalizeMod, toSearchEntry, slugify } from '../src/lib/wiki/normalize';
-import type { CurrencyText } from '../src/lib/wiki/normalize';
+import { normalizeItem, normalizeSkill, normalizeMod, toSearchEntry, slugify, parsePobUniqueFile } from '../src/lib/wiki/normalize';
+import type { CurrencyText, PobUniqueEntry } from '../src/lib/wiki/normalize';
 import { WIKI_DATA_VERSION, WIKI_PATCH_VERSION } from '../src/lib/wiki/types';
 import type { WikiSearchEntry, WikiItemDetail, WikiSkillDetail, WikiModDetail, WikiItemFlask } from '../src/lib/wiki/types';
 
@@ -220,6 +220,66 @@ export function joinFlaskStatsByName(tablesDir: string): Map<string, WikiItemFla
 }
 
 /**
+ * Commit pinned for {@link fetchPobUniquesByName}, not `dev`'s moving HEAD -
+ * same reproducibility reasoning as `WIKI_PATCH_VERSION`: a sync re-run
+ * should only change when this file's data actually changes, not on every
+ * unrelated commit landing in the upstream repo between two of our syncs.
+ * Bump by hand when the sync PR shows stale/missing unique data, same
+ * workflow as bumping the GGPK patch.
+ */
+const POB_COMMIT = '5d173cbf8c9cf394a975cbb813f19d0b6dc67ea6';
+
+/**
+ * One entry per file in Path of Building Community's `src/Data/Uniques/`
+ * (verified against a live directory listing at {@link POB_COMMIT}): the 30
+ * equippable item-class files, plus the three `Special/` files (event/race
+ * items and generated specials) - harmless to include even if none of their
+ * entries ever match a real synced item name.
+ */
+const POB_UNIQUE_FILES = [
+  'Special/Generated', 'Special/New', 'Special/race',
+  'amulet', 'axe', 'belt', 'body', 'boots', 'bow', 'claw', 'crossbow', 'dagger',
+  'fishing', 'flail', 'flask', 'focus', 'gloves', 'helmet', 'incursionlimb',
+  'jewel', 'mace', 'quiver', 'ring', 'sceptre', 'shield', 'soulcore', 'spear',
+  'staff', 'sword', 'talisman', 'tincture', 'traptool', 'wand',
+];
+
+/**
+ * Fetches and parses every {@link POB_UNIQUE_FILES} entry, joining into one
+ * name-keyed map (first match wins on a name collision, same convention as
+ * every other by-name join in this file). Item data (c) Grinding Gear Games,
+ * per PoB's own file headers; PoB itself is MIT licensed (its `LICENSE.md`) -
+ * see the wiki footer's credit line.
+ *
+ * A network failure here degrades gracefully rather than aborting the whole
+ * sync: this is a supplementary enrichment layer over GGPK data, not part of
+ * the core item/skill/mod extraction `validateSyncResult` guards against
+ * truncation for. A file that fails to fetch just means its uniques keep
+ * `uniqueMods: null`, same as before this join existed.
+ */
+async function fetchPobUniquesByName(): Promise<Map<string, PobUniqueEntry>> {
+  const result = new Map<string, PobUniqueEntry>();
+  const files = await Promise.all(POB_UNIQUE_FILES.map(async (file) => {
+    const url = `https://raw.githubusercontent.com/PathOfBuildingCommunity/PathOfBuilding-PoE2/${POB_COMMIT}/src/Data/Uniques/${file}.lua`;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.text();
+    } catch (err) {
+      console.warn(`wiki sync: failed to fetch PoB unique data "${file}.lua" (${(err as Error).message}) — its uniques will have no explicit mods this sync.`);
+      return null;
+    }
+  }));
+  for (const text of files) {
+    if (!text) continue;
+    for (const entry of parsePobUniqueFile(text)) {
+      if (!result.has(entry.name)) result.set(entry.name, entry);
+    }
+  }
+  return result;
+}
+
+/**
  * Real GGPK data has legitimate slug collisions that a single Task-1-style
  * fixture never exercised: distinct gems sharing a display name (e.g. a
  * unique-item-triggered "Herald of Ash" alongside the ordinary skill gem, or
@@ -405,6 +465,7 @@ async function syncItems(lastSynced: string): Promise<number> {
   const { data: modData } = await extractMods(source);
   const implicitModsByName = joinImplicitModsByName(TABLES_DIR, modData);
   const flaskStatsByName = joinFlaskStatsByName(TABLES_DIR);
+  const pobUniquesByName = await fetchPobUniquesByName();
   const usedSlugs = new Set<string>();
   const details: WikiItemDetail[] = [];
   for (const [name, item] of Object.entries(data)) {
@@ -424,6 +485,7 @@ async function syncItems(lastSynced: string): Promise<number> {
         currencyByName.get(name) ?? null,
         implicitModsByName.get(name) ?? [],
         flaskStatsByName.get(name) ?? null,
+        item.rarity === 'unique' ? pobUniquesByName.get(name) ?? null : null,
       ),
       slug,
     });
