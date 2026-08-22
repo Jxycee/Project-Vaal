@@ -54,8 +54,15 @@ export default async function ItemDetailPage({
     if (value > 0) rows.push({ label: cap(key), value });
   }
   if (item.armour) {
+    const ARMOUR_LABEL: Record<string, string> = {
+      armour: 'Armour',
+      evasion: 'Evasion',
+      energyShield: 'Energy Shield',
+      ward: 'Ward',
+      block: 'Block',
+    };
     for (const [key, value] of Object.entries(item.armour)) {
-      if (value > 0) rows.push({ label: cap(key), value });
+      if (value > 0) rows.push({ label: ARMOUR_LABEL[key], value });
     }
   }
   if (item.weapon) {
