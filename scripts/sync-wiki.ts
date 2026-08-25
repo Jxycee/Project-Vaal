@@ -680,7 +680,7 @@ async function syncMods(lastSynced: string): Promise<number> {
  * caster's own buff and the nearby-player debuff.
  */
 export function readEffectRows(tablesDir: string): EffectRow[] {
-  const rows: { Id: string; Name: string | null; Description: string | null }[] =
+  const rows: { Id: string; Name: string | null; Description: string | null; BuffCategory: number | null }[] =
     JSON.parse(readFileSync(path.join(tablesDir, 'BuffDefinitions.json'), 'utf8'));
   const seenNames = new Set<string>();
   const result: EffectRow[] = [];
@@ -688,7 +688,7 @@ export function readEffectRows(tablesDir: string): EffectRow[] {
     if (!row.Name || !row.Description) continue;
     if (seenNames.has(row.Name)) continue;
     seenNames.add(row.Name);
-    result.push({ id: row.Id, name: row.Name, description: row.Description });
+    result.push({ id: row.Id, name: row.Name, description: row.Description, buffCategory: row.BuffCategory ?? null });
   }
   return result;
 }

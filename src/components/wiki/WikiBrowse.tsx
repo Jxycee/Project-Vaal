@@ -26,8 +26,17 @@ const ENTITY_LABEL: Record<WikiEntryKind, string> = {
 
 interface BrowseViewState {
   category: string | null;
+  tag: string | null;
   query: string;
   scrollY: number;
+}
+
+/** One quick-filter chip above the search box — see `EffectsPage`'s usage. Filters by `WikiSearchEntry.tags` (e.g. an effect's GGPK-derived "Buff"/"Debuff"/"Charm" tag), not by category, and is additive to whatever category is selected. */
+export interface QuickFilter {
+  tag: string;
+  label: string;
+  /** CSS color value (a `var(--...)` token, to stay theme-aware) for the chip's dot and active-state tint. */
+  color: string;
 }
 
 /**
@@ -77,9 +86,12 @@ function writeStoredView(kind: WikiEntryKind, view: BrowseViewState): void {
 export function WikiBrowse({
   kind,
   basePath,
+  quickFilters,
 }: {
   kind: WikiEntryKind;
   basePath: string;
+  /** Optional quick-filter chip row above the search box (see `QuickFilter`) — omit for kinds with no curated set. */
+  quickFilters?: QuickFilter[];
 }) {
   const router = useRouter();
   // Set only by a mention link's `?q=` (see MentionLinks.tsx) — a generic
@@ -93,6 +105,7 @@ export function WikiBrowse({
 
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const [selectedCategory, setSelectedCategory] = useState<string | null>(storedView?.category ?? null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(storedView?.tag ?? null);
   const initialQuery = urlQuery ?? storedView?.query ?? undefined;
   const currentQueryRef = useRef(initialQuery ?? '');
   const restoredScrollRef = useRef(false);
@@ -165,7 +178,7 @@ export function WikiBrowse({
       if (frame != null) return;
       frame = requestAnimationFrame(() => {
         frame = null;
-        writeStoredView(kind, { category: selectedCategory, query: currentQueryRef.current, scrollY: window.scrollY });
+        writeStoredView(kind, { category: selectedCategory, tag: selectedTag, query: currentQueryRef.current, scrollY: window.scrollY });
       });
     }
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -173,7 +186,7 @@ export function WikiBrowse({
       window.removeEventListener('scroll', onScroll);
       if (frame != null) cancelAnimationFrame(frame);
     };
-  }, [kind, selectedCategory]);
+  }, [kind, selectedCategory, selectedTag]);
 
   function handleSelectCategory(category: string | null) {
     setSelectedCategory(category);
@@ -181,12 +194,18 @@ export function WikiBrowse({
     // normal category-link click would - restoring the old scroll position
     // under a newly-filtered (and likely much shorter) list would land
     // nowhere meaningful.
-    writeStoredView(kind, { category, query: currentQueryRef.current, scrollY: 0 });
+    writeStoredView(kind, { category, tag: selectedTag, query: currentQueryRef.current, scrollY: 0 });
+  }
+
+  function handleSelectTag(tag: string | null) {
+    const next = tag === selectedTag ? null : tag; // click an active chip again to clear it
+    setSelectedTag(next);
+    writeStoredView(kind, { category: selectedCategory, tag: next, query: currentQueryRef.current, scrollY: 0 });
   }
 
   function handleQueryChange(query: string) {
     currentQueryRef.current = query;
-    writeStoredView(kind, { category: selectedCategory, query, scrollY: window.scrollY });
+    writeStoredView(kind, { category: selectedCategory, tag: selectedTag, query, scrollY: window.scrollY });
   }
 
   if (state.status === 'loading') {
@@ -209,9 +228,12 @@ export function WikiBrowse({
   // exists in the new set, fall back to showing all entries instead of
   // silently filtering to zero.
   const categoryStillExists = groups.some((g) => g.category === selectedCategory);
-  const visibleEntries = selectedCategory && categoryStillExists
+  const categoryFiltered = selectedCategory && categoryStillExists
     ? state.entries.filter((e) => e.category === selectedCategory)
     : state.entries;
+  const visibleEntries = selectedTag
+    ? categoryFiltered.filter((e) => e.tags.includes(selectedTag))
+    : categoryFiltered;
 
   return (
     <div className="flex flex-col gap-6 md:flex-row md:items-start">
@@ -224,6 +246,29 @@ export function WikiBrowse({
         kindLabel={entityLabel}
       />
       <div className="min-w-0 flex-1">
+        {quickFilters && quickFilters.length > 0 && (
+          <div className="mb-3 flex flex-wrap items-center gap-1.5 border-b border-dashed border-border pb-3">
+            <span className="mr-1 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">Quick filter</span>
+            {quickFilters.map((f) => {
+              const active = selectedTag === f.tag;
+              return (
+                <button
+                  key={f.tag}
+                  type="button"
+                  onClick={() => handleSelectTag(f.tag)}
+                  aria-pressed={active}
+                  className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px] transition-colors"
+                  style={active
+                    ? { borderColor: f.color, color: f.color, backgroundColor: 'color-mix(in oklab, ' + f.color + ' 14%, transparent)' }
+                    : { borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                >
+                  <span className="h-[7px] w-[7px] rounded-full" style={{ backgroundColor: f.color }} />
+                  {f.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
         <WikiSearch entries={visibleEntries} basePath={basePath} initialQuery={initialQuery} onQueryChange={handleQueryChange} />
       </div>
     </div>

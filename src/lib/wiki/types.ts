@@ -241,6 +241,15 @@ export interface WikiModDetail extends WikiDetailBase {
 export interface WikiEffectDetail extends WikiDetailBase {
   kind: 'effect';
   description: string;
+  /**
+   * Quick-filter tags derived from GGPK's own `BuffDefinitions.BuffCategory`
+   * field (an undocumented raw enum, reverse-mapped by cross-referencing
+   * known effects - see `BUFF_CATEGORY_TAG` in normalize.ts) plus a
+   * name-shape check for Auras (`BuffCategory` doesn't distinguish them).
+   * Empty for the ~1% of effects in a tiny/ambiguous category bucket -
+   * intentionally left untagged rather than force-fit into a wrong label.
+   */
+  tags: string[];
 }
 
 const KINDS: readonly string[] = ['item', 'skill', 'mod', 'effect'];

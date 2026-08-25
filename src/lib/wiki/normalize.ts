@@ -465,15 +465,69 @@ export function normalizeMod(id: string, mod: Mod, lastSynced: string, keywordDe
 
 /**
  * One `BuffDefinitions` row this project cares about - `Id`/`Name`/
- * `Description` only. Read and filtered by `scripts/sync-wiki.ts` directly
- * from the decoded table (not through a @poe2-toolkit extractor package,
- * same as `CurrencyText` above); this type is just the shape it hands off
- * to {@link normalizeEffect}.
+ * `Description`/`BuffCategory`. Read and filtered by `scripts/sync-wiki.ts`
+ * directly from the decoded table (not through a @poe2-toolkit extractor
+ * package, same as `CurrencyText` above); this type is just the shape it
+ * hands off to {@link normalizeEffect}.
  */
 export interface EffectRow {
   id: string;
   name: string;
   description: string;
+  /** GGPK's own `BuffCategory` - an undocumented raw enum, no reference table ships with it. Reverse-mapped in `BUFF_CATEGORY_TAG` below by cross-referencing known effects (Bleeding/Ignited/... all = 2, Onslaught/Righteous Fire/... all = 1, etc). `null` when the row had no value at all. */
+  buffCategory: number | null;
+}
+
+/**
+ * Maps GGPK's raw `BuffCategory` enum to a short quick-filter label,
+ * reverse-engineered by cross-referencing known effects against a live
+ * decode (2026-08-25) - there is no reference table for this enum anywhere
+ * in the schema. Several raw values are folded into one label where the
+ * underlying split reads as an implementation detail rather than a
+ * distinction a wiki reader would care about (e.g. 1/4/6/13/15/16 are all
+ * "positive effect currently applied to you" in different internal
+ * bookkeeping shapes - Onslaught, an "Increased Armour" stat buff, a
+ * mid-channel skill marker, a Herald, Headhunter's steal-a-mod mechanic,
+ * and a party Link all read the same way to a reader: "Buff"). The four
+ * smallest/least legible values (8, 10, 11, 14 - 11 rows total, mostly PvP
+ * team/flag markers) are deliberately left unmapped rather than guessed.
+ */
+const BUFF_CATEGORY_TAG: Record<number, string> = {
+  1: 'Buff', 4: 'Buff', 6: 'Buff', 13: 'Buff', 15: 'Buff', 16: 'Buff',
+  2: 'Debuff',
+  3: 'Charge',
+  5: 'Curse',
+  7: 'Shrine', 9: 'Shrine',
+  17: 'Charm',
+  18: 'Immunity',
+};
+
+/**
+ * The canonical Ailments, per GGPK's own `KeywordPopups` glossary entry for
+ * the term "Ailments": "The list of Ailments is: Bleeding, Ignite, Chill,
+ * Freeze, Shock, Electrocute, and Poison." Matched against our own effect
+ * names, which use the adjective/past-tense form ("Ignited" not "Ignite")
+ * - "Electrocuted" has no matching effect entry in a live decode (not
+ * implemented as its own buff in this patch), so the set is 6, not 7.
+ */
+const AILMENT_NAMES = new Set(['Bleeding', 'Ignited', 'Chilled', 'Frozen', 'Shocked', 'Poisoned']);
+
+/**
+ * Quick-filter tags for one effect: its `BuffCategory`-derived tag (see
+ * {@link BUFF_CATEGORY_TAG}), "Ailment" for the canonical set above
+ * (layered on top of - not instead of - the "Debuff" every one of them
+ * already gets from its `BuffCategory`), and "Aura" when the name itself
+ * ends that way - `BuffCategory` doesn't distinguish auras from other
+ * buffs (both "Speed Aura" and "Onslaught" are category 1), so this is a
+ * name-shape check layered on top, not a `BuffCategory` value of its own.
+ */
+function effectTags(row: EffectRow): string[] {
+  const tags: string[] = [];
+  const categoryTag = row.buffCategory != null ? BUFF_CATEGORY_TAG[row.buffCategory] : undefined;
+  if (categoryTag) tags.push(categoryTag);
+  if (AILMENT_NAMES.has(row.name)) tags.push('Ailment');
+  if (row.name.endsWith(' Aura')) tags.push('Aura');
+  return tags;
 }
 
 /**
@@ -489,6 +543,7 @@ export function normalizeEffect(row: EffectRow, lastSynced: string): WikiEffectD
     name: row.name,
     category: 'Effect',
     description: stripBracketMarkup(row.description),
+    tags: effectTags(row),
     lastSynced,
   };
 }
@@ -594,7 +649,7 @@ export function toSearchEntry(
   if (detail.kind === 'mod') {
     tags = detail.families;
   } else if (detail.kind === 'effect') {
-    tags = [];
+    tags = detail.tags;
   } else if (detail.kind === 'item' && CURRENCY_RAW_CATEGORIES.has(category)) {
     // Currency rows carry a long tail of internal grouping tags
     // (quality_currency, catalyst, socket_currency, mushrune, ...) that add

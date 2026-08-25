@@ -419,14 +419,21 @@ describe('readEffectRows', () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it('keeps a row with both a real Name and Description', () => {
+  it('keeps a row with both a real Name and Description, carrying BuffCategory through', () => {
     const dir = writeTable([
-      { _index: 0, Id: 'maim', Name: 'Maimed', Description: 'Reduced [Evasion] and movement speed [Slow|Slowed].' },
+      { _index: 0, Id: 'maim', Name: 'Maimed', Description: 'Reduced [Evasion] and movement speed [Slow|Slowed].', BuffCategory: 2 },
     ]);
 
     expect(readEffectRows(dir)).toEqual([
-      { id: 'maim', name: 'Maimed', description: 'Reduced [Evasion] and movement speed [Slow|Slowed].' },
+      { id: 'maim', name: 'Maimed', description: 'Reduced [Evasion] and movement speed [Slow|Slowed].', buffCategory: 2 },
     ]);
+  });
+
+  it('defaults buffCategory to null when the row has none', () => {
+    const dir = writeTable([
+      { _index: 0, Id: 'maim', Name: 'Maimed', Description: 'x' },
+    ]);
+    expect(readEffectRows(dir)[0].buffCategory).toBeNull();
   });
 
   it('drops rows with no Name, no Description, or neither — internal hook rows with no usable definition', () => {
@@ -434,22 +441,22 @@ describe('readEffectRows', () => {
       { _index: 0, Id: 'have_killed_a_maimed_enemy_recently', Name: '', Description: '' },
       { _index: 1, Id: 'no_description', Name: 'Something', Description: '' },
       { _index: 2, Id: 'no_name', Name: '', Description: 'Something happens.' },
-      { _index: 3, Id: 'bleeding', Name: 'Bleeding', Description: 'Debuff inflicts damage over time.' },
+      { _index: 3, Id: 'bleeding', Name: 'Bleeding', Description: 'Debuff inflicts damage over time.', BuffCategory: 2 },
     ]);
 
     expect(readEffectRows(dir)).toEqual([
-      { id: 'bleeding', name: 'Bleeding', description: 'Debuff inflicts damage over time.' },
+      { id: 'bleeding', name: 'Bleeding', description: 'Debuff inflicts damage over time.', buffCategory: 2 },
     ]);
   });
 
   it('keeps the first row on a name collision, same convention as joinCurrencyByName', () => {
     const dir = writeTable([
-      { _index: 0, Id: 'righteous_fire', Name: 'Righteous Fire', Description: 'You take burning damage.' },
-      { _index: 1, Id: 'righteous_fire_aura', Name: 'Righteous Fire', Description: 'You are near someone using Righteous Fire.' },
+      { _index: 0, Id: 'righteous_fire', Name: 'Righteous Fire', Description: 'You take burning damage.', BuffCategory: 1 },
+      { _index: 1, Id: 'righteous_fire_aura', Name: 'Righteous Fire', Description: 'You are near someone using Righteous Fire.', BuffCategory: 1 },
     ]);
 
     expect(readEffectRows(dir)).toEqual([
-      { id: 'righteous_fire', name: 'Righteous Fire', description: 'You take burning damage.' },
+      { id: 'righteous_fire', name: 'Righteous Fire', description: 'You take burning damage.', buffCategory: 1 },
     ]);
   });
 

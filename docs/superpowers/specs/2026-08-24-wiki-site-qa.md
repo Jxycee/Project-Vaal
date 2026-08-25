@@ -121,12 +121,27 @@ Answered the two open questions from round 1, plus three more issues found live 
   would trade away a real production benefit. Re-bumping the version is the correct cost to pay
   instead, same as production always does for a real data change.
 
-## Deliberately deferred to the `/design` reformatting pass (not decided here)
+## Round 3 — effects taxonomy, resolved
 
-**Effects have zero sub-categorization.** All 1,225 entries share one flat "Effect" category -
-ailments, buffs, debuffs, charms, auras, and internal state markers are all indistinguishable while
-browsing. This is exactly the "should this be an effect, ailment, or mod?" clarity problem Jaycee
-named directly. No GGPK data distinguishes these (confirmed during the earlier source audit -
-`BuffDefinitions` carries no classification column), so any taxonomy here is a hand-curated design
-decision, not a quick mechanical fix like the category-humanization work above. This is the single
-biggest input for the upcoming `/design` pass on wiki clarity/categorization.
+Round 2 said "no GGPK data distinguishes ailment/buff/debuff" — wrong, just hadn't found the field
+yet. `BuffDefinitions.BuffCategory` (undocumented raw enum, no reference table in the schema)
+reverse-mapped by cross-referencing known effects covers essentially all 1,225 - see
+[2026-08-25-ggpk-table-catalog.md](2026-08-25-ggpk-table-catalog.md) for the full value table.
+
+Presented 3 options via `/design` (quick-filter chips / full sidebar partition / inline dot only) -
+Jaycee picked Option A (quick filters, no invented "Other" bucket) and asked to add Buff/Debuff too.
+Shipped: `WikiEffectDetail.tags` now carries a `BuffCategory`-derived label (Buff/Debuff/Curse/Charm/
+Charge/Shrine/Immunity) plus "Ailment" (the 6 canonical names from `KeywordPopups`'s own "Ailments"
+glossary entry - Electrocute has no matching effect in this patch) and "Aura" (name-shape check,
+`BuffCategory` doesn't distinguish these). `WikiBrowse` gained a generic `quickFilters` prop (a chip
+row above search, additive to category filtering, persisted in the same view-state as
+category/query/scroll) - effects-specific for now, but not effects-only in the code. Verified live:
+each chip filters correctly (Charm 13/13, Ailment 6/6), colors reuse the existing gem/attribute
+palette (no new tokens needed beyond what round 2 already added).
+
+## Deliberately deferred to a future `/design` pass
+
+- **Whether other kinds (items/mods) would benefit from their own quick-filter sets** - the
+  `quickFilters` mechanism is generic now; nothing else has been evaluated for it yet.
+- Nothing else identified as needing a design pass right now - the earlier "general clarity" ask
+  turned out to be fully satisfied by round 1/2's fixes plus this taxonomy work.

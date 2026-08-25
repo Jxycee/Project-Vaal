@@ -575,7 +575,7 @@ describe('normalizeMod', () => {
 describe('normalizeEffect', () => {
   it('slugs from name, strips bracket markup from the description, and always categorizes as "Effect"', () => {
     const result = normalizeEffect(
-      { id: 'maim', name: 'Maimed', description: 'Reduced [Evasion] and movement speed [Slow|Slowed].' },
+      { id: 'maim', name: 'Maimed', description: 'Reduced [Evasion] and movement speed [Slow|Slowed].', buffCategory: 2 },
       SYNCED_AT,
     );
     expect(result.kind).toBe('effect');
@@ -584,6 +584,35 @@ describe('normalizeEffect', () => {
     expect(result.category).toBe('Effect');
     expect(result.description).toBe('Reduced Evasion and movement speed Slowed.');
     expect(result.lastSynced).toBe(SYNCED_AT);
+  });
+
+  it('derives a quick-filter tag from BuffCategory', () => {
+    expect(normalizeEffect({ id: 'x', name: 'Onslaught', description: 'd', buffCategory: 1 }, SYNCED_AT).tags).toEqual(['Buff']);
+    expect(normalizeEffect({ id: 'x', name: 'Temporal Chains', description: 'd', buffCategory: 2 }, SYNCED_AT).tags).toEqual(['Debuff']);
+    expect(normalizeEffect({ id: 'x', name: 'Frenzy Charges', description: 'd', buffCategory: 3 }, SYNCED_AT).tags).toEqual(['Charge']);
+    expect(normalizeEffect({ id: 'x', name: 'Vulnerability', description: 'd', buffCategory: 5 }, SYNCED_AT).tags).toEqual(['Curse']);
+    expect(normalizeEffect({ id: 'x', name: 'Golden Charm', description: 'd', buffCategory: 17 }, SYNCED_AT).tags).toEqual(['Charm']);
+    expect(normalizeEffect({ id: 'x', name: 'Chill Immunity', description: 'd', buffCategory: 18 }, SYNCED_AT).tags).toEqual(['Immunity']);
+  });
+
+  it('adds an "Aura" tag when the name ends that way, alongside the BuffCategory tag', () => {
+    const result = normalizeEffect({ id: 'x', name: 'Speed Aura', description: 'd', buffCategory: 1 }, SYNCED_AT);
+    expect(result.tags).toEqual(['Buff', 'Aura']);
+  });
+
+  it('adds "Ailment" for the canonical GGPK-glossary set, layered on top of Debuff', () => {
+    for (const name of ['Bleeding', 'Ignited', 'Chilled', 'Frozen', 'Shocked', 'Poisoned']) {
+      expect(normalizeEffect({ id: 'x', name, description: 'd', buffCategory: 2 }, SYNCED_AT).tags).toEqual(['Debuff', 'Ailment']);
+    }
+  });
+
+  it('does not tag a non-ailment debuff as an Ailment', () => {
+    expect(normalizeEffect({ id: 'x', name: 'Temporal Chains', description: 'd', buffCategory: 2 }, SYNCED_AT).tags).toEqual(['Debuff']);
+  });
+
+  it('leaves tags empty for an unmapped or missing BuffCategory, rather than guessing', () => {
+    expect(normalizeEffect({ id: 'x', name: 'Red Team', description: 'd', buffCategory: 10 }, SYNCED_AT).tags).toEqual([]);
+    expect(normalizeEffect({ id: 'x', name: 'Something', description: 'd', buffCategory: null }, SYNCED_AT).tags).toEqual([]);
   });
 });
 
@@ -671,7 +700,7 @@ describe('toSearchEntry', () => {
 
   it('reassigns an explicitly-listed internal-state effect name (Grace Period, the Test-suffixed QA effects)', () => {
     for (const name of ['Grace Period', 'Cutscene in Progress', 'Block Test', 'Spiral Test Cheat']) {
-      const detail = normalizeEffect({ id: 'x', name, description: 'x' }, SYNCED_AT);
+      const detail = normalizeEffect({ id: 'x', name, description: 'x', buffCategory: null }, SYNCED_AT);
       expect(toSearchEntry(detail).category).toBe('Unused / Removed');
     }
   });
