@@ -58,6 +58,25 @@ claim that only ~75/1,225 effects were cleanly classifiable (based on a weak "do
 start with the word Buff/Debuff" text heuristic) was wrong - it just hadn't found this column yet.
 `BuffCategory` alone covers essentially all 1,225.
 
+## Found and evaluated — needs a scope decision, not yet built
+
+### `EndgameMaps.FlavourText` (found 2026-08-25) — real, substantial, blocked on a scope call
+
+173 rows, 172 with real flavor text (checked a live decode) - one per actual map LAYOUT ("Blooming
+Field", "Savannah", "Fortress", "Sulphuric Caverns", ...), keyed by `WorldArea`, not by any item.
+`SpecialMapText`/`SpecialMapFlavourText`/`SpecialMapHelpText` exist too (not yet checked for
+population).
+
+**Why this doesn't just slot into the existing item pipeline**: our `Waystone (Tier N)` items are
+the *currency-shaped* thing that opens a random map - confirmed via a live check, they carry no
+`flavourText` today (correctly - a generic tiered Waystone isn't tied to any one specific layout).
+The 172 flavor texts belong to the *map layouts themselves* ("Blooming Field" as a place), which
+aren't any of our four current wiki kinds (item/skill/mod/effect). Using this data means either (a)
+a new fifth wiki kind ("Map"/"Area"), similar in shape to how "Effect" itself got added, or (b) some
+other integration nobody has designed yet. **Not built - needs Jaycee's call on whether a Maps/Areas
+kind is worth adding**, same as the effects-taxonomy question earlier needed a design decision before
+building anything.
+
 ## Found and evaluated as dead ends (don't re-check these without new information)
 
 - **`QuestRewardType`** (`Reward: BaseItemTypes` + `Description`) - real join, real text, but generic
@@ -71,6 +90,25 @@ start with the word Buff/Debuff" text heuristic) was wrong - it just hadn't foun
   absent from PoB's raw `Uniques/*.lua` directly; `UniqueOrigins` only had 1/15 (drop-location only,
   not mod values).
 - **`UltimatumModifiers`** - has `Name`/`Icon` but no description-shaped field in its own schema.
+- **`RitualRuneTypes`** (`BuffDefinitionsKey`, `ModsKey`) - the `BuffDefinitionsKey` just points back
+  into a `BuffDefinitions` row we likely already have via effects; `ModsKey` was an empty array on
+  every row checked in a live decode (12 rows total). Nothing new here.
+- **`SanctumFloors.Description`** - only 4 rows ("Contains Rattlecage, the Earthbreaker" etc.), and
+  Sanctum isn't part of any current wiki kind. Too small/niche to act on.
+- **`DelveFeatures.Description`** - 246 rows but real content is sparse (most sampled rows had empty
+  `Name`/`Description`); Delve isn't part of any current wiki kind either. Not pursued further.
+- **`Incursion2Medallions`** (`Name`, `Description`) - only 9 real rows with content ("Juatalotli's
+  Medallion" etc., real use-text like "Use to prevent the next Destabilisation of a Room"). Cross-
+  checked: none of these names appear in our synced item index at all (only unrelated "Atziri's
+  Medallion" and "Medallion Trap" do) - these aren't current droppable items in this patch. Dead end.
+- **`AlternateQualityTypes.Description`** (Catalyst quality-modifier types, 26 rows, joins to real
+  `BaseItemTypes`) - cross-checked our own Catalyst items: they already carry richer, more detailed
+  description text via the existing `CurrencyItems` pipeline ("Adds quality that enhances Chaos
+  modifiers on a ring or amulet / Replaces other quality types" vs. this table's terse "Quality
+  (Chaos Modifiers)"). No new information.
+- **`SupportGemFamily.Text`** - just an Id→display-name lookup ("FirePenetration" → "Fire
+  Penetration"), the exact same transformation `humanizeCategory` already does programmatically. No
+  new information.
 
 ## Flagged, not yet pursued (revisit if a real need comes up - don't chase speculatively)
 
