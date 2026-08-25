@@ -22,6 +22,7 @@ const ENTITY_LABEL: Record<WikiEntryKind, string> = {
   skill: 'skill gems',
   mod: 'mods',
   effect: 'effects',
+  map: 'maps',
 };
 
 interface BrowseViewState {

@@ -6,6 +6,8 @@
     { "name": "BaseItemTypes", "columns": ["Id", "Name", "ItemClass", "Tags", "ItemVisualIdentity", "DropLevel", "ModDomain", "IsCorrupted", "Implicit_Mods", "FlavourText"] },
     { "name": "CurrencyItems", "columns": ["BaseItemType", "StackSize", "Description", "Directions", "XBoxDirections"] },
     { "name": "BuffDefinitions", "columns": ["Id", "Name", "Description", "BuffCategory"] },
+    { "name": "EndgameMaps", "columns": ["WorldArea", "FlavourText"] },
+    { "name": "WorldAreas", "columns": ["Id", "Name"] },
     { "name": "KeywordPopups", "columns": ["Id", "Term", "Definition"] },
     { "name": "SoulCores", "columns": ["BaseItemType"] },
     { "name": "SoulCoreStats", "columns": ["SoulCore", "StatCategory", "Stats", "StatsValues"] },

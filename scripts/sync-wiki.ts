@@ -16,10 +16,10 @@ import type { GgpkSource, StatIndex } from '@poe2-toolkit/ggpk';
 import { extractItems } from '@poe2-toolkit/item-extractor';
 import { extractGems } from '@poe2-toolkit/gem-extractor';
 import { extractMods } from '@poe2-toolkit/mod-extractor';
-import { normalizeItem, normalizeSkill, normalizeMod, normalizeEffect, toSearchEntry, slugify, parsePobUniqueFile, stripBracketMarkup } from '../src/lib/wiki/normalize';
-import type { CurrencyText, PobUniqueEntry, EffectRow } from '../src/lib/wiki/normalize';
+import { normalizeItem, normalizeSkill, normalizeMod, normalizeEffect, normalizeMap, toSearchEntry, slugify, parsePobUniqueFile, stripBracketMarkup } from '../src/lib/wiki/normalize';
+import type { CurrencyText, PobUniqueEntry, EffectRow, MapRow } from '../src/lib/wiki/normalize';
 import { WIKI_DATA_VERSION, WIKI_PATCH_VERSION } from '../src/lib/wiki/types';
-import type { WikiSearchEntry, WikiItemDetail, WikiSkillDetail, WikiModDetail, WikiEffectDetail, WikiItemFlask, WikiEntryKind, WikiCommunitySource, WikiSoulCoreEffect } from '../src/lib/wiki/types';
+import type { WikiSearchEntry, WikiItemDetail, WikiSkillDetail, WikiModDetail, WikiEffectDetail, WikiMapDetail, WikiItemFlask, WikiEntryKind, WikiCommunitySource, WikiSoulCoreEffect } from '../src/lib/wiki/types';
 
 const WIKI_ROOT = path.join(process.cwd(), 'public', 'data', 'wiki');
 const OUT_DIR = path.join(WIKI_ROOT, WIKI_DATA_VERSION);
@@ -702,6 +702,50 @@ function syncEffects(lastSynced: string): number {
   return writeKind('effect', details);
 }
 
+/**
+ * `EndgameMaps` (map-layout flavor text - Blooming Field, Fortress, ...)
+ * isn't behind a @poe2-toolkit extractor package; read directly off disk and
+ * joined to `WorldAreas.Name` by row index, same shape as
+ * `joinSoulCoresByName`'s `BaseItemTypes` join. Found while auditing
+ * still-undecoded GGPK tables - see
+ * docs/superpowers/specs/2026-08-25-ggpk-table-catalog.md.
+ *
+ * Filtered to rows with real flavor text (172/173 in a live decode) and
+ * deduped by resolved name, first row wins (same convention as every other
+ * by-name join in this file) - a handful of names repeat across
+ * difficulty-tier variants of the same layout, almost always with identical
+ * text (verified against a live decode; the one exception, "Simulacrum of
+ * Delusion", has two distinct texts across its two rows - first wins, same
+ * as any other real name collision here).
+ */
+export function readMapRows(tablesDir: string): MapRow[] {
+  const mapRows: { WorldArea: number; FlavourText: string | null }[] =
+    JSON.parse(readFileSync(path.join(tablesDir, 'EndgameMaps.json'), 'utf8'));
+  const areaRows: { _index: number; Name: string | null }[] =
+    JSON.parse(readFileSync(path.join(tablesDir, 'WorldAreas.json'), 'utf8'));
+
+  const nameByIndex = new Map(areaRows.map((r) => [r._index, r.Name]));
+  const seenNames = new Set<string>();
+  const result: MapRow[] = [];
+  for (const row of mapRows) {
+    if (!row.FlavourText) continue;
+    const name = nameByIndex.get(row.WorldArea);
+    if (!name || seenNames.has(name)) continue;
+    seenNames.add(name);
+    result.push({ name, flavourText: row.FlavourText });
+  }
+  return result;
+}
+
+function syncMaps(lastSynced: string): number {
+  const usedSlugs = new Set<string>();
+  const details: WikiMapDetail[] = readMapRows(TABLES_DIR).map((row) => {
+    const slug = dedupeSlug(slugify(row.name), row.name, usedSlugs);
+    return { ...normalizeMap(row, lastSynced), slug };
+  });
+  return writeKind('map', details);
+}
+
 const POEDB_OVERRIDES_PATH = path.join(process.cwd(), 'scripts', 'wiki', 'poedb-overrides.json');
 
 /**
@@ -775,8 +819,8 @@ export function attachKeywordDefinitions<T extends { name: string; keywordDefini
 }
 
 function writeKind(
-  kind: 'item' | 'skill' | 'mod' | 'effect',
-  details: Array<WikiItemDetail | WikiSkillDetail | WikiModDetail | WikiEffectDetail>,
+  kind: 'item' | 'skill' | 'mod' | 'effect' | 'map',
+  details: Array<WikiItemDetail | WikiSkillDetail | WikiModDetail | WikiEffectDetail | WikiMapDetail>,
 ): number {
   details = applyCommunitySource(kind, details, loadCommunitySourceOverrides());
   if (kind !== 'mod') details = attachKeywordDefinitions(details, readKeywordDefinitions(TABLES_DIR));
@@ -819,7 +863,8 @@ async function main(): Promise<void> {
   const skills = await syncSkills(lastSynced);
   const mods = await syncMods(lastSynced);
   const effects = syncEffects(lastSynced);
-  console.log(`wiki sync complete: ${items} items, ${skills} skills, ${mods} mods, ${effects} effects -> ${OUT_DIR}`);
+  const maps = syncMaps(lastSynced);
+  console.log(`wiki sync complete: ${items} items, ${skills} skills, ${mods} mods, ${effects} effects, ${maps} maps -> ${OUT_DIR}`);
 }
 
 if (process.argv[1]?.includes('sync-wiki')) {

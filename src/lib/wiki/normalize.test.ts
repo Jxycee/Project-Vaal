@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { Item } from '@poe2-toolkit/item-extractor';
-import { slugify, normalizeItem, normalizeSkill, normalizeMod, normalizeEffect, toSearchEntry, stripBracketMarkup, stripXboxButtonTokens, extractConsoleButtons, stripPobSourceMarkup, parsePobUniqueBlock, parsePobUniqueFile, enrichKeywordLines } from './normalize';
+import { slugify, normalizeItem, normalizeSkill, normalizeMod, normalizeEffect, normalizeMap, toSearchEntry, stripBracketMarkup, stripXboxButtonTokens, extractConsoleButtons, stripPobSourceMarkup, parsePobUniqueBlock, parsePobUniqueFile, enrichKeywordLines } from './normalize';
 
 const fixture = (name: string) =>
   JSON.parse(readFileSync(path.join(__dirname, '__fixtures__', name), 'utf8'));
@@ -616,6 +616,18 @@ describe('normalizeEffect', () => {
   });
 });
 
+describe('normalizeMap', () => {
+  it('slugs from name, strips bracket markup from the flavor text, and always categorizes as "Map"', () => {
+    const result = normalizeMap({ name: 'Blooming Field', flavourText: 'Bright [colours] hide the rot beneath.' }, SYNCED_AT);
+    expect(result.kind).toBe('map');
+    expect(result.slug).toBe('blooming-field');
+    expect(result.name).toBe('Blooming Field');
+    expect(result.category).toBe('Map');
+    expect(result.description).toBe('Bright colours hide the rot beneath.');
+    expect(result.lastSynced).toBe(SYNCED_AT);
+  });
+});
+
 describe('toSearchEntry', () => {
   it('drops detail-only fields from an item', () => {
     const raw = fixture('sample-item.json');
@@ -677,6 +689,12 @@ describe('toSearchEntry', () => {
     const raw = fixture('sample-mod.json');
     const entry = toSearchEntry(normalizeMod(raw.id, raw, SYNCED_AT));
     expect(entry.tags).toEqual(raw.families);
+  });
+
+  it('gives a map entry no search tags', () => {
+    const entry = toSearchEntry(normalizeMap({ name: 'Blooming Field', flavourText: 'd' }, SYNCED_AT));
+    expect(entry.tags).toEqual([]);
+    expect(entry.category).toBe('Map');
   });
 
   it('reassigns a "[DNT-UNUSED]"-named item to the Unused / Removed category, keeping its real category on the detail record', () => {

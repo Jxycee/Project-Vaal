@@ -12,7 +12,7 @@ export const WIKI_DATA_VERSION = '2026-08-25';
  */
 export const WIKI_PATCH_VERSION = '4.5.4.10.2';
 
-export type WikiEntryKind = 'item' | 'skill' | 'mod' | 'effect';
+export type WikiEntryKind = 'item' | 'skill' | 'mod' | 'effect' | 'map';
 
 /** Browse-page base path per kind — shared by breadcrumbs, mention links, and nav. */
 export const WIKI_BASE_PATH: Record<WikiEntryKind, string> = {
@@ -20,6 +20,7 @@ export const WIKI_BASE_PATH: Record<WikiEntryKind, string> = {
   skill: '/wiki/skills',
   mod: '/wiki/mods',
   effect: '/wiki/effects',
+  map: '/wiki/maps',
 };
 
 /** Slim entry — this is what ships to the browser for search. Keep it small. */
@@ -252,7 +253,19 @@ export interface WikiEffectDetail extends WikiDetailBase {
   tags: string[];
 }
 
-const KINDS: readonly string[] = ['item', 'skill', 'mod', 'effect'];
+/**
+ * A map layout's flavor text (Blooming Field, Fortress, ...), from GGPK's
+ * `EndgameMaps.FlavourText` joined to `WorldAreas.Name` — see
+ * `readMapRows` in scripts/sync-wiki.ts. `category` is always `"Map"`, same
+ * "one flat category" shape as {@link WikiEffectDetail} — the source data
+ * has no further classification (act/biome groupings aren't stored here).
+ */
+export interface WikiMapDetail extends WikiDetailBase {
+  kind: 'map';
+  description: string;
+}
+
+const KINDS: readonly string[] = ['item', 'skill', 'mod', 'effect', 'map'];
 
 export function isWikiSearchEntry(value: unknown): value is WikiSearchEntry {
   if (typeof value !== 'object' || value === null) return false;

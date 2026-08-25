@@ -13,6 +13,7 @@ import {
   joinImplicitModsByName,
   joinFlaskStatsByName,
   readEffectRows,
+  readMapRows,
   loadCommunitySourceOverrides,
   applyCommunitySource,
   readKeywordDefinitions,
@@ -463,6 +464,63 @@ describe('readEffectRows', () => {
   it('returns an empty array when the table has no usable rows', () => {
     const dir = writeTable([{ _index: 0, Id: 'x', Name: '', Description: '' }]);
     expect(readEffectRows(dir)).toEqual([]);
+  });
+});
+
+describe('readMapRows', () => {
+  let root: string;
+
+  const writeTables = (endgameMaps: object[], worldAreas: object[]) => {
+    const dir = path.join(root, 'tables', 'English');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, 'EndgameMaps.json'), JSON.stringify(endgameMaps));
+    writeFileSync(path.join(dir, 'WorldAreas.json'), JSON.stringify(worldAreas));
+    return dir;
+  };
+
+  beforeEach(() => {
+    root = mkdtempSync(path.join(tmpdir(), 'wiki-map-test-'));
+  });
+
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('joins a row with real FlavourText to its WorldAreas name', () => {
+    const dir = writeTables(
+      [{ WorldArea: 0, FlavourText: 'Bright [colours] hide the rot beneath.' }],
+      [{ _index: 0, Name: 'Blooming Field' }],
+    );
+    expect(readMapRows(dir)).toEqual([
+      { name: 'Blooming Field', flavourText: 'Bright [colours] hide the rot beneath.' },
+    ]);
+  });
+
+  it('drops a row with no FlavourText or with no matching WorldAreas name', () => {
+    const dir = writeTables(
+      [
+        { WorldArea: 0, FlavourText: null },
+        { WorldArea: 1, FlavourText: 'Orphaned text.' },
+      ],
+      [{ _index: 0, Name: 'Empty Layout' }],
+    );
+    expect(readMapRows(dir)).toEqual([]);
+  });
+
+  it('keeps the first row on a name collision, same convention as readEffectRows', () => {
+    const dir = writeTables(
+      [
+        { WorldArea: 0, FlavourText: 'Exactly as you remember it...' },
+        { WorldArea: 1, FlavourText: 'Delusions of suffering...' },
+      ],
+      [
+        { _index: 0, Name: 'Simulacrum of Delusion' },
+        { _index: 1, Name: 'Simulacrum of Delusion' },
+      ],
+    );
+    expect(readMapRows(dir)).toEqual([
+      { name: 'Simulacrum of Delusion', flavourText: 'Exactly as you remember it...' },
+    ]);
   });
 });
 

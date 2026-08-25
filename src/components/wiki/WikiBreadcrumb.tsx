@@ -7,6 +7,7 @@ const KIND_LABEL: Record<WikiEntryKind, string> = {
   skill: 'Skills',
   mod: 'Mods',
   effect: 'Effects',
+  map: 'Maps',
 };
 
 export function WikiBreadcrumb({ kind, name }: { kind: WikiEntryKind; name: string }) {

@@ -31,3 +31,9 @@ export const MOD_ACCENT_COLOR = 'var(--primary)';
  * at a glance — a distinct flat violet keeps the two kinds visually apart.
  */
 export const EFFECT_ACCENT_COLOR = 'var(--wiki-effect)';
+
+/**
+ * Maps have no per-entry color axis either (a flat category, same as
+ * effects/mods) - a distinct teal keeps map cards visually apart from both.
+ */
+export const MAP_ACCENT_COLOR = 'var(--wiki-map)';

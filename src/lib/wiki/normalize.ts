@@ -13,6 +13,7 @@ import type {
   WikiSkillDetail,
   WikiModDetail,
   WikiEffectDetail,
+  WikiMapDetail,
   WikiSearchEntry,
   WikiItemFlask,
   WikiSoulCoreEffect,
@@ -549,6 +550,28 @@ export function normalizeEffect(row: EffectRow, lastSynced: string): WikiEffectD
 }
 
 /**
+ * One `EndgameMaps` row joined to its `WorldAreas.Name` - see
+ * `readMapRows` in scripts/sync-wiki.ts, which does the join. This module
+ * only shapes it onto `WikiMapDetail`, same split as {@link CurrencyText}.
+ */
+export interface MapRow {
+  name: string;
+  flavourText: string;
+}
+
+/** Normalizes one {@link MapRow} into a {@link WikiMapDetail}. */
+export function normalizeMap(row: MapRow, lastSynced: string): WikiMapDetail {
+  return {
+    kind: 'map',
+    slug: slugify(row.name),
+    name: row.name,
+    category: 'Map',
+    description: stripBracketMarkup(row.flavourText),
+    lastSynced,
+  };
+}
+
+/**
  * Matches an entry whose own display name marks it as GGG's internal dev
  * content rather than real player-facing wiki content - a literal
  * "[DNT-UNUSED]"/"[DNT]"/"[UNUSED]" prefix (Do Not Translate / unused,
@@ -587,7 +610,7 @@ export const UNUSED_OR_REMOVED_CATEGORY = 'Unused / Removed';
  * `UncutSupportGem_OLD`) - the same "superseded, kept only for history"
  * situation, just marked at the class level instead of in the display name.
  */
-function isUnusedOrRemoved(detail: WikiItemDetail | WikiSkillDetail | WikiModDetail | WikiEffectDetail): boolean {
+function isUnusedOrRemoved(detail: WikiItemDetail | WikiSkillDetail | WikiModDetail | WikiEffectDetail | WikiMapDetail): boolean {
   if (UNUSED_OR_REMOVED_NAME_RE.test(detail.name)) return true;
   if (detail.kind === 'effect' && UNUSED_EFFECT_NAMES.has(detail.name)) return true;
   return detail.kind === 'item' && detail.category.endsWith('_OLD');
@@ -641,7 +664,7 @@ function isRedundantTag(tag: string, category: string, allTags: string[]): boole
 }
 
 export function toSearchEntry(
-  detail: WikiItemDetail | WikiSkillDetail | WikiModDetail | WikiEffectDetail,
+  detail: WikiItemDetail | WikiSkillDetail | WikiModDetail | WikiEffectDetail | WikiMapDetail,
 ): WikiSearchEntry {
   let category = isUnusedOrRemoved(detail) ? UNUSED_OR_REMOVED_CATEGORY : detail.category;
   let tags: string[];
@@ -650,6 +673,8 @@ export function toSearchEntry(
     tags = detail.families;
   } else if (detail.kind === 'effect') {
     tags = detail.tags;
+  } else if (detail.kind === 'map') {
+    tags = [];
   } else if (detail.kind === 'item' && CURRENCY_RAW_CATEGORIES.has(category)) {
     // Currency rows carry a long tail of internal grouping tags
     // (quality_currency, catalyst, socket_currency, mushrune, ...) that add

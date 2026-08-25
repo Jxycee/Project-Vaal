@@ -17,6 +17,7 @@ trail. This doc is the living index; that one is the narrative of the first big 
 | `BaseItemTypes`, `ItemClasses`, `ItemVisualIdentity`, `UniqueStashLayout`, `Words`, `UniqueStashTypes`, `FlavourText`, `AttributeRequirements`, `ArmourTypes`, `ShieldTypes`, `WeaponTypes`, `ItemSpirit`, `Tags` | (item extraction internals, mostly consumed via `@poe2-toolkit/item-extractor`) | Items |
 | `CurrencyItems` | BaseItemType, StackSize, Description, Directions, XBoxDirections | Item use-text/directions (Phase 1, `2026-08-21-wiki-item-usetext-design.md`) |
 | `BuffDefinitions` | Id, Name, Description, **BuffCategory** | Effects kind + quick-filter tags (2026-08-24/25) |
+| `EndgameMaps`, `WorldAreas` | WorldArea, FlavourText; Id, Name | Maps kind (2026-08-25) |
 | `KeywordPopups` | Id, Term, Definition | Mageblood Legacy fix + broad item/skill/effect "In-Depth" enrichment (2026-08-22) |
 | `SoulCores`, `SoulCoreStats`, `SoulCoreStatCategories` | BaseItemType; SoulCore/StatCategory/Stats/StatsValues; Id/Display | Rune per-socket-category effects (2026-08-22) |
 | `Stats`, `Mods`, `ModType`, `ModFamily` | (mod extraction internals) | Mods |
@@ -58,24 +59,26 @@ claim that only ~75/1,225 effects were cleanly classifiable (based on a weak "do
 start with the word Buff/Debuff" text heuristic) was wrong - it just hadn't found this column yet.
 `BuffCategory` alone covers essentially all 1,225.
 
-## Found and evaluated — needs a scope decision, not yet built
+## Found and used
 
-### `EndgameMaps.FlavourText` (found 2026-08-25) — real, substantial, blocked on a scope call
+### `EndgameMaps.FlavourText` (found 2026-08-25, shipped 2026-08-25) — fifth wiki kind, "Map"
 
 173 rows, 172 with real flavor text (checked a live decode) - one per actual map LAYOUT ("Blooming
-Field", "Savannah", "Fortress", "Sulphuric Caverns", ...), keyed by `WorldArea`, not by any item.
-`SpecialMapText`/`SpecialMapFlavourText`/`SpecialMapHelpText` exist too (not yet checked for
-population).
+Field", "Savannah", "Fortress", "Sulphuric Caverns", ...), joined to `WorldAreas.Name` by row index
+(`EndgameMaps.WorldArea`). Deduped by resolved name, first row wins (160 distinct names after
+dedup - a handful of names repeat across difficulty-tier variants of the same layout, almost always
+with identical text; the one exception, "Simulacrum of Delusion", has two distinct texts across its
+two rows). `SpecialMapText`/`SpecialMapFlavourText`/`SpecialMapHelpText` exist too, still unchecked
+for population - not pursued since the base `FlavourText` alone was enough to justify the kind.
 
-**Why this doesn't just slot into the existing item pipeline**: our `Waystone (Tier N)` items are
+**Why this needed its own kind rather than slotting into items**: our `Waystone (Tier N)` items are
 the *currency-shaped* thing that opens a random map - confirmed via a live check, they carry no
-`flavourText` today (correctly - a generic tiered Waystone isn't tied to any one specific layout).
-The 172 flavor texts belong to the *map layouts themselves* ("Blooming Field" as a place), which
-aren't any of our four current wiki kinds (item/skill/mod/effect). Using this data means either (a)
-a new fifth wiki kind ("Map"/"Area"), similar in shape to how "Effect" itself got added, or (b) some
-other integration nobody has designed yet. **Not built - needs Jaycee's call on whether a Maps/Areas
-kind is worth adding**, same as the effects-taxonomy question earlier needed a design decision before
-building anything.
+`flavourText` (correctly - a generic tiered Waystone isn't tied to any one specific layout). The 172
+flavor texts belong to the *map layouts themselves* ("Blooming Field" as a place), which didn't fit
+any of the four original wiki kinds. Jaycee's call: add a fifth kind, same shape as `WikiEffectDetail`
+(single flat `"Map"` category, `description` only, no icon art in the source table) - see
+`WikiMapDetail`/`normalizeMap` (normalize.ts), `readMapRows`/`syncMaps` (sync-wiki.ts),
+`/wiki/maps` + `/wiki/maps/[slug]`.
 
 ## Found and evaluated as dead ends (don't re-check these without new information)
 
