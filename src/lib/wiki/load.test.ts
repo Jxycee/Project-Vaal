@@ -10,7 +10,7 @@ describe('loadDetail', () => {
     expect(skill?.name).toBe('Ice Nova');
     expect(skill?.category).toBe('Active Skill Gem');
     expect(skill?.gemType).toBe('active');
-    expect(skill?.iconUrl).toBe('/data/wiki/2026-08-21/icons/skills/ice-nova.png');
+    expect(skill?.iconUrl).toBe('/data/wiki/2026-08-25/icons/skills/ice-nova.png');
   });
   it('returns null for an unknown slug instead of throwing', async () => {
     expect(await loadDetail('skill', 'not-a-real-gem')).toBeNull();

@@ -94,6 +94,15 @@
      same signal. */
   --wiki-mention: oklch(0.52 0.12 135);
   --wiki-effect: oklch(0.53 0.14 305);
+  /* Hybrid Str/Dex/Int tag chips (attributeTagColor.ts) - a solid blended
+     hue per pair rather than a live gradient: a two-color gradient on a
+     short, often-truncated tag chip mostly just reads as its first color,
+     so a fixed "amber"/"purple"/"teal" per pair is both simpler and more
+     legible. The all-three case reuses --wiki-gem-w (already the
+     established "universal" white/gold convention for skill gems). */
+  --wiki-attr-str-dex: oklch(0.58 0.15 70);
+  --wiki-attr-str-int: oklch(0.55 0.16 330);
+  --wiki-attr-dex-int: oklch(0.55 0.15 200);
 }
 
 /* Dark-first palette — warm charcoal + aged gold */
@@ -141,6 +150,9 @@
      doesn't read as the same signal as a green skill gem's own color. */
   --wiki-mention: oklch(0.80 0.10 135);
   --wiki-effect: oklch(0.72 0.14 305);
+  --wiki-attr-str-dex: oklch(0.68 0.15 70);
+  --wiki-attr-str-int: oklch(0.68 0.16 330);
+  --wiki-attr-dex-int: oklch(0.68 0.15 200);
 }
 
 @layer base {

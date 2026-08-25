@@ -1,1 +1,0 @@
-{"kind":"mod","slug":"playermonsteralwayspoison1","name":"of Venom","category":"Suffix","domain":"Monster","generationType":"Suffix","group":"AlwaysPoison","tier":1,"level":1,"stats":["Poison on Hit"],"rolls":[{"stat":"global_poison_on_hit","min":1,"max":1}],"families":["PoisonChanceIncrease"],"spawnWeights":[{"tag":"default","weight":0}],"lastSynced":"2026-08-22T23:34:25.608Z"}

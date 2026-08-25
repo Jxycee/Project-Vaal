@@ -2,6 +2,7 @@
 
 import { Fragment, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { humanizeCategory } from '@/lib/wiki/humanizeCategory';
 import type { CategoryGroup } from '@/lib/wiki/categoryGroups';
 import type { CategorySection } from '@/lib/wiki/categoryTaxonomy';
 
@@ -71,7 +72,7 @@ export function CategorySidebar({
             aria-pressed={selected === g.category}
             onClick={() => onSelect(g.category)}
           >
-            <span className="truncate">{g.category}</span>
+            <span className="truncate">{humanizeCategory(g.category)}</span>
             <span className="text-xs text-muted-foreground">{g.count}</span>
           </button>
         ))}
@@ -117,7 +118,7 @@ export function CategorySidebar({
                   aria-pressed={selected === g.category}
                   onClick={() => onSelect(g.category)}
                 >
-                  <span className="truncate">{g.category}</span>
+                  <span className="truncate">{humanizeCategory(g.category)}</span>
                   <span className="text-xs text-muted-foreground">{g.count}</span>
                 </button>
               ))}

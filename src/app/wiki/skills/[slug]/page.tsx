@@ -6,6 +6,8 @@ import { WikiBreadcrumb } from '@/components/wiki/WikiBreadcrumb';
 import { TooltipDivider } from '@/components/wiki/TooltipDivider';
 import { SkillScaling } from '@/components/wiki/SkillScaling';
 import { linkMentions } from '@/components/wiki/MentionLinks';
+import { KeywordDefinitionNote } from '@/components/wiki/KeywordDefinitionNote';
+import { humanizeCategory } from '@/lib/wiki/humanizeCategory';
 import { loadMentionIndex } from '@/lib/wiki/mentions';
 
 export const dynamicParams = true;
@@ -90,7 +92,7 @@ export default async function SkillDetailPage({
             <ul className="flex flex-wrap justify-center gap-1.5">
               {skill.tags.map((tag, i) => (
                 <li key={`${i}-${tag}`} className="rounded border border-border bg-card px-2.5 py-1 text-sm text-muted-foreground">
-                  {tag}
+                  {humanizeCategory(tag)}
                 </li>
               ))}
             </ul>
@@ -127,6 +129,13 @@ export default async function SkillDetailPage({
                   ),
                 }))}
               />
+            </>
+          )}
+
+          {skill.keywordDefinition && (
+            <>
+              <TooltipDivider />
+              <KeywordDefinitionNote>{linkMentions(skill.keywordDefinition, mentions, self)}</KeywordDefinitionNote>
             </>
           )}
         </article>

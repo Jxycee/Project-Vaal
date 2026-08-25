@@ -4,7 +4,16 @@ import { useMemo, useState } from 'react';
 import Fuse from 'fuse.js';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { humanizeCategory } from '@/lib/wiki/humanizeCategory';
+import { attributeTagColor } from '@/lib/wiki/attributeTagColor';
 import type { WikiSearchEntry } from '@/lib/wiki/types';
+import type { CSSProperties } from 'react';
+
+/** Str/Dex/Int tint for a tag chip (see attributeTagColor.ts) - `null` (default chip styling) for anything not attribute-shaped. */
+function attributeTagStyle(tag: string): CSSProperties | null {
+  const color = attributeTagColor(tag);
+  return color ? { color, borderColor: color } : null;
+}
 
 export function filterEntries(
   entries: WikiSearchEntry[],
@@ -23,11 +32,22 @@ export function filterEntries(
 export function WikiSearch({
   entries,
   basePath,
+  initialQuery,
+  onQueryChange,
 }: {
   entries: WikiSearchEntry[];
   basePath: string;
+  /** Prefills the search box — set from `?q=` by a mention link that couldn't resolve to one exact entry (see MentionLinks.tsx). */
+  initialQuery?: string;
+  /** Called with the query on every change — lets a parent (WikiBrowse) persist it for view-state restoration without lifting the whole input into a controlled component. */
+  onQueryChange?: (query: string) => void;
 }) {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery ?? '');
+
+  function handleChange(value: string) {
+    setQuery(value);
+    onQueryChange?.(value);
+  }
 
   // Memoize the Fuse instance — only rebuild when entries change
   const fuse = useMemo(() =>
@@ -51,7 +71,7 @@ export function WikiSearch({
         <input
           type="search"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => handleChange(e.target.value)}
           placeholder="Search…"
           aria-label="Search the wiki"
           className="w-full bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none"
@@ -78,13 +98,18 @@ export function WikiSearch({
               >
                 <div className="min-w-0">
                   <p className="truncate font-heading text-sm text-primary">{entry.name}</p>
-                  <p className="truncate text-xs text-muted-foreground">{entry.category}</p>
+                  <p className="truncate text-xs text-muted-foreground">{humanizeCategory(entry.category)}</p>
                 </div>
                 {entry.tags.length > 0 && (
                   <div className="hidden shrink-0 gap-1.5 sm:flex">
                     {entry.tags.slice(0, 2).map((tag) => (
-                      <span key={tag} className="rounded border border-border px-1.5 py-0.5 text-[0.65rem] text-muted-foreground">
-                        {tag}
+                      <span
+                        key={tag}
+                        title={humanizeCategory(tag)}
+                        style={attributeTagStyle(tag) ?? undefined}
+                        className="inline-block max-w-[6rem] truncate rounded border border-border px-1.5 py-0.5 text-[0.65rem] text-muted-foreground"
+                      >
+                        {humanizeCategory(tag)}
                       </span>
                     ))}
                   </div>

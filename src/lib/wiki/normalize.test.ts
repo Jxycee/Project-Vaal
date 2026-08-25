@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { Item } from '@poe2-toolkit/item-extractor';
-import { slugify, normalizeItem, normalizeSkill, normalizeMod, normalizeEffect, toSearchEntry, stripBracketMarkup, stripXboxButtonTokens, extractConsoleButtons, stripPobSourceMarkup, parsePobUniqueBlock, parsePobUniqueFile } from './normalize';
+import { slugify, normalizeItem, normalizeSkill, normalizeMod, normalizeEffect, toSearchEntry, stripBracketMarkup, stripXboxButtonTokens, extractConsoleButtons, stripPobSourceMarkup, parsePobUniqueBlock, parsePobUniqueFile, enrichKeywordLines } from './normalize';
 
 const fixture = (name: string) =>
   JSON.parse(readFileSync(path.join(__dirname, '__fixtures__', name), 'utf8'));
@@ -63,6 +63,31 @@ describe('stripXboxButtonTokens', () => {
   });
 });
 
+describe('enrichKeywordLines', () => {
+  it('appends the matching definition, bracket markup stripped, to a bare mod line', () => {
+    const definitions = new Map([
+      ['Legacy of Gold', "Legacy of Gold is a [MagesLegacy|Mage's Legacy] which grants 45% increased [ItemRarity|Rarity of Items] found."],
+    ]);
+    expect(enrichKeywordLines(['Legacy of Gold'], definitions)).toEqual([
+      "Legacy of Gold — Legacy of Gold is a Mage's Legacy which grants 45% increased Rarity of Items found.",
+    ]);
+  });
+
+  it('leaves a line with no matching term unchanged', () => {
+    const definitions = new Map([['Legacy of Gold', 'Some definition.']]);
+    expect(enrichKeywordLines(['+(40-60) to Strength'], definitions)).toEqual(['+(40-60) to Strength']);
+  });
+
+  it('requires a whole-line match, not a substring - a numeric line naming the same term stays untouched', () => {
+    const definitions = new Map([['Strength', 'Strength is an Attribute...']]);
+    expect(enrichKeywordLines(['+(40-60) to Strength'], definitions)).toEqual(['+(40-60) to Strength']);
+  });
+
+  it('passes every line through unchanged when given no definitions', () => {
+    expect(enrichKeywordLines(['Legacy of Gold', 'Legacy of Ruby'], new Map())).toEqual(['Legacy of Gold', 'Legacy of Ruby']);
+  });
+});
+
 describe('normalizeItem', () => {
   const raw = fixture('sample-item.json');
 
@@ -101,6 +126,17 @@ describe('normalizeItem', () => {
     const b = normalizeItem(raw.name, raw, null, SYNCED_AT);
     expect(a.lastSynced).toBe(SYNCED_AT);
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
+  });
+
+  it('defaults soulCoreEffects to null when the caller passes none', () => {
+    const result = normalizeItem(raw.name, raw, null, SYNCED_AT);
+    expect(result.soulCoreEffects).toBeNull();
+  });
+
+  it('carries soulCoreEffects through unchanged when the caller passes some (a Rune item)', () => {
+    const effects = [{ category: 'Armour', lines: ['+45% to Fire Resistance'] }];
+    const result = normalizeItem(raw.name, raw, null, SYNCED_AT, null, [], null, null, new Map(), effects);
+    expect(result.soulCoreEffects).toEqual(effects);
   });
 
   it('defaults description, directions, consoleDirections, and stackSize to null when no currency row is given', () => {
@@ -422,6 +458,29 @@ No true Base Line
     expect(entry?.baseType).toBeNull();
     expect(entry?.requiresLevel).toBe(10);
   });
+
+  it('strips the "alt variant" bookkeeping lines a second, independent variant axis uses (Mageblood shape) - never real mod text', () => {
+    const entry = parsePobUniqueBlock(`
+Mageblood
+Utility Belt
+Has Alt Variant: true
+Has Alt Variant Two: true
+Has Alt Variant Three: true
+Selected Variant: 1
+Selected Alt Variant: 2
+Selected Alt Variant Two: 3
+Selected Alt Variant Three: 4
+Allow Duplicate Variants: true
+Variant: Legacy of Gold
+Variant: Legacy of Ruby
+Implicits: 1
+Has (1-3) Charm Slot
+{variant:1}Legacy of Gold
+{variant:2}Legacy of Ruby
+`);
+    expect(entry?.implicitMods).toEqual(['Has (1-3) Charm Slot']);
+    expect(entry?.explicitMods).toEqual(['Legacy of Gold', 'Legacy of Ruby']);
+  });
 });
 
 describe('parsePobUniqueFile', () => {
@@ -500,6 +559,17 @@ describe('normalizeMod', () => {
     expect(normalizeMod('x', { ...raw, domain: '6' }, SYNCED_AT).domain).toBe('Map');
     expect(normalizeMod('x', { ...raw, domain: '8' }, SYNCED_AT).domain).toBe('Sanctum');
   });
+
+  it('enriches a bare stats line via keywordDefinitions, same as a unique item mod line', () => {
+    const definitions = new Map([["Legacy of Gold", "Legacy of Gold is a Mage's Legacy which grants 45% increased Rarity of Items found."]]);
+    const result = normalizeMod('x', { ...raw, stats: ['Legacy of Gold'] }, SYNCED_AT, definitions);
+    expect(result.stats).toEqual(["Legacy of Gold — Legacy of Gold is a Mage's Legacy which grants 45% increased Rarity of Items found."]);
+  });
+
+  it('leaves stats unchanged when no keywordDefinitions are given', () => {
+    const result = normalizeMod('x', { ...raw, stats: ['+10 to Life'] }, SYNCED_AT);
+    expect(result.stats).toEqual(['+10 to Life']);
+  });
 });
 
 describe('normalizeEffect', () => {
@@ -524,6 +594,50 @@ describe('toSearchEntry', () => {
     expect(Object.keys(entry).sort()).toEqual(['category', 'kind', 'name', 'slug', 'tags']);
   });
 
+  it('drops the near-universal, zero-signal "default" tag from an item\'s search tags, keeps the rest', () => {
+    const raw = fixture('sample-item.json');
+    const detail = normalizeItem(raw.name, { ...raw, tags: ['default', 'armour', 'str_armour'] }, null, SYNCED_AT);
+    expect(toSearchEntry(detail).tags).toEqual(['armour', 'str_armour']);
+  });
+
+  it('drops a tag that reads identically to the entry\'s own category ("body_armour" on a Body Armour item)', () => {
+    const raw = fixture('sample-item.json'); // category: "Body Armour"
+    const detail = normalizeItem(raw.name, { ...raw, tags: ['armour', 'body_armour'] }, null, SYNCED_AT);
+    expect(toSearchEntry(detail).tags).toEqual(['armour']);
+  });
+
+  it('drops the bare "onehand"/"twohand" tag when the fuller "one_hand_weapon"/"two_hand_weapon" tag is also present, keeps a lone one', () => {
+    const raw = fixture('sample-item.json');
+    const both = normalizeItem(raw.name, { ...raw, tags: ['one_hand_weapon', 'onehand', 'weapon'] }, null, SYNCED_AT);
+    expect(toSearchEntry(both).tags).toEqual(['one_hand_weapon', 'weapon']);
+    const loneTwohand = normalizeItem(raw.name, { ...raw, tags: ['twohand', 'weapon'] }, null, SYNCED_AT);
+    expect(toSearchEntry(loneTwohand).tags).toEqual(['twohand', 'weapon']);
+  });
+
+  it('strips all tags from a currency item except incursion_currency', () => {
+    const raw = fixture('sample-item.json');
+    const detail = normalizeItem(raw.name, { ...raw, itemClass: 'StackableCurrency', category: 'StackableCurrency', tags: ['default', 'quality_currency', 'catalyst'] }, null, SYNCED_AT);
+    expect(toSearchEntry(detail).tags).toEqual([]);
+    const withIncursion = normalizeItem(raw.name, { ...raw, itemClass: 'StackableCurrency', category: 'StackableCurrency', tags: ['quality_currency', 'incursion_currency'] }, null, SYNCED_AT);
+    expect(toSearchEntry(withIncursion).tags).toEqual(['incursion_currency']);
+  });
+
+  it('promotes an essence-tagged currency item to its own "Essence" category', () => {
+    const raw = fixture('sample-item.json');
+    const detail = normalizeItem('Essence of Abrasion', { ...raw, itemClass: 'StackableCurrency', category: 'StackableCurrency', tags: ['default', 'essence'] }, null, SYNCED_AT);
+    const entry = toSearchEntry(detail);
+    expect(entry.category).toBe('Essence');
+    expect(entry.tags).toEqual([]);
+    // the detail record itself keeps its real raw category - only the search-index entry changes
+    expect(detail.category).toBe('StackableCurrency');
+  });
+
+  it('leaves a non-currency item\'s tags untouched by the currency-stripping rule', () => {
+    const raw = fixture('sample-item.json'); // category: "Body Armour"
+    const detail = normalizeItem(raw.name, { ...raw, tags: ['catalyst', 'quality_currency'] }, null, SYNCED_AT);
+    expect(toSearchEntry(detail).tags).toEqual(['catalyst', 'quality_currency']);
+  });
+
   it('drops detail-only fields from a mod', () => {
     const raw = fixture('sample-mod.json');
     const entry = toSearchEntry(normalizeMod(raw.id, raw, SYNCED_AT));
@@ -534,5 +648,58 @@ describe('toSearchEntry', () => {
     const raw = fixture('sample-mod.json');
     const entry = toSearchEntry(normalizeMod(raw.id, raw, SYNCED_AT));
     expect(entry.tags).toEqual(raw.families);
+  });
+
+  it('reassigns a "[DNT-UNUSED]"-named item to the Unused / Removed category, keeping its real category on the detail record', () => {
+    const raw = fixture('sample-item.json');
+    const detail = normalizeItem('[DNT-UNUSED] Axe Chop', { ...raw }, null, SYNCED_AT);
+    expect(detail.category).not.toBe('Unused / Removed'); // detail record itself is untouched
+    expect(toSearchEntry(detail).category).toBe('Unused / Removed');
+  });
+
+  it('reassigns an exact "Removed Skill" name the same way', () => {
+    const raw = fixture('sample-item.json');
+    const detail = normalizeItem('Removed Skill', { ...raw }, null, SYNCED_AT);
+    expect(toSearchEntry(detail).category).toBe('Unused / Removed');
+  });
+
+  it('reassigns a "[UNUSED]"-named item too (no "DNT" needed - real data has both prefix shapes)', () => {
+    const raw = fixture('sample-item.json');
+    const detail = normalizeItem('[UNUSED] Heist Test Weapon', { ...raw }, null, SYNCED_AT);
+    expect(toSearchEntry(detail).category).toBe('Unused / Removed');
+  });
+
+  it('reassigns an explicitly-listed internal-state effect name (Grace Period, the Test-suffixed QA effects)', () => {
+    for (const name of ['Grace Period', 'Cutscene in Progress', 'Block Test', 'Spiral Test Cheat']) {
+      const detail = normalizeEffect({ id: 'x', name, description: 'x' }, SYNCED_AT);
+      expect(toSearchEntry(detail).category).toBe('Unused / Removed');
+    }
+  });
+
+  it('does not reassign a "Test"-named item - real content ("Test of Strength Barya", a Trial of the Sekhemas room) would false-positive if this were a cross-kind pattern', () => {
+    const raw = fixture('sample-item.json');
+    const detail = normalizeItem('Test of Strength Barya', { ...raw }, null, SYNCED_AT);
+    expect(toSearchEntry(detail).category).toBe(detail.category);
+  });
+
+  it('does not reassign a name that merely contains "DNT" or "Removed" without the exact marker shape', () => {
+    const raw = fixture('sample-item.json');
+    const notDnt = normalizeItem('Adnthea\'s Ring', { ...raw }, null, SYNCED_AT);
+    const notRemoved = normalizeItem('Removed Skillful Strike', { ...raw }, null, SYNCED_AT);
+    expect(toSearchEntry(notDnt).category).toBe(notDnt.category);
+    expect(toSearchEntry(notRemoved).category).toBe(notRemoved.category);
+  });
+
+  it('reassigns an item whose category is an "_OLD"-suffixed legacy class, even with a normal name', () => {
+    const raw = fixture('sample-item.json');
+    const detail = normalizeItem('Uncut Skill Gem', { ...raw, itemClass: 'UncutSkillGem_OLD' }, null, SYNCED_AT);
+    expect(toSearchEntry(detail).category).toBe('Unused / Removed');
+  });
+
+  it('does not reassign an "_OLD"-suffixed category for a non-item kind (the rule is item-only)', () => {
+    const modRaw = fixture('sample-mod.json');
+    const detail = normalizeMod('x', { ...modRaw, generationType: 'Suffix_OLD' }, SYNCED_AT);
+    expect(detail.category).toBe('Suffix_OLD');
+    expect(toSearchEntry(detail).category).toBe('Suffix_OLD');
   });
 });

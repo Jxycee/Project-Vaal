@@ -1,4 +1,5 @@
 import type { CategoryGroup } from './categoryGroups';
+import { UNUSED_OR_REMOVED_CATEGORY, ESSENCE_CATEGORY } from './normalize';
 
 /**
  * Groups the wiki's ~92 real item categories into a small set of top-level
@@ -8,6 +9,13 @@ import type { CategoryGroup } from './categoryGroups';
  * duplicated. Skills (3 categories) and mods (13) don't need this — they
  * stay flat, per the design decision that only items has enough categories
  * to warrant grouping.
+ *
+ * The four `_OLD`-suffixed classes that used to live in `Currency` below
+ * (`UncutSkillGem_OLD`, `UncutReservationGem_OLD`, `UncutSupportGem_OLD`,
+ * `PinnacleKey_OLD`) never reach this taxonomy as themselves any more -
+ * `toSearchEntry` (normalize.ts) reassigns their search-index category to
+ * `UNUSED_OR_REMOVED_CATEGORY` before this taxonomy ever sees them, so they
+ * group under the dedicated section below instead.
  */
 export const ITEM_CATEGORY_GROUPS: Record<string, string[]> = {
   Armour: ['Body Armour', 'Helmet', 'Gloves', 'Boots', 'Shield', 'Buckler', 'Focus', 'Focii', 'Charm'],
@@ -15,11 +23,12 @@ export const ITEM_CATEGORY_GROUPS: Record<string, string[]> = {
   Currency: [
     'StackableCurrency', 'SoulCore', 'Omen', 'Incubator', 'IncubatorStackable',
     'DelveSocketableCurrency', 'PantheonSoul', 'UncutSkillGemStackable',
-    'UncutReservationGemStackable', 'UncutSupportGemStackable', 'UncutSkillGem_OLD',
-    'UncutReservationGem_OLD', 'UncutSupportGem_OLD', 'ArchnemesisMod', 'DivinationCard',
-    'Currency', 'PinnacleKey_OLD', 'PinnacleKeyStackable', 'VaultKey', 'MemoryLine',
-    'BrequelFruit',
+    'UncutReservationGemStackable', 'UncutSupportGemStackable',
+    'ArchnemesisMod', 'DivinationCard',
+    'Currency', 'PinnacleKeyStackable', 'VaultKey', 'MemoryLine',
+    'BrequelFruit', ESSENCE_CATEGORY,
   ],
+  'Unused / Removed': [UNUSED_OR_REMOVED_CATEGORY],
   Weapons: [
     'One Hand Sword', 'Two Hand Sword', 'One Hand Axe', 'Two Hand Axe', 'One Hand Mace',
     'Two Hand Mace', 'Mace', 'Bow', 'Crossbow', 'Claw', 'Dagger', 'Flail', 'Spear',

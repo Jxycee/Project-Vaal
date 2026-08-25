@@ -1,0 +1,1 @@
+{"kind":"effect","slug":"overencumbered","name":"Overencumbered","category":"Effect","description":"You are Slowed. This effect stacks.","lastSynced":"2026-08-25T00:35:21.206Z","keywordDefinition":"Slows by 10%, reapplying this Debuff stacks and refreshes it's duration."}

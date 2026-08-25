@@ -5,6 +5,8 @@ import { WikiBreadcrumb } from '@/components/wiki/WikiBreadcrumb';
 import { TooltipDivider } from '@/components/wiki/TooltipDivider';
 import { linkMentions } from '@/components/wiki/MentionLinks';
 import { loadMentionIndex } from '@/lib/wiki/mentions';
+import { CommunitySourceNote } from '@/components/wiki/CommunitySourceNote';
+import { KeywordDefinitionNote } from '@/components/wiki/KeywordDefinitionNote';
 
 export const dynamicParams = true;
 export const dynamic = 'force-dynamic';
@@ -46,6 +48,20 @@ export default async function EffectDetailPage({
 
           <TooltipDivider />
           <p className="text-lg font-medium">{linkMentions(effect.description, mentions, self)}</p>
+
+          {effect.keywordDefinition && (
+            <>
+              <TooltipDivider />
+              <KeywordDefinitionNote>{linkMentions(effect.keywordDefinition, mentions, self)}</KeywordDefinitionNote>
+            </>
+          )}
+
+          {effect.communitySource && (
+            <>
+              <TooltipDivider />
+              <CommunitySourceNote source={effect.communitySource} />
+            </>
+          )}
         </article>
       </div>
     </div>

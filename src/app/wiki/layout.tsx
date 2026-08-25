@@ -20,7 +20,7 @@ export default function WikiLayout({ children }: { children: React.ReactNode }) 
       </nav>
       {children}
       <footer className="mt-10 border-t pt-4 text-xs text-muted-foreground">
-        Item, skill, and mod data extracted from Path of Exile 2&apos;s own game files via the{' '}
+        Item, skill, mod, and effect data extracted from Path of Exile 2&apos;s own game files via the{' '}
         <a href="https://github.com/rajtik76/poe2-toolkit" className="underline">poe2-toolkit</a>{' '}
         library (MIT). Unique item mods and drop sources — not present in the game&apos;s own data
         files — come from{' '}

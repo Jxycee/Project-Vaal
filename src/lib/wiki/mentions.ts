@@ -3,10 +3,24 @@ import path from 'node:path';
 import { WIKI_DATA_VERSION } from './types';
 import type { WikiEntryKind, WikiSearchEntry } from './types';
 
-export interface MentionTarget {
+/** A single concrete entry — links straight to its detail page. */
+export interface MentionEntryTarget {
   kind: WikiEntryKind;
   slug: string;
 }
+
+/**
+ * A tiered-item family with no bare/untiered entry of its own (e.g.
+ * "Jeweller's Orb" — only Lesser/Greater/Perfect/Tainted exist, so there's
+ * no single correct detail page to send a generic mention to). Links to a
+ * pre-filled search on the kind's browse page instead of guessing a tier.
+ */
+export interface MentionSearchTarget {
+  kind: WikiEntryKind;
+  query: string;
+}
+
+export type MentionTarget = MentionEntryTarget | MentionSearchTarget;
 
 export interface MentionIndex {
   targets: Map<string, MentionTarget>;
@@ -16,6 +30,26 @@ export interface MentionIndex {
 
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Recognized tier-adjective prefixes for stackable currency (Lesser/Greater/
+ * Perfect Jeweller's Orb, Lesser/Greater Eldritch Ember, ...) and the
+ * "(Tier N)" suffix used by Waystones and Shaper's/Maven's Orbs. Returns the
+ * stripped base name, or `null` when `name` carries neither shape (nothing
+ * to strip — most names).
+ */
+const TIER_PREFIXES = ['Lesser', 'Greater', 'Perfect', 'Superior', 'Tainted'];
+
+function familyBaseName(name: string): string | null {
+  const suffixStripped = name.replace(/\s+\(Tier \d+\)$/, '');
+  if (suffixStripped !== name) return suffixStripped;
+
+  const words = name.split(' ');
+  if (words.length > 1 && TIER_PREFIXES.includes(words[0])) {
+    return words.slice(1).join(' ');
+  }
+  return null;
 }
 
 /**
@@ -40,6 +74,14 @@ function escapeRegExp(s: string): string {
  * positive-shaped matches across real prose fields for mods alone with no
  * guard; skills/items share the exact same failure mode, just previously
  * un-measured.
+ *
+ * After the exact-name pass, a second pass looks for tiered-item families
+ * with no bare entry of their own (see {@link familyBaseName}) and, when
+ * 2+ concrete entries share a base and no real entry already owns that
+ * exact name, registers the base as a {@link MentionSearchTarget}. Exempt
+ * from the 2+-word rule above — these are manufactured PoE proper nouns
+ * ("Waystone"), not overloaded ailment/mechanic vocabulary, so the
+ * single-word collision risk that guard exists for doesn't apply here.
  */
 export function buildMentionIndex(entryGroups: WikiSearchEntry[][]): MentionIndex {
   const targets = new Map<string, MentionTarget>();
@@ -49,14 +91,50 @@ export function buildMentionIndex(entryGroups: WikiSearchEntry[][]): MentionInde
       if (!targets.has(e.name)) targets.set(e.name, { kind: e.kind, slug: e.slug });
     }
   }
+
+  const familyCounts = new Map<string, { kind: WikiEntryKind; count: number }>();
+  for (const entries of entryGroups) {
+    for (const e of entries) {
+      const base = familyBaseName(e.name);
+      if (!base || targets.has(base)) continue;
+      const existing = familyCounts.get(base);
+      if (existing) existing.count += 1;
+      else familyCounts.set(base, { kind: e.kind, count: 1 });
+    }
+  }
+  for (const [base, { kind, count }] of familyCounts) {
+    if (count >= 2 && !targets.has(base)) targets.set(base, { kind, query: base });
+  }
+
   // Longest name first so "Scroll of Wisdom" wins over a hypothetical shorter
   // overlapping "Scroll" entry rather than the alternation matching whichever
   // happens to come first.
   const names = [...targets.keys()].sort((a, b) => b.length - a.length);
+  // `s?` inside the capturing group (not appended after it) so a plural
+  // mention ("Jeweller's Orbs") is captured whole, including the trailing s
+  // - String.prototype.split only keeps captured text in its output, so an
+  // `s?` outside the group would silently eat that letter from the
+  // surrounding prose. resolveMentionTarget below strips it back off before
+  // the targets lookup, since `targets` is keyed by the singular name only.
   const pattern = names.length > 0
-    ? new RegExp(`\\b(${names.map(escapeRegExp).join('|')})\\b`, 'g')
+    ? new RegExp(`\\b((?:${names.map(escapeRegExp).join('|')})s?)\\b`, 'g')
     : /(?!)/g;
   return { targets, pattern };
+}
+
+/**
+ * Resolves matched text from {@link MentionIndex.pattern} to its target,
+ * falling back to the singular form when `matchedText` is the exact name
+ * plus a trailing plural "s" the pattern permits but `targets` isn't keyed
+ * by. Returns `undefined` for a `pattern` match that isn't a real target -
+ * `split` also returns the fixed, un-captured text between matches, which
+ * has no entry either.
+ */
+export function resolveMentionTarget(matchedText: string, index: MentionIndex): MentionTarget | undefined {
+  const exact = index.targets.get(matchedText);
+  if (exact) return exact;
+  if (!matchedText.endsWith('s')) return undefined;
+  return index.targets.get(matchedText.slice(0, -1));
 }
 
 async function readSearchIndex(kind: WikiEntryKind): Promise<WikiSearchEntry[]> {

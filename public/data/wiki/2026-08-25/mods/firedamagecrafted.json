@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"firedamagecrafted","name":"Scalding","category":"Unique","domain":"Base Jewel","generationType":"Unique","group":"FireDamagePercentage","tier":1,"level":1,"stats":["(20-24)% increased Fire Damage"],"rolls":[{"stat":"fire_damage_+%","min":20,"max":24}],"families":["FireDamagePercentage"],"spawnWeights":[],"lastSynced":"2026-08-25T00:35:21.206Z"}

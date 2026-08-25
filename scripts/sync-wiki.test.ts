@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { buildStatIndex } from '@poe2-toolkit/ggpk';
 import path from 'node:path';
 import {
   validateSyncResult,
@@ -12,6 +13,11 @@ import {
   joinImplicitModsByName,
   joinFlaskStatsByName,
   readEffectRows,
+  loadCommunitySourceOverrides,
+  applyCommunitySource,
+  readKeywordDefinitions,
+  attachKeywordDefinitions,
+  joinSoulCoresByName,
 } from './sync-wiki';
 
 const entry = (slug: string) => ({
@@ -450,5 +456,237 @@ describe('readEffectRows', () => {
   it('returns an empty array when the table has no usable rows', () => {
     const dir = writeTable([{ _index: 0, Id: 'x', Name: '', Description: '' }]);
     expect(readEffectRows(dir)).toEqual([]);
+  });
+});
+
+describe('readKeywordDefinitions', () => {
+  let root: string;
+
+  const writeTable = (keywordPopups: object[]) => {
+    const dir = path.join(root, 'tables', 'English');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, 'KeywordPopups.json'), JSON.stringify(keywordPopups));
+    return dir;
+  };
+
+  beforeEach(() => {
+    root = mkdtempSync(path.join(tmpdir(), 'wiki-keyword-test-'));
+  });
+
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('keys by Term, keeping the raw (unstripped) Definition', () => {
+    const dir = writeTable([
+      { _index: 798, Id: 'LegacyOfGold', Term: 'Legacy of Gold', Definition: "Legacy of Gold is a [MagesLegacy|Mage's Legacy] which grants 45% increased [ItemRarity|Rarity of Items] found." },
+    ]);
+    expect(readKeywordDefinitions(dir)).toEqual(new Map([
+      ['Legacy of Gold', "Legacy of Gold is a [MagesLegacy|Mage's Legacy] which grants 45% increased [ItemRarity|Rarity of Items] found."],
+    ]));
+  });
+
+  it('skips a row with an empty Definition (placeholder/test rows in the real table)', () => {
+    const dir = writeTable([
+      { _index: 6, Id: 'test2', Term: 'Test custom content', Definition: '' },
+    ]);
+    expect(readKeywordDefinitions(dir)).toEqual(new Map());
+  });
+
+  it('keeps the first row on a Term collision, same convention as every other by-name join here', () => {
+    const dir = writeTable([
+      { _index: 0, Id: 'A', Term: 'Charms', Definition: 'First definition.' },
+      { _index: 1, Id: 'B', Term: 'Charms', Definition: 'Second definition.' },
+    ]);
+    expect(readKeywordDefinitions(dir)).toEqual(new Map([['Charms', 'First definition.']]));
+  });
+});
+
+describe('loadCommunitySourceOverrides', () => {
+  let root: string;
+
+  beforeEach(() => {
+    root = mkdtempSync(path.join(tmpdir(), 'wiki-community-source-test-'));
+  });
+
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('returns an empty object when the file does not exist', () => {
+    expect(loadCommunitySourceOverrides(path.join(root, 'missing.json'))).toEqual({});
+  });
+
+  it('parses a real overrides file', () => {
+    const file = path.join(root, 'overrides.json');
+    writeFileSync(file, JSON.stringify({
+      mod: { 'some-mod-slug': { text: 'Explanation.', sourceUrl: 'https://poe2db.tw/us/Some_Page' } },
+    }));
+    expect(loadCommunitySourceOverrides(file)).toEqual({
+      mod: { 'some-mod-slug': { text: 'Explanation.', sourceUrl: 'https://poe2db.tw/us/Some_Page' } },
+    });
+  });
+});
+
+describe('applyCommunitySource', () => {
+  it('attaches a matching override by slug', () => {
+    const details: { slug: string; communitySource?: { text: string; sourceUrl: string } | null }[] =
+      [{ slug: 'atziris-influence-mod' }, { slug: 'other-mod' }];
+    const result = applyCommunitySource('mod', details, {
+      mod: { 'atziris-influence-mod': { text: 'Explanation.', sourceUrl: 'https://poe2db.tw/us/X' } },
+    });
+    expect(result[0].communitySource).toEqual({ text: 'Explanation.', sourceUrl: 'https://poe2db.tw/us/X' });
+    expect(result[1].communitySource).toBeUndefined();
+  });
+
+  it('returns the same array reference when this kind has no overrides', () => {
+    const details = [{ slug: 'a' }];
+    expect(applyCommunitySource('mod', details, {})).toBe(details);
+    expect(applyCommunitySource('mod', details, { mod: {} })).toBe(details);
+  });
+
+  it('does not mutate entries with no override', () => {
+    const details = [{ slug: 'a' }, { slug: 'b' }];
+    const result = applyCommunitySource('mod', details, { mod: { b: { text: 'x', sourceUrl: 'y' } } });
+    expect(result[0]).toBe(details[0]);
+    expect(result[1]).not.toBe(details[1]);
+  });
+});
+
+describe('attachKeywordDefinitions', () => {
+  it('attaches the stripped definition when the entry name matches a term exactly', () => {
+    const details: { name: string; keywordDefinition?: string | null }[] =
+      [{ name: 'Bleeding' }, { name: 'Something Else' }];
+    const result = attachKeywordDefinitions(details, new Map([
+      ['Bleeding', 'Bleeding is an [Ailments|Ailment] that deals [Physical|Physical] damage over time.'],
+    ]));
+    expect(result[0].keywordDefinition).toBe('Bleeding is an Ailment that deals Physical damage over time.');
+    expect(result[1].keywordDefinition).toBeUndefined();
+  });
+
+  it('returns the same array reference when there are no keyword definitions at all', () => {
+    const details = [{ name: 'Bleeding' }];
+    expect(attachKeywordDefinitions(details, new Map())).toBe(details);
+  });
+
+  it('does not mutate entries with no matching term', () => {
+    const details = [{ name: 'Bleeding' }, { name: 'Nothing Matches' }];
+    const result = attachKeywordDefinitions(details, new Map([['Bleeding', 'x']]));
+    expect(result[1]).toBe(details[1]);
+    expect(result[0]).not.toBe(details[0]);
+  });
+});
+
+describe('joinSoulCoresByName', () => {
+  let root: string;
+
+  // A real, minimally-valid stat_descriptions.csd snippet (see
+  // node_modules/@poe2-toolkit/ggpk/dist/statDescriptions.js's own format
+  // comment) - exercises the actual GGG rendering engine end to end rather
+  // than stubbing it, since StatIndex's internals are documented as opaque.
+  const statIndex = buildStatIndex(`description
+	1 base_fire_damage_resistance_%
+	1
+		# "+{0}% to Fire Resistance"
+	lang "French"
+		# "French text"
+description
+	2 local_minimum_added_fire_damage local_maximum_added_fire_damage
+	1
+		# # "Adds {0} to {1} Fire Damage"
+	lang "French"
+		# # "French text"
+`);
+
+  const writeTables = (baseItemTypes: object[], soulCores: object[], soulCoreStats: object[], statCategories: object[], stats: object[]) => {
+    const dir = path.join(root, 'tables', 'English');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, 'BaseItemTypes.json'), JSON.stringify(baseItemTypes));
+    writeFileSync(path.join(dir, 'SoulCores.json'), JSON.stringify(soulCores));
+    writeFileSync(path.join(dir, 'SoulCoreStats.json'), JSON.stringify(soulCoreStats));
+    writeFileSync(path.join(dir, 'SoulCoreStatCategories.json'), JSON.stringify(statCategories));
+    writeFileSync(path.join(dir, 'Stats.json'), JSON.stringify(stats));
+    return dir;
+  };
+
+  beforeEach(() => {
+    root = mkdtempSync(path.join(tmpdir(), 'wiki-soulcore-test-'));
+  });
+
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('joins a rune to its rendered per-category effect lines', () => {
+    const dir = writeTables(
+      [{ _index: 0, Name: 'Desert Rune' }],
+      [{ _index: 0, BaseItemType: 0 }],
+      [
+        { SoulCore: 0, StatCategory: 0, Stats: [0], StatsValues: [45] },
+        { SoulCore: 0, StatCategory: 1, Stats: [1, 2], StatsValues: [4, 6] },
+      ],
+      [
+        { _index: 0, Id: 'Armour', Display: 'Armour' },
+        { _index: 1, Id: 'Martial Weapon', Display: '' },
+      ],
+      [
+        { _index: 0, Id: 'base_fire_damage_resistance_%' },
+        { _index: 1, Id: 'local_minimum_added_fire_damage' },
+        { _index: 2, Id: 'local_maximum_added_fire_damage' },
+      ],
+    );
+
+    expect(joinSoulCoresByName(dir, statIndex)).toEqual(new Map([
+      ['Desert Rune', [
+        { category: 'Armour', lines: ['+45% to Fire Resistance'] },
+        { category: 'Martial Weapon', lines: ['Adds 4 to 6 Fire Damage'] },
+      ]],
+    ]));
+  });
+
+  it('falls back to the category Id when Display is empty', () => {
+    const dir = writeTables(
+      [{ _index: 0, Name: 'Desert Rune' }],
+      [{ _index: 0, BaseItemType: 0 }],
+      [{ SoulCore: 0, StatCategory: 0, Stats: [0], StatsValues: [45] }],
+      [{ _index: 0, Id: 'Martial Weapon', Display: '' }],
+      [{ _index: 0, Id: 'base_fire_damage_resistance_%' }],
+    );
+    const result = joinSoulCoresByName(dir, statIndex);
+    expect(result.get('Desert Rune')?.[0].category).toBe('Martial Weapon');
+  });
+
+  it('strips GGPK bracket markup from the category label - real data has "[MartialWeapon|Martial Weapon]"', () => {
+    const dir = writeTables(
+      [{ _index: 0, Name: 'Desert Rune' }],
+      [{ _index: 0, BaseItemType: 0 }],
+      [{ SoulCore: 0, StatCategory: 0, Stats: [0], StatsValues: [45] }],
+      [{ _index: 0, Id: 'Martial Weapon', Display: '[MartialWeapon|Martial Weapon]' }],
+      [{ _index: 0, Id: 'base_fire_damage_resistance_%' }],
+    );
+    const result = joinSoulCoresByName(dir, statIndex);
+    expect(result.get('Desert Rune')?.[0].category).toBe('Martial Weapon');
+  });
+
+  it('drops a stat row whose rune name has no matching BaseItemTypes entry', () => {
+    const dir = writeTables(
+      [],
+      [{ _index: 0, BaseItemType: 99 }],
+      [{ SoulCore: 0, StatCategory: 0, Stats: [0], StatsValues: [45] }],
+      [{ _index: 0, Id: 'Armour', Display: 'Armour' }],
+      [{ _index: 0, Id: 'base_fire_damage_resistance_%' }],
+    );
+    expect(joinSoulCoresByName(dir, statIndex)).toEqual(new Map());
+  });
+
+  it('returns an empty map when SoulCoreStats has no rows', () => {
+    const dir = writeTables(
+      [{ _index: 0, Name: 'Desert Rune' }],
+      [{ _index: 0, BaseItemType: 0 }],
+      [],
+      [],
+      [],
+    );
+    expect(joinSoulCoresByName(dir, statIndex)).toEqual(new Map());
   });
 });

@@ -3,8 +3,9 @@ import path from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { groupByTaxonomy, ITEM_CATEGORY_GROUPS } from './categoryTaxonomy';
 import { groupByCategory } from './categoryGroups';
+import { toSearchEntry } from './normalize';
 import { WIKI_DATA_VERSION } from './types';
-import type { WikiSearchEntry } from './types';
+import type { WikiItemDetail, WikiSearchEntry } from './types';
 
 const entry = (category: string, i: number): WikiSearchEntry => ({
   slug: `${category}-${i}`, name: `${category} ${i}`, kind: 'item', category, tags: [],
@@ -55,13 +56,18 @@ describe('groupByTaxonomy', () => {
 });
 
 describe('ITEM_CATEGORY_GROUPS', () => {
-  it('covers every real synced item category with no duplicates', () => {
+  it('covers every real synced item\'s search-index category with no duplicates', () => {
+    // Built via toSearchEntry, same as the real sync - not the raw detail
+    // file's own `category` directly, since an unused/removed item's
+    // *search-index* category is reassigned away from its raw one (see
+    // `isUnusedOrRemoved`/`UNUSED_OR_REMOVED_CATEGORY` in normalize.ts).
+    // The taxonomy only needs to cover categories that actually reach it.
     const dir = path.join(process.cwd(), 'public', 'data', 'wiki', WIKI_DATA_VERSION, 'items');
     const files = readdirSync(dir);
     const realCategories = new Set<string>();
     for (const f of files) {
-      const item = JSON.parse(readFileSync(path.join(dir, f), 'utf8'));
-      realCategories.add(item.category);
+      const item: WikiItemDetail = JSON.parse(readFileSync(path.join(dir, f), 'utf8'));
+      realCategories.add(toSearchEntry(item).category);
     }
 
     const assigned = Object.values(ITEM_CATEGORY_GROUPS).flat();

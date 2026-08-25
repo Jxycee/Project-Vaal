@@ -79,3 +79,26 @@ SOFTWARE.
 
 Project Vaal is an independent project and is not affiliated with or endorsed by
 the Path of Building Community.
+
+## poedb.tw (community-sourced explanations)
+
+A small number of wiki entries carry a `communitySource` note — a short explanation for
+something the game's own extractable data has no text for at all (e.g. a mod whose only
+`stats` line is an unexplained proper noun, with no `BuffDefinitions` row or other source
+behind it). These are hand-verified one at a time against a live poedb.tw page and entered
+into `scripts/wiki/poedb-overrides.json`; nothing is scraped automatically, and the field is
+absent on the overwhelming majority of entries, which get everything they need from GGG's
+own data via `@poe2-toolkit`.
+
+Rendered with an explicit "community-sourced" label and a link back to the source page (see
+`src/components/wiki/CommunitySourceNote.tsx`) — never presented as if it came from GGG's
+own data.
+
+- Source: https://poe2db.tw
+- License: CC BY-NC-SA 3.0 — https://creativecommons.org/licenses/by-nc-sa/3.0/
+
+This license is share-alike and non-commercial only; it applies solely to the specific
+`communitySource` text fields listed above, not to the rest of the wiki's data (which
+remains MIT via `@poe2-toolkit`, per the notice above). Project Vaal is non-commercial.
+
+Project Vaal is an independent project and is not affiliated with or endorsed by poedb.tw.

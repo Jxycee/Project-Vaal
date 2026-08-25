@@ -3,7 +3,7 @@
  * public/data/wiki/<version>/ for cache-busting. Manually bumped, reviewed
  * via the weekly sync PR (scripts/sync-wiki.ts).
  */
-export const WIKI_DATA_VERSION = '2026-08-21';
+export const WIKI_DATA_VERSION = '2026-08-25';
 
 /**
  * GGPK patch version passed to createCdnSource. No public "latest" endpoint
@@ -13,6 +13,14 @@ export const WIKI_DATA_VERSION = '2026-08-21';
 export const WIKI_PATCH_VERSION = '4.5.4.10.2';
 
 export type WikiEntryKind = 'item' | 'skill' | 'mod' | 'effect';
+
+/** Browse-page base path per kind — shared by breadcrumbs, mention links, and nav. */
+export const WIKI_BASE_PATH: Record<WikiEntryKind, string> = {
+  item: '/wiki/items',
+  skill: '/wiki/skills',
+  mod: '/wiki/mods',
+  effect: '/wiki/effects',
+};
 
 /** Slim entry — this is what ships to the browser for search. Keep it small. */
 export interface WikiSearchEntry {
@@ -29,11 +37,39 @@ export interface WikiIndexFile {
   entries: WikiSearchEntry[];
 }
 
+/**
+ * A hand-verified explanation pulled from poedb.tw for an entry the GGPK
+ * data itself has no description for (e.g. a mod's `stats` line that's
+ * just an unexplained proper-noun phrase like "Atziri's Influence", with
+ * no `BuffDefinitions` row or other extractable text behind it). Never
+ * auto-scraped — see `scripts/wiki/poedb-overrides.json` and
+ * THIRD-PARTY-NOTICES.md. `null`/absent for the overwhelming majority of
+ * entries, which get everything they need from GGG's own data.
+ */
+export interface WikiCommunitySource {
+  text: string;
+  /** The poedb.tw page this was verified against, at merge time - not necessarily still live-verifiable if the site's URL scheme or patch coverage changes later. */
+  sourceUrl: string;
+}
+
 interface WikiDetailBase {
   slug: string;
   name: string;
   category: string;
   lastSynced: string;
+  communitySource?: WikiCommunitySource | null;
+  /**
+   * The full explanation from GGG's own in-game keyword-tooltip glossary
+   * (`KeywordPopups` - the popup you get hovering a blue-underlined term in
+   * the real client), when this entry's exact `name` matches a glossary
+   * term. Distinct from `communitySource`: this is first-party GGPK data,
+   * same source/license as everything else on the page, just a second
+   * (usually longer, more mechanical) explanation alongside whatever
+   * shorter description the entry already has - see
+   * docs/superpowers/specs/2026-08-22-wiki-ggpk-source-audit.md, "Finding 1".
+   * `null`/absent for the ~92% of entries with no matching term.
+   */
+  keywordDefinition?: string | null;
 }
 
 export interface WikiItemArmour {
@@ -88,6 +124,23 @@ export interface WikiUniqueMods {
   explicitMods: string[];
 }
 
+/**
+ * A Rune's (SoulCore-category item's) socketing bonus, one entry per
+ * equipment category it grants a different effect for (e.g. a Desert Rune
+ * grants added Fire damage socketed in a weapon but Fire Resistance
+ * socketed in Armour) - see `joinSoulCoresByName` in sync-wiki.ts, sourced
+ * from GGPK's `SoulCores`/`SoulCoreStats`/`SoulCoreStatCategories` tables,
+ * rendered through `@poe2-toolkit/ggpk`'s own stat-description engine (the
+ * same one that renders every mod's `stats` text) rather than hand-rolled
+ * formatting.
+ */
+export interface WikiSoulCoreEffect {
+  /** e.g. "Martial Weapon", "Wand or Staff", "Armour" - which equipment category this bonus applies to when the rune is socketed there. */
+  category: string;
+  /** Rendered stat lines for this category, e.g. ["Adds 4 to 6 Fire Damage"]. */
+  lines: string[];
+}
+
 export interface WikiItemDetail extends WikiDetailBase {
   kind: 'item';
   rarity: 'normal' | 'unique';
@@ -119,6 +172,7 @@ export interface WikiItemDetail extends WikiDetailBase {
   implicitMods: string[];
   flask: WikiItemFlask | null;
   uniqueMods: WikiUniqueMods | null;
+  soulCoreEffects: WikiSoulCoreEffect[] | null;
 }
 
 export interface WikiSkillStatLine {

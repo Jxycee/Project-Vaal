@@ -5,6 +5,7 @@ import { WikiBreadcrumb } from '@/components/wiki/WikiBreadcrumb';
 import { TooltipDivider } from '@/components/wiki/TooltipDivider';
 import { linkMentions } from '@/components/wiki/MentionLinks';
 import { loadMentionIndex } from '@/lib/wiki/mentions';
+import { CommunitySourceNote } from '@/components/wiki/CommunitySourceNote';
 
 export const dynamicParams = true;
 export const dynamic = 'force-dynamic';
@@ -100,6 +101,13 @@ export default async function ModDetailPage({
                   </li>
                 ))}
               </ul>
+            </>
+          )}
+
+          {mod.communitySource && (
+            <>
+              <TooltipDivider />
+              <CommunitySourceNote source={mod.communitySource} />
             </>
           )}
         </article>

@@ -1,11 +1,14 @@
 import { notFound } from 'next/navigation';
 import { loadDetail } from '@/lib/wiki/load';
+import { humanizeCategory } from '@/lib/wiki/humanizeCategory';
 import { itemAccentColor } from '@/lib/wiki/accent';
 import { RarityIconBox } from '@/components/wiki/RarityIconBox';
 import { WikiBreadcrumb } from '@/components/wiki/WikiBreadcrumb';
 import { TooltipDivider } from '@/components/wiki/TooltipDivider';
 import { mergeDirectionsWithConsoleButtons } from '@/components/wiki/ConsoleButtonBadge';
 import { linkMentions } from '@/components/wiki/MentionLinks';
+import { CommunitySourceNote } from '@/components/wiki/CommunitySourceNote';
+import { KeywordDefinitionNote } from '@/components/wiki/KeywordDefinitionNote';
 import { loadMentionIndex } from '@/lib/wiki/mentions';
 
 export const dynamicParams = true;
@@ -80,7 +83,7 @@ export default async function ItemDetailPage({
   const hasUseText = Boolean(item.description || item.directions || item.consoleDirections);
   const modLines = [...item.implicitMods, ...(item.uniqueMods?.explicitMods ?? [])];
   const hasFlavour = Boolean(item.flavourText && item.flavourText.length > 0);
-  const subtitleClass = item.uniqueMods?.baseType ?? item.itemClass ?? item.category;
+  const subtitleClass = item.uniqueMods?.baseType ?? humanizeCategory(item.itemClass ?? item.category);
 
   return (
     <div className="flex min-h-[60vh] flex-col">
@@ -160,10 +163,42 @@ export default async function ItemDetailPage({
             </>
           )}
 
+          {item.soulCoreEffects && item.soulCoreEffects.length > 0 && (
+            <>
+              <TooltipDivider />
+              <div className="space-y-2.5">
+                {item.soulCoreEffects.map((effect, i) => (
+                  <div key={`${i}-${effect.category}`}>
+                    <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                      Socketed in {effect.category}
+                    </p>
+                    <ul className="space-y-1 text-base font-medium">
+                      {effect.lines.map((line, j) => <li key={`${j}-${line}`}>{linkMentions(line, mentions, self)}</li>)}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
           {item.uniqueMods?.dropSource && (
             <>
               <TooltipDivider />
               <p className="text-base font-bold">{linkMentions(item.uniqueMods.dropSource, mentions, self)}</p>
+            </>
+          )}
+
+          {item.keywordDefinition && (
+            <>
+              <TooltipDivider />
+              <KeywordDefinitionNote>{linkMentions(item.keywordDefinition, mentions, self)}</KeywordDefinitionNote>
+            </>
+          )}
+
+          {item.communitySource && (
+            <>
+              <TooltipDivider />
+              <CommunitySourceNote source={item.communitySource} />
             </>
           )}
 

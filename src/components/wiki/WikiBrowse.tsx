@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { WikiSearch } from './WikiSearch';
 import { groupByCategory } from '@/lib/wiki/categoryGroups';
 import { groupByTaxonomy, ITEM_CATEGORY_GROUPS } from '@/lib/wiki/categoryTaxonomy';
@@ -24,6 +24,45 @@ const ENTITY_LABEL: Record<WikiEntryKind, string> = {
   effect: 'effects',
 };
 
+interface BrowseViewState {
+  category: string | null;
+  query: string;
+  scrollY: number;
+}
+
+/**
+ * Persists the browse page's own view (selected category, search query,
+ * scroll position) across a full remount - visiting a detail page and
+ * hitting Back remounts `WikiBrowse` from scratch (it's client-fetched, not
+ * part of the routed page's own history entry), which previously reset the
+ * list to the very top with every filter cleared, even though the user was
+ * just there. `sessionStorage` (not localStorage) deliberately - this is
+ * "where was I in this browsing session," not a setting worth carrying
+ * across tabs/days. Keyed per kind since each browse route mounts its own
+ * `WikiBrowse` instance.
+ */
+function storageKey(kind: WikiEntryKind): string {
+  return `wiki-browse:${kind}`;
+}
+
+function readStoredView(kind: WikiEntryKind): BrowseViewState | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(storageKey(kind));
+    return raw ? (JSON.parse(raw) as BrowseViewState) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredView(kind: WikiEntryKind, view: BrowseViewState): void {
+  try {
+    sessionStorage.setItem(storageKey(kind), JSON.stringify(view));
+  } catch {
+    // Storage full/disabled - losing view-restore is harmless, nothing to recover.
+  }
+}
+
 /**
  * Client-side data loader for the wiki browse pages (items/skills/mods).
  *
@@ -43,8 +82,21 @@ export function WikiBrowse({
   basePath: string;
 }) {
   const router = useRouter();
+  // Set only by a mention link's `?q=` (see MentionLinks.tsx) — a generic
+  // tiered-item mention (e.g. "Jeweller's Orb") with no single bare entry to
+  // point at instead prefills the search box here. Takes priority over a
+  // stored view: arriving via an explicit mention link is a fresh intent,
+  // not a "continue where I left off" - restoring an unrelated stored
+  // category could hide the very entry the link was pointing at.
+  const urlQuery = useSearchParams().get('q');
+  const storedView = urlQuery ? null : readStoredView(kind);
+
   const [state, setState] = useState<LoadState>({ status: 'loading' });
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(storedView?.category ?? null);
+  const initialQuery = urlQuery ?? storedView?.query ?? undefined;
+  const currentQueryRef = useRef(initialQuery ?? '');
+  const restoredScrollRef = useRef(false);
+
   const groups = useMemo(
     () => groupByCategory(state.status === 'ready' ? state.entries : []),
     [state]
@@ -87,6 +139,56 @@ export function WikiBrowse({
     };
   }, [kind, router]);
 
+  // Restores scroll position once, after the real (non-loading) content has
+  // painted - restoring while the "Loading …" placeholder is still up would
+  // scroll into empty space, since the page is far shorter at that point.
+  // `useLayoutEffect` (not `useEffect`) so it applies before the browser
+  // paints the newly-tall list, avoiding a visible jump.
+  useLayoutEffect(() => {
+    if (state.status !== 'ready' || restoredScrollRef.current) return;
+    restoredScrollRef.current = true;
+    if (storedView && storedView.scrollY > 0) {
+      window.scrollTo(0, storedView.scrollY);
+    }
+    // storedView is intentionally read once on mount (see the component-level
+    // `readStoredView` call above), not tracked as a reactive dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.status]);
+
+  // Persists the current view on every scroll (throttled to one write per
+  // animation frame) so it's always fresh by the time the user navigates
+  // away - there's no reliable "about to leave" hook for this in the App
+  // Router, so continuous saving is the robust option.
+  useEffect(() => {
+    let frame: number | null = null;
+    function onScroll() {
+      if (frame != null) return;
+      frame = requestAnimationFrame(() => {
+        frame = null;
+        writeStoredView(kind, { category: selectedCategory, query: currentQueryRef.current, scrollY: window.scrollY });
+      });
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (frame != null) cancelAnimationFrame(frame);
+    };
+  }, [kind, selectedCategory]);
+
+  function handleSelectCategory(category: string | null) {
+    setSelectedCategory(category);
+    // A fresh filter choice reads as "start over" for scroll, same as a
+    // normal category-link click would - restoring the old scroll position
+    // under a newly-filtered (and likely much shorter) list would land
+    // nowhere meaningful.
+    writeStoredView(kind, { category, query: currentQueryRef.current, scrollY: 0 });
+  }
+
+  function handleQueryChange(query: string) {
+    currentQueryRef.current = query;
+    writeStoredView(kind, { category: selectedCategory, query, scrollY: window.scrollY });
+  }
+
   if (state.status === 'loading') {
     return (
       <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
@@ -118,11 +220,11 @@ export function WikiBrowse({
         sections={sections}
         total={state.entries.length}
         selected={selectedCategory}
-        onSelect={setSelectedCategory}
+        onSelect={handleSelectCategory}
         kindLabel={entityLabel}
       />
       <div className="min-w-0 flex-1">
-        <WikiSearch entries={visibleEntries} basePath={basePath} />
+        <WikiSearch entries={visibleEntries} basePath={basePath} initialQuery={initialQuery} onQueryChange={handleQueryChange} />
       </div>
     </div>
   );

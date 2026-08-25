@@ -1,0 +1,1 @@
+{"kind":"mod","slug":"increasedmanajewel","name":"Learned","category":"Unique","domain":"Atlas","generationType":"Unique","group":"IncreasedManaForJewel","tier":1,"level":1,"stats":["+(8-12) to maximum Mana"],"rolls":[{"stat":"base_maximum_mana","min":8,"max":12}],"families":["IncreasedMana"],"spawnWeights":[{"tag":"default","weight":0}],"lastSynced":"2026-08-25T00:35:21.206Z"}

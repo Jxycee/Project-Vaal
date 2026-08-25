@@ -11,14 +11,15 @@ import { mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, cpSync, ex
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import sharp from 'sharp';
-import { createCdnSource } from '@poe2-toolkit/ggpk';
+import { createCdnSource, buildStatIndex, renderBlock } from '@poe2-toolkit/ggpk';
+import type { GgpkSource, StatIndex } from '@poe2-toolkit/ggpk';
 import { extractItems } from '@poe2-toolkit/item-extractor';
 import { extractGems } from '@poe2-toolkit/gem-extractor';
 import { extractMods } from '@poe2-toolkit/mod-extractor';
-import { normalizeItem, normalizeSkill, normalizeMod, normalizeEffect, toSearchEntry, slugify, parsePobUniqueFile } from '../src/lib/wiki/normalize';
+import { normalizeItem, normalizeSkill, normalizeMod, normalizeEffect, toSearchEntry, slugify, parsePobUniqueFile, stripBracketMarkup } from '../src/lib/wiki/normalize';
 import type { CurrencyText, PobUniqueEntry, EffectRow } from '../src/lib/wiki/normalize';
 import { WIKI_DATA_VERSION, WIKI_PATCH_VERSION } from '../src/lib/wiki/types';
-import type { WikiSearchEntry, WikiItemDetail, WikiSkillDetail, WikiModDetail, WikiEffectDetail, WikiItemFlask } from '../src/lib/wiki/types';
+import type { WikiSearchEntry, WikiItemDetail, WikiSkillDetail, WikiModDetail, WikiEffectDetail, WikiItemFlask, WikiEntryKind, WikiCommunitySource, WikiSoulCoreEffect } from '../src/lib/wiki/types';
 
 const WIKI_ROOT = path.join(process.cwd(), 'public', 'data', 'wiki');
 const OUT_DIR = path.join(WIKI_ROOT, WIKI_DATA_VERSION);
@@ -77,6 +78,101 @@ export function validateSyncResult(
 /** Icon PNG results are keyed by "<dds path minus extension>.png" (@poe2-toolkit/ggpk convention). */
 export function ddsPathToIconKey(ddsPath: string): string {
   return /\.dds$/i.test(ddsPath) ? ddsPath.replace(/\.dds$/i, '.png') : ddsPath;
+}
+
+/**
+ * Reads `KeywordPopups` — GGG's own in-game keyword-tooltip glossary (the
+ * popup you get hovering a blue-underlined term in-game), 1,026 rows
+ * covering damage types, ailments, and named mechanics with real prose
+ * definitions. Discovered outside this project's existing ~30-table decode
+ * list while investigating why Mageblood's "Legacy of X" mod lines had no
+ * explanation anywhere (see `enrichKeywordLines` in normalize.ts) — GGG's
+ * own glossary has one for each: "Legacy of Gold is a Mage's Legacy which
+ * grants 45% increased Rarity of Items found." Keyed by `Term` (the exact
+ * display text a mod/item line would need to match, e.g. "Legacy of Gold"),
+ * not `Id` (an internal key, e.g. "LegacyOfGold") - first row wins on a
+ * name collision, same convention as every other by-name join in this file.
+ * Skips rows with an empty `Definition` (placeholder/test rows, e.g. a
+ * literal `Id: "test2"` row with `Definition: ""`).
+ */
+export function readKeywordDefinitions(tablesDir: string): Map<string, string> {
+  const rows: { Term: string | null; Definition: string | null }[] =
+    JSON.parse(readFileSync(path.join(tablesDir, 'KeywordPopups.json'), 'utf8'));
+  const result = new Map<string, string>();
+  for (const row of rows) {
+    if (!row.Term || !row.Definition) continue;
+    if (!result.has(row.Term)) result.set(row.Term, row.Definition);
+  }
+  return result;
+}
+
+const STAT_DESCRIPTIONS_PATH = 'data/statdescriptions/stat_descriptions.csd';
+
+/**
+ * Loads GGG's own `stat_descriptions.csd` (UTF-16, despite the extension)
+ * and builds the {@link StatIndex} `renderBlock` needs to turn raw
+ * `(stat_id, value)` pairs into the same human-readable text every mod/gem
+ * stat line on this wiki already goes through - `@poe2-toolkit`'s
+ * `mod-extractor`/`gem-extractor` both read this exact file internally
+ * (verified directly in their published `dist/buildMods.js` /
+ * `dist/buildGems.js`), this just reuses the same engine for `SoulCores`,
+ * which neither extractor package covers on its own.
+ */
+async function loadStatIndex(source: GgpkSource): Promise<StatIndex> {
+  const bytes = await source.file(STAT_DESCRIPTIONS_PATH);
+  if (!bytes) throw new Error(`stat descriptions not found: ${STAT_DESCRIPTIONS_PATH}`);
+  return buildStatIndex(Buffer.from(bytes).toString('utf16le'));
+}
+
+/**
+ * Joins PoE2's `SoulCores` (Rune-category items - "Desert Rune", "Glacial
+ * Rune", ...) to their per-equipment-category socketing bonus, discovered
+ * outside this project's existing decode list while auditing what GGPK data
+ * this wiki wasn't yet using (see
+ * docs/superpowers/specs/2026-08-22-wiki-ggpk-source-audit.md, "Finding 2").
+ * `CurrencyItems` doesn't cover this item category at all - this is a wholly
+ * separate join, through `SoulCores` (row-index-joined to `BaseItemTypes`,
+ * same convention as every other by-name join in this file) and
+ * `SoulCoreStats` (each rune's real numeric bonus, one row per equipment
+ * category it grants a *different* effect for - e.g. added Fire damage in a
+ * weapon vs. Fire Resistance in Armour - `SoulCoreStats.SoulCore` is a row
+ * index into `SoulCores`, verified against a live decode).
+ *
+ * Renders through `renderBlock` (see {@link loadStatIndex}) rather than
+ * displaying raw stat ids (`base_fire_damage_resistance_%`) - the same
+ * engine GGG's own client uses, not a hand-rolled humanizer.
+ */
+export function joinSoulCoresByName(tablesDir: string, statIndex: StatIndex): Map<string, WikiSoulCoreEffect[]> {
+  const baseRows: { _index: number; Name: string }[] =
+    JSON.parse(readFileSync(path.join(tablesDir, 'BaseItemTypes.json'), 'utf8'));
+  const soulCoreRows: { _index: number; BaseItemType: number }[] =
+    JSON.parse(readFileSync(path.join(tablesDir, 'SoulCores.json'), 'utf8'));
+  const statRows: { SoulCore: number; StatCategory: number; Stats: number[]; StatsValues: number[] }[] =
+    JSON.parse(readFileSync(path.join(tablesDir, 'SoulCoreStats.json'), 'utf8'));
+  const statsTable: { _index: number; Id: string }[] =
+    JSON.parse(readFileSync(path.join(tablesDir, 'Stats.json'), 'utf8'));
+  const categoryRows: { _index: number; Id: string; Display: string | null }[] =
+    JSON.parse(readFileSync(path.join(tablesDir, 'SoulCoreStatCategories.json'), 'utf8'));
+
+  const nameByIndex = new Map(baseRows.map((r) => [r._index, r.Name]));
+  const soulCoreNameByRow = new Map(soulCoreRows.map((r) => [r._index, nameByIndex.get(r.BaseItemType) ?? null]));
+  const statIdByIndex = new Map(statsTable.map((r) => [r._index, r.Id]));
+  const categoryByIndex = new Map(categoryRows.map((r) => [r._index, stripBracketMarkup(r.Display || r.Id)]));
+
+  const result = new Map<string, WikiSoulCoreEffect[]>();
+  for (const row of statRows) {
+    const name = soulCoreNameByRow.get(row.SoulCore);
+    if (!name) continue;
+    const statIds = row.Stats.map((i) => statIdByIndex.get(i)).filter((id): id is string => Boolean(id));
+    if (statIds.length === 0) continue;
+    const { lines } = renderBlock(statIndex, statIds, row.StatsValues);
+    if (lines.length === 0) continue;
+    const category = categoryByIndex.get(row.StatCategory) ?? 'Unknown';
+    const existing = result.get(name) ?? [];
+    existing.push({ category, lines });
+    result.set(name, existing);
+  }
+  return result;
 }
 
 /**
@@ -477,6 +573,9 @@ async function syncItems(lastSynced: string): Promise<number> {
   const implicitModsByName = joinImplicitModsByName(TABLES_DIR, modData);
   const flaskStatsByName = joinFlaskStatsByName(TABLES_DIR);
   const pobUniquesByName = await fetchPobUniquesByName();
+  const keywordDefinitions = readKeywordDefinitions(TABLES_DIR);
+  const statIndex = await loadStatIndex(source);
+  const soulCoreEffectsByName = joinSoulCoresByName(TABLES_DIR, statIndex);
   const usedSlugs = new Set<string>();
   const details: WikiItemDetail[] = [];
   for (const [name, item] of Object.entries(data)) {
@@ -497,6 +596,8 @@ async function syncItems(lastSynced: string): Promise<number> {
         implicitModsByName.get(name) ?? [],
         flaskStatsByName.get(name) ?? null,
         item.rarity === 'unique' ? pobUniquesByName.get(name) ?? null : null,
+        keywordDefinitions,
+        soulCoreEffectsByName.get(name) ?? null,
       ),
       slug,
       iconWidth: icon?.width ?? null,
@@ -554,12 +655,13 @@ async function syncSkills(lastSynced: string): Promise<number> {
 async function syncMods(lastSynced: string): Promise<number> {
   const source = await createCdnSource({ patch: WIKI_PATCH_VERSION, cacheDir: path.join(EXTRACT_DIR, '.cache'), tablesDir: TABLES_DIR });
   const { data } = await extractMods(source);
+  const keywordDefinitions = readKeywordDefinitions(TABLES_DIR);
   const usedSlugs = new Set<string>();
   const details: WikiModDetail[] = Object.entries(data)
     .filter(([, mod]) => mod.name !== null && mod.name !== '' && mod.stats.length > 0)
     .map(([id, mod]) => {
       const slug = dedupeSlug(slugify(id), id, usedSlugs);
-      return { ...normalizeMod(id, mod, lastSynced), slug };
+      return { ...normalizeMod(id, mod, lastSynced, keywordDefinitions), slug };
     });
   return writeKind('mod', details);
 }
@@ -600,10 +702,84 @@ function syncEffects(lastSynced: string): number {
   return writeKind('effect', details);
 }
 
+const POEDB_OVERRIDES_PATH = path.join(process.cwd(), 'scripts', 'wiki', 'poedb-overrides.json');
+
+/**
+ * Hand-verified explanations for entries GGPK itself has no text for (e.g.
+ * a mod's `stats` line that's just an unexplained proper noun, with no
+ * `BuffDefinitions` row or other extractable source behind it) — never
+ * auto-scraped — data lives in scripts/wiki/poedb-overrides.json (add
+ * entries there, not here), licensing terms in THIRD-PARTY-NOTICES.md.
+ * Keyed by kind, then by the entry's own slug.
+ */
+export type CommunitySourceOverrides = Partial<Record<WikiEntryKind, Record<string, WikiCommunitySource>>>;
+
+export function loadCommunitySourceOverrides(filePath: string = POEDB_OVERRIDES_PATH): CommunitySourceOverrides {
+  if (!existsSync(filePath)) return {};
+  return JSON.parse(readFileSync(filePath, 'utf8')) as CommunitySourceOverrides;
+}
+
+/**
+ * Attaches a `communitySource` override to whichever details have one, by
+ * slug. Leaves everything else - the overwhelming majority of entries -
+ * untouched; returns the original array unchanged (not even a copy) when
+ * this kind has no overrides at all, so a normal sync with an empty
+ * `poedb-overrides.json` costs nothing extra.
+ */
+export function applyCommunitySource<T extends { slug: string; communitySource?: WikiCommunitySource | null }>(
+  kind: WikiEntryKind,
+  details: T[],
+  overrides: CommunitySourceOverrides,
+): T[] {
+  const forKind = overrides[kind];
+  if (!forKind || Object.keys(forKind).length === 0) return details;
+  return details.map((d) => {
+    const communitySource = forKind[d.slug];
+    return communitySource ? { ...d, communitySource } : d;
+  });
+}
+
+/**
+ * Attaches GGG's own glossary explanation (`KeywordPopups`) to any entry
+ * whose exact `name` matches a glossary term - e.g. the "Bleeding" effect
+ * page gets its full mechanical writeup alongside `BuffDefinitions`'s own
+ * shorter description, not instead of it (see `keywordDefinition` on
+ * `WikiDetailBase` in types.ts). Distinct from `enrichKeywordLines`
+ * (normalize.ts), which enriches individual bare mod-line *text* (e.g. one
+ * "Legacy of Gold" line inside Mageblood's mod list) rather than a whole
+ * entry matched by its own name - both draw on the same `KeywordPopups`
+ * data, at different granularities.
+ *
+ * Deliberately never called for `kind: 'mod'` (see `writeKind` below): a
+ * mod's own `name` is a shared flavor label reused across many
+ * structurally-different mods (71 different mods are all named "Lucky" in
+ * a live decode), not a definitive identity the way an item/skill/effect
+ * name is - matching the whole entry by name produced real, misleading
+ * pairings caught in review (a mod named "Frozen" that only adds Cold
+ * damage got the Freeze-ailment glossary text). Mods get the safer,
+ * per-line `enrichKeywordLines` treatment instead (`normalizeMod`).
+ *
+ * Returns the original array unchanged (not even a copy) when nothing in
+ * it matches, same "no-op when nothing to do" convention as
+ * {@link applyCommunitySource}.
+ */
+export function attachKeywordDefinitions<T extends { name: string; keywordDefinition?: string | null }>(
+  details: T[],
+  keywordDefinitions: Map<string, string>,
+): T[] {
+  if (keywordDefinitions.size === 0) return details;
+  return details.map((d) => {
+    const raw = keywordDefinitions.get(d.name);
+    return raw ? { ...d, keywordDefinition: stripBracketMarkup(raw) } : d;
+  });
+}
+
 function writeKind(
   kind: 'item' | 'skill' | 'mod' | 'effect',
   details: Array<WikiItemDetail | WikiSkillDetail | WikiModDetail | WikiEffectDetail>,
 ): number {
+  details = applyCommunitySource(kind, details, loadCommunitySourceOverrides());
+  if (kind !== 'mod') details = attachKeywordDefinitions(details, readKeywordDefinitions(TABLES_DIR));
   const entries = details.map(toSearchEntry);
   validateSyncResult(entries, previousCount(kind), { allowShrink: ALLOW_SHRINK });
 
