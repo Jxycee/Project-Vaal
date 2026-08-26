@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment, useState } from 'react';
+import { Icon } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { humanizeCategory } from '@/lib/wiki/humanizeCategory';
 import type { CategoryGroup } from '@/lib/wiki/categoryGroups';
@@ -94,17 +95,7 @@ export function CategorySidebar({
               onClick={() => toggle(section.label)}
             >
               <span className="flex items-center gap-1.5">
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  className={cn('shrink-0 transition-transform', isOpen && 'rotate-90')}
-                >
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
+                <Icon name="chevron-right" className={cn('size-3 shrink-0 transition-transform', isOpen && 'rotate-90')} />
                 {section.label}
               </span>
               <span className="text-xs">{section.total}</span>

@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import Fuse from 'fuse.js';
 import Link from 'next/link';
+import { Icon } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { humanizeCategory } from '@/lib/wiki/humanizeCategory';
 import { attributeTagColor } from '@/lib/wiki/attributeTagColor';
@@ -82,9 +83,7 @@ export function WikiSearch({
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2.5 rounded-md border border-border bg-card px-3 py-2 focus-within:ring-2 focus-within:ring-primary">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 text-muted-foreground">
-          <circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
+        <Icon name="search" className="size-4 shrink-0 text-muted-foreground" />
         <input
           type="search"
           value={query}
