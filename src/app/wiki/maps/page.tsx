@@ -6,7 +6,7 @@ export default function MapsPage() {
     <>
       <h1 className="mb-4 font-heading text-2xl text-primary">Maps</h1>
       <Suspense>
-        <WikiBrowse kind="map" basePath="/wiki/maps" />
+        <WikiBrowse kind="map" />
       </Suspense>
     </>
   );

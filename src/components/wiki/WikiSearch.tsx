@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useDeferredValue, useMemo, useState } from 'react';
 import Fuse from 'fuse.js';
 import Link from 'next/link';
 import { Icon } from '@/components/ui/icon';
@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { FUZZY_SEARCH_TUNING } from '@/lib/fuseOptions';
 import { humanizeCategory } from '@/lib/wiki/humanizeCategory';
 import { attributeTagColor } from '@/lib/wiki/attributeTagColor';
+import { WIKI_BASE_PATH } from '@/lib/wiki/types';
 import type { WikiSearchEntry } from '@/lib/wiki/types';
 import type { CSSProperties } from 'react';
 
@@ -35,16 +36,27 @@ export function filterEntries(
 
 export function WikiSearch({
   entries,
-  basePath,
   initialQuery,
   onQueryChange,
+  onSelectEntry,
+  hideResultsWhenEmpty = false,
 }: {
   entries: WikiSearchEntry[];
-  basePath: string;
   /** Prefills the search box — set from `?q=` by a mention link that couldn't resolve to one exact entry (see MentionLinks.tsx). */
   initialQuery?: string;
   /** Called with the query on every change — lets a parent (WikiBrowse) persist it for view-state restoration without lifting the whole input into a controlled component. */
   onQueryChange?: (query: string) => void;
+  /** Called when a result is clicked, before navigation — lets a parent (the wiki home page) record it without WikiSearch needing to know why. */
+  onSelectEntry?: (entry: WikiSearchEntry) => void;
+  /**
+   * When true, an empty query renders just the search input — no results
+   * list, count line, empty state, or pagination. For the wiki home page,
+   * where the full unfiltered index (~12,700 rows) shouldn't sit between the
+   * search bar and the tiles/strip below it. The 5 per-kind browse pages
+   * (where the list of everything IS the page) don't pass this, so they
+   * keep rendering the full list on an empty query as before.
+   */
+  hideResultsWhenEmpty?: boolean;
 }) {
   const [query, setQuery] = useState(initialQuery ?? '');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -63,8 +75,16 @@ export function WikiSearch({
     [entries]
   );
 
+  // The input itself stays bound to `query` so typing is never delayed;
+  // only the (potentially expensive, ~12,700-entry) search computation reads
+  // the deferred value, so React can deprioritize it relative to rendering
+  // the keystroke.
+  const deferredQuery = useDeferredValue(query);
+
   // Compute results using the memoized Fuse instance
-  const results = useMemo(() => filterEntries(entries, query, fuse), [entries, query, fuse]);
+  const results = useMemo(() => filterEntries(entries, deferredQuery, fuse), [entries, deferredQuery, fuse]);
+
+  const showResults = !hideResultsWhenEmpty || query.trim() !== '';
 
   // A new query or a new filtered entry set (category/tag change) reads as
   // "start over" for pagination too, same as WikiBrowse's own scroll-reset
@@ -92,20 +112,23 @@ export function WikiSearch({
           className="w-full bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none"
         />
       </div>
-      <p className="text-sm text-muted-foreground">
-        {results.length} of {entries.length}
-      </p>
-      {results.length === 0 && (
+      {showResults && (
+        <p className="text-sm text-muted-foreground">
+          {results.length} of {entries.length}
+        </p>
+      )}
+      {showResults && results.length === 0 && (
         <p className="rounded-lg border border-border bg-card px-4 py-6 text-center text-sm text-muted-foreground">
           No matches — try a different search or category.
         </p>
       )}
-      {results.length > 0 && (
+      {showResults && results.length > 0 && (
         <ul className="rounded-lg border border-border">
           {results.slice(0, visibleCount).map((entry, i) => (
-            <li key={entry.slug}>
+            <li key={`${entry.kind}-${entry.slug}`}>
               <Link
-                href={`${basePath}/${entry.slug}`}
+                href={`${WIKI_BASE_PATH[entry.kind]}/${entry.slug}`}
+                onClick={() => onSelectEntry?.(entry)}
                 className={cn(
                   // Tags stack in a wrapped row below the name/category on
                   // narrow screens (no room for a third column there) and
@@ -140,7 +163,7 @@ export function WikiSearch({
           ))}
         </ul>
       )}
-      {results.length > visibleCount && (
+      {showResults && results.length > visibleCount && (
         <div className="flex items-center justify-center gap-3 text-sm text-muted-foreground">
           <span>Showing {visibleCount} of {results.length}</span>
           <button

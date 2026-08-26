@@ -28,7 +28,7 @@ export default function EffectsPage() {
     <>
       <h1 className="mb-4 font-heading text-2xl text-primary">Effects</h1>
       <Suspense>
-        <WikiBrowse kind="effect" basePath="/wiki/effects" quickFilters={EFFECT_QUICK_FILTERS} />
+        <WikiBrowse kind="effect" quickFilters={EFFECT_QUICK_FILTERS} />
       </Suspense>
     </>
   );

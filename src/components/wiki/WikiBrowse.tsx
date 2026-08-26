@@ -86,11 +86,9 @@ function writeStoredView(kind: WikiEntryKind, view: BrowseViewState): void {
  */
 export function WikiBrowse({
   kind,
-  basePath,
   quickFilters,
 }: {
   kind: WikiEntryKind;
-  basePath: string;
   /** Optional quick-filter chip row above the search box (see `QuickFilter`) — omit for kinds with no curated set. */
   quickFilters?: QuickFilter[];
 }) {
@@ -270,7 +268,7 @@ export function WikiBrowse({
             })}
           </div>
         )}
-        <WikiSearch entries={visibleEntries} basePath={basePath} initialQuery={initialQuery} onQueryChange={handleQueryChange} />
+        <WikiSearch entries={visibleEntries} initialQuery={initialQuery} onQueryChange={handleQueryChange} />
       </div>
     </div>
   );

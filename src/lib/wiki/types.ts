@@ -23,6 +23,18 @@ export const WIKI_BASE_PATH: Record<WikiEntryKind, string> = {
   map: '/wiki/maps',
 };
 
+/** Every wiki kind, in the order they should be presented (search fetch order, home-page tile order). */
+export const ALL_WIKI_KINDS: readonly WikiEntryKind[] = ['item', 'skill', 'mod', 'effect', 'map'];
+
+/** Plural display label per kind — used by the wiki home page's category tiles. */
+export const WIKI_KIND_LABEL: Record<WikiEntryKind, string> = {
+  item: 'Items',
+  skill: 'Skills',
+  mod: 'Mods',
+  effect: 'Effects',
+  map: 'Maps',
+};
+
 /** Slim entry — this is what ships to the browser for search. Keep it small. */
 export interface WikiSearchEntry {
   slug: string;

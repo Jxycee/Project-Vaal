@@ -6,7 +6,7 @@ export default function ModsPage() {
     <>
       <h1 className="mb-4 font-heading text-2xl text-primary">Mods</h1>
       <Suspense>
-        <WikiBrowse kind="mod" basePath="/wiki/mods" />
+        <WikiBrowse kind="mod" />
       </Suspense>
     </>
   );
