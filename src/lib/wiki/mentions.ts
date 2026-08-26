@@ -152,8 +152,15 @@ let cached: Promise<MentionIndex> | null = null;
  * worth guarding against here.
  */
 export function loadMentionIndex(): Promise<MentionIndex> {
-  cached ??= Promise
-    .all([readSearchIndex('skill'), readSearchIndex('item'), readSearchIndex('mod'), readSearchIndex('effect'), readSearchIndex('map')])
-    .then(([skills, items, mods, effects, maps]) => buildMentionIndex([skills, items, mods, effects, maps]));
+  if (!cached) {
+    cached = Promise
+      .all([readSearchIndex('skill'), readSearchIndex('item'), readSearchIndex('mod'), readSearchIndex('effect'), readSearchIndex('map')])
+      .then(([skills, items, mods, effects, maps]) => buildMentionIndex([skills, items, mods, effects, maps]));
+    // One bad index file must not 500 every wiki detail page for the rest of
+    // the process's life — clear the cache on failure so the next request retries.
+    cached.catch(() => {
+      cached = null;
+    });
+  }
   return cached;
 }

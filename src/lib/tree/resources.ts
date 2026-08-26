@@ -106,6 +106,11 @@ let ringCache: Promise<TpJson> | null = null;
 function ringJson(version: string): Promise<TpJson> {
   if (!ringCache) {
     ringCache = fetch(`${BASE(version)}/group-background.json`).then((r) => r.json());
+    // A transient failure (network blip, one-off 404) must not poison the
+    // cache forever — clear it so the next call retries the fetch.
+    ringCache.catch(() => {
+      ringCache = null;
+    });
   }
   return ringCache;
 }

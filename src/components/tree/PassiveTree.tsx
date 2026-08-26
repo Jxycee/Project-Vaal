@@ -356,6 +356,9 @@ export default function PassiveTree({ raw }: { raw: GggTreeJson }) {
   const handleAscendancy = useCallback((id: string | undefined) => {
     setAscendancyId(id);
     setAscendancyNodes([]); // a build paths one ascendancy at a time
+    setSelectedNode(null);
+    setHoveredNode(null);
+    setHoveredSkill(null);
     setPendingSkill(null);
   }, []);
 

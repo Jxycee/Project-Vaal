@@ -11,6 +11,7 @@
 // =============================================================================
 
 import { NextRequest, NextResponse } from 'next/server'
+import { timingSafeEqual } from 'crypto'
 import { createServiceClient } from '@/lib/supabase/server'
 import {
   CATEGORY_PATHS,
@@ -23,9 +24,13 @@ export const maxDuration = 300 // 5 min; sync is deliberately slow/polite
 
 export async function POST(request: NextRequest) {
   // --- Auth: validate cron secret -------------------------------------------
-  const auth = request.headers.get('authorization')
+  const auth = request.headers.get('authorization') ?? ''
   const expected = `Bearer ${process.env.CRON_SECRET}`
-  if (!process.env.CRON_SECRET || auth !== expected) {
+  const authBuf = Buffer.from(auth)
+  const expectedBuf = Buffer.from(expected)
+  const authMatches =
+    authBuf.length === expectedBuf.length && timingSafeEqual(authBuf, expectedBuf)
+  if (!process.env.CRON_SECRET || !authMatches) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -90,9 +95,16 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({
-    synced: results,
-    errors: errors.length > 0 ? errors : undefined,
-    timestamp: new Date().toISOString(),
-  })
+  // Every category for every league failed — report it as a failure so the
+  // cron workflow's status check (gated on HTTP 200) actually catches an
+  // upstream outage instead of reporting a silent no-op success.
+  const allFailed = errors.length > 0 && Object.keys(results).length === 0
+  return NextResponse.json(
+    {
+      synced: results,
+      errors: errors.length > 0 ? errors : undefined,
+      timestamp: new Date().toISOString(),
+    },
+    { status: allFailed ? 502 : 200 }
+  )
 }
