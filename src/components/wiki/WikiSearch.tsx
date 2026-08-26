@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Fuse from 'fuse.js';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -70,10 +70,14 @@ export function WikiSearch({
   // "start over" for pagination too, same as WikiBrowse's own scroll-reset
   // convention on a filter change — otherwise switching categories after
   // clicking "Show more" a few times could leave the list oddly capped mid-
-  // way through an unrelated set.
-  useEffect(() => {
+  // way through an unrelated set. Reset during render (React's documented
+  // alternative to an effect for this) rather than in a useEffect, which
+  // would cause an extra cascading render.
+  const [prevResetKey, setPrevResetKey] = useState({ entries, query });
+  if (prevResetKey.entries !== entries || prevResetKey.query !== query) {
+    setPrevResetKey({ entries, query });
     setVisibleCount(PAGE_SIZE);
-  }, [entries, query]);
+  }
 
   return (
     <div className="space-y-4">
