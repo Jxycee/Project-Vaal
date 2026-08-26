@@ -41,7 +41,7 @@ describe('extractCardSnippet', () => {
   });
 
   it('has no icon for mods, effects, or maps, and uses their flat accent colors', () => {
-    expect(extractCardSnippet('mod', { description: 'x' })).toMatchObject({ iconUrl: null, accent: 'var(--primary)' });
+    expect(extractCardSnippet('mod', { stats: ['x'] })).toMatchObject({ iconUrl: null, snippet: 'x', accent: 'var(--primary)' });
     expect(extractCardSnippet('effect', { description: 'x' })).toMatchObject({ iconUrl: null, accent: 'var(--wiki-effect)' });
     expect(extractCardSnippet('map', { description: 'x' })).toMatchObject({ iconUrl: null, accent: 'var(--wiki-map)' });
   });

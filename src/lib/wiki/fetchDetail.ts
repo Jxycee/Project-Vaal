@@ -54,6 +54,10 @@ export function extractCardSnippet(kind: WikiEntryKind, raw: unknown): WikiCardS
     snippet = Array.isArray(v.flavourText)
       ? v.flavourText.filter((s): s is string => typeof s === 'string').join(' ')
       : '';
+  } else if (kind === 'mod') {
+    snippet = Array.isArray(v.stats)
+      ? v.stats.filter((s): s is string => typeof s === 'string').join(' ')
+      : '';
   } else if (typeof v.description === 'string') {
     snippet = v.description;
   }
