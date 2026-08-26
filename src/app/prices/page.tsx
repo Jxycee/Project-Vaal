@@ -81,18 +81,26 @@ export default function PricesPage() {
   const [category, setCategory] = useState<string>('currency')
   const [search, setSearch] = useState('')
 
-  // Discover leagues once
+  // Discover leagues once — price_entry_leagues is a DISTINCT view over
+  // price_entries (see the migration), so this returns each league exactly
+  // once already sorted, instead of scanning up to 2000 raw rows to dedupe
+  // client-side. Also means the league <select> below activates on its own
+  // the moment a second league's rows exist (e.g. a new season starting),
+  // with no code change needed here.
   useEffect(() => {
     let cancelled = false
     async function discover() {
-      const { data, error } = await supabase.from('price_entries').select('league').limit(2000)
+      const { data, error } = await supabase.from('price_entry_leagues').select('league')
       if (cancelled) return
       if (error) {
         console.error('league discovery failed:', error)
         setLoading(false)
         return
       }
-      const unique = Array.from(new Set((data ?? []).map((r) => r.league)))
+      // price_entry_leagues' Row type marks `league` nullable (Postgres views
+      // don't carry the base table's NOT NULL constraint through to the
+      // generated types), but price_entries.league itself is NOT NULL.
+      const unique = (data ?? []).flatMap((r) => (r.league ? [r.league] : []))
       setLeagues(unique)
       if (unique.length > 0) setLeague((prev) => prev || unique[0])
       if (unique.length === 0) setLoading(false)

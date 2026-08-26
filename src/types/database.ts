@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -359,7 +359,12 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      price_entry_leagues: {
+        Row: {
+          league: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       increment_build_view_count: {
