@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import Fuse from 'fuse.js'
 import { createClient } from '@/lib/supabase/client'
+import { CATEGORY_LABELS } from '@/lib/prices/categories'
 import { Icon } from '@/components/ui/icon'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -26,33 +27,6 @@ interface PriceRow {
   exalted_value: number | null
   divine_value: number | null
   fetched_at: string
-}
-
-const CATEGORY_LABELS: Record<string, string> = {
-  currency: 'Currency',
-  fragments: 'Fragments',
-  runes: 'Runes',
-  essences: 'Essences',
-  soulcores: 'Soul Cores',
-  expedition: 'Expedition',
-  omens: 'Ritual Omens',
-  reliquary: 'Reliquary Keys',
-  breach: 'Breach',
-  abyss: 'Abyssal Bones',
-  uncutgems: 'Uncut Gems',
-  lineagegems: 'Lineage Gems',
-  delirium: 'Delirium',
-  incursion: 'Incursion',
-  idols: 'Idols',
-  verisium: 'Verisium',
-  vaal: 'Vaal',
-  'uniques-accessory': 'Unique Accessories',
-  'uniques-armour': 'Unique Armour',
-  'uniques-flask': 'Unique Flasks',
-  'uniques-jewel': 'Unique Jewels',
-  'uniques-map': 'Unique Maps',
-  'uniques-weapon': 'Unique Weapons',
-  'uniques-sanctum': 'Sanctum Research',
 }
 
 // No scientific notation ever. Large → separators; tiny → "1 / N".

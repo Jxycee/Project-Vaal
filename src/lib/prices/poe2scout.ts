@@ -31,6 +31,7 @@
 // (webpack, used for the production build per the PWA/Serwist work) warn
 // that named exports from JSON modules are being deprecated.
 import packageJson from '../../../package.json'
+export { CATEGORY_PATHS } from './categories'
 const APP_VERSION = packageJson.version
 
 const REALM = 'poe2'
@@ -48,45 +49,9 @@ const REFERENCE_CURRENCY = 'exalted'
 const DATA_POINTS = 7
 const FREQUENCY_HOURS = 24
 
-// Each category maps to one of the two ByCategory endpoints plus its
-// Category query value. The API expects the lowercase ApiId (NOT the Label).
-// If one 400s/404s, the sync logs it under `errors` and continues — verify
-// the exact ApiId against the /Items/Categories endpoint.
-export const CATEGORY_PATHS: {
-  category: string                       // our internal label / DB category value
-  kind: 'Currencies' | 'Uniques'         // which ByCategory endpoint
-  value: string                          // the ?Category= ApiId value
-}[] = [
-  // Currencies/ByCategory — ApiId values from CurrencyCategories
-  { category: 'currency',     kind: 'Currencies', value: 'currency' },
-  { category: 'fragments',    kind: 'Currencies', value: 'fragments' },
-  { category: 'runes',        kind: 'Currencies', value: 'runes' },
-  { category: 'essences',     kind: 'Currencies', value: 'essences' },
-  { category: 'soulcores',    kind: 'Currencies', value: 'ultimatum' },   // Soul Cores
-  { category: 'expedition',   kind: 'Currencies', value: 'expedition' },
-  { category: 'omens',        kind: 'Currencies', value: 'ritual' },      // Ritual Omens
-  { category: 'reliquary',    kind: 'Currencies', value: 'vaultkeys' },   // Reliquary Keys
-  { category: 'breach',       kind: 'Currencies', value: 'breach' },
-  { category: 'abyss',        kind: 'Currencies', value: 'abyss' },       // Abyssal Bones
-  { category: 'uncutgems',    kind: 'Currencies', value: 'uncutgems' },
-  { category: 'lineagegems',  kind: 'Currencies', value: 'lineagesupportgems' },
-  { category: 'delirium',     kind: 'Currencies', value: 'delirium' },
-  { category: 'incursion',    kind: 'Currencies', value: 'incursion' },
-  { category: 'idols',        kind: 'Currencies', value: 'idol' },        // singular ApiId
-  { category: 'verisium',     kind: 'Currencies', value: 'verisium' },
-  { category: 'vaal',         kind: 'Currencies', value: 'vaal' },
-  // Uniques/ByCategory — ApiId values from UniqueCategories
-  { category: 'uniques-accessory', kind: 'Uniques', value: 'accessory' },
-  { category: 'uniques-armour',    kind: 'Uniques', value: 'armour' },
-  { category: 'uniques-flask',     kind: 'Uniques', value: 'flask' },
-  { category: 'uniques-jewel',     kind: 'Uniques', value: 'jewel' },
-  { category: 'uniques-map',       kind: 'Uniques', value: 'map' },
-  { category: 'uniques-weapon',    kind: 'Uniques', value: 'weapon' },
-  { category: 'uniques-sanctum',   kind: 'Uniques', value: 'sanctum' },
-]
-// Source of truth for these values:
-//   GET /api/poe2/Leagues/{League}/Items/Categories
-// (returns { UniqueCategories:[...], CurrencyCategories:[...] }, each with ApiId)
+// CATEGORY_PATHS (imported above, re-exported for callers like the sync
+// route) lives in ./categories so the category catalogue can be imported
+// by client components without pulling this server-only fetch client along.
 
 /** One normalized price line, ready to upsert into price_entries. */
 export interface PriceLine {
