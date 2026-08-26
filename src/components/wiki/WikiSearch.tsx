@@ -5,6 +5,7 @@ import Fuse from 'fuse.js';
 import Link from 'next/link';
 import { Icon } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
+import { FUZZY_SEARCH_TUNING } from '@/lib/fuseOptions';
 import { humanizeCategory } from '@/lib/wiki/humanizeCategory';
 import { attributeTagColor } from '@/lib/wiki/attributeTagColor';
 import type { WikiSearchEntry } from '@/lib/wiki/types';
@@ -27,8 +28,7 @@ export function filterEntries(
   if (query.trim() === '') return entries;
   const searchEngine = fuse ?? new Fuse(entries, {
     keys: ['name', 'category', 'tags'],
-    threshold: 0.4,
-    ignoreLocation: true,
+    ...FUZZY_SEARCH_TUNING,
   });
   return searchEngine.search(query).map((r) => r.item);
 }
@@ -58,8 +58,7 @@ export function WikiSearch({
   const fuse = useMemo(() =>
     new Fuse(entries, {
       keys: ['name', 'category', 'tags'],
-      threshold: 0.4,
-      ignoreLocation: true,
+      ...FUZZY_SEARCH_TUNING,
     }),
     [entries]
   );

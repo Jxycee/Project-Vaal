@@ -14,6 +14,7 @@ import Fuse from 'fuse.js'
 import { createClient } from '@/lib/supabase/client'
 import { CATEGORY_LABELS } from '@/lib/prices/categories'
 import { fmt, fmtCount, relativeTime } from '@/lib/prices/format'
+import { FUZZY_SEARCH_TUNING } from '@/lib/fuseOptions'
 import { Icon } from '@/components/ui/icon'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -142,7 +143,7 @@ export default function PricesPage() {
 
   // Browse: search spans ALL categories via Fuse; empty search = active tab only.
   const fuse = useMemo(
-    () => new Fuse(rows, { keys: ['name'], threshold: 0.4, ignoreLocation: true }),
+    () => new Fuse(rows, { keys: ['name'], ...FUZZY_SEARCH_TUNING }),
     [rows]
   )
   const searching = search.trim().length > 0

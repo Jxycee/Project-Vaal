@@ -65,12 +65,15 @@ export function stripXboxButtonTokens(text: string): string {
 }
 
 /**
- * Matches PC `Directions` text's mouse-click phrasing, in the exact casing
- * the source data uses (verified against a live decode: only these two
- * variants occur across all 800 rows with `Directions` text — "Right click"
- * capitalized, "left click" not).
+ * PC `Directions` text's mouse-click phrasing, in the exact casing the
+ * source data uses (verified against a live decode: only these two variants
+ * occur across all 800 rows with `Directions` text — "Right click"
+ * capitalized, "left click" not). Exported so ConsoleButtonBadge.tsx's split
+ * regex is built from the same list rather than a second hand-typed regex
+ * that could drift out of sync with this one.
  */
-const CLICK_PHRASE_RE = /Right click|left click/g;
+export const CLICK_PHRASES = ['Right click', 'left click'];
+const CLICK_PHRASE_RE = new RegExp(CLICK_PHRASES.join('|'), 'g');
 
 /**
  * Pulls the ordered list of `<<xbox_button_*>>` tokens out of a raw (not yet
@@ -334,7 +337,15 @@ export function normalizeItem(
     description: currency?.description ? stripBracketMarkup(currency.description) : null,
     directions: currency?.directions ? stripBracketMarkup(currency.directions) : null,
     consoleDirections: currency?.xboxDirections ? stripBracketMarkup(stripXboxButtonTokens(currency.xboxDirections)) : null,
-    consoleButtons: extractConsoleButtons(currency?.directions ?? null, currency?.xboxDirections ?? null),
+    // Must count click-phrases in the SAME string mergeDirectionsWithConsoleButtons
+    // later splits (the bracket-stripped `directions` above), not the raw
+    // source text — a [Key|Display] bracket whose Display text itself reads
+    // as "Right click"/"left click" would otherwise make the raw-text count
+    // and the actually-rendered count disagree.
+    consoleButtons: extractConsoleButtons(
+      currency?.directions ? stripBracketMarkup(currency.directions) : null,
+      currency?.xboxDirections ?? null
+    ),
     stackSize: currency?.stackSize ?? null,
     implicitMods: pobUnique ? pobUnique.implicitMods : implicitMods,
     flask,

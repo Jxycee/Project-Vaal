@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { CLICK_PHRASES } from '@/lib/wiki/normalize';
 
 /**
  * Official Xbox face-button colors, and the PlayStation face button that
@@ -65,7 +66,9 @@ export function ConsoleButtonBadge({ button }: { button: string }) {
   );
 }
 
-const CLICK_PHRASE_RE = /(Right click|left click)/g;
+// Built from the same phrase list normalize.ts uses to count these phrases,
+// so the two can't drift apart on what counts as a "click phrase".
+const CLICK_PHRASE_RE = new RegExp(`(${CLICK_PHRASES.join('|')})`, 'g');
 
 /**
  * Splits PC `directions` text on its "Right click" / "left click" phrases
@@ -77,7 +80,7 @@ const CLICK_PHRASE_RE = /(Right click|left click)/g;
 export function mergeDirectionsWithConsoleButtons(directions: string, buttons: string[]): ReactNode[] {
   let buttonIndex = 0;
   return directions.split(CLICK_PHRASE_RE).map((part, i) => {
-    if (part === 'Right click' || part === 'left click') {
+    if ((CLICK_PHRASES as string[]).includes(part)) {
       return <ConsoleButtonBadge key={i} button={buttons[buttonIndex++]} />;
     }
     return part;
