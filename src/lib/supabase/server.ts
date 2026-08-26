@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { cache } from 'react'
 import type { Database } from '@/types/database'
 
 /**
@@ -40,6 +41,18 @@ export async function createClient() {
     }
   )
 }
+
+/**
+ * `auth.getUser()` round-trips to the Supabase Auth server to validate the
+ * token (it's not a local JWT decode), so calling it more than once per
+ * request is a real cost. `AppShell` (every dashboard/prices page) and the
+ * page it wraps both need the current user — `cache()` (per-request, React's
+ * server-render memoization) collapses those into one call.
+ */
+export const getCachedUser = cache(async () => {
+  const supabase = await createClient()
+  return supabase.auth.getUser()
+})
 
 /**
  * Creates a Supabase client using the service role key.

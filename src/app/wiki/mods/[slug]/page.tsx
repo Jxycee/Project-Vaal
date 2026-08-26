@@ -40,10 +40,9 @@ export default async function ModDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const mod = await loadDetail('mod', slug);
+  const [mod, mentions] = await Promise.all([loadDetail('mod', slug), loadMentionIndex()]);
   if (!mod) notFound();
 
-  const mentions = await loadMentionIndex();
   const self = { kind: 'mod' as const, slug: mod.slug };
 
   const spawnableOn = mod.spawnWeights.filter((w) => w.weight > 0);

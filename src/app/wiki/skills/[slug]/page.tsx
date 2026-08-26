@@ -50,10 +50,9 @@ export default async function SkillDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const skill = await loadDetail('skill', slug);
+  const [skill, mentions] = await Promise.all([loadDetail('skill', slug), loadMentionIndex()]);
   if (!skill) notFound();
 
-  const mentions = await loadMentionIndex();
   const self = { kind: 'skill' as const, slug: skill.slug };
 
   const accent = skillAccentColor(skill.color);

@@ -1,7 +1,7 @@
 // /dashboard — authenticated landing. Live tools + upcoming features.
 import Link from 'next/link'
 import Image from 'next/image'
-import { createClient } from '@/lib/supabase/server'
+import { getCachedUser } from '@/lib/supabase/server'
 import { VaalOrb } from '@/components/dashboard/vaal-orb'
 import { Icon } from '@/components/ui/icon'
 import { Card } from '@/components/ui/card'
@@ -33,10 +33,9 @@ const COMING_SOON = [
 ] as const
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await getCachedUser()
   const account = user?.email ?? 'Exile'
 
   return (

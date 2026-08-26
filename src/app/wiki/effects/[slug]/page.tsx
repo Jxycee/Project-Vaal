@@ -23,10 +23,9 @@ export default async function EffectDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const effect = await loadDetail('effect', slug);
+  const [effect, mentions] = await Promise.all([loadDetail('effect', slug), loadMentionIndex()]);
   if (!effect) notFound();
 
-  const mentions = await loadMentionIndex();
   const self = { kind: 'effect' as const, slug: effect.slug };
 
   return (

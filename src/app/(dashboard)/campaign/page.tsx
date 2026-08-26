@@ -2,14 +2,14 @@
 // Progress is per-user for now (campaign_progress.character_id IS NULL);
 // see that table's schema.sql comment for why character scoping isn't wired
 // up yet (the character system doesn't exist in the app).
-import { createClient } from '@/lib/supabase/server';
+import { createClient, getCachedUser } from '@/lib/supabase/server';
 import CampaignTracker from '@/components/campaign/CampaignTracker';
 
 export default async function CampaignPage() {
   const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getCachedUser();
 
   let initialChecked: Record<string, boolean> = {};
   if (user) {

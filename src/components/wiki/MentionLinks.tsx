@@ -19,26 +19,12 @@ export function linkMentions(text: string, index: MentionIndex, self?: MentionTa
   return text.split(index.pattern).map((part, i) => {
     const target = resolveMentionTarget(part, index);
     if (!target) return part;
-    if ('slug' in target) {
-      if (self && target.kind === self.kind && target.slug === self.slug) return part;
-      return (
-        <Link
-          key={i}
-          href={`${WIKI_BASE_PATH[target.kind]}/${target.slug}`}
-          className="hover:underline"
-          style={{ color: 'var(--wiki-mention)' }}
-        >
-          {part}
-        </Link>
-      );
-    }
+    if ('slug' in target && self && target.kind === self.kind && target.slug === self.slug) return part;
+    const href = 'slug' in target
+      ? `${WIKI_BASE_PATH[target.kind]}/${target.slug}`
+      : `${WIKI_BASE_PATH[target.kind]}?q=${encodeURIComponent(target.query)}`;
     return (
-      <Link
-        key={i}
-        href={`${WIKI_BASE_PATH[target.kind]}?q=${encodeURIComponent(target.query)}`}
-        className="hover:underline"
-        style={{ color: 'var(--wiki-mention)' }}
-      >
+      <Link key={i} href={href} className="hover:underline" style={{ color: 'var(--wiki-mention)' }}>
         {part}
       </Link>
     );

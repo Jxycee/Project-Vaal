@@ -44,10 +44,9 @@ export default async function ItemDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const item = await loadDetail('item', slug);
+  const [item, mentions] = await Promise.all([loadDetail('item', slug), loadMentionIndex()]);
   if (!item) notFound();
 
-  const mentions = await loadMentionIndex();
   const self = { kind: 'item' as const, slug: item.slug };
 
   const accent = itemAccentColor(item.rarity);

@@ -23,10 +23,9 @@ export default async function MapDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const map = await loadDetail('map', slug);
+  const [map, mentions] = await Promise.all([loadDetail('map', slug), loadMentionIndex()]);
   if (!map) notFound();
 
-  const mentions = await loadMentionIndex();
   const self = { kind: 'map' as const, slug: map.slug };
 
   return (
