@@ -24,6 +24,9 @@ export interface ActTheme {
   accent: string
 }
 
+/** Used for any act id with no entry below (e.g. a new act/interlude added to data.ts before its theme is tuned) — same neutral gold as Epilogue rather than a crash. */
+export const DEFAULT_ACT_THEME: ActTheme = { boss: '', base: 'var(--primary)', accent: 'var(--primary)' }
+
 export const ACT_THEME: Record<string, ActTheme> = {
   act1: { boss: 'Count Geonor', base: '#3d5468', accent: '#bfe3f5' },
   act2: { boss: 'Jamanra, the Abomination', base: '#382c4e', accent: '#c7a9ff' },

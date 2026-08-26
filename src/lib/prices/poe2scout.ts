@@ -43,6 +43,14 @@ const BASE_URL = `https://api.poe2scout.com/${REALM}`
 // Verified against /Leagues DivinePrice.
 const REFERENCE_CURRENCY = 'exalted'
 
+// The `category` (from CATEGORY_PATHS) that needs a synthetic "1 Exalted =
+// 1 Exalted" self-price row injected — poe2scout's currency listing doesn't
+// include Exalted Orb pricing itself since everything is already priced
+// relative to it. Named here (not inlined below) so the coupling to
+// REFERENCE_CURRENCY and to the 'currency' entry in CATEGORY_PATHS is
+// explicit rather than a bare string compared ad-hoc.
+const SELF_PRICE_CATEGORY = 'currency'
+
 // History sampling params (required by the endpoint). The sync only reads
 // CurrentPrice, not the history, but the API enforces DataPoints ∈ {7, 8}
 // and rejects anything else with a 400. Use 7 (the documented minimum).
@@ -192,13 +200,13 @@ export async function fetchCategory(
     await sleep(600)
   }
     if (
-    category === 'currency' &&
+    category === SELF_PRICE_CATEGORY &&
     REFERENCE_CURRENCY === 'exalted' &&
     !lines.some((line) => line.api_id === 'exalted')
   ) {
     lines.push({
       league,
-      category: 'currency',
+      category: SELF_PRICE_CATEGORY,
       api_id: 'exalted',
       name: 'Exalted Orb',
       icon_url: null,

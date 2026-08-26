@@ -7,7 +7,7 @@ import type { CSSProperties } from 'react';
 import { Icon } from '@/components/ui/icon';
 import CampaignAreaRow from './CampaignAreaRow';
 import type { CampaignAct } from '@/lib/campaign/data';
-import { ACT_THEME } from '@/lib/campaign/actTheme';
+import { ACT_THEME, DEFAULT_ACT_THEME } from '@/lib/campaign/actTheme';
 
 export default function CampaignActSection({
   act,
@@ -25,7 +25,7 @@ export default function CampaignActSection({
   const total = act.areas.length;
   const done = act.areas.filter((a) => checked[a.id]).length;
   const cleared = total > 0 && done === total;
-  const theme = ACT_THEME[act.id];
+  const theme = ACT_THEME[act.id] ?? DEFAULT_ACT_THEME;
 
   return (
     <section
