@@ -3,6 +3,7 @@
 // across sessions, unlike WikiBrowse's view-restore) under one shared key,
 // not per-kind, since the strip spans all 5 kinds at once.
 import { UNUSED_OR_REMOVED_CATEGORY } from './normalize';
+import { isWikiSearchEntry } from './types';
 import type { WikiSearchEntry } from './types';
 
 const STORAGE_KEY = 'wiki:recent-searches';
@@ -14,7 +15,11 @@ function readStored(): WikiSearchEntry[] {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as WikiSearchEntry[]) : [];
+    // Same boundary-validation convention as fetchIndex.ts — don't trust
+    // localStorage's shape across app versions/data-model changes; drop
+    // anything malformed instead of letting a stale/corrupt entry crash or
+    // silently misbehave downstream.
+    return Array.isArray(parsed) ? parsed.filter(isWikiSearchEntry) : [];
   } catch {
     return [];
   }
@@ -48,7 +53,15 @@ export function recordSearchedEntry(entry: WikiSearchEntry): void {
  * render — see the wiki home page's use of `useMemo`).
  */
 export function getHomeStrip(allEntries: WikiSearchEntry[]): WikiSearchEntry[] {
-  const recorded = readStored().slice(0, MAX_ENTRIES);
+  const stored = readStored().slice(0, MAX_ENTRIES);
+  // A recorded entry only survives if it still exists in the live index — a
+  // wiki sync can remove or rename a slug, and a stale recorded entry would
+  // otherwise become a permanently dead card (its detail fetch 404s). Take
+  // the live copy, not the stored one, so `name`/`category` reflect
+  // whatever the current sync has rather than a possibly-stale cache.
+  const recorded = stored
+    .map((r) => allEntries.find((e) => sameEntry(e, r)))
+    .filter((e): e is WikiSearchEntry => e !== undefined);
   const needed = MAX_ENTRIES - recorded.length;
   if (needed === 0) return recorded;
 

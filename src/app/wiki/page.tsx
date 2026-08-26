@@ -73,7 +73,7 @@ export default function WikiHome() {
 
   return (
     <div className="flex flex-col gap-8">
-      <WikiSearch entries={state.entries} onSelectEntry={recordSearchedEntry} />
+      <WikiSearch entries={state.entries} onSelectEntry={recordSearchedEntry} hideResultsWhenEmpty />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         {ALL_WIKI_KINDS.map((kind) => {

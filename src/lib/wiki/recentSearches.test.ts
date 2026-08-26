@@ -93,4 +93,39 @@ describe('recordSearchedEntry + getHomeStrip', () => {
     expect(() => recordSearchedEntry(entry('item', 'a-item'))).not.toThrow();
     expect(getHomeStrip(pool)).toHaveLength(4);
   });
+
+  it('drops a recorded entry whose slug no longer exists in the live index, backfilling instead', () => {
+    recordSearchedEntry(entry('item', 'a-item'));
+    recordSearchedEntry(entry('item', 'removed-item'));
+    const strip = getHomeStrip(pool);
+    expect(strip).toHaveLength(4);
+    expect(strip.some((e) => e.slug === 'removed-item')).toBe(false);
+    expect(strip[0]).toEqual(entry('item', 'a-item'));
+  });
+
+  it('refreshes a recorded entry\'s name/category from the live entry rather than the stale cached copy', () => {
+    recordSearchedEntry(entry('item', 'a-item', 'Stale Category'));
+    const renamedPool = pool.map((e) =>
+      e.slug === 'a-item' ? { ...e, name: 'New Name', category: 'New Category' } : e
+    );
+    const strip = getHomeStrip(renamedPool);
+    expect(strip[0]).toEqual({ slug: 'a-item', name: 'New Name', kind: 'item', category: 'New Category', tags: [] });
+  });
+
+  it('treats malformed JSON shapes in localStorage (e.g. missing kind) as no history, without throwing', () => {
+    vi.stubGlobal('localStorage', createMemoryStorage());
+    localStorage.setItem(
+      // Missing `kind` — shaped like a stale/pre-migration record that
+      // isWikiSearchEntry must reject rather than trust.
+      'wiki:recent-searches',
+      JSON.stringify([{ slug: 'malformed-entry', name: 'malformed-entry', category: 'Test', tags: [] }])
+    );
+    expect(() => getHomeStrip(pool)).not.toThrow();
+    const strip = getHomeStrip(pool);
+    // No recorded history survived validation, so the whole strip is
+    // backfill — every card must be a genuine pool entry, never the
+    // malformed record itself.
+    expect(strip).toHaveLength(4);
+    expect(strip.some((e) => e.slug === 'malformed-entry')).toBe(false);
+  });
 });
