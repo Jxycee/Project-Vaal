@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { loadDetail } from '@/lib/wiki/load';
 import { MOD_ACCENT_COLOR } from '@/lib/wiki/accent';
-import { WikiBreadcrumb } from '@/components/wiki/WikiBreadcrumb';
+import { WikiDetailCard } from '@/components/wiki/WikiDetailCard';
 import { TooltipDivider } from '@/components/wiki/TooltipDivider';
 import { linkMentions } from '@/components/wiki/MentionLinks';
 import { loadMentionIndex } from '@/lib/wiki/mentions';
@@ -54,63 +54,52 @@ export default async function ModDetailPage({
   ];
 
   return (
-    <div className="flex min-h-[60vh] flex-col">
-      <WikiBreadcrumb kind="mod" name={mod.name} />
-      <div className="flex flex-1 items-center justify-center py-8">
-        {/* No icon for mods — unlike items/skills, a mod has no art of its own,
-            so the name carries the header alone instead of sitting beside an
-            icon box. */}
-        <article
-          className="relative mx-auto flex w-full max-w-lg min-h-[520px] flex-col justify-center space-y-4 rounded-lg border-2 bg-card px-8 py-6 text-center shadow-lg"
-          style={{
-            borderColor: MOD_ACCENT_COLOR,
-            backgroundImage: `radial-gradient(120% 100% at 50% 0%, color-mix(in oklab, ${MOD_ACCENT_COLOR} 8%, transparent), transparent 65%)`,
-          }}
-        >
-          <div className="mx-auto w-fit">
-            <h1 className="font-heading text-3xl tracking-wide" style={{ color: MOD_ACCENT_COLOR }}>{mod.name}</h1>
-            <p className="text-sm text-muted-foreground">{mod.generationType}</p>
-          </div>
+    // No icon for mods — unlike items/skills, a mod has no art of its own,
+    // so the name carries the header alone instead of sitting beside an
+    // icon box.
+    <WikiDetailCard kind="mod" name={mod.name} accent={MOD_ACCENT_COLOR}>
+      <div className="mx-auto w-fit">
+        <h1 className="font-heading text-3xl tracking-wide" style={{ color: MOD_ACCENT_COLOR }}>{mod.name}</h1>
+        <p className="text-sm text-muted-foreground">{mod.generationType}</p>
+      </div>
 
+      <TooltipDivider />
+      <ul className="space-y-1 text-sm text-muted-foreground">
+        {statRows.map((row) => (
+          <li key={row.label}>
+            {row.label}: <span className="font-medium text-foreground">{row.value}</span>
+          </li>
+        ))}
+      </ul>
+
+      {mod.stats.length > 0 && (
+        <>
           <TooltipDivider />
-          <ul className="space-y-1 text-sm text-muted-foreground">
-            {statRows.map((row) => (
-              <li key={row.label}>
-                {row.label}: <span className="font-medium text-foreground">{row.value}</span>
+          <ul className="space-y-1.5 text-lg font-medium">
+            {mod.stats.map((stat, i) => <li key={`${i}-${stat}`}>{linkMentions(stat, mentions, self)}</li>)}
+          </ul>
+        </>
+      )}
+
+      {spawnableOn.length > 0 && (
+        <>
+          <TooltipDivider />
+          <ul className="flex flex-wrap justify-center gap-1.5">
+            {spawnableOn.map((w, i) => (
+              <li key={`${i}-${w.tag}`} className="rounded border border-border bg-card px-2.5 py-1 text-sm text-muted-foreground">
+                {w.tag}
               </li>
             ))}
           </ul>
+        </>
+      )}
 
-          {mod.stats.length > 0 && (
-            <>
-              <TooltipDivider />
-              <ul className="space-y-1.5 text-lg font-medium">
-                {mod.stats.map((stat, i) => <li key={`${i}-${stat}`}>{linkMentions(stat, mentions, self)}</li>)}
-              </ul>
-            </>
-          )}
-
-          {spawnableOn.length > 0 && (
-            <>
-              <TooltipDivider />
-              <ul className="flex flex-wrap justify-center gap-1.5">
-                {spawnableOn.map((w, i) => (
-                  <li key={`${i}-${w.tag}`} className="rounded border border-border bg-card px-2.5 py-1 text-sm text-muted-foreground">
-                    {w.tag}
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-
-          {mod.communitySource && (
-            <>
-              <TooltipDivider />
-              <CommunitySourceNote source={mod.communitySource} />
-            </>
-          )}
-        </article>
-      </div>
-    </div>
+      {mod.communitySource && (
+        <>
+          <TooltipDivider />
+          <CommunitySourceNote source={mod.communitySource} />
+        </>
+      )}
+    </WikiDetailCard>
   );
 }

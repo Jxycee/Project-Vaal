@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { loadDetail } from '@/lib/wiki/load';
 import { EFFECT_ACCENT_COLOR } from '@/lib/wiki/accent';
-import { WikiBreadcrumb } from '@/components/wiki/WikiBreadcrumb';
+import { WikiDetailCard } from '@/components/wiki/WikiDetailCard';
 import { TooltipDivider } from '@/components/wiki/TooltipDivider';
 import { linkMentions } from '@/components/wiki/MentionLinks';
 import { loadMentionIndex } from '@/lib/wiki/mentions';
@@ -29,40 +29,28 @@ export default async function EffectDetailPage({
   const self = { kind: 'effect' as const, slug: effect.slug };
 
   return (
-    <div className="flex min-h-[60vh] flex-col">
-      <WikiBreadcrumb kind="effect" name={effect.name} />
-      <div className="flex flex-1 items-center justify-center py-8">
-        {/* No icon for effects — BuffDefinitions references no icon art,
-            same as mods, so the name carries the header alone. */}
-        <article
-          className="relative mx-auto flex w-full max-w-lg min-h-[520px] flex-col justify-center space-y-4 rounded-lg border-2 bg-card px-8 py-6 text-center shadow-lg"
-          style={{
-            borderColor: EFFECT_ACCENT_COLOR,
-            backgroundImage: `radial-gradient(120% 100% at 50% 0%, color-mix(in oklab, ${EFFECT_ACCENT_COLOR} 8%, transparent), transparent 65%)`,
-          }}
-        >
-          <div className="mx-auto w-fit">
-            <h1 className="font-heading text-3xl tracking-wide" style={{ color: EFFECT_ACCENT_COLOR }}>{effect.name}</h1>
-          </div>
-
-          <TooltipDivider />
-          <p className="text-lg font-medium">{linkMentions(effect.description, mentions, self)}</p>
-
-          {effect.keywordDefinition && (
-            <>
-              <TooltipDivider />
-              <KeywordDefinitionNote>{linkMentions(effect.keywordDefinition, mentions, self)}</KeywordDefinitionNote>
-            </>
-          )}
-
-          {effect.communitySource && (
-            <>
-              <TooltipDivider />
-              <CommunitySourceNote source={effect.communitySource} />
-            </>
-          )}
-        </article>
+    // No icon for effects — BuffDefinitions references no icon art, same as mods.
+    <WikiDetailCard kind="effect" name={effect.name} accent={EFFECT_ACCENT_COLOR}>
+      <div className="mx-auto w-fit">
+        <h1 className="font-heading text-3xl tracking-wide" style={{ color: EFFECT_ACCENT_COLOR }}>{effect.name}</h1>
       </div>
-    </div>
+
+      <TooltipDivider />
+      <p className="text-lg font-medium">{linkMentions(effect.description, mentions, self)}</p>
+
+      {effect.keywordDefinition && (
+        <>
+          <TooltipDivider />
+          <KeywordDefinitionNote>{linkMentions(effect.keywordDefinition, mentions, self)}</KeywordDefinitionNote>
+        </>
+      )}
+
+      {effect.communitySource && (
+        <>
+          <TooltipDivider />
+          <CommunitySourceNote source={effect.communitySource} />
+        </>
+      )}
+    </WikiDetailCard>
   );
 }

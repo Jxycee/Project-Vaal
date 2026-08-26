@@ -3,7 +3,7 @@ import { loadDetail } from '@/lib/wiki/load';
 import { humanizeCategory } from '@/lib/wiki/humanizeCategory';
 import { itemAccentColor } from '@/lib/wiki/accent';
 import { RarityIconBox } from '@/components/wiki/RarityIconBox';
-import { WikiBreadcrumb } from '@/components/wiki/WikiBreadcrumb';
+import { WikiDetailCard } from '@/components/wiki/WikiDetailCard';
 import { TooltipDivider } from '@/components/wiki/TooltipDivider';
 import { mergeDirectionsWithConsoleButtons } from '@/components/wiki/ConsoleButtonBadge';
 import { linkMentions } from '@/components/wiki/MentionLinks';
@@ -85,131 +85,120 @@ export default async function ItemDetailPage({
   const subtitleClass = item.uniqueMods?.baseType ?? humanizeCategory(item.itemClass ?? item.category);
 
   return (
-    <div className="flex min-h-[60vh] flex-col">
-      <WikiBreadcrumb kind="item" name={item.name} />
-      <div className="flex flex-1 items-center justify-center py-8">
-        <article
-          className="relative mx-auto flex w-full max-w-lg min-h-[520px] flex-col justify-center space-y-4 rounded-lg border-2 bg-card px-8 py-6 text-center shadow-lg"
-          style={{
-            borderColor: accent,
-            backgroundImage: `radial-gradient(120% 100% at 50% 0%, color-mix(in oklab, ${accent} 8%, transparent), transparent 65%)`,
-          }}
+    <WikiDetailCard kind="item" name={item.name} accent={accent}>
+      <RarityIconBox
+        iconUrl={item.iconUrl}
+        accentColor={accent}
+        size={item.rarity === 'unique' ? 120 : 96}
+        iconWidth={item.iconWidth}
+        iconHeight={item.iconHeight}
+      />
+      <div className="mx-auto -mt-2 w-fit">
+        <h1
+          className="font-heading text-2xl tracking-wide"
+          style={item.rarity === 'unique' ? { color: accent } : undefined}
         >
-          <RarityIconBox
-            iconUrl={item.iconUrl}
-            accentColor={accent}
-            size={item.rarity === 'unique' ? 120 : 96}
-            iconWidth={item.iconWidth}
-            iconHeight={item.iconHeight}
-          />
-          <div className="mx-auto -mt-2 w-fit">
-            <h1
-              className="font-heading text-2xl tracking-wide"
-              style={item.rarity === 'unique' ? { color: accent } : undefined}
-            >
-              {item.name}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {subtitleClass}{item.rarity === 'unique' ? ' — Unique' : ''}
-            </p>
-          </div>
-
-          {(modLines.length > 0 || statRows.length > 0 || hasFlavour) && (
-            <>
-              <TooltipDivider />
-              {modLines.length > 0 && (
-                <ul className="space-y-1.5 text-base font-medium">
-                  {modLines.map((stat, i) => <li key={`${i}-${stat}`}>{linkMentions(stat, mentions, self)}</li>)}
-                </ul>
-              )}
-              {statRows.length > 0 && (
-                <ul className="space-y-1 text-sm text-muted-foreground">
-                  {statRows.map((row) => (
-                    <li key={row.label}>
-                      {row.label}: <span className="font-medium text-foreground">{row.value}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {item.flavourText && item.flavourText.length > 0 && (
-                <p className="text-base italic text-muted-foreground">{linkMentions(item.flavourText.join(' '), mentions, self)}</p>
-              )}
-            </>
-          )}
-
-          {hasUseText && (
-            <>
-              <TooltipDivider />
-              {item.description && (
-                <p className="text-base whitespace-pre-line">{linkMentions(item.description, mentions, self)}</p>
-              )}
-              {item.directions && item.consoleButtons && (
-                <p className="text-base italic text-muted-foreground whitespace-pre-line">
-                  {mergeDirectionsWithConsoleButtons(item.directions, item.consoleButtons).map((node, i) => (
-                    <span key={i}>{typeof node === 'string' ? linkMentions(node, mentions, self) : node}</span>
-                  ))}
-                </p>
-              )}
-              {item.directions && !item.consoleButtons && (
-                <p className="text-base italic text-muted-foreground whitespace-pre-line">{linkMentions(item.directions, mentions, self)}</p>
-              )}
-              {item.consoleDirections && !item.consoleButtons && item.consoleDirections !== item.directions && (
-                <p className="text-base italic text-muted-foreground whitespace-pre-line">
-                  <span className="not-italic font-medium text-foreground">Console: </span>
-                  {linkMentions(item.consoleDirections, mentions, self)}
-                </p>
-              )}
-            </>
-          )}
-
-          {item.soulCoreEffects && item.soulCoreEffects.length > 0 && (
-            <>
-              <TooltipDivider />
-              <div className="space-y-2.5">
-                {item.soulCoreEffects.map((effect, i) => (
-                  <div key={`${i}-${effect.category}`}>
-                    <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                      Socketed in {effect.category}
-                    </p>
-                    <ul className="space-y-1 text-base font-medium">
-                      {effect.lines.map((line, j) => <li key={`${j}-${line}`}>{linkMentions(line, mentions, self)}</li>)}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-
-          {item.uniqueMods?.dropSource && (
-            <>
-              <TooltipDivider />
-              <p className="text-base font-bold">{linkMentions(item.uniqueMods.dropSource, mentions, self)}</p>
-            </>
-          )}
-
-          {item.keywordDefinition && (
-            <>
-              <TooltipDivider />
-              <KeywordDefinitionNote>{linkMentions(item.keywordDefinition, mentions, self)}</KeywordDefinitionNote>
-            </>
-          )}
-
-          {item.communitySource && (
-            <>
-              <TooltipDivider />
-              <CommunitySourceNote source={item.communitySource} />
-            </>
-          )}
-
-          {item.rarity === 'unique' && !item.uniqueMods && (
-            <p className="border-t border-border pt-3 text-xs text-muted-foreground">
-              This item&apos;s actual modifier values aren&apos;t available yet — see the wiki design doc&apos;s
-              known limitation on unique items.
-            </p>
-          )}
-        </article>
+          {item.name}
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          {subtitleClass}{item.rarity === 'unique' ? ' — Unique' : ''}
+        </p>
       </div>
-    </div>
+
+      {(modLines.length > 0 || statRows.length > 0 || hasFlavour) && (
+        <>
+          <TooltipDivider />
+          {modLines.length > 0 && (
+            <ul className="space-y-1.5 text-base font-medium">
+              {modLines.map((stat, i) => <li key={`${i}-${stat}`}>{linkMentions(stat, mentions, self)}</li>)}
+            </ul>
+          )}
+          {statRows.length > 0 && (
+            <ul className="space-y-1 text-sm text-muted-foreground">
+              {statRows.map((row) => (
+                <li key={row.label}>
+                  {row.label}: <span className="font-medium text-foreground">{row.value}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {item.flavourText && item.flavourText.length > 0 && (
+            <p className="text-base italic text-muted-foreground">{linkMentions(item.flavourText.join(' '), mentions, self)}</p>
+          )}
+        </>
+      )}
+
+      {hasUseText && (
+        <>
+          <TooltipDivider />
+          {item.description && (
+            <p className="text-base whitespace-pre-line">{linkMentions(item.description, mentions, self)}</p>
+          )}
+          {item.directions && item.consoleButtons && (
+            <p className="text-base italic text-muted-foreground whitespace-pre-line">
+              {mergeDirectionsWithConsoleButtons(item.directions, item.consoleButtons).map((node, i) => (
+                <span key={i}>{typeof node === 'string' ? linkMentions(node, mentions, self) : node}</span>
+              ))}
+            </p>
+          )}
+          {item.directions && !item.consoleButtons && (
+            <p className="text-base italic text-muted-foreground whitespace-pre-line">{linkMentions(item.directions, mentions, self)}</p>
+          )}
+          {item.consoleDirections && !item.consoleButtons && item.consoleDirections !== item.directions && (
+            <p className="text-base italic text-muted-foreground whitespace-pre-line">
+              <span className="not-italic font-medium text-foreground">Console: </span>
+              {linkMentions(item.consoleDirections, mentions, self)}
+            </p>
+          )}
+        </>
+      )}
+
+      {item.soulCoreEffects && item.soulCoreEffects.length > 0 && (
+        <>
+          <TooltipDivider />
+          <div className="space-y-2.5">
+            {item.soulCoreEffects.map((effect, i) => (
+              <div key={`${i}-${effect.category}`}>
+                <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                  Socketed in {effect.category}
+                </p>
+                <ul className="space-y-1 text-base font-medium">
+                  {effect.lines.map((line, j) => <li key={`${j}-${line}`}>{linkMentions(line, mentions, self)}</li>)}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {item.uniqueMods?.dropSource && (
+        <>
+          <TooltipDivider />
+          <p className="text-base font-bold">{linkMentions(item.uniqueMods.dropSource, mentions, self)}</p>
+        </>
+      )}
+
+      {item.keywordDefinition && (
+        <>
+          <TooltipDivider />
+          <KeywordDefinitionNote>{linkMentions(item.keywordDefinition, mentions, self)}</KeywordDefinitionNote>
+        </>
+      )}
+
+      {item.communitySource && (
+        <>
+          <TooltipDivider />
+          <CommunitySourceNote source={item.communitySource} />
+        </>
+      )}
+
+      {item.rarity === 'unique' && !item.uniqueMods && (
+        <p className="border-t border-border pt-3 text-xs text-muted-foreground">
+          This item&apos;s actual modifier values aren&apos;t available yet — see the wiki design doc&apos;s
+          known limitation on unique items.
+        </p>
+      )}
+    </WikiDetailCard>
   );
 }
 

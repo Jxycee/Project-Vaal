@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import { loadDetail } from '@/lib/wiki/load';
 import { skillAccentColor } from '@/lib/wiki/accent';
 import { RarityIconBox } from '@/components/wiki/RarityIconBox';
-import { WikiBreadcrumb } from '@/components/wiki/WikiBreadcrumb';
+import { WikiDetailCard } from '@/components/wiki/WikiDetailCard';
 import { TooltipDivider } from '@/components/wiki/TooltipDivider';
 import { SkillScaling } from '@/components/wiki/SkillScaling';
 import { linkMentions } from '@/components/wiki/MentionLinks';
@@ -65,80 +65,69 @@ export default async function SkillDetailPage({
   if (skill.requirement.intelligence > 0) statRows.push({ label: 'Intelligence', value: skill.requirement.intelligence });
 
   return (
-    <div className="flex min-h-[60vh] flex-col">
-      <WikiBreadcrumb kind="skill" name={skill.name} />
-      <div className="flex flex-1 items-center justify-center py-8">
-        <article
-          className="relative mx-auto flex w-full max-w-lg min-h-[520px] flex-col justify-center space-y-4 rounded-lg border-2 bg-card px-8 py-6 text-center shadow-lg"
-          style={{
-            borderColor: accent,
-            backgroundImage: `radial-gradient(120% 100% at 50% 0%, color-mix(in oklab, ${accent} 8%, transparent), transparent 65%)`,
-          }}
-        >
-          <RarityIconBox
-            iconUrl={skill.iconUrl}
-            accentColor={accent}
-            size={96}
-            iconWidth={skill.iconWidth}
-            iconHeight={skill.iconHeight}
-          />
-          <div className="mx-auto -mt-2 w-fit">
-            <h1 className="font-heading text-2xl tracking-wide" style={{ color: accent }}>{skill.name}</h1>
-            <p className="text-sm text-muted-foreground">{skill.category} — {COLOR_NAME[skill.color]}</p>
-          </div>
-
-          {skill.tags.length > 0 && (
-            <ul className="flex flex-wrap justify-center gap-1.5">
-              {skill.tags.map((tag, i) => (
-                <li key={`${i}-${tag}`} className="rounded border border-border bg-card px-2.5 py-1 text-sm text-muted-foreground">
-                  {humanizeCategory(tag)}
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <TooltipDivider />
-          <ul className="space-y-1 text-sm text-muted-foreground">
-            {statRows.map((row) => (
-              <li key={row.label}>
-                {row.label}: <span className="font-medium text-foreground">{row.value}</span>
-              </li>
-            ))}
-          </ul>
-
-          {skill.description && (
-            <>
-              <TooltipDivider />
-              <p className="text-base whitespace-pre-line">{linkMentions(skill.description, mentions, self)}</p>
-            </>
-          )}
-
-          {skill.scaling.length > 0 && (
-            <>
-              <TooltipDivider />
-              <SkillScaling
-                levels={skill.scaling.map((level) => ({
-                  level: level.level,
-                  content: (
-                    <ul className="space-y-0.5 font-medium">
-                      {level.stats.map((stat, i) => (
-                        <li key={`${i}-${stat.text}`}>{linkMentions(stat.text, mentions, self)}</li>
-                      ))}
-                    </ul>
-                  ),
-                }))}
-              />
-            </>
-          )}
-
-          {skill.keywordDefinition && (
-            <>
-              <TooltipDivider />
-              <KeywordDefinitionNote>{linkMentions(skill.keywordDefinition, mentions, self)}</KeywordDefinitionNote>
-            </>
-          )}
-        </article>
+    <WikiDetailCard kind="skill" name={skill.name} accent={accent}>
+      <RarityIconBox
+        iconUrl={skill.iconUrl}
+        accentColor={accent}
+        size={96}
+        iconWidth={skill.iconWidth}
+        iconHeight={skill.iconHeight}
+      />
+      <div className="mx-auto -mt-2 w-fit">
+        <h1 className="font-heading text-2xl tracking-wide" style={{ color: accent }}>{skill.name}</h1>
+        <p className="text-sm text-muted-foreground">{skill.category} — {COLOR_NAME[skill.color]}</p>
       </div>
-    </div>
+
+      {skill.tags.length > 0 && (
+        <ul className="flex flex-wrap justify-center gap-1.5">
+          {skill.tags.map((tag, i) => (
+            <li key={`${i}-${tag}`} className="rounded border border-border bg-card px-2.5 py-1 text-sm text-muted-foreground">
+              {humanizeCategory(tag)}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <TooltipDivider />
+      <ul className="space-y-1 text-sm text-muted-foreground">
+        {statRows.map((row) => (
+          <li key={row.label}>
+            {row.label}: <span className="font-medium text-foreground">{row.value}</span>
+          </li>
+        ))}
+      </ul>
+
+      {skill.description && (
+        <>
+          <TooltipDivider />
+          <p className="text-base whitespace-pre-line">{linkMentions(skill.description, mentions, self)}</p>
+        </>
+      )}
+
+      {skill.scaling.length > 0 && (
+        <>
+          <TooltipDivider />
+          <SkillScaling
+            levels={skill.scaling.map((level) => ({
+              level: level.level,
+              content: (
+                <ul className="space-y-0.5 font-medium">
+                  {level.stats.map((stat, i) => (
+                    <li key={`${i}-${stat.text}`}>{linkMentions(stat.text, mentions, self)}</li>
+                  ))}
+                </ul>
+              ),
+            }))}
+          />
+        </>
+      )}
+
+      {skill.keywordDefinition && (
+        <>
+          <TooltipDivider />
+          <KeywordDefinitionNote>{linkMentions(skill.keywordDefinition, mentions, self)}</KeywordDefinitionNote>
+        </>
+      )}
+    </WikiDetailCard>
   );
 }
