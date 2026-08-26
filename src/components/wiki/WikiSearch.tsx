@@ -105,7 +105,7 @@ export function WikiSearch({
       {results.length > 0 && (
         <ul className="rounded-lg border border-border">
           {results.slice(0, visibleCount).map((entry, i) => (
-            <li key={entry.slug}>
+            <li key={`${entry.kind}-${entry.slug}`}>
               <Link
                 href={`${WIKI_BASE_PATH[entry.kind]}/${entry.slug}`}
                 onClick={() => onSelectEntry?.(entry)}
