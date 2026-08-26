@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { FUZZY_SEARCH_TUNING } from '@/lib/fuseOptions';
 import { humanizeCategory } from '@/lib/wiki/humanizeCategory';
 import { attributeTagColor } from '@/lib/wiki/attributeTagColor';
+import { WIKI_BASE_PATH } from '@/lib/wiki/types';
 import type { WikiSearchEntry } from '@/lib/wiki/types';
 import type { CSSProperties } from 'react';
 
@@ -35,16 +36,17 @@ export function filterEntries(
 
 export function WikiSearch({
   entries,
-  basePath,
   initialQuery,
   onQueryChange,
+  onSelectEntry,
 }: {
   entries: WikiSearchEntry[];
-  basePath: string;
   /** Prefills the search box — set from `?q=` by a mention link that couldn't resolve to one exact entry (see MentionLinks.tsx). */
   initialQuery?: string;
   /** Called with the query on every change — lets a parent (WikiBrowse) persist it for view-state restoration without lifting the whole input into a controlled component. */
   onQueryChange?: (query: string) => void;
+  /** Called when a result is clicked, before navigation — lets a parent (the wiki home page) record it without WikiSearch needing to know why. */
+  onSelectEntry?: (entry: WikiSearchEntry) => void;
 }) {
   const [query, setQuery] = useState(initialQuery ?? '');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -105,7 +107,8 @@ export function WikiSearch({
           {results.slice(0, visibleCount).map((entry, i) => (
             <li key={entry.slug}>
               <Link
-                href={`${basePath}/${entry.slug}`}
+                href={`${WIKI_BASE_PATH[entry.kind]}/${entry.slug}`}
+                onClick={() => onSelectEntry?.(entry)}
                 className={cn(
                   // Tags stack in a wrapped row below the name/category on
                   // narrow screens (no room for a third column there) and
