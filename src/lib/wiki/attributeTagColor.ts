@@ -10,7 +10,13 @@
  * chip it mostly just reads as its first color, so a fixed solid per
  * combination is both simpler and more legible.
  *
- * `null` for anything not attribute-shaped - most tags.
+ * Also covers the one non-attribute tag that needs the same chip
+ * treatment: `Unique`, unshifted onto a unique item's `tags` in
+ * `toSearchEntry` (normalize.ts) so it renders exactly like an attribute
+ * chip, tinted with the same accent `itemAccentColor('unique')` already
+ * uses on unique items' detail pages.
+ *
+ * `null` for anything not attribute-shaped (or Unique) - most tags.
  */
 const STR = 'var(--wiki-gem-r)';
 const DEX = 'var(--wiki-gem-g)';
@@ -21,6 +27,7 @@ const DEX_INT = 'var(--wiki-attr-dex-int)';
 const STR_DEX_INT = 'var(--wiki-gem-w)';
 
 const ATTRIBUTE_TAG_COLORS: Record<string, string> = {
+  Unique: 'var(--wiki-unique)',
   // Mod families (full words)
   Strength: STR,
   Dexterity: DEX,

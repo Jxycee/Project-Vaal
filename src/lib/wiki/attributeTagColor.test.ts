@@ -27,4 +27,8 @@ describe('attributeTagColor', () => {
     expect(attributeTagColor('quality_currency')).toBeNull();
     expect(attributeTagColor('two_hand_weapon')).toBeNull();
   });
+
+  it('tints the Unique tag with the same accent unique items use on their detail page', () => {
+    expect(attributeTagColor('Unique')).toBe('var(--wiki-unique)');
+  });
 });

@@ -81,6 +81,16 @@ export function RecentSearchesStrip({
                   className="mx-auto mb-2 h-10 w-auto object-contain"
                 />
               )}
+              {entry.isUniqueItem && (
+                <p className="mb-1 text-center">
+                  <span
+                    className="inline-block rounded border px-1.5 py-0.5 text-[0.65rem]"
+                    style={{ borderColor: snippet.accent, color: snippet.accent }}
+                  >
+                    Unique
+                  </span>
+                </p>
+              )}
               <p className="truncate text-center font-heading text-sm" style={{ color: snippet.accent }}>
                 {entry.name}
               </p>

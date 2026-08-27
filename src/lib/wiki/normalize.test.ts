@@ -646,37 +646,43 @@ describe('toSearchEntry', () => {
     expect(toSearchEntry(normalizeMap({ name: 'Blooming Field', flavourText: 'd' }, SYNCED_AT)).isUniqueItem).toBe(false);
   });
 
+  it('unshifts "Unique" onto a unique item\'s tags so it always survives WikiSearch\'s first-2-tags chip cap', () => {
+    const raw = fixture('sample-item.json'); // rarity: "unique"
+    const detail = normalizeItem(raw.name, { ...raw, tags: ['armour', 'str_armour'] }, null, SYNCED_AT);
+    expect(toSearchEntry(detail).tags).toEqual(['Unique', 'armour', 'str_armour']);
+  });
+
   it('drops the near-universal, zero-signal "default" tag from an item\'s search tags, keeps the rest', () => {
     const raw = fixture('sample-item.json');
-    const detail = normalizeItem(raw.name, { ...raw, tags: ['default', 'armour', 'str_armour'] }, null, SYNCED_AT);
+    const detail = normalizeItem(raw.name, { ...raw, rarity: 'normal', tags: ['default', 'armour', 'str_armour'] }, null, SYNCED_AT);
     expect(toSearchEntry(detail).tags).toEqual(['armour', 'str_armour']);
   });
 
   it('drops a tag that reads identically to the entry\'s own category ("body_armour" on a Body Armour item)', () => {
     const raw = fixture('sample-item.json'); // category: "Body Armour"
-    const detail = normalizeItem(raw.name, { ...raw, tags: ['armour', 'body_armour'] }, null, SYNCED_AT);
+    const detail = normalizeItem(raw.name, { ...raw, rarity: 'normal', tags: ['armour', 'body_armour'] }, null, SYNCED_AT);
     expect(toSearchEntry(detail).tags).toEqual(['armour']);
   });
 
   it('drops the bare "onehand"/"twohand" tag when the fuller "one_hand_weapon"/"two_hand_weapon" tag is also present, keeps a lone one', () => {
     const raw = fixture('sample-item.json');
-    const both = normalizeItem(raw.name, { ...raw, tags: ['one_hand_weapon', 'onehand', 'weapon'] }, null, SYNCED_AT);
+    const both = normalizeItem(raw.name, { ...raw, rarity: 'normal', tags: ['one_hand_weapon', 'onehand', 'weapon'] }, null, SYNCED_AT);
     expect(toSearchEntry(both).tags).toEqual(['one_hand_weapon', 'weapon']);
-    const loneTwohand = normalizeItem(raw.name, { ...raw, tags: ['twohand', 'weapon'] }, null, SYNCED_AT);
+    const loneTwohand = normalizeItem(raw.name, { ...raw, rarity: 'normal', tags: ['twohand', 'weapon'] }, null, SYNCED_AT);
     expect(toSearchEntry(loneTwohand).tags).toEqual(['twohand', 'weapon']);
   });
 
   it('strips all tags from a currency item except incursion_currency', () => {
     const raw = fixture('sample-item.json');
-    const detail = normalizeItem(raw.name, { ...raw, itemClass: 'StackableCurrency', category: 'StackableCurrency', tags: ['default', 'quality_currency', 'catalyst'] }, null, SYNCED_AT);
+    const detail = normalizeItem(raw.name, { ...raw, rarity: 'normal', itemClass: 'StackableCurrency', category: 'StackableCurrency', tags: ['default', 'quality_currency', 'catalyst'] }, null, SYNCED_AT);
     expect(toSearchEntry(detail).tags).toEqual([]);
-    const withIncursion = normalizeItem(raw.name, { ...raw, itemClass: 'StackableCurrency', category: 'StackableCurrency', tags: ['quality_currency', 'incursion_currency'] }, null, SYNCED_AT);
+    const withIncursion = normalizeItem(raw.name, { ...raw, rarity: 'normal', itemClass: 'StackableCurrency', category: 'StackableCurrency', tags: ['quality_currency', 'incursion_currency'] }, null, SYNCED_AT);
     expect(toSearchEntry(withIncursion).tags).toEqual(['incursion_currency']);
   });
 
   it('promotes an essence-tagged currency item to its own "Essence" category', () => {
     const raw = fixture('sample-item.json');
-    const detail = normalizeItem('Essence of Abrasion', { ...raw, itemClass: 'StackableCurrency', category: 'StackableCurrency', tags: ['default', 'essence'] }, null, SYNCED_AT);
+    const detail = normalizeItem('Essence of Abrasion', { ...raw, rarity: 'normal', itemClass: 'StackableCurrency', category: 'StackableCurrency', tags: ['default', 'essence'] }, null, SYNCED_AT);
     const entry = toSearchEntry(detail);
     expect(entry.category).toBe('Essence');
     expect(entry.tags).toEqual([]);
@@ -686,7 +692,7 @@ describe('toSearchEntry', () => {
 
   it('leaves a non-currency item\'s tags untouched by the currency-stripping rule', () => {
     const raw = fixture('sample-item.json'); // category: "Body Armour"
-    const detail = normalizeItem(raw.name, { ...raw, tags: ['catalyst', 'quality_currency'] }, null, SYNCED_AT);
+    const detail = normalizeItem(raw.name, { ...raw, rarity: 'normal', tags: ['catalyst', 'quality_currency'] }, null, SYNCED_AT);
     expect(toSearchEntry(detail).tags).toEqual(['catalyst', 'quality_currency']);
   });
 

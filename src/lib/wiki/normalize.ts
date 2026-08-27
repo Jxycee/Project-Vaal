@@ -703,12 +703,18 @@ export function toSearchEntry(
     tags = detail.tags.filter((t) => t !== 'default' && !isRedundantTag(t, category, detail.tags));
   }
 
+  const isUniqueItem = detail.kind === 'item' && detail.rarity === 'unique';
+  // Unshift, not push, so "Unique" survives WikiSearch's own first-2-tags
+  // chip cap (entry.tags.slice(0, 2)) regardless of how many other tags an
+  // item already carries — it's the one tag that should always be visible.
+  if (isUniqueItem) tags = ['Unique', ...tags];
+
   return {
     slug: detail.slug,
     name: detail.name,
     kind: detail.kind,
     category,
     tags,
-    isUniqueItem: detail.kind === 'item' && detail.rarity === 'unique',
+    isUniqueItem,
   };
 }
