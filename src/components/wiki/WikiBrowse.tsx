@@ -7,6 +7,7 @@ import { groupByCategory } from '@/lib/wiki/categoryGroups';
 import { groupByTaxonomy, ITEM_CATEGORY_GROUPS } from '@/lib/wiki/categoryTaxonomy';
 import { CategorySidebar } from './CategorySidebar';
 import { fetchWikiIndex, WikiSessionExpiredError } from '@/lib/wiki/fetchIndex';
+import { recordSearchedEntry } from '@/lib/wiki/recentSearches';
 import type { WikiEntryKind, WikiSearchEntry } from '@/lib/wiki/types';
 
 type LoadState =
@@ -268,7 +269,12 @@ export function WikiBrowse({
             })}
           </div>
         )}
-        <WikiSearch entries={visibleEntries} initialQuery={initialQuery} onQueryChange={handleQueryChange} />
+        <WikiSearch
+          entries={visibleEntries}
+          initialQuery={initialQuery}
+          onQueryChange={handleQueryChange}
+          onSelectEntry={recordSearchedEntry}
+        />
       </div>
     </div>
   );
