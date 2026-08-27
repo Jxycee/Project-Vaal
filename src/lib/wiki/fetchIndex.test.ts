@@ -25,7 +25,7 @@ afterEach(() => {
 describe('fetchWikiIndex', () => {
   it('fetches the correct URL for each kind and resolves the entries array', async () => {
     const entries = [
-      { slug: 'ice-nova', name: 'Ice Nova', kind: 'skill', category: 'Active Skill Gem', tags: ['Cold'] },
+      { slug: 'ice-nova', name: 'Ice Nova', kind: 'skill', category: 'Active Skill Gem', tags: ['Cold'], isUniqueItem: false },
     ];
     const fetchMock = vi.fn().mockResolvedValue(fakeResponse({ version: '1', generatedAt: 'x', entries }));
     vi.stubGlobal('fetch', fetchMock);

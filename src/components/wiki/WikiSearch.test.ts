@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { filterEntries } from './WikiSearch';
 
 const entries = [
-  { slug: 'ice-nova', name: 'Ice Nova', kind: 'skill' as const, category: 'Active Skill Gem', tags: ['Cold'] },
-  { slug: 'orb-of-storms', name: 'Orb of Storms', kind: 'skill' as const, category: 'Active Skill Gem', tags: ['Lightning'] },
-  { slug: 'blink', name: 'Blink', kind: 'skill' as const, category: 'Active Skill Gem', tags: ['Travel'] },
+  { slug: 'ice-nova', name: 'Ice Nova', kind: 'skill' as const, category: 'Active Skill Gem', tags: ['Cold'], isUniqueItem: false },
+  { slug: 'orb-of-storms', name: 'Orb of Storms', kind: 'skill' as const, category: 'Active Skill Gem', tags: ['Lightning'], isUniqueItem: false },
+  { slug: 'blink', name: 'Blink', kind: 'skill' as const, category: 'Active Skill Gem', tags: ['Travel'], isUniqueItem: false },
 ];
 
 describe('filterEntries', () => {

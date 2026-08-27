@@ -8,7 +8,7 @@ import { WIKI_DATA_VERSION } from './types';
 import type { WikiItemDetail, WikiSearchEntry } from './types';
 
 const entry = (category: string, i: number): WikiSearchEntry => ({
-  slug: `${category}-${i}`, name: `${category} ${i}`, kind: 'item', category, tags: [],
+  slug: `${category}-${i}`, name: `${category} ${i}`, kind: 'item', category, tags: [], isUniqueItem: false,
 });
 
 describe('groupByTaxonomy', () => {

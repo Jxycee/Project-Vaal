@@ -709,5 +709,6 @@ export function toSearchEntry(
     kind: detail.kind,
     category,
     tags,
+    isUniqueItem: detail.kind === 'item' && detail.rarity === 'unique',
   };
 }

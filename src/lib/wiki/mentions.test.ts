@@ -3,7 +3,7 @@ import { buildMentionIndex, resolveMentionTarget } from './mentions';
 import type { WikiSearchEntry } from './types';
 
 const entry = (over: Partial<WikiSearchEntry>): WikiSearchEntry => ({
-  slug: 'x', name: 'X', kind: 'item', category: 'c', tags: [], ...over,
+  slug: 'x', name: 'X', kind: 'item', category: 'c', tags: [], isUniqueItem: false, ...over,
 });
 
 describe('buildMentionIndex', () => {

@@ -632,7 +632,18 @@ describe('toSearchEntry', () => {
   it('drops detail-only fields from an item', () => {
     const raw = fixture('sample-item.json');
     const entry = toSearchEntry(normalizeItem(raw.name, raw, null, SYNCED_AT));
-    expect(Object.keys(entry).sort()).toEqual(['category', 'kind', 'name', 'slug', 'tags']);
+    expect(Object.keys(entry).sort()).toEqual(['category', 'isUniqueItem', 'kind', 'name', 'slug', 'tags']);
+  });
+
+  it('sets isUniqueItem true for a unique item, false for a normal one, false for every other kind', () => {
+    const raw = fixture('sample-item.json'); // rarity: "unique"
+    expect(toSearchEntry(normalizeItem(raw.name, raw, null, SYNCED_AT)).isUniqueItem).toBe(true);
+    const normal = normalizeItem(raw.name, { ...raw, rarity: 'normal' }, null, SYNCED_AT);
+    expect(toSearchEntry(normal).isUniqueItem).toBe(false);
+
+    const modRaw = fixture('sample-mod.json');
+    expect(toSearchEntry(normalizeMod(modRaw.id, modRaw, SYNCED_AT)).isUniqueItem).toBe(false);
+    expect(toSearchEntry(normalizeMap({ name: 'Blooming Field', flavourText: 'd' }, SYNCED_AT)).isUniqueItem).toBe(false);
   });
 
   it('drops the near-universal, zero-signal "default" tag from an item\'s search tags, keeps the rest', () => {
@@ -682,7 +693,7 @@ describe('toSearchEntry', () => {
   it('drops detail-only fields from a mod', () => {
     const raw = fixture('sample-mod.json');
     const entry = toSearchEntry(normalizeMod(raw.id, raw, SYNCED_AT));
-    expect(Object.keys(entry).sort()).toEqual(['category', 'kind', 'name', 'slug', 'tags']);
+    expect(Object.keys(entry).sort()).toEqual(['category', 'isUniqueItem', 'kind', 'name', 'slug', 'tags']);
   });
 
   it('uses families as the search tags for a mod', () => {

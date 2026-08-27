@@ -46,11 +46,16 @@ export function recordSearchedEntry(entry: WikiSearchEntry): void {
 /**
  * Always returns exactly 4 entries for the home page's strip (fewer only if
  * `allEntries` itself doesn't have 4 eligible entries to offer): real
- * recorded searches first, then random picks from `allEntries` backfill the
- * rest — excluding anything already shown and excluding
- * `UNUSED_OR_REMOVED_CATEGORY` entries, which shouldn't be presented as
- * "popular." Re-randomizes on every call (call once per page load, not per
- * render — see the wiki home page's use of `useMemo`).
+ * recorded searches first, then random picks backfill the rest — excluding
+ * anything already shown. The backfill draws only from unique items
+ * (`isUniqueItem`, Jaycee's call) rather than the full cross-kind pool: a
+ * random mod or effect reads as a bare stat line with no art, while a unique
+ * item almost always has flavour text (439/440 in a live check) and an icon,
+ * so it's a far better "here's something interesting" first impression for
+ * anyone who hasn't searched yet. `UNUSED_OR_REMOVED_CATEGORY` is excluded
+ * too, though in practice no unique item falls in that bucket. Re-randomizes
+ * on every call (call once per page load, not per render — see the wiki home
+ * page's use of `useMemo`).
  */
 export function getHomeStrip(allEntries: WikiSearchEntry[]): WikiSearchEntry[] {
   const stored = readStored().slice(0, MAX_ENTRIES);
@@ -66,7 +71,7 @@ export function getHomeStrip(allEntries: WikiSearchEntry[]): WikiSearchEntry[] {
   if (needed === 0) return recorded;
 
   const candidates = allEntries.filter(
-    (e) => e.category !== UNUSED_OR_REMOVED_CATEGORY && !recorded.some((r) => sameEntry(r, e))
+    (e) => e.isUniqueItem && e.category !== UNUSED_OR_REMOVED_CATEGORY && !recorded.some((r) => sameEntry(r, e))
   );
   // Fisher-Yates partial shuffle — only need the first `needed` picks, not a
   // fully shuffled array.

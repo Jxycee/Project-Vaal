@@ -81,6 +81,11 @@ export async function fetchWikiCardSnippet(kind: WikiEntryKind, slug: string): P
     throw new WikiIndexFetchError(`Failed to load ${kind} detail (HTTP ${res.status})`);
   }
 
+  const contentType = res.headers.get('content-type') ?? '';
+  if (!contentType.includes('application/json')) {
+    throw new WikiIndexFetchError(`Unexpected response loading ${kind} detail (not JSON).`);
+  }
+
   const data: unknown = await res.json();
   return extractCardSnippet(kind, data);
 }

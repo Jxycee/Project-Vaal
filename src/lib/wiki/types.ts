@@ -42,6 +42,18 @@ export interface WikiSearchEntry {
   kind: WikiEntryKind;
   category: string;
   tags: string[];
+  /**
+   * True only for a `kind: 'item'` entry whose full detail has `rarity ===
+   * 'unique'`; always false for every other kind. A single boolean, unlike
+   * `iconUrl`/description text, so it doesn't reintroduce the per-row cost
+   * this index was kept slim to avoid — it exists so the wiki home page's
+   * "recently searched" backfill (see `lib/wiki/recentSearches.ts`) can pick
+   * from unique items synchronously, without a detail fetch per candidate.
+   * Nearly every unique item has flavour text (439/440 in a live check),
+   * which is also why this reads far better as a "popular" pick than a
+   * random mod's raw stat line.
+   */
+  isUniqueItem: boolean;
 }
 
 export interface WikiIndexFile {
@@ -287,6 +299,7 @@ export function isWikiSearchEntry(value: unknown): value is WikiSearchEntry {
     typeof v.name === 'string' && v.name.length > 0 &&
     typeof v.kind === 'string' && KINDS.includes(v.kind) &&
     typeof v.category === 'string' &&
-    Array.isArray(v.tags) && v.tags.every((t) => typeof t === 'string')
+    Array.isArray(v.tags) && v.tags.every((t) => typeof t === 'string') &&
+    typeof v.isUniqueItem === 'boolean'
   );
 }

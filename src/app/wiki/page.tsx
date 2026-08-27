@@ -5,7 +5,7 @@
 // searches its own kind), links out to each kind's browse page, and shows a
 // small "recently searched" strip. See
 // docs/superpowers/specs/2026-08-26-wiki-home-universal-search-design.md.
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { fetchWikiIndex, WikiSessionExpiredError } from '@/lib/wiki/fetchIndex';
@@ -25,6 +25,15 @@ export default function WikiHome() {
   const router = useRouter();
   const [state, setState] = useState<LoadState>({ status: 'loading' });
 
+  // Shared by the main index fetch below and RecentSearchesStrip's own
+  // per-card fetches — both hit the same auth-gated /data/wiki/** routes, so
+  // both should redirect the same way on a lapsed session. Wrapped in
+  // useCallback so RecentSearchesStrip's effect (keyed on this identity)
+  // doesn't re-run on every unrelated render of this page.
+  const redirectToLogin = useCallback(() => {
+    router.replace(`/login?redirect=${encodeURIComponent('/wiki')}`);
+  }, [router]);
+
   useEffect(() => {
     let cancelled = false;
     Promise.all(ALL_WIKI_KINDS.map((kind) => fetchWikiIndex(kind)))
@@ -35,7 +44,7 @@ export default function WikiHome() {
       .catch((e: unknown) => {
         if (cancelled) return;
         if (e instanceof WikiSessionExpiredError) {
-          router.replace(`/login?redirect=${encodeURIComponent('/wiki')}`);
+          redirectToLogin();
           return;
         }
         const message = e instanceof Error ? e.message : 'Failed to load data.';
@@ -44,7 +53,7 @@ export default function WikiHome() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [redirectToLogin]);
 
   // Computed once per successful load, not per render — getHomeStrip
   // re-randomizes its backfill on every call, and we don't want the strip
@@ -89,7 +98,7 @@ export default function WikiHome() {
         })}
       </div>
 
-      <RecentSearchesStrip entries={homeStrip} />
+      <RecentSearchesStrip entries={homeStrip} onSessionExpired={redirectToLogin} />
     </div>
   );
 }

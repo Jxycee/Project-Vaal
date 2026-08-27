@@ -84,7 +84,13 @@ export function WikiSearch({
   // Compute results using the memoized Fuse instance
   const results = useMemo(() => filterEntries(entries, deferredQuery, fuse), [entries, deferredQuery, fuse]);
 
-  const showResults = !hideResultsWhenEmpty || query.trim() !== '';
+  // Gates on `deferredQuery`, the same value `results` is computed from —
+  // not the immediate `query` — so the two can never disagree. Gating this
+  // on `query` instead would flip `showResults` to true one render before
+  // `results` (still catching up via useDeferredValue) had recomputed,
+  // transiently showing the full unfiltered list for a frame on the very
+  // first keystroke.
+  const showResults = !hideResultsWhenEmpty || deferredQuery.trim() !== '';
 
   // A new query or a new filtered entry set (category/tag change) reads as
   // "start over" for pagination too, same as WikiBrowse's own scroll-reset

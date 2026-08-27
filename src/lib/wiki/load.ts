@@ -13,11 +13,13 @@ const SAFE_SLUG = /^[a-z0-9-]+$/;
  * and surface as a render crash on a field that isn't there.
  *
  * Detail records share slug/name/kind/category with `WikiSearchEntry`, so
- * `isWikiSearchEntry` validates those four. It also requires `tags`, which
- * only item and skill details carry (mods have `families` instead), so the
- * probe supplies a placeholder for that one field rather than duplicating
- * the four checks here. `kind` is then matched against the kind actually
- * requested — that is what catches a file sitting in the wrong directory.
+ * `isWikiSearchEntry` validates those four. It also requires `tags` (only
+ * item and skill details carry it — mods have `families` instead) and
+ * `isUniqueItem` (only meaningful on the search index, not on any detail
+ * record at all), so the probe fakes placeholders for both rather than
+ * duplicating the four real checks here. `kind` is then matched against the
+ * kind actually requested — that is what catches a file sitting in the
+ * wrong directory.
  */
 function isDetailFor(kind: 'item' | 'skill' | 'mod' | 'effect' | 'map', value: unknown): boolean {
   if (typeof value !== 'object' || value === null) return false;
@@ -28,6 +30,10 @@ function isDetailFor(kind: 'item' | 'skill' | 'mod' | 'effect' | 'map', value: u
     kind: v.kind,
     category: v.category,
     tags: [] as string[],
+    // Not a real field on any detail record (isUniqueItem only exists on
+    // the slim search-index entry) — faked the same way `tags` is, purely
+    // so this probe satisfies isWikiSearchEntry's shape check.
+    isUniqueItem: false,
   };
   return isWikiSearchEntry(probe) && v.kind === kind && typeof v.lastSynced === 'string';
 }

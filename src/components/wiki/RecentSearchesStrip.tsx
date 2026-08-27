@@ -12,6 +12,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { fetchWikiCardSnippet } from '@/lib/wiki/fetchDetail';
 import type { WikiCardSnippet } from '@/lib/wiki/fetchDetail';
+import { WikiSessionExpiredError } from '@/lib/wiki/fetchIndex';
 import { WIKI_BASE_PATH } from '@/lib/wiki/types';
 import type { WikiSearchEntry } from '@/lib/wiki/types';
 import { Card } from '@/components/ui/card';
@@ -21,7 +22,20 @@ interface CardData {
   snippet: WikiCardSnippet;
 }
 
-export function RecentSearchesStrip({ entries }: { entries: WikiSearchEntry[] }) {
+export function RecentSearchesStrip({
+  entries,
+  onSessionExpired,
+}: {
+  entries: WikiSearchEntry[];
+  /**
+   * Called if any card's fetch fails with an expired session. Every other
+   * wiki page redirects to /login on this error; without this callback a
+   * lapsed session here would just silently drop cards (enough failures and
+   * the whole "Recently searched" section vanishes with no explanation)
+   * instead of following that same convention.
+   */
+  onSessionExpired?: () => void;
+}) {
   const [cards, setCards] = useState<CardData[] | null>(null);
 
   useEffect(() => {
@@ -29,6 +43,10 @@ export function RecentSearchesStrip({ entries }: { entries: WikiSearchEntry[] })
     Promise.allSettled(entries.map((entry) => fetchWikiCardSnippet(entry.kind, entry.slug))).then(
       (results) => {
         if (cancelled) return;
+        if (results.some((r) => r.status === 'rejected' && r.reason instanceof WikiSessionExpiredError)) {
+          onSessionExpired?.();
+          return;
+        }
         const loaded: CardData[] = [];
         results.forEach((result, i) => {
           if (result.status === 'fulfilled') loaded.push({ entry: entries[i], snippet: result.value });
@@ -39,7 +57,7 @@ export function RecentSearchesStrip({ entries }: { entries: WikiSearchEntry[] })
     return () => {
       cancelled = true;
     };
-  }, [entries]);
+  }, [entries, onSessionExpired]);
 
   if (!cards || cards.length === 0) return null;
 

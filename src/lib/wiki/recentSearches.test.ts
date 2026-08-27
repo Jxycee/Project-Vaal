@@ -3,8 +3,12 @@ import { recordSearchedEntry, getHomeStrip } from './recentSearches';
 import { UNUSED_OR_REMOVED_CATEGORY } from './normalize';
 import type { WikiSearchEntry } from './types';
 
-function entry(kind: WikiSearchEntry['kind'], slug: string, category = 'Test'): WikiSearchEntry {
-  return { slug, name: slug, kind, category, tags: [] };
+function entry(kind: WikiSearchEntry['kind'], slug: string, category = 'Test', isUniqueItem = false): WikiSearchEntry {
+  return { slug, name: slug, kind, category, tags: [], isUniqueItem };
+}
+
+function uniqueItem(slug: string): WikiSearchEntry {
+  return entry('item', slug, 'Test', true);
 }
 
 const pool: WikiSearchEntry[] = [
@@ -14,6 +18,15 @@ const pool: WikiSearchEntry[] = [
   entry('mod', 'd-mod'),
   entry('effect', 'e-effect'),
   entry('map', 'f-map', UNUSED_OR_REMOVED_CATEGORY),
+];
+
+const poolWithUniques: WikiSearchEntry[] = [
+  ...pool,
+  uniqueItem('unique-1'),
+  uniqueItem('unique-2'),
+  uniqueItem('unique-3'),
+  uniqueItem('unique-4'),
+  uniqueItem('unique-5'),
 ];
 
 /** Minimal in-memory Storage — Node has no real localStorage to stub onto. */
@@ -40,20 +53,27 @@ afterEach(() => {
 
 describe('recordSearchedEntry + getHomeStrip', () => {
   it('backfills all 4 slots with random picks when nothing has been searched yet', () => {
-    const strip = getHomeStrip(pool);
+    const strip = getHomeStrip(poolWithUniques);
     expect(strip).toHaveLength(4);
+  });
+
+  it('backfill draws only from unique items, never a mod/skill/effect/map or a non-unique item', () => {
+    for (let i = 0; i < 20; i++) {
+      const strip = getHomeStrip(poolWithUniques);
+      expect(strip.every((e) => e.isUniqueItem)).toBe(true);
+    }
   });
 
   it('never includes an Unused / Removed entry in the random backfill', () => {
     for (let i = 0; i < 20; i++) {
-      const strip = getHomeStrip(pool);
+      const strip = getHomeStrip(poolWithUniques);
       expect(strip.some((e) => e.category === UNUSED_OR_REMOVED_CATEGORY)).toBe(false);
     }
   });
 
   it('puts real recorded entries first, then backfills the rest', () => {
     recordSearchedEntry(entry('item', 'a-item'));
-    const strip = getHomeStrip(pool);
+    const strip = getHomeStrip(poolWithUniques);
     expect(strip).toHaveLength(4);
     expect(strip[0]).toEqual(entry('item', 'a-item'));
   });
@@ -91,13 +111,13 @@ describe('recordSearchedEntry + getHomeStrip', () => {
   it('treats a server-rendered environment (no window) as empty, not an error', () => {
     vi.stubGlobal('window', undefined);
     expect(() => recordSearchedEntry(entry('item', 'a-item'))).not.toThrow();
-    expect(getHomeStrip(pool)).toHaveLength(4);
+    expect(getHomeStrip(poolWithUniques)).toHaveLength(4);
   });
 
   it('drops a recorded entry whose slug no longer exists in the live index, backfilling instead', () => {
     recordSearchedEntry(entry('item', 'a-item'));
     recordSearchedEntry(entry('item', 'removed-item'));
-    const strip = getHomeStrip(pool);
+    const strip = getHomeStrip(poolWithUniques);
     expect(strip).toHaveLength(4);
     expect(strip.some((e) => e.slug === 'removed-item')).toBe(false);
     expect(strip[0]).toEqual(entry('item', 'a-item'));
@@ -109,7 +129,7 @@ describe('recordSearchedEntry + getHomeStrip', () => {
       e.slug === 'a-item' ? { ...e, name: 'New Name', category: 'New Category' } : e
     );
     const strip = getHomeStrip(renamedPool);
-    expect(strip[0]).toEqual({ slug: 'a-item', name: 'New Name', kind: 'item', category: 'New Category', tags: [] });
+    expect(strip[0]).toEqual({ slug: 'a-item', name: 'New Name', kind: 'item', category: 'New Category', tags: [], isUniqueItem: false });
   });
 
   it('treats malformed JSON shapes in localStorage (e.g. missing kind) as no history, without throwing', () => {
@@ -118,10 +138,10 @@ describe('recordSearchedEntry + getHomeStrip', () => {
       // Missing `kind` — shaped like a stale/pre-migration record that
       // isWikiSearchEntry must reject rather than trust.
       'wiki:recent-searches',
-      JSON.stringify([{ slug: 'malformed-entry', name: 'malformed-entry', category: 'Test', tags: [] }])
+      JSON.stringify([{ slug: 'malformed-entry', name: 'malformed-entry', category: 'Test', tags: [], isUniqueItem: false }])
     );
-    expect(() => getHomeStrip(pool)).not.toThrow();
-    const strip = getHomeStrip(pool);
+    expect(() => getHomeStrip(poolWithUniques)).not.toThrow();
+    const strip = getHomeStrip(poolWithUniques);
     // No recorded history survived validation, so the whole strip is
     // backfill — every card must be a genuine pool entry, never the
     // malformed record itself.

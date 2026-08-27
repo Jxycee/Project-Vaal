@@ -22,7 +22,7 @@ import {
 } from './sync-wiki';
 
 const entry = (slug: string) => ({
-  slug, name: slug, kind: 'skill' as const, category: 'Active Skill Gem', tags: [],
+  slug, name: slug, kind: 'skill' as const, category: 'Active Skill Gem', tags: [], isUniqueItem: false,
 });
 
 describe('validateSyncResult', () => {
