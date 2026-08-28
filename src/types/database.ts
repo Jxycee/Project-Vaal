@@ -422,6 +422,7 @@ export type Database = {
       }
     }
     Functions: {
+      get_build_author_name: { Args: { p_build_id: string }; Returns: string }
       get_build_by_share_token: {
         Args: { p_token: string }
         Returns: {
