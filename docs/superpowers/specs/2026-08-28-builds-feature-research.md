@@ -1,6 +1,6 @@
 # Builds feature — `.build` export research & competitor survey
 
-**Status:** Research and competitor survey complete (2026-08-28). Both prior open verification items are closed same day: the gem-id sourcing gap (§2.1, found while `pathofexile2.com` was down for maintenance) and the `pathofexile2.com` Builds-upload nav (§3b, confirmed firsthand by screenshot once the site came back). Phased implementation plan drafted in §8; §9 lists decisions needing sign-off before Phase 1 starts. No code written yet — this doc gates the implementation plan.
+**Status:** Research complete, all open decisions signed off (2026-08-28). Both verification items closed same day: the gem-id sourcing gap (§2.1, found while `pathofexile2.com` was down for maintenance) and the `pathofexile2.com` Builds-upload nav (§3b, confirmed firsthand by screenshot once the site came back). §9's decisions table is locked in, including an expanded likes/bookmarks design (§9.1) beyond this doc's original recommendation. No code written yet — this doc is now the accepted basis for Phase 1 implementation planning.
 
 **Feeds into:** `docs/superpowers/plans/poe2-console-hub-plan7_12_2026.md` §7 (route structure), §8.1 (build save/share flow), §11 (RLS), §12 (decisions log) — this doc extends that plan's `/builds` section rather than replacing it.
 
@@ -218,9 +218,11 @@ Scope this in two passes rather than one large cut — the research surfaced rea
 
 Builds on what's already scoped: `/builds` finder, `/builds/new`, `/builds/[shareToken]` viewer, `(dashboard)/builds/[buildId]` editor, `POST/GET/PATCH/DELETE /api/builds`. What Phase 1 adds on top, informed by §6:
 
-- **Fork/copy flow** (§5, resolved by §6.2): "Copy to my builds" button on the viewer for non-owners, deep-copies `passive_state`/`gear_state`/`gem_state`/`class`/`ascendancy`/`level`/`league`/`game_version`/`description`/`notes`/`build_tags`, excludes `share_token`/`view_count`/`is_public`/`character_id`, defaults private, server-side transaction under RLS, redirects through login if needed and completes post-auth.
-- **Build finder facets**: Class → Ascendancy → main skill → `game_version` (pinned to current patch by default) → tags (seeded vocabulary, freeform column) → level range. Sort: Trending (decayed score) / Popular / Newest / Most-copied.
-- **Viewer chrome**: explicit read-only badge + "Viewing `<author>`'s build", sticky Copy/Bookmark/Share CTAs for non-owners, Edit for the owner, `game_version` staleness warning chip.
+- **Fork/copy flow** (§5, resolved by §6.2): "Copy to my builds" button on the viewer for non-owners, deep-copies `passive_state`/`gear_state`/`gem_state`/`class`/`ascendancy`/`level`/`league`/`game_version`/`description`/`notes`/`build_tags`, excludes `share_token`/`view_count`/`is_public`/`character_id`, defaults private, sets `forked_from` + denormalized credit fields (§9), server-side transaction under RLS, redirects through login if needed and completes post-auth.
+- **`visibility` enum + token-aware RLS** (§9): replaces plain `is_public`; unlisted builds resolve via `share_token` without appearing in the finder.
+- **Build finder facets**: Class → Ascendancy → main skill (§9 — derived, stored column) → `game_version` (pinned to current patch by default) → tags (seeded vocabulary, freeform column) → level range. Sort: Trending (decayed score, now folding in likes per §9.1) / Popular / Newest / Most-copied / Most-liked.
+- **Viewer chrome**: explicit read-only badge + "Viewing `<author>`'s build", sticky Copy/Bookmark/Like/Share CTAs for non-owners, Edit for the owner, `game_version` staleness warning chip, public like count, "Forked from `<build>` by `<author>`" credit line when applicable — never a public bookmark count (§9.1, owner-only).
+- **`build_likes` table + 24h-account-age RLS gate** (§9.1) — new, not in the original console-hub-plan schema.
 
 ### Phase 2 — `.build` export + console delivery flow
 
@@ -232,16 +234,26 @@ Builds on what's already scoped: `/builds` finder, `/builds/new`, `/builds/[shar
 
 Per-level stepper view (level slider or Next/Prev) over `level_interval`-tagged passives/gems, in the spirit of `poe2-build-planner`'s "build profiles" and Maxroll's progression steps — but only after Phase 1/2 ship and are validated, since it implies real schema work (per-level snapshots don't fit today's flat `passive_state`/`gear_state`/`gem_state` shape) that shouldn't be speculatively pre-built.
 
-## 9. Open decisions — needs a call before Phase 1 starts
+## 9. Open decisions — signed off 2026-08-28
 
-| Decision | Options | Recommendation |
-|---|---|---|
-| Unlisted/link-only visibility | Add `visibility` enum + token-aware RLS policy, **or** treat "share" as always-public | Add the enum — matches what users actually mean by "share link," and the console-hub plan's own "Copy Link (unsaved)" framing already implies link-only semantics for ephemeral shares; a saved build's permanent link should behave the same way |
-| `forked_from` provenance | Add nullable FK + denormalized name/author, or skip provenance entirely | Add it — cheap, matches every fork-pattern precedent in §6.2, and "based on `<build>`" is expected, not optional, once forking exists |
-| `main_skill` column | Derive at save time from `gem_state.slots[0]`, or skip and filter client-side | Derive and store — the single highest-value finder filter across every competitor; client-side filtering doesn't scale past a trivial build count |
-| Gem `Metadata/Items/Gems/...` id source | ~~Block Phase 2 on sourcing it~~ — **resolved 2026-08-28, see §2.1**: already available via a `SkillGems`+`BaseItemTypes` join, no new dependency | Implement the join in `scripts/sync-wiki.ts` as part of Phase 2; ship passives-only export first regardless if sequencing helps, since it has no dependency on this join landing |
-| Ratings/likes on builds | Build now alongside bookmarks, or defer | Defer — `build_bookmarks` + new `copy_count` already give ranking signal without a moderation/abuse surface |
+All four resolved with Jaycee. Locking these in for Phase 1.
+
+| Decision | Resolution |
+|---|---|
+| Unlisted/link-only visibility | **Decided — add the enum.** New `visibility` enum (`private`/`unlisted`/`public`) replacing the plain `is_public` boolean, plus a token-aware RLS policy so a `share_token` link resolves for an `unlisted` build without listing it in the public finder. `public` behaves as `is_public = true` does today; `private` blocks even the token. |
+| `forked_from` provenance | **Decided — add it.** Nullable `forked_from uuid REFERENCES builds ON DELETE SET NULL` + denormalized `forked_from_name`/`forked_from_user` so a "Forked from *Name* by *Author*" credit line survives the source build being deleted or unpublished. |
+| `main_skill` column | **Decided — derive and store.** Computed from `gem_state.slots[0]` at save time; becomes a real finder filter, not a client-side scan. |
+| Gem `Metadata/Items/Gems/...` id source | **Already resolved 2026-08-28 — see §2.1.** Join `SkillGems`+`BaseItemTypes` in `scripts/sync-wiki.ts`; no new dependency. |
+| Ratings/likes on builds | **Decided — expanded scope beyond the original recommendation.** Ship both bookmarks *and* a new likes system in Phase 1, with the specific shape in §9.1 below — not the deferred version this doc originally proposed. |
+
+### 9.1 Bookmarks + likes — final shape
+
+Jaycee's call, more scope than this doc's original "defer ratings" recommendation: ship both, but with two guardrails that directly answer the abuse/moderation concern the research raised.
+
+- **Bookmarks (`build_bookmarks`, already in schema) — count stays private to the build's owner.** Any signed-in user can still bookmark a build (existing per-user RLS: a user only ever sees their own bookmark rows). What's new: the **aggregate count** ("N people bookmarked this") is never rendered on the public finder card or the shared viewer for anyone but the build's own `user_id` — surfaced only in the owner's own dashboard/editor view. Bookmarking itself stays a private, personal "save for later" action; only the creator gets the analytics.
+- **Likes — new `build_likes` table, public signal.** Mirrors `build_bookmarks`' shape (`build_id` FK, `user_id` FK, `created_at`, unique on `(build_id, user_id)` so it's a toggle, not a counter a user can inflate). Unlike bookmarks, the **like count is public** — shown on the finder card and the viewer, and feeds the Trending score (§6.2) alongside views/bookmarks/copies as a weighted signal.
+- **Account-age gate on liking: enforced at the database, not just the client.** A user can only INSERT a like once their account is ≥24 hours old — implemented as an RLS `WITH CHECK` comparing the liking user's `user_profiles.created_at` (their signup time — flagging this assumption explicitly in case "member for a day" was meant to key off something else, e.g. first character import) against `now() - interval '1 day'`, not an app-layer check a client could route around. This is the concrete mitigation for the exact abuse surface this doc's original research flagged as the reason to defer ratings — raises the cost of like-brigading (an attacker needs aged accounts, not just freshly-created ones) without building a full moderation/report system for v1. Worth revisiting with a lightweight admin hide/reset capability if abuse still shows up in practice, but that's a v2 concern, not a Phase 1 blocker.
 
 ---
 
-*Research phase complete. Both prior open verification items are now closed: the `pathofexile2.com` upload nav was confirmed firsthand 2026-08-28 (§3b) and the gem-id sourcing gap was closed the same day (§2.1). Only the §9 decisions table still needs a sign-off before Phase 1 implementation starts.*
+*Research and design-decision phase complete 2026-08-28. Both prior open verification items closed same day (§2.1 gem-id sourcing, §3b upload nav confirmed firsthand), and all four §9 decisions signed off, including the expanded likes/bookmarks scope in §9.1. Ready for Phase 1 implementation planning.*
