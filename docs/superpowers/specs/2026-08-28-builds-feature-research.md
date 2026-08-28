@@ -1,6 +1,6 @@
 # Builds feature — `.build` export research & competitor survey
 
-**Status:** Research and competitor survey complete (2026-08-28). Gem-id sourcing gap closed same day — see §2.1 (found while `pathofexile2.com` was down for maintenance, so this work targeted the one open item that didn't need the live site). Phased implementation plan drafted in §8; §9 lists decisions needing sign-off before Phase 1 starts. No code written yet — this doc gates the implementation plan.
+**Status:** Research and competitor survey complete (2026-08-28). Both prior open verification items are closed same day: the gem-id sourcing gap (§2.1, found while `pathofexile2.com` was down for maintenance) and the `pathofexile2.com` Builds-upload nav (§3b, confirmed firsthand by screenshot once the site came back). Phased implementation plan drafted in §8; §9 lists decisions needing sign-off before Phase 1 starts. No code written yet — this doc gates the implementation plan.
 
 **Feeds into:** `docs/superpowers/plans/poe2-console-hub-plan7_12_2026.md` §7 (route structure), §8.1 (build save/share flow), §11 (RLS), §12 (decisions log) — this doc extends that plan's `/builds` section rather than replacing it.
 
@@ -89,20 +89,22 @@ Two distinct delivery mechanisms exist. Do not conflate them:
 
 ### 3b. Website upload/subscribe — **cross-platform, including console**
 
-GGG shipped a fix for exactly this gap, ~patch 0.5.3+: `pathofexile2.com` → **My Account → Builds → Upload Build**. A `.build` JSON file uploaded through the browser (any device — doesn't need to be the console itself) syncs into the in-game Build Planner on **PC and console alike**, because it's tied to the account, not a filesystem. There's also a parallel "Subscribe" flow where a build-guide site's own page has a Subscribe button.
+GGG shipped a fix for exactly this gap, ~patch 0.5.3+: `pathofexile2.com` → **Builds → Upload Build** (its own top-level account-nav section — see the firsthand verification below). A `.build` JSON file uploaded through the browser (any device — doesn't need to be the console itself) syncs into the in-game Build Planner on **PC and console alike**, because it's tied to the account, not a filesystem. There's also a parallel "Subscribe" flow where a build-guide site's own page has a Subscribe button.
 
 Primary-ish source — GGG's official X/Twitter account:
 
 > "You no longer need to download build files! We've implemented a new feature that allows you to subscribe to build guides on the website and receive all updates automatically in the game on **both PC and Consoles**."
 
-Corroborated independently across several guide sites (all separately describing the same `pathofexile2.com/my-account/builds/upload` page, same "since 0.5.3" detail, same "both PC and Consoles" phrasing) — consistent enough across independent sources to trust, but **not independently eyeballed by us**: `pathofexile2.com` and `pathofexile.com` are both blocked by this sandbox's network egress policy, so we could not load the actual upload page or GGG's developer docs ourselves. **Action item: a human should open `pathofexile2.com/my-account/builds/upload` once before we ship, to confirm the real UI and any file-size/validation limits** (one source noted "uploading a file does not repair it — an outdated or malformed file may still fail," implying real server-side validation).
+Corroborated independently across several guide sites (all separately describing the same page, same "since 0.5.3" detail, same "both PC and Consoles" phrasing).
+
+**Verified firsthand 2026-08-28** — Jaycee screenshotted the live account nav on `pathofexile2.com` (mobile Safari). One correction to the assumed structure: **`Builds` is its own top-level nav section**, a sibling of `Account`/`Characters`/`Purchases`/`Item Filters` in the account sidebar — not nested inside `Account` as earlier sourcing implied. It expands to three sub-pages: **My Builds**, **Subscriptions**, **Upload Build**. The **My Builds** page itself also carries its own **Upload Build** button (empty state shown — account had no builds uploaded yet). So the real path is `pathofexile2.com` → **Builds → My Builds** (or straight to **Builds → Upload Build**), not `My Account → Builds → Upload Build` as this doc had it before — same destination, correct the copy in any user-facing instructions to say "Builds" as its own menu item. No file-size/validation-limit text was visible in the screenshot (empty-state page, upload not yet attempted) — still worth a real test upload before Phase 2 ships, but the navigation/existence question is now closed, not just corroborated.
 
 ### 3c. What this means for the feature
 
 `.build` generation is still worth building. What changes is the **instruction copy**, not the mechanism:
 
 - ❌ ~~"Download this file and drop it in your PC's BuildPlanner folder"~~ — unusable copy for a console player, would actively mislead our own audience.
-- ✅ "Download this `.build` file, then upload it at `pathofexile2.com` → **My Account → Builds → Upload Build**. It'll sync to your PS5/Xbox automatically." Works identically whether the player is on PC or console, since upload just needs *a* browser, not the game's own platform.
+- ✅ "Download this `.build` file, then upload it at `pathofexile2.com` → **Builds → Upload Build**. It'll sync to your PS5/Xbox automatically." Works identically whether the player is on PC or console, since upload just needs *a* browser, not the game's own platform.
 
 **Not building against:** the one-click "Subscribe" flow (no download step at all, pushed directly from a third-party site) requires a GGG "account-linked API." Checked a comprehensive community-maintained PoE OAuth client library (`moepmoep12/poe-api-ts` — documents every endpoint GGG's public OAuth API exposes: characters, stashes, leagues, ladders, trade, accounts, guild, pvpmatches). **No builds/guides endpoint exists in the public API.** That Subscribe button looks like a GGG-side partner integration (the kind Mobalytics/Maxroll likely have via direct arrangement), not something open to arbitrary third-party developers today. Treat as a future stretch goal to raise with GGG directly, not a v1 dependency — v1 ships on the manual-upload flow (3b), which needs zero GGG partnership.
 
@@ -166,7 +168,7 @@ Same network caveat as everywhere else in this doc: gaming domains are egress-bl
 - **poe.ninja** — not user builds at all, snapshots live ladder characters from GGG's public API. Discovery is faceted drill-down (class/ascendancy/skill/uniques/keystones), each facet showing **% of characters using it**, with an exclude toggle once applied. Plus a tree **heatmap** (% of characters per node). Strongest discovery-UX lessons of the set, trivial permission model (all public, nothing editable).
 - **Maxroll (PoE2)** — two separate systems: editorial guides/tier-lists (class/ascendancy/meta facets, editor-ranked), and a planner with **"Maxroll Builds" vs. "Community Builds"** tabs. Their D4 planner's documented flow is literally "clone it to your account to modify" — owner-edits/others-clone, entry point on the guide page itself.
 - **Mobalytics (PoE2)** — closest structural analogue to our plan: `/community-builds` (raw feed) separate from `/creator-builds` (vetted) separate from an editor planner. Feed filters **Class/Ascendancy/Build Type**, sorts **Trending/Top/New** with a time window. Browsing is anonymous; publishing needs an account. No confirmed clone/fork button — an opening for differentiation.
-- **GGG's own pathofexile2.com Build Planner** — the most instructive model, and the one our audience already knows. **My Account → Builds** literally segments two lists: **guides you uploaded** vs. **guides you subscribed to**. Subscribing is a live link (auto-updates when creator revises, but is read-only — you cannot fork a subscription, only re-author your own file). GGG explicitly does not curate/rank/endorse uploaded builds.
+- **GGG's own pathofexile2.com Build Planner** — the most instructive model, and the one our audience already knows. Its account-nav **Builds** section literally segments two lists via separate sub-pages: **My Builds** (guides you uploaded) vs. **Subscriptions** (guides you subscribed to) — confirmed firsthand, see below. Subscribing is a live link (auto-updates when creator revises, but is read-only — you cannot fork a subscription, only re-author your own file). GGG explicitly does not curate/rank/endorse uploaded builds.
 - **PoB / pobb.in** — opaque paste-code, no owner concept at all. "Editing" = import, change, re-export a new code. Also why console players are stranded there — PoB is Windows desktop, which is exactly the gap Project Vaal exists to fill.
 - **Cross-domain fork precedent (CodePen, Gists, Figma Duplicate, Google Docs "Make a copy")** converge on three signals: read-only chrome so viewers never think they're editing, one obvious duplicate affordance, attribution back to source. UX-writing consensus favors **"Duplicate"/"Save a copy"** over "Fork" for general audiences — our **"Copy to my builds"** beats both since it names the destination.
 
@@ -224,7 +226,7 @@ Builds on what's already scoped: `/builds` finder, `/builds/new`, `/builds/[shar
 
 - Server-side (or client-side, TBD in implementation) serializer: `builds` row → `.build` JSON, using the corrected inventory-id vocabulary (§2), the numeric→string passive-id lookup already free from vendored tree data, and the gem `ggpkId` join (§2.1) — none of the three needs a new data source, all three are joins/lookups against data already flowing through this project's existing pipelines.
 - The gem-id join (§2.1) needs to actually land in `scripts/sync-wiki.ts` and a resync run before gem setups can round-trip through `.build` — that's an implementation task now, not an open research question. Passives-only export has no such dependency and could ship first regardless.
-- "Get this on your console" flow: download `.build` → guided instructions for `pathofexile2.com` → My Account → Builds → Upload Build, written for a phone screen (copy-to-clipboard filename, no PC-centric language). **Do not ship this copy until a human has actually opened that upload page once** (§3b's outstanding verification item) — wrong instructions here actively harm the exact audience this project serves.
+- "Get this on your console" flow: download `.build` → guided instructions for `pathofexile2.com` → **Builds → Upload Build**, written for a phone screen (copy-to-clipboard filename, no PC-centric language). Nav path confirmed firsthand (§3b) — copy can be written with confidence; still worth a real test upload once Phase 2's exporter exists, to check for file-size/validation limits the empty-state screenshot didn't surface.
 
 ### Phase 3 — Follow mode (stretch, informed by §6.1 but not blocking Phase 1/2)
 
@@ -242,4 +244,4 @@ Per-level stepper view (level slider or Next/Prev) over `level_interval`-tagged 
 
 ---
 
-*Research phase complete pending the two open verification items: (1) a human opening `pathofexile2.com/my-account/builds/upload` once to confirm the real UI (§3b), (2) the §9 decisions table getting a sign-off before Phase 1 implementation starts.*
+*Research phase complete. Both prior open verification items are now closed: the `pathofexile2.com` upload nav was confirmed firsthand 2026-08-28 (§3b) and the gem-id sourcing gap was closed the same day (§2.1). Only the §9 decisions table still needs a sign-off before Phase 1 implementation starts.*
