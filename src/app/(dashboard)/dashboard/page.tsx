@@ -25,11 +25,16 @@ const LIVE_TOOLS = [
     icon: 'campaign',
     blurb: 'Boss checkpoints and rewards, act by act.',
   },
+  {
+    href: '/wiki',
+    title: 'Item Wiki',
+    icon: 'wiki',
+    blurb: 'Searchable bases, mods, and skill gems.',
+  },
 ] as const
 
 const COMING_SOON = [
   { title: 'Build Planner', icon: 'builds', blurb: 'Create, save, and share builds via link.' },
-  { title: 'Item Wiki', icon: 'wiki', blurb: 'Searchable bases, mods, and skill gems.' },
 ] as const
 
 export default async function DashboardPage() {
@@ -126,7 +131,7 @@ export default async function DashboardPage() {
             </p>
             <h2 className="mt-1 font-heading text-xl font-semibold tracking-tight">Tools</h2>
           </div>
-          <span className="text-xs text-muted-foreground">3 live</span>
+          <span className="text-xs text-muted-foreground">{LIVE_TOOLS.length} live</span>
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">

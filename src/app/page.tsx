@@ -59,8 +59,8 @@ export default function Home() {
       </div>
 
       <p className="mt-10 max-w-md text-balance text-sm text-muted-foreground">
-        Live now: currency &amp; item prices, passive skill tree. Coming soon: campaign
-        tracker, build planner, and wiki.
+        Live now: currency &amp; item prices, passive skill tree, campaign tracker, and item
+        wiki. Coming soon: build planner.
       </p>
     </main>
   )

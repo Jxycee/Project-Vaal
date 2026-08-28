@@ -113,9 +113,19 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
-  // Redirect authenticated users away from auth pages
-  // (prevents flicker on /login when already signed in)
-  if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup')) {
+  // Redirect authenticated users away from auth pages, and off the
+  // signed-out marketing home page, straight to the dashboard.
+  // (prevents flicker on /login when already signed in; also fixes the
+  // home page — src/app/page.tsx has no auth check of its own and always
+  // rendered a generic "Sign in" button regardless of session state, so a
+  // returning signed-in user had to click through a dead-end detour every
+  // time before landing back on /login's own already-working redirect)
+  if (
+    user &&
+    (request.nextUrl.pathname === '/' ||
+      request.nextUrl.pathname === '/login' ||
+      request.nextUrl.pathname === '/signup')
+  ) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
