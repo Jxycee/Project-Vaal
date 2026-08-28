@@ -1,6 +1,6 @@
 # Builds feature — `.build` export research & competitor survey
 
-**Status:** Research complete for `.build` format + console viability. Competitor survey in progress (two background agents dispatched 2026-08-28; findings to be folded in below once they report). No code written yet — this doc gates the implementation plan.
+**Status:** Research and competitor survey complete (2026-08-28). Phased implementation plan drafted in §8; §9 lists decisions needing sign-off before Phase 1 starts. No code written yet — this doc gates the implementation plan.
 
 **Feeds into:** `docs/superpowers/plans/poe2-console-hub-plan7_12_2026.md` §7 (route structure), §8.1 (build save/share flow), §11 (RLS), §12 (decisions log) — this doc extends that plan's `/builds` section rather than replacing it.
 
@@ -64,7 +64,7 @@ No signature, no checksum, no compression — trivial to generate server- or cli
 | `passives[].weapon_set` | which of `set1`/`set2` the node is in | Node in both → omit (global). Direct. |
 | `ascendancy` | Vaal's `class`/`ascendancy` column | Needs a small static lookup table, Vaal ascendancy name → GGG id (`Warrior1/2/3`, `Ranger1/2`, etc.). One-time, cheap. |
 | `skills[].id` | `gem_state.slots[].skill.id` | **Gap.** `.build` wants the full `Metadata/Items/Gems/SkillGem...` path. Checked `public/data/wiki/*/skills/*.json` (our vendored gem data) — has slug/name/icon, **no GGG Metadata path**. Need to source this separately (poe2-toolkit extraction, or GGG patch data) before gem export can work. |
-| `inventory_slots[].unique_name` / `.additional_text` | `gear_state.<slot>.name` / `.mods` | Lossy by design — `.build` has no structured mod-list field, only free text. Fine for uniques (`unique_name`), rares degrade to a text blurb (same lossiness every third-party tool accepts). |
+| `inventory_slots[].unique_name` / `.additional_text` | `gear_state.<slot>.name` / `.mods` | Lossy by design — `.build` has no structured mod-list field, only free text. Fine for uniques (`unique_name`), rares degrade to a text blurb (same lossiness every third-party tool accepts). **Vocabulary correction (§6.1):** `chesler410/poe2-build-forge` derived the real `inventory_id` vocabulary from GGG-accepted fixtures, not docs — `Weapon1`/`Weapon2` (two-handed = `Weapon1` alone; a shield/quiver/focus also just uses `Weapon2`, **there is no separate `Offhand` key**), `Helm1`/`BodyArmour1`/`Gloves1`/`Boots1` (suffixed but singular), only rings actually increment (`Ring1`/`Ring2`). Our `gear_state` shape (console-hub-plan §6) currently has distinct `offhand1`/`offhand2` keys — **needs a translation step at export time, not a schema change**: fold `offhand*` into `Weapon2` when serializing to `.build`. |
 
 ---
 
@@ -124,12 +124,111 @@ Open schema/design questions (to resolve once competitor research on permission-
 
 ---
 
-## 6. Competitor survey — in progress
+## 6. Competitor survey
 
-Two background research agents dispatched (2026-08-28) to survey:
-- **Agent A** — in-game/tool ecosystem: poe2buildplanner.com, Mobalytics PoE2 Planner, Maxroll PoE2 Planner, natwarth's PoE2 Skill Tree Planner, `poe2-tools/poe2-build-planner`, and adjacent open-source `.build` tools — feature sets, `.build` I/O quality, sharing model, mobile-friendliness.
-- **Agent B** — discovery/sharing/permission UX: poe.ninja's build explorer, Maxroll's guide hub, Mobalytics build hub, GGG's own subscribe/upload UX, and cross-domain precedent (GitHub-gist-style fork/copy patterns) specifically for the owner-edits/others-view-or-fork permission model and for build-finder discovery UX (filters, tags, sorting).
+Two background research agents dispatched 2026-08-28, both complete: **§6.1** (in-game/tool ecosystem) and **§6.2** (discovery/sharing/permission UX) below.
 
-Findings to be appended below as **§6.1 / §6.2** once both report back, followed by a synthesized recommendation and route/schema plan for `/builds`.
+### 6.1 In-game/tool ecosystem
 
-*(placeholder — do not treat this doc as final until this section is filled in)*
+Full agent report archived at `/tmp/claude-0/-home-user-Project-Vaal/8e53c7b9-243d-533e-aff3-eac726cdc5ea/scratchpad/research-ingame-tools.md` for this session's lifetime.
+
+| Tool | Tree editor | Gems/gear | Per-level state | Discovery | `.build` I/O | Sharing | Mobile |
+|---|---|---|---|---|---|---|---|
+| poe2buildplanner.com | No | No | No | Class/ascendancy catalogue | Export only (PoB→`.build`, client-side) | File download, credits source PoB | Fine (static list) |
+| Mobalytics PoE2 Planner | Yes | Yes | **Build Tracker** — account-linked step-by-step | Creator + community, tier list | Export + subscribe flow | Permanent URL, anon | Decent, ad-heavy, tracker behind a trial |
+| Maxroll PoE2Planner | Yes + respec recorder | Yes + progression steps | Progression/respec steps | Maxroll + community, ratings | Character import from game + `.build` export | Permanent URL, anon | Usable, ad-heavy |
+| natwarth/poe2-skilltree | Yes (0.4→0.5 diff highlight) | Wizard steps | No | No | Import + export | File download only | **Best touch handling of the set** |
+| poe2-tools/poe2-build-planner | Yes, ~5,100 nodes, shortest-path auto-alloc | Yes | **Per-level "build profiles"** — first-class range snapshots | No | Lossless round-trip, unknown-field passthrough | File download only | Poor — hover/right-click |
+| chesler410/poe2-build-forge | No (converter/editor) | Labels only | Per-entry `level_interval` editing | No | **Best `.build` fidelity** — JSON Schema + Ajv, fixtures over docs | URL-hash share, no backend, PWA offline | Explicitly responsive |
+| GepetoinTraining/poe2-graph, Gsolisen/poe2-theorycraft | Graph ops / search-only | Yes / uniques search | Goal DAG / no | Guide catalog / local DB | Read+write `.build` / export | Local/Electron / localhost only | N/A — desktop-native, off-audience |
+
+**The pattern that matters most:** every serious tool treats **following a build while leveling** (Mobalytics' Build Tracker, Maxroll's progression/respec steps, `poe2-build-planner`'s per-level profiles, `.build`'s own `level_interval` field on nearly every entry) as core, not an afterthought — a build with no level ranges is a screenshot, one with them is a guide. And **nobody has solved mobile**: every planner assumes hover, right-click, and a desktop viewport, except natwarth's canvas — pointer events, pinch-zoom, and a clean **two-tap allocation model** (tap = select + preview path, tap again = commit) — which is the one genuine touch interaction pattern worth copying outright.
+
+`poe2-build-forge`'s ground-truth-over-docs methodology (validating the schema against real GGG-accepted files rather than the dev docs) is also where the §2 inventory-slot vocabulary correction above came from — worth trusting over anything self-reported by GGG's own docs page, which we've been unable to load directly in this sandbox anyway.
+
+### 6.2 Discovery, sharing & permission UX
+
+Same network caveat as everywhere else in this doc: gaming domains are egress-blocked in this sandbox, so this is WebSearch-indexed synthesis, not first-hand page inspection. Full agent report archived at `/tmp/claude-0/-home-user-Project-Vaal/8e53c7b9-243d-533e-aff3-eac726cdc5ea/scratchpad/research-sharing-ux.md` for this session's lifetime.
+
+**What competitors actually do:**
+
+- **poe.ninja** — not user builds at all, snapshots live ladder characters from GGG's public API. Discovery is faceted drill-down (class/ascendancy/skill/uniques/keystones), each facet showing **% of characters using it**, with an exclude toggle once applied. Plus a tree **heatmap** (% of characters per node). Strongest discovery-UX lessons of the set, trivial permission model (all public, nothing editable).
+- **Maxroll (PoE2)** — two separate systems: editorial guides/tier-lists (class/ascendancy/meta facets, editor-ranked), and a planner with **"Maxroll Builds" vs. "Community Builds"** tabs. Their D4 planner's documented flow is literally "clone it to your account to modify" — owner-edits/others-clone, entry point on the guide page itself.
+- **Mobalytics (PoE2)** — closest structural analogue to our plan: `/community-builds` (raw feed) separate from `/creator-builds` (vetted) separate from an editor planner. Feed filters **Class/Ascendancy/Build Type**, sorts **Trending/Top/New** with a time window. Browsing is anonymous; publishing needs an account. No confirmed clone/fork button — an opening for differentiation.
+- **GGG's own pathofexile2.com Build Planner** — the most instructive model, and the one our audience already knows. **My Account → Builds** literally segments two lists: **guides you uploaded** vs. **guides you subscribed to**. Subscribing is a live link (auto-updates when creator revises, but is read-only — you cannot fork a subscription, only re-author your own file). GGG explicitly does not curate/rank/endorse uploaded builds.
+- **PoB / pobb.in** — opaque paste-code, no owner concept at all. "Editing" = import, change, re-export a new code. Also why console players are stranded there — PoB is Windows desktop, which is exactly the gap Project Vaal exists to fill.
+- **Cross-domain fork precedent (CodePen, Gists, Figma Duplicate, Google Docs "Make a copy")** converge on three signals: read-only chrome so viewers never think they're editing, one obvious duplicate affordance, attribution back to source. UX-writing consensus favors **"Duplicate"/"Save a copy"** over "Fork" for general audiences — our **"Copy to my builds"** beats both since it names the destination.
+
+**Build finder facets, priority order** (all URL-serializable — shareable + SSR-cacheable): Class → Ascendancy (dependent select, highest value everywhere) → **main skill** (gap — see schema note below) → `game_version` (default-pinned to current patch; stale-build noise is the top EA complaint) → tags (seed a controlled vocabulary — `league-start`/`budget`/`boss-killer`/`mapper`/`hardcore`/`ssf`/`endgame`/`leveling` — while keeping the column freeform) → level range. Sort: Trending/Popular/Newest/Most-copied, Trending as a decayed score (views + weighted bookmarks/copies over build age), not raw `view_count`. Mobile: filters in a bottom sheet with an active-count pill, cursor pagination not page numbers.
+
+**Shared-build viewer:** make read-only state loud — sticky header with author + explicit read-only badge, a genuinely different denser read layout rather than disabled-looking editor controls, primary CTA **"Copy to my builds"** with Bookmark/Share secondary. Owner viewing their own link sees **Edit** instead. Show `view_count`, `game_version` (warning chip if stale), last-updated.
+
+**Fork/copy flow — this resolves the open questions from §5:**
+- Logged out → show the button anyway; route through sign-in with a `next` param and complete the copy automatically post-auth (losing intent at the auth wall is the top drop-off point everywhere this was studied).
+- Deep-copy `passive_state`/`gear_state`/`gem_state`/`class`/`ascendancy`/`level`/`league`/`game_version`/`description`/`notes` + `build_tags` rows. **Do not** copy `share_token`, `view_count`, `is_public`, or `character_id` (that last one points at the *original author's* character — copying it would misattribute).
+- Name defaults to `"<original> (copy)"`.
+- **Copy defaults to private** (`is_public = false`, `share_token = NULL`) regardless of source visibility — every precedent that defaults public to a spam problem in the finder. Confirms the leaning noted in §5.
+- Execute server-side in one transaction (RLS reads the source under the viewer's own SELECT policy, writes `user_id = auth.uid()`) — never accept client-POSTed state as an unvalidated create payload.
+
+**Schema gaps identified, ranked by value:**
+1. **`forked_from uuid REFERENCES builds ON DELETE SET NULL`** + denormalized `forked_from_name`/`forked_from_user` (provenance must survive the source being deleted/unpublished) — render "Forked from *Name* by *Author*", linked only while source stays public.
+2. **`copy_count int`** — better quality signal than views; also gives "Most copied" sort for free.
+3. **`main_skill text`** (derived from `gem_state.slots[0].skill` at save time) — needed for the single most-used filter across every competitor; without it the finder is markedly weaker.
+4. **`published_at`** — `created_at` is wrong for "Newest" once drafts/private builds exist.
+5. **`trending_score numeric`**, periodic recompute (a live expression won't index).
+6. **Ratings/likes: skip for v1.** `build_bookmarks` already gives a per-user positive signal with no moderation surface; `copy_count` is a stronger intent signal than a like. A public like system needs abuse/brigade/report handling — bigger lift than the discovery gain justifies now.
+
+**Blocker to settle before building the viewer route** (not just a nice-to-have): the existing RLS SELECT policy is `is_public = true` — a `share_token` alone currently grants **no read access** on a non-public build. If "unlisted, link-only" is meant to be a real third visibility state (which is what most people mean by "share link," and matches the console-hub plan's "Copy Link (unsaved)" ephemeral-share framing), the table needs either a `visibility` enum (`private`/`unlisted`/`public`) with a token-aware policy, or a `SECURITY DEFINER` function that checks the token server-side. This changes the `/builds/[shareToken]` data-fetch path, not just a column addition — needs a decision before that route gets built.
+
+Sources: [poe.ninja builds launch](https://poe.ninja/posts/launching-builds), [Maxroll PoE2 planner community builds](https://maxroll.gg/poe2/news/maxroll-and-community-builds-added-to-the-poe2planner), [Maxroll D4 planner](https://maxroll.gg/d4/planner), [Mobalytics community builds](https://mobalytics.gg/poe-2/community-builds), [GGG developer docs](https://www.pathofexile.com/developer/docs/game), [PCGamesN on build subscriptions](https://www.pcgamesn.com/path-of-exile-2/build-import-subscriptions), [MMOJUGG build planner guide](https://www.mmojugg.com/news/seamlessly-import-export-build-files-ultimate-poe2-build-planner-guide.html), [pobb.in](https://pobb.in/), [CodePen forking docs](https://blog.codepen.io/docs/pens/forking/), [CodePen forking clarity](https://blog.codepen.io/2014/05/05/forking-clarity/), [NN/g UI copy](https://www.nngroup.com/articles/ui-copy/), [copy vs duplicate in UX writing](https://uxwritinghub.com/copy-vs-duplicate-ux-writing/)
+
+Sources (§6.1): [poe2buildplanner.com](https://poe2buildplanner.com/), [Mobalytics PoE2 Planner](https://mobalytics.gg/poe-2/planner/builds), [Mobalytics Build Tracker](https://mobalytics.gg/lol/glp/poe2-build-tracker), [Maxroll PoE2 Planner](https://maxroll.gg/poe2/planner), [Maxroll planner news](https://maxroll.gg/poe2/news/maxroll-and-community-builds-added-to-the-poe2planner), [Maxroll in-game Build Planner guide](https://maxroll.gg/poe2/getting-started/how-to-use-the-in-game-build-planner), [natwarth/poe2-skilltree](https://github.com/natwarth/poe2-skilltree), [chesler410/poe2-build-forge](https://github.com/chesler410/poe2-build-forge), [GepetoinTraining/poe2-graph](https://github.com/GepetoinTraining/poe2-graph), [Gsolisen/poe2-theorycraft](https://github.com/Gsolisen/poe2-theorycraft), [MMOJUGG subscribe/upload guide](https://www.mmojugg.com/news/seamlessly-import-export-build-files-ultimate-poe2-build-planner-guide.html)
+
+---
+
+## 7. Synthesis — Project Vaal's identity for this feature
+
+Positioning that falls out of the research, not assumed going in: **the build tool you use on your phone while playing on the couch — following beats authoring.** Every competitor treats the tree/gem/gear editor as table stakes and differentiates on what happens *after* — stepping through a build while leveling. Every competitor also fails mobile touch interaction outright except one small OSS tool. Both are openings, not just gaps: our audience (console, phone-adjacent, no desktop) makes "authoring-first, desktop-shaped" tools actively unusable for the people we're building for, so being follow-first and touch-first isn't a stylistic choice, it's the only version of this feature that actually serves Project Vaal's stated audience.
+
+Concretely, under the existing project rules (§15 original-art, no-DPS, mobile-first, account-required-except-/prices):
+
+- **Reuse, don't fork, the tree renderer.** `src/components/tree/PassiveTree.tsx` (from the `/tree` milestone) is already the touch-correct, on-brand renderer. `/builds` should consume it, not build a second one — matches the original passive-tree plan's own intent ("Renderer + overlay stay reusable for `/builds/new`", console-hub-plan §Architecture).
+- **"Safe stats only, no DPS" reads as principled here too**, matching `poe2-graph`'s explicit "PoB owns simulation, we own planning" handoff posture — frame it that way in copy, not as a limitation.
+- **Original chrome stays original**: bottom sheets, the follow-mode stepper, tab bar, empty states, share cards — all ours. Nobody in the survey has a real touch-first visual language to accidentally borrow from, which is a genuine chance to look like nothing else in this space rather than another gold-parchment PoE skin.
+- **Console is the moat, not an afterthought.** Every competitor treats the `.build`-to-console path (§3) as a bare file download at best. Making that 3-step "download → upload at pathofexile2.com → syncs to your PS5/Xbox" flow genuinely easy on a phone (copy-to-clipboard instructions, no jargon) is a real differentiator, not busywork.
+
+## 8. Phased implementation plan
+
+Scope this in two passes rather than one large cut — the research surfaced real complexity (per-level state, `.build` export, fork semantics) that would make a single "ship /builds" milestone too large to review well, in keeping with this project's own stated build discipline (see the passive-tree milestone's staged/discovery-gated structure).
+
+### Phase 1 — Save, share, view, fork (extends console-hub-plan §7/§8.1 as written, no new mechanism)
+
+Builds on what's already scoped: `/builds` finder, `/builds/new`, `/builds/[shareToken]` viewer, `(dashboard)/builds/[buildId]` editor, `POST/GET/PATCH/DELETE /api/builds`. What Phase 1 adds on top, informed by §6:
+
+- **Fork/copy flow** (§5, resolved by §6.2): "Copy to my builds" button on the viewer for non-owners, deep-copies `passive_state`/`gear_state`/`gem_state`/`class`/`ascendancy`/`level`/`league`/`game_version`/`description`/`notes`/`build_tags`, excludes `share_token`/`view_count`/`is_public`/`character_id`, defaults private, server-side transaction under RLS, redirects through login if needed and completes post-auth.
+- **Build finder facets**: Class → Ascendancy → main skill → `game_version` (pinned to current patch by default) → tags (seeded vocabulary, freeform column) → level range. Sort: Trending (decayed score) / Popular / Newest / Most-copied.
+- **Viewer chrome**: explicit read-only badge + "Viewing `<author>`'s build", sticky Copy/Bookmark/Share CTAs for non-owners, Edit for the owner, `game_version` staleness warning chip.
+
+### Phase 2 — `.build` export + console delivery flow
+
+- Server-side (or client-side, TBD in implementation) serializer: `builds` row → `.build` JSON, using the corrected inventory-id vocabulary (§2) and the numeric→string passive-id lookup already free from vendored tree data.
+- Gated on closing the gem-id gap (§2) — need `Metadata/Items/Gems/...` paths sourced before gem setups can round-trip; passives-only export could ship first if gems lag.
+- "Get this on your console" flow: download `.build` → guided instructions for `pathofexile2.com` → My Account → Builds → Upload Build, written for a phone screen (copy-to-clipboard filename, no PC-centric language). **Do not ship this copy until a human has actually opened that upload page once** (§3b's outstanding verification item) — wrong instructions here actively harm the exact audience this project serves.
+
+### Phase 3 — Follow mode (stretch, informed by §6.1 but not blocking Phase 1/2)
+
+Per-level stepper view (level slider or Next/Prev) over `level_interval`-tagged passives/gems, in the spirit of `poe2-build-planner`'s "build profiles" and Maxroll's progression steps — but only after Phase 1/2 ship and are validated, since it implies real schema work (per-level snapshots don't fit today's flat `passive_state`/`gear_state`/`gem_state` shape) that shouldn't be speculatively pre-built.
+
+## 9. Open decisions — needs a call before Phase 1 starts
+
+| Decision | Options | Recommendation |
+|---|---|---|
+| Unlisted/link-only visibility | Add `visibility` enum + token-aware RLS policy, **or** treat "share" as always-public | Add the enum — matches what users actually mean by "share link," and the console-hub plan's own "Copy Link (unsaved)" framing already implies link-only semantics for ephemeral shares; a saved build's permanent link should behave the same way |
+| `forked_from` provenance | Add nullable FK + denormalized name/author, or skip provenance entirely | Add it — cheap, matches every fork-pattern precedent in §6.2, and "based on `<build>`" is expected, not optional, once forking exists |
+| `main_skill` column | Derive at save time from `gem_state.slots[0]`, or skip and filter client-side | Derive and store — the single highest-value finder filter across every competitor; client-side filtering doesn't scale past a trivial build count |
+| Gem `Metadata/Items/Gems/...` id source | Block Phase 2 on sourcing it, or ship passives-only `.build` export first | Ship passives-only first (still console-usable — a tree-only guide line is real value), backfill gem export once the id source is solved |
+| Ratings/likes on builds | Build now alongside bookmarks, or defer | Defer — `build_bookmarks` + new `copy_count` already give ranking signal without a moderation/abuse surface |
+
+---
+
+*Research phase complete pending the two open verification items: (1) a human opening `pathofexile2.com/my-account/builds/upload` once to confirm the real UI (§3b), (2) the §9 decisions table getting a sign-off before Phase 1 implementation starts.*
