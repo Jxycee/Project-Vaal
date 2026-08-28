@@ -47,6 +47,39 @@ export type Database = {
           },
         ]
       }
+      build_likes: {
+        Row: {
+          build_id: string
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          build_id: string
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          build_id?: string
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "build_likes_build_id_fkey"
+            columns: ["build_id"]
+            isOneToOne: false
+            referencedRelation: "builds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "build_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       build_tags: {
         Row: {
           build_id: string
@@ -77,13 +110,16 @@ export type Database = {
           class: string
           created_at: string
           description: string | null
+          forked_from: string | null
+          forked_from_name: string | null
+          forked_from_user: string | null
           game_version: string
           gear_state: Json
           gem_state: Json
           id: string
-          is_public: boolean
           league: string
           level: number
+          main_skill: string | null
           name: string
           notes: string | null
           passive_state: Json
@@ -91,6 +127,7 @@ export type Database = {
           updated_at: string
           user_id: string
           view_count: number
+          visibility: string
         }
         Insert: {
           ascendancy?: string | null
@@ -98,13 +135,16 @@ export type Database = {
           class: string
           created_at?: string
           description?: string | null
+          forked_from?: string | null
+          forked_from_name?: string | null
+          forked_from_user?: string | null
           game_version?: string
           gear_state?: Json
           gem_state?: Json
           id?: string
-          is_public?: boolean
           league?: string
           level?: number
+          main_skill?: string | null
           name: string
           notes?: string | null
           passive_state?: Json
@@ -112,6 +152,7 @@ export type Database = {
           updated_at?: string
           user_id: string
           view_count?: number
+          visibility?: string
         }
         Update: {
           ascendancy?: string | null
@@ -119,13 +160,16 @@ export type Database = {
           class?: string
           created_at?: string
           description?: string | null
+          forked_from?: string | null
+          forked_from_name?: string | null
+          forked_from_user?: string | null
           game_version?: string
           gear_state?: Json
           gem_state?: Json
           id?: string
-          is_public?: boolean
           league?: string
           level?: number
+          main_skill?: string | null
           name?: string
           notes?: string | null
           passive_state?: Json
@@ -133,6 +177,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           view_count?: number
+          visibility?: string
         }
         Relationships: [
           {
@@ -140,6 +185,13 @@ export type Database = {
             columns: ["character_id"]
             isOneToOne: false
             referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "builds_forked_from_fkey"
+            columns: ["forked_from"]
+            isOneToOne: false
+            referencedRelation: "builds"
             referencedColumns: ["id"]
           },
           {
@@ -327,6 +379,7 @@ export type Database = {
       user_profiles: {
         Row: {
           created_at: string
+          display_name: string | null
           ggg_access_token: string | null
           ggg_account_name: string | null
           ggg_realm: string | null
@@ -337,6 +390,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          display_name?: string | null
           ggg_access_token?: string | null
           ggg_account_name?: string | null
           ggg_realm?: string | null
@@ -347,6 +401,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          display_name?: string | null
           ggg_access_token?: string | null
           ggg_account_name?: string | null
           ggg_realm?: string | null
@@ -367,6 +422,40 @@ export type Database = {
       }
     }
     Functions: {
+      get_build_by_share_token: {
+        Args: { p_token: string }
+        Returns: {
+          ascendancy: string | null
+          character_id: string | null
+          class: string
+          created_at: string
+          description: string | null
+          forked_from: string | null
+          forked_from_name: string | null
+          forked_from_user: string | null
+          game_version: string
+          gear_state: Json
+          gem_state: Json
+          id: string
+          league: string
+          level: number
+          main_skill: string | null
+          name: string
+          notes: string | null
+          passive_state: Json
+          share_token: string | null
+          updated_at: string
+          user_id: string
+          view_count: number
+          visibility: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "builds"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       increment_build_view_count: {
         Args: { p_build_id: string }
         Returns: undefined
@@ -493,9 +582,9 @@ export type CompositeTypes<
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    ? DefaultSchema["CompositeTypes"][CompositeTypeName]
     : never
 
 export const Constants = {

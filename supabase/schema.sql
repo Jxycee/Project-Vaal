@@ -16,6 +16,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";   -- gen_random_uuid(), token encrypt
 -- Auto-update updated_at on any table
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
 RETURNS trigger
+SET search_path = public
 LANGUAGE plpgsql AS $$
 BEGIN
   NEW.updated_at = now();
@@ -39,6 +40,8 @@ $$;
 
 -- Increment build view_count; runs as DEFINER so caller needs no UPDATE privilege
 -- Call via: supabase.rpc('increment_build_view_count', { p_build_id: id })
+-- Counts unlisted builds too (a visit via a real share link is a real view) —
+-- only private builds, unreachable by anyone but the owner, are excluded.
 CREATE OR REPLACE FUNCTION public.increment_build_view_count(p_build_id uuid)
 RETURNS void
 SECURITY DEFINER
@@ -48,12 +51,37 @@ BEGIN
   UPDATE public.builds
   SET view_count = view_count + 1
   WHERE id = p_build_id
-    AND is_public = true;          -- only count views on public builds
+    AND visibility IN ('public', 'unlisted');
 END;
 $$;
 
 -- Grant execute on the view counter to all roles (including anon)
 GRANT EXECUTE ON FUNCTION public.increment_build_view_count(uuid) TO anon, authenticated;
+
+-- The read path for an unlisted build: table-level RLS has no notion of "the
+-- request carried a valid share_token" (auth.uid() is the only session
+-- context RLS predicates can see), so this can't be a plain SELECT policy the
+-- way public/owner reads are. This SECURITY DEFINER function is the one place
+-- that logic lives — it bypasses RLS internally and does the token check
+-- itself, so the table's own SELECT policy stays exactly "owner OR
+-- visibility = public" and never needs to know what a token is.
+-- Deliberately excludes visibility = 'private': share_token is assigned on
+-- first save regardless of visibility, not only once a build is actually
+-- shared, so a token for a build that was never made unlisted/public still
+-- shouldn't resolve.
+-- Call via: supabase.rpc('get_build_by_share_token', { p_token: token })
+CREATE OR REPLACE FUNCTION public.get_build_by_share_token(p_token text)
+RETURNS SETOF public.builds
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE sql
+STABLE AS $$
+  SELECT * FROM public.builds
+  WHERE share_token = p_token
+    AND visibility IN ('public', 'unlisted');
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_build_by_share_token(text) TO anon, authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Table: user_profiles
@@ -70,6 +98,11 @@ CREATE TABLE public.user_profiles (
   ggg_access_token      text,
   ggg_refresh_token     text,
   ggg_token_expires_at  timestamptz,
+  -- Public-facing name shown as build author/credit (added for the builds
+  -- feature, 2026-08-28 — see builds-feature-research.md §9.1). No settings
+  -- UI to set/change it yet; NULL falls back to a generic label wherever a
+  -- build's author is rendered.
+  display_name          text        CHECK (display_name IS NULL OR length(display_name) BETWEEN 1 AND 32),
   created_at            timestamptz NOT NULL DEFAULT now(),
   updated_at            timestamptz NOT NULL DEFAULT now()
 );
@@ -165,12 +198,31 @@ CREATE TABLE public.builds (
   gem_state       jsonb       NOT NULL DEFAULT '{}',
 
   -- Sharing
-  is_public       boolean     NOT NULL DEFAULT false,
+  -- private: owner only. unlisted: readable via share_token (see
+  -- get_build_by_share_token above), absent from the public finder.
+  -- public: readable by anyone, listed in the finder.
+  -- Replaced the earlier plain `is_public boolean` 2026-08-28 (see
+  -- builds-feature-research.md §9) — "share a link" and "publish to the
+  -- finder" are different things a boolean couldn't distinguish.
+  visibility      text        NOT NULL DEFAULT 'private'
+                              CHECK (visibility IN ('private', 'unlisted', 'public')),
   -- share_token: 21-char nanoid; generated server-side on first save.
   -- NULL until the build is explicitly saved/published.
-  -- Never regenerated — invalidate by setting is_public = false.
+  -- Never regenerated — invalidate by setting visibility = 'private'.
   share_token     text        UNIQUE,
   view_count      int         NOT NULL DEFAULT 0,
+
+  -- Fork provenance (§9): set on "Copy to my builds". forked_from is
+  -- SET NULL on delete deliberately — the denormalized name/user snapshot is
+  -- what the credit line actually renders, and it survives the source row
+  -- disappearing or going private; only the live link is dropped.
+  forked_from       uuid        REFERENCES public.builds ON DELETE SET NULL,
+  forked_from_name  text,
+  forked_from_user  text,
+
+  -- Derived from gem_state.slots[0] at save time; denormalized for build-
+  -- finder filtering only — gem_state remains authoritative.
+  main_skill      text,
 
   -- Patch tracking — important during early access when balance changes constantly.
   -- Shown as "Created in 0.2.0" label in build finder.
@@ -182,8 +234,10 @@ CREATE TABLE public.builds (
 
 CREATE INDEX builds_user_id_idx       ON public.builds (user_id);
 CREATE INDEX builds_share_token_idx   ON public.builds (share_token) WHERE share_token IS NOT NULL;
-CREATE INDEX builds_public_idx        ON public.builds (is_public, class, league) WHERE is_public = true;
-CREATE INDEX builds_game_version_idx  ON public.builds (game_version) WHERE is_public = true;
+CREATE INDEX builds_visibility_idx    ON public.builds (visibility, class, league) WHERE visibility = 'public';
+CREATE INDEX builds_game_version_idx  ON public.builds (game_version) WHERE visibility = 'public';
+CREATE INDEX builds_main_skill_idx    ON public.builds (main_skill) WHERE visibility = 'public';
+CREATE INDEX builds_forked_from_idx   ON public.builds (forked_from) WHERE forked_from IS NOT NULL;
 
 CREATE TRIGGER set_builds_updated_at
   BEFORE UPDATE ON public.builds
@@ -199,7 +253,7 @@ CREATE POLICY "Owners can do everything with their builds"
 CREATE POLICY "Public builds are readable by anyone"
   ON public.builds FOR SELECT
   TO PUBLIC
-  USING (is_public = true);
+  USING (visibility = 'public');
 
 -- ---------------------------------------------------------------------------
 -- Table: build_tags
@@ -223,7 +277,7 @@ CREATE POLICY "Tags on own or public builds are readable"
     EXISTS (
       SELECT 1 FROM public.builds b
       WHERE b.id = build_tags.build_id
-        AND (b.user_id = auth.uid() OR b.is_public = true)
+        AND (b.user_id = (SELECT auth.uid()) OR b.visibility = 'public')
     )
   );
 
@@ -259,7 +313,8 @@ CREATE TABLE public.build_bookmarks (
   PRIMARY KEY (user_id, build_id)
 );
 
-CREATE INDEX build_bookmarks_user_id_idx ON public.build_bookmarks (user_id);
+CREATE INDEX build_bookmarks_user_id_idx  ON public.build_bookmarks (user_id);
+CREATE INDEX build_bookmarks_build_id_idx ON public.build_bookmarks (build_id);
 
 ALTER TABLE public.build_bookmarks ENABLE ROW LEVEL SECURITY;
 
@@ -267,6 +322,76 @@ CREATE POLICY "Users can manage own bookmarks"
   ON public.build_bookmarks FOR ALL
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
+
+-- §9.1: the count is private to the build's OWNER, unlike likes below — a
+-- bookmark stays a personal "save for later" action for everyone else.
+-- Additive alongside the per-user policy above: that one only ever lets a
+-- user see their own bookmark rows, this adds the owner's second, different
+-- path to the same table (who bookmarked MY build).
+CREATE POLICY "Build owners can see who bookmarked their builds"
+  ON public.build_bookmarks FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.builds b
+      WHERE b.id = build_bookmarks.build_id
+        AND b.user_id = (SELECT auth.uid())
+    )
+  );
+
+-- ---------------------------------------------------------------------------
+-- Table: build_likes
+-- ---------------------------------------------------------------------------
+-- Public signal (contrast build_bookmarks above, whose count stays owner-
+-- only). Same PK/shape convention as build_bookmarks: a like is a toggle,
+-- not a counter a single user can inflate.
+
+CREATE TABLE public.build_likes (
+  user_id     uuid        NOT NULL REFERENCES public.user_profiles ON DELETE CASCADE,
+  build_id    uuid        NOT NULL REFERENCES public.builds ON DELETE CASCADE,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, build_id)
+);
+
+CREATE INDEX build_likes_build_id_idx ON public.build_likes (build_id);
+
+ALTER TABLE public.build_likes ENABLE ROW LEVEL SECURITY;
+
+-- Same visibility rule as build_tags: readable on a public build by anyone,
+-- or on any of the requester's own builds regardless of visibility.
+CREATE POLICY "Likes on own or public builds are readable"
+  ON public.build_likes FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.builds b
+      WHERE b.id = build_likes.build_id
+        AND (b.user_id = (SELECT auth.uid()) OR b.visibility = 'public')
+    )
+  );
+
+-- Account-age gate enforced here, in WITH CHECK, not just app-side — a
+-- request that bypasses the client can't bypass this. Scoped to public
+-- builds (+ the owner liking their own): liking an unlisted build reached
+-- only via share_token has no RLS-visible session context to check against
+-- (same limitation get_build_by_share_token exists to solve for reads) — a
+-- like-via-token RPC is a real follow-up, not built here.
+CREATE POLICY "Members of 1+ day can like public (or their own) builds"
+  ON public.build_likes FOR INSERT
+  WITH CHECK (
+    (SELECT auth.uid()) = user_id
+    AND EXISTS (
+      SELECT 1 FROM public.user_profiles up
+      WHERE up.id = (SELECT auth.uid()) AND up.created_at <= now() - interval '1 day'
+    )
+    AND EXISTS (
+      SELECT 1 FROM public.builds b
+      WHERE b.id = build_likes.build_id
+        AND (b.visibility = 'public' OR b.user_id = (SELECT auth.uid()))
+    )
+  );
+
+CREATE POLICY "Users can remove their own like"
+  ON public.build_likes FOR DELETE
+  USING ((SELECT auth.uid()) = user_id);
 
 -- ---------------------------------------------------------------------------
 -- Table: campaign_progress
