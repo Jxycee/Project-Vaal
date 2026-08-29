@@ -3,8 +3,15 @@
 //
 // Updated 2026-06-13 for the live api.poe2scout.com client (kind + slug).
 //
-// Pulls current prices from poe2scout for every league in ACTIVE_LEAGUES and
-// every category in CATEGORY_PATHS, then upserts into price_entries.
+// Leagues to sync = whatever poe2scout currently flags IsCurrent (the live
+// season's leagues, e.g. both SC and HC), unioned with any names listed in
+// ACTIVE_LEAGUES (for permanent leagues like Standard that are never
+// "current" but an admin still wants priced). Falls back to a hardcoded
+// default only if poe2scout returns no IsCurrent leagues AND no env
+// override is set, so a season rollover needs zero manual env changes.
+//
+// Pulls current prices from that resolved league list, for every category
+// in CATEGORY_PATHS, then upserts into price_entries.
 //
 // Security: requires "Authorization: Bearer <CRON_SECRET>" header.
 // Triggered by: .github/workflows/price-sync.yml (hourly schedule)
@@ -34,7 +41,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const activeLeagues = (process.env.ACTIVE_LEAGUES ?? 'Runes of Aldur')
+  const envLeagues = (process.env.ACTIVE_LEAGUES ?? '')
     .split(',')
     .map((l) => l.trim())
     .filter(Boolean)
@@ -53,6 +60,10 @@ export async function POST(request: NextRequest) {
       { status: 502 }
     )
   }
+
+  const currentLeagues = leagues.filter((l) => l.IsCurrent).map((l) => l.Value)
+  const activeLeagues = Array.from(new Set([...currentLeagues, ...envLeagues]))
+  if (activeLeagues.length === 0) activeLeagues.push('Runes of Aldur')
 
   for (const leagueName of activeLeagues) {
     const leagueInfo = leagues.find((l) => l.Value === leagueName)

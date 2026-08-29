@@ -184,17 +184,23 @@ export default function PricesPage() {
       </div>
 
       {leagues.length > 1 && (
-        <select
-          className="h-11 w-full rounded-lg border border-input bg-card px-3 text-sm"
-          value={league}
-          onChange={(e) => setLeague(e.target.value)}
-        >
+        <div className="inline-flex w-fit flex-wrap gap-1 rounded-lg border border-border bg-card p-1 text-sm">
           {leagues.map((l) => (
-            <option key={l} value={l}>
+            <button
+              key={l}
+              type="button"
+              onClick={() => setLeague(l)}
+              className={cn(
+                'whitespace-nowrap rounded-md px-4 py-1.5 font-medium transition-colors',
+                league === l
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
               {l}
-            </option>
+            </button>
           ))}
-        </select>
+        </div>
       )}
 
       {/* View toggle */}
