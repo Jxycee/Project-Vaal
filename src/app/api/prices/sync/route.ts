@@ -3,8 +3,16 @@
 //
 // Updated 2026-06-13 for the live api.poe2scout.com client (kind + slug).
 //
-// Pulls current prices from poe2scout for every league in ACTIVE_LEAGUES and
-// every category in CATEGORY_PATHS, then upserts into price_entries.
+// Leagues to sync = Standard (always — the permanent baseline league)
+// unioned with whatever poe2scout currently flags IsCurrent (the live
+// season's league(s), e.g. "Runes of Aldur"), plus any extra names listed
+// in ACTIVE_LEAGUES for one-off admin overrides. Standard + the current
+// league are picked up automatically, so a season rollover needs zero
+// manual env changes. Falls back to a hardcoded default only if poe2scout
+// returns no IsCurrent leagues AND no env override is set.
+//
+// Pulls current prices from that resolved league list, for every category
+// in CATEGORY_PATHS, then upserts into price_entries.
 //
 // Security: requires "Authorization: Bearer <CRON_SECRET>" header.
 // Triggered by: .github/workflows/price-sync.yml (hourly schedule)
@@ -34,7 +42,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const activeLeagues = (process.env.ACTIVE_LEAGUES ?? 'Runes of Aldur')
+  const envLeagues = (process.env.ACTIVE_LEAGUES ?? '')
     .split(',')
     .map((l) => l.trim())
     .filter(Boolean)
@@ -53,6 +61,15 @@ export async function POST(request: NextRequest) {
       { status: 502 }
     )
   }
+
+  // Match Standard's exact Value/casing from the API when it's present,
+  // rather than assuming — poe2scout is the source of truth for league names.
+  const standardLeague = leagues.find((l) => l.Value === 'Standard')?.Value ?? 'Standard'
+  const currentLeagues = leagues.filter((l) => l.IsCurrent).map((l) => l.Value)
+  const activeLeagues = Array.from(
+    new Set([standardLeague, ...currentLeagues, ...envLeagues])
+  )
+  if (activeLeagues.length === 0) activeLeagues.push('Runes of Aldur')
 
   for (const leagueName of activeLeagues) {
     const leagueInfo = leagues.find((l) => l.Value === leagueName)
