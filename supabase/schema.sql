@@ -70,6 +70,9 @@ CREATE TABLE public.user_profiles (
   ggg_access_token      text,
   ggg_refresh_token     text,
   ggg_token_expires_at  timestamptz,
+  -- Last league picked on /prices — restored on sign-in so the switcher
+  -- doesn't reset to the default league every session.
+  preferred_price_league text,
   created_at            timestamptz NOT NULL DEFAULT now(),
   updated_at            timestamptz NOT NULL DEFAULT now()
 );

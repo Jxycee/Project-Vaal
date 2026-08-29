@@ -8,7 +8,7 @@
 // The shared app shell provides the page container + nav.
 // =============================================================================
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import Fuse from 'fuse.js'
 import { createClient } from '@/lib/supabase/client'
@@ -67,6 +67,17 @@ function PriceRowItem({
   )
 }
 
+// The synced league set is Standard + poe2scout's IsCurrent leagues (see
+// /api/prices/sync), which for a live season is the current softcore league
+// plus its HC counterpart ("HC <name>"). Pick whichever isn't one of those
+// two permanent/HC entries as the default — the current softcore league —
+// so a season rename never needs a code change here.
+function pickDefaultLeague(leagues: string[]): string {
+  return leagues.find((l) => l !== 'Standard' && !l.startsWith('HC ')) ?? leagues[0] ?? ''
+}
+
+const SAVE_LEAGUE_DEBOUNCE_MS = 900
+
 export default function PricesPage() {
   const supabase = useMemo(() => createClient(), [])
 
@@ -74,8 +85,10 @@ export default function PricesPage() {
   const [rows, setRows] = useState<PriceRow[]>([])
   const [leagues, setLeagues] = useState<string[]>([])
   const [league, setLeague] = useState<string>('')
+  const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [reload, setReload] = useState(0)
+  const saveLeagueTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [fromId, setFromId] = useState<string>('exalted')
   const [category, setCategory] = useState<string>('currency')
@@ -84,13 +97,20 @@ export default function PricesPage() {
   // Discover leagues once — price_entry_leagues is a DISTINCT view over
   // price_entries (see the migration), so this returns each league exactly
   // once already sorted, instead of scanning up to 2000 raw rows to dedupe
-  // client-side. Also means the league <select> below activates on its own
+  // client-side. Also means the league switcher below activates on its own
   // the moment a second league's rows exist (e.g. a new season starting),
   // with no code change needed here.
+  //
+  // Signed-in users get their last-picked league (user_profiles.
+  // preferred_price_league) restored instead of the default, so the
+  // switcher doesn't reset to the current league every session.
   useEffect(() => {
     let cancelled = false
     async function discover() {
-      const { data, error } = await supabase.from('price_entry_leagues').select('league')
+      const [{ data, error }, { data: authData }] = await Promise.all([
+        supabase.from('price_entry_leagues').select('league'),
+        supabase.auth.getUser(),
+      ])
       if (cancelled) return
       if (error) {
         console.error('league discovery failed:', error)
@@ -102,7 +122,25 @@ export default function PricesPage() {
       // generated types), but price_entries.league itself is NOT NULL.
       const unique = (data ?? []).flatMap((r) => (r.league ? [r.league] : []))
       setLeagues(unique)
-      if (unique.length > 0) setLeague((prev) => prev || unique[0])
+
+      const user = authData.user
+      setUserId(user?.id ?? null)
+
+      let preferred: string | null = null
+      if (user) {
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('preferred_price_league')
+          .eq('id', user.id)
+          .maybeSingle()
+        preferred = profile?.preferred_price_league ?? null
+      }
+      if (cancelled) return
+
+      if (unique.length > 0) {
+        const initial = preferred && unique.includes(preferred) ? preferred : pickDefaultLeague(unique)
+        setLeague((prev) => prev || initial)
+      }
       if (unique.length === 0) setLoading(false)
     }
     discover()
@@ -110,6 +148,30 @@ export default function PricesPage() {
       cancelled = true
     }
   }, [supabase])
+
+  // User explicitly picked a league in the switcher — apply it immediately
+  // and, if signed in, save it to their account (debounced so a quick run
+  // through several leagues doesn't fire a write per click).
+  function selectLeague(l: string) {
+    setLeague(l)
+    if (!userId) return
+    if (saveLeagueTimer.current) clearTimeout(saveLeagueTimer.current)
+    saveLeagueTimer.current = setTimeout(() => {
+      supabase
+        .from('user_profiles')
+        .update({ preferred_price_league: l })
+        .eq('id', userId)
+        .then(({ error }) => {
+          if (error) console.error('saving league preference failed:', error)
+        })
+    }, SAVE_LEAGUE_DEBOUNCE_MS)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (saveLeagueTimer.current) clearTimeout(saveLeagueTimer.current)
+    }
+  }, [])
 
   // Load all rows for the league (re-runs when Refresh bumps `reload`).
   useEffect(() => {
@@ -189,7 +251,7 @@ export default function PricesPage() {
             <button
               key={l}
               type="button"
-              onClick={() => setLeague(l)}
+              onClick={() => selectLeague(l)}
               className={cn(
                 'whitespace-nowrap rounded-md px-4 py-1.5 font-medium transition-colors',
                 league === l
