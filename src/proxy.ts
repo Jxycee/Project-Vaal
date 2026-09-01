@@ -67,6 +67,29 @@ function isProtectedPath(pathname: string): boolean {
   return candidates.some((p) => PROTECTED_PREFIXES.some((prefix) => p.startsWith(prefix)))
 }
 
+// `NextResponse.redirect()` builds a brand-new Response — it does NOT carry
+// over cookies from any other response object. `supabase.auth.getUser()`'s
+// `setAll` callback (below) writes a refreshed session cookie onto
+// `supabaseResponse` whenever the access token needed renewing; a redirect
+// built as `NextResponse.redirect(new URL(...))` and returned directly
+// silently drops that refresh. The browser then keeps sending its old
+// cookie, which Supabase's refresh-token rotation has already invalidated
+// server-side — the next request's getUser() legitimately fails, and a
+// genuinely signed-in user looks signed out. Root-caused 2026-08-28: both
+// redirect branches below had this bug (the /login one predates this
+// session), which is why redirecting more often (adding '/' to the
+// signed-in-away-from-auth-pages branch) didn't fix the original report —
+// firing the same cookie-dropping redirect more often just meant more
+// chances to drop the refresh. Every redirect this file returns MUST go
+// through this helper, not a bare `NextResponse.redirect(...)`.
+export function redirectPreservingSession(url: URL, supabaseResponse: NextResponse): NextResponse {
+  const response = NextResponse.redirect(url)
+  for (const cookie of supabaseResponse.cookies.getAll()) {
+    response.cookies.set(cookie)
+  }
+  return response
+}
+
 export async function proxy(request: NextRequest) {
   // We must return a response and keep cookies in sync.
   // Follow the pattern from @supabase/ssr docs exactly — do not reorder.
@@ -110,7 +133,7 @@ export async function proxy(request: NextRequest) {
       'redirect',
       request.nextUrl.pathname + request.nextUrl.search
     )
-    return NextResponse.redirect(redirectUrl)
+    return redirectPreservingSession(redirectUrl, supabaseResponse)
   }
 
   // Redirect authenticated users away from auth pages, and off the
@@ -126,7 +149,7 @@ export async function proxy(request: NextRequest) {
       request.nextUrl.pathname === '/login' ||
       request.nextUrl.pathname === '/signup')
   ) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    return redirectPreservingSession(new URL('/dashboard', request.url), supabaseResponse)
   }
 
   return supabaseResponse
