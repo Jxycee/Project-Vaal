@@ -84,6 +84,14 @@ export async function POST(request: NextRequest) {
   )
   if (activeLeagues.length === 0) activeLeagues.push('Runes of Aldur')
 
+  // Temporary diagnostic: pins down whether a league that should have
+  // rolled off is coming from poe2scout's own IsCurrent flag (nothing we
+  // can fix here) or from a stale ACTIVE_LEAGUES override (ours to fix).
+  // Remove once the current league-rollover question is answered.
+  console.log(
+    `League resolution: standard=${standardLeague}, poe2scout IsCurrent=[${currentLeagues.join(', ')}], ACTIVE_LEAGUES env=[${envLeagues.join(', ')}], resolved active=[${activeLeagues.join(', ')}]`
+  )
+
   // --- Prune leagues that fell out of the active set -------------------------
   // A league that closes gets its characters folded into Standard by GGG,
   // but price_entries only ever upserts — nothing else deletes a closed
