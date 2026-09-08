@@ -91,6 +91,7 @@ export async function POST(request: NextRequest) {
   console.log(
     `League resolution: standard=${standardLeague}, poe2scout IsCurrent=[${currentLeagues.join(', ')}], ACTIVE_LEAGUES env=[${envLeagues.join(', ')}], resolved active=[${activeLeagues.join(', ')}]`
   )
+  console.log(`Raw /Leagues response: ${JSON.stringify(leagues)}`)
 
   // --- Prune leagues that fell out of the active set -------------------------
   // A league that closes gets its characters folded into Standard by GGG,
