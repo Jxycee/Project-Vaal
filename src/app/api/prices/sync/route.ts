@@ -30,6 +30,14 @@ import {
 
 export const maxDuration = 300 // 5 min; sync is deliberately slow/polite
 
+// Leave headroom under maxDuration: with enough leagues x categories the
+// serial fetch-and-sleep loop below can creep past 300s on a slow upstream,
+// which Vercel kills as a hard FUNCTION_INVOCATION_TIMEOUT (504) — a failed
+// cron run with zero partial progress saved. Stopping the loop early instead
+// returns whatever synced cleanly as a normal 200; the next run (30 min
+// later) picks up the leagues/categories that got cut off.
+const TIME_BUDGET_MS = 260_000
+
 export async function POST(request: NextRequest) {
   // --- Auth: validate cron secret -------------------------------------------
   const auth = request.headers.get('authorization') ?? ''
@@ -50,6 +58,8 @@ export async function POST(request: NextRequest) {
   const supabase = createServiceClient()
   const results: Record<string, number> = {}
   const errors: string[] = []
+  const startedAt = Date.now()
+  let timedOut = false
 
   // --- Fetch league exchange rates first (divine → exalted) -----------------
   let leagues
@@ -71,11 +81,16 @@ export async function POST(request: NextRequest) {
   )
   if (activeLeagues.length === 0) activeLeagues.push('Runes of Aldur')
 
-  for (const leagueName of activeLeagues) {
+  outer: for (const leagueName of activeLeagues) {
     const leagueInfo = leagues.find((l) => l.Value === leagueName)
     const divinePrice = leagueInfo?.DivinePrice ?? 0
 
     for (const { category, kind, value } of CATEGORY_PATHS) {
+      if (Date.now() - startedAt > TIME_BUDGET_MS) {
+        timedOut = true
+        break outer
+      }
+
       try {
         const lines = await fetchCategory(
           category,
@@ -120,6 +135,7 @@ export async function POST(request: NextRequest) {
     {
       synced: results,
       errors: errors.length > 0 ? errors : undefined,
+      timedOut: timedOut || undefined,
       timestamp: new Date().toISOString(),
     },
     { status: allFailed ? 502 : 200 }

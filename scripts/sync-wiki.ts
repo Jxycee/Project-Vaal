@@ -407,16 +407,33 @@ export function dedupeSlug(baseSlug: string, disambiguator: string, used: Set<st
   return candidate;
 }
 
-function ensureTablesDecoded(): void {
+// GGG's patch CDN occasionally drops the first connection attempt from a
+// fresh runner (seen in CI as an immediate "Failed to fetch _.index.bin from
+// CDN." with no timeout — a connection-level blip, not a slow download). A
+// few retries with backoff ride that out instead of failing the whole sync
+// on what a re-run one minute later would have skated past.
+const CDN_FETCH_RETRIES = 3;
+const CDN_FETCH_RETRY_DELAY_MS = 5_000;
+
+async function ensureTablesDecoded(): Promise<void> {
   if (existsSync(TABLES_DIR)) return;
   mkdirSync(EXTRACT_DIR, { recursive: true });
   cpSync(
     path.join(process.cwd(), 'scripts', 'wiki', 'pathofexile-dat.config.json'),
     path.join(EXTRACT_DIR, 'config.json'),
   );
-  // Windows: npx resolves to npx.cmd, which execFileSync cannot spawn without
-  // shell: true (it is not a real PE executable).
-  execFileSync('npx', ['pathofexile-dat'], { cwd: EXTRACT_DIR, stdio: 'inherit', shell: true });
+  for (let attempt = 1; attempt <= CDN_FETCH_RETRIES; attempt++) {
+    try {
+      // Windows: npx resolves to npx.cmd, which execFileSync cannot spawn
+      // without shell: true (it is not a real PE executable).
+      execFileSync('npx', ['pathofexile-dat'], { cwd: EXTRACT_DIR, stdio: 'inherit', shell: true });
+      return;
+    } catch (err) {
+      if (attempt === CDN_FETCH_RETRIES) throw err;
+      console.log(`CDN fetch failed (attempt ${attempt}/${CDN_FETCH_RETRIES}), retrying in ${CDN_FETCH_RETRY_DELAY_MS / 1000}s...`);
+      await new Promise((resolve) => setTimeout(resolve, CDN_FETCH_RETRY_DELAY_MS));
+    }
+  }
 }
 
 /**
@@ -854,7 +871,7 @@ function writeKind(
 }
 
 async function main(): Promise<void> {
-  ensureTablesDecoded();
+  await ensureTablesDecoded();
   // One instant for the whole run: see normalizeItem's note on why every
   // record in a run shares a timestamp rather than reading the clock itself.
   const lastSynced = new Date().toISOString();
