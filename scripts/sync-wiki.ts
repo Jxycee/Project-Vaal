@@ -7,8 +7,9 @@
  *
  * Run for real with: npx tsx scripts/sync-wiki.ts
  */
-import { mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, cpSync, existsSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import { createConnection } from 'node:net';
 import path from 'node:path';
 import sharp from 'sharp';
 import { createCdnSource, buildStatIndex, renderBlock } from '@poe2-toolkit/ggpk';
@@ -412,28 +413,70 @@ export function dedupeSlug(baseSlug: string, disambiguator: string, used: Set<st
 // CDN." with no timeout — a connection-level blip, not a slow download). A
 // few retries with backoff ride that out instead of failing the whole sync
 // on what a re-run one minute later would have skated past.
-const CDN_FETCH_RETRIES = 3;
-const CDN_FETCH_RETRY_DELAY_MS = 5_000;
+/**
+ * Live PoE2 patch version, via the same raw patch-server handshake
+ * poe2-toolkit's own build uses for `"patch": "latest"` (see
+ * docs/superpowers/specs/2026-08-16-wiki-source-recon.md, which stopped
+ * short of wiring this in for M1 and pinned WIKI_PATCH_VERSION by hand
+ * instead — that constant then drifted stale within a week and 404'd every
+ * `_.index.bin` fetch from the CDN, silently breaking every scheduled sync
+ * until the failure was actually root-caused instead of retried).
+ *
+ * Connects to the patch server, sends the fixed 8-byte request GGG's own
+ * client uses to look up the current patch, and parses the UTF-16LE CDN URL
+ * out of the response (e.g. "https://patch-poe2.poecdn.com/4.5.4.10.2/").
+ * Falls back to the pinned WIKI_PATCH_VERSION if the handshake itself fails
+ * (patch server unreachable) — a real network blip should degrade to the
+ * old pin-and-hope behavior, not block the sync entirely.
+ */
+async function resolveLatestPatchVersion(): Promise<string> {
+  const HOST = 'patch.pathofexile2.com';
+  const PORT = 13060;
+  const REQUEST = Buffer.from([1, 6, 1, 0, 0, 0, 1, 0]);
+  const TIMEOUT_MS = 10_000;
 
-async function ensureTablesDecoded(): Promise<void> {
+  try {
+    const response = await new Promise<Buffer>((resolve, reject) => {
+      const socket = createConnection(PORT, HOST);
+      const chunks: Buffer[] = [];
+      const timer = setTimeout(() => {
+        socket.destroy();
+        reject(new Error('patch server handshake timed out'));
+      }, TIMEOUT_MS);
+      socket.on('connect', () => socket.write(REQUEST));
+      socket.on('data', (chunk) => chunks.push(chunk));
+      socket.on('end', () => {
+        clearTimeout(timer);
+        resolve(Buffer.concat(chunks));
+      });
+      socket.on('error', (err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+    });
+
+    const decoded = response.toString('utf16le');
+    const match = decoded.match(/patch-poe2\.poecdn\.com\/([\d.]+)\//);
+    if (!match) throw new Error(`couldn't find a CDN URL in the handshake response: ${JSON.stringify(decoded)}`);
+    console.log(`Resolved live patch version: ${match[1]}`);
+    return match[1];
+  } catch (err) {
+    console.log(`Patch-server handshake failed (${String(err)}); falling back to pinned WIKI_PATCH_VERSION=${WIKI_PATCH_VERSION}`);
+    return WIKI_PATCH_VERSION;
+  }
+}
+
+function ensureTablesDecoded(patchVersion: string): void {
   if (existsSync(TABLES_DIR)) return;
   mkdirSync(EXTRACT_DIR, { recursive: true });
-  cpSync(
-    path.join(process.cwd(), 'scripts', 'wiki', 'pathofexile-dat.config.json'),
-    path.join(EXTRACT_DIR, 'config.json'),
+  const config = JSON.parse(
+    readFileSync(path.join(process.cwd(), 'scripts', 'wiki', 'pathofexile-dat.config.json'), 'utf-8'),
   );
-  for (let attempt = 1; attempt <= CDN_FETCH_RETRIES; attempt++) {
-    try {
-      // Windows: npx resolves to npx.cmd, which execFileSync cannot spawn
-      // without shell: true (it is not a real PE executable).
-      execFileSync('npx', ['pathofexile-dat'], { cwd: EXTRACT_DIR, stdio: 'inherit', shell: true });
-      return;
-    } catch (err) {
-      if (attempt === CDN_FETCH_RETRIES) throw err;
-      console.log(`CDN fetch failed (attempt ${attempt}/${CDN_FETCH_RETRIES}), retrying in ${CDN_FETCH_RETRY_DELAY_MS / 1000}s...`);
-      await new Promise((resolve) => setTimeout(resolve, CDN_FETCH_RETRY_DELAY_MS));
-    }
-  }
+  config.patch = patchVersion;
+  writeFileSync(path.join(EXTRACT_DIR, 'config.json'), JSON.stringify(config, null, 2));
+  // Windows: npx resolves to npx.cmd, which execFileSync cannot spawn
+  // without shell: true (it is not a real PE executable).
+  execFileSync('npx', ['pathofexile-dat'], { cwd: EXTRACT_DIR, stdio: 'inherit', shell: true });
 }
 
 /**
@@ -575,8 +618,8 @@ async function writeIcon(
   };
 }
 
-async function syncItems(lastSynced: string): Promise<number> {
-  const source = await createCdnSource({ patch: WIKI_PATCH_VERSION, cacheDir: path.join(EXTRACT_DIR, '.cache'), tablesDir: TABLES_DIR });
+async function syncItems(lastSynced: string, patchVersion: string): Promise<number> {
+  const source = await createCdnSource({ patch: patchVersion, cacheDir: path.join(EXTRACT_DIR, '.cache'), tablesDir: TABLES_DIR });
   const { data, icons } = await extractItems(source);
   const currencyByName = joinCurrencyByName(TABLES_DIR);
   // syncMods() also calls extractMods() on its own separately-created
@@ -624,8 +667,8 @@ async function syncItems(lastSynced: string): Promise<number> {
   return writeKind('item', details);
 }
 
-async function syncSkills(lastSynced: string): Promise<number> {
-  const source = await createCdnSource({ patch: WIKI_PATCH_VERSION, cacheDir: path.join(EXTRACT_DIR, '.cache'), tablesDir: TABLES_DIR });
+async function syncSkills(lastSynced: string, patchVersion: string): Promise<number> {
+  const source = await createCdnSource({ patch: patchVersion, cacheDir: path.join(EXTRACT_DIR, '.cache'), tablesDir: TABLES_DIR });
   const { data, icons } = await extractGems(source);
   const usedSlugs = new Set<string>();
   const details: WikiSkillDetail[] = [];
@@ -669,8 +712,8 @@ async function syncSkills(lastSynced: string): Promise<number> {
  * domain still has real, populated mods surviving this filter (verified per-
  * domain) - this drops specific empty entries, not whole domains.
  */
-async function syncMods(lastSynced: string): Promise<number> {
-  const source = await createCdnSource({ patch: WIKI_PATCH_VERSION, cacheDir: path.join(EXTRACT_DIR, '.cache'), tablesDir: TABLES_DIR });
+async function syncMods(lastSynced: string, patchVersion: string): Promise<number> {
+  const source = await createCdnSource({ patch: patchVersion, cacheDir: path.join(EXTRACT_DIR, '.cache'), tablesDir: TABLES_DIR });
   const { data } = await extractMods(source);
   const keywordDefinitions = readKeywordDefinitions(TABLES_DIR);
   const usedSlugs = new Set<string>();
@@ -871,14 +914,15 @@ function writeKind(
 }
 
 async function main(): Promise<void> {
-  await ensureTablesDecoded();
+  const patchVersion = await resolveLatestPatchVersion();
+  ensureTablesDecoded(patchVersion);
   // One instant for the whole run: see normalizeItem's note on why every
   // record in a run shares a timestamp rather than reading the clock itself.
   const lastSynced = new Date().toISOString();
   resetIconRoot();
-  const items = await syncItems(lastSynced);
-  const skills = await syncSkills(lastSynced);
-  const mods = await syncMods(lastSynced);
+  const items = await syncItems(lastSynced, patchVersion);
+  const skills = await syncSkills(lastSynced, patchVersion);
+  const mods = await syncMods(lastSynced, patchVersion);
   const effects = syncEffects(lastSynced);
   const maps = syncMaps(lastSynced);
   console.log(`wiki sync complete: ${items} items, ${skills} skills, ${mods} mods, ${effects} effects, ${maps} maps -> ${OUT_DIR}`);
