@@ -455,7 +455,13 @@ async function resolveLatestPatchVersion(): Promise<string> {
       });
     });
 
-    const decoded = response.toString('utf16le');
+    // The patch server replies in UTF-16BE, not LE — decoding directly as
+    // utf16le (verified against a real response) turns each ASCII byte pair
+    // (0x00, code) into codepoint (code << 8), e.g. '4' (0x34) into U+3400,
+    // '.' (0x2E) into U+2E00: individually wrong per character, not garbled
+    // pairing, which is what gave this away. swap16() flips BE -> LE first.
+    const evenLength = response.length - (response.length % 2);
+    const decoded = Buffer.from(response.subarray(0, evenLength)).swap16().toString('utf16le');
     const match = decoded.match(/patch-poe2\.poecdn\.com\/([\d.]+)\//);
     if (!match) throw new Error(`couldn't find a CDN URL in the handshake response: ${JSON.stringify(decoded)}`);
     console.log(`Resolved live patch version: ${match[1]}`);
