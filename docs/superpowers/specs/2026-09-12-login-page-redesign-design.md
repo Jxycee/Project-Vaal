@@ -54,8 +54,8 @@ hard-edged shape. Implementation notes:
 - Animated via a CSS `@keyframes` pulse on `opacity` between a trough and peak value, using CSS
   custom properties (`--glow-min` / `--glow-max`) set inline so the two values are easy to tune in
   one place.
-- **Shipped defaults (not user-configurable in production):** 4s cycle, peak opacity 0.3, trough
-  ≈0.135 (peak × 0.45). These came from an interactive tweak explored live in the mockup canvas —
+- **Shipped defaults (not user-configurable in production):** 4.5s cycle, peak opacity 0.25, trough
+  ≈0.11 (peak × 0.45). These came from an interactive tweak dialed in live on the mockup canvas —
   the range-slider tweaks were a design-time tool only, not a feature; ship the chosen values as
   fixed CSS.
 - Respect `prefers-reduced-motion: reduce` — freeze the glow at its peak (or a fixed mid) opacity,
