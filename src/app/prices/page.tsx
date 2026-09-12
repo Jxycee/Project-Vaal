@@ -165,7 +165,15 @@ export default function PricesPage() {
     return base.filter((r) => r.api_id !== baseRow?.api_id)
   }, [rows, effectiveCategory, search, searching, fuse, baseRow])
 
-  const lastSynced = rows[0]?.fetched_at ?? null
+  // The true most-recent sync time, not just whichever row happens to sort
+  // first by value — `rows` is ordered by exalted_value, not fetched_at, so
+  // rows[0] could be a hair stale relative to the actual latest sync batch
+  // (this was visibly inconsistent with the dashboard's own last-sync stat,
+  // which queries fetched_at directly).
+  const lastSynced = useMemo(
+    () => rows.reduce<string | null>((max, r) => (!max || r.fetched_at > max ? r.fetched_at : max), null),
+    [rows]
+  )
 
   return (
     <div className="flex flex-col gap-4">
