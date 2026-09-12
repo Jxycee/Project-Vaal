@@ -15,7 +15,7 @@ export default function PrivacyPolicyPage() {
         Privacy Policy
       </h1>
 
-      <p className="mt-2 text-sm text-muted-foreground">Effective date: [EFFECTIVE DATE]</p>
+      <p className="mt-2 text-sm text-muted-foreground">Effective date: September 12, 2026</p>
 
       <Card className="mt-6 border-destructive/40 bg-destructive/10">
         <CardContent className="text-sm leading-relaxed text-foreground">
@@ -24,7 +24,7 @@ export default function PrivacyPolicyPage() {
             relying on it.
           </p>
           <p className="mt-2 text-muted-foreground">
-            This page is a starting point for [OPERATOR NAME] to adapt. It has not been reviewed
+            This page is a starting point for Jaycee McCullough to adapt. It has not been reviewed
             by a lawyer and should not be published or relied on as-is.
           </p>
         </CardContent>
@@ -167,10 +167,10 @@ export default function PrivacyPolicyPage() {
             You can request a copy of your account data, or request that it be deleted, by
             contacting us at{' '}
             <Link
-              href="mailto:[CONTACT EMAIL]"
+              href="mailto:contact.projectvaal@gmail.com"
               className="text-primary underline-offset-4 hover:underline"
             >
-              [CONTACT EMAIL]
+              contact.projectvaal@gmail.com
             </Link>
             . You can also ask us to correct inaccurate account data the same way.
           </p>
@@ -196,7 +196,7 @@ export default function PrivacyPolicyPage() {
           <p className="mt-2">
             Project Vaal is not directed at children under 13, and we do not knowingly collect
             information from children under 13. If you believe a child under 13 has provided us
-            information, please contact us at [CONTACT EMAIL] so we can address it.
+            information, please contact us at contact.projectvaal@gmail.com so we can address it.
           </p>
         </section>
 
@@ -225,13 +225,13 @@ export default function PrivacyPolicyPage() {
             their personal data under the Texas Data Privacy and Security Act (TDPSA, effective
             July 2024), which addresses rights such as access, correction, and deletion of
             personal data. The TDPSA has revenue and data-volume thresholds that determine which
-            businesses it applies to; [OPERATOR NAME] should confirm with counsel whether the
+            businesses it applies to; Jaycee McCullough should confirm with counsel whether the
             TDPSA applies to this specific operation.
           </p>
           <p className="mt-2 text-muted-foreground">
             This template does not specifically address the General Data Protection Regulation
             (GDPR) or the rights of users in the European Union or United Kingdom. If Project
-            Vaal expects EU or UK users, [OPERATOR NAME] should work with counsel to add
+            Vaal expects EU or UK users, Jaycee McCullough should work with counsel to add
             appropriate GDPR-related disclosures before relying on this policy.
           </p>
         </section>
@@ -253,17 +253,17 @@ export default function PrivacyPolicyPage() {
             If you have questions about this Privacy Policy or want to exercise any of the
             rights described above, contact us at{' '}
             <Link
-              href="mailto:[CONTACT EMAIL]"
+              href="mailto:contact.projectvaal@gmail.com"
               className="text-primary underline-offset-4 hover:underline"
             >
-              [CONTACT EMAIL]
+              contact.projectvaal@gmail.com
             </Link>
             .
           </p>
         </section>
 
         <p className="border-t border-border pt-6 text-xs text-muted-foreground">
-          [OPERATOR NAME] · Effective date: [EFFECTIVE DATE] · See also our{' '}
+          Jaycee McCullough · Effective date: September 12, 2026 · See also our{' '}
           <Link href="/terms" className="underline-offset-4 hover:underline">
             Terms of Service
           </Link>

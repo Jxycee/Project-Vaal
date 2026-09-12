@@ -11,7 +11,7 @@ export default function TermsPage() {
         Terms of Service
       </h1>
 
-      <p className="mt-2 text-sm text-muted-foreground">Effective date: [EFFECTIVE DATE]</p>
+      <p className="mt-2 text-sm text-muted-foreground">Effective date: September 12, 2026</p>
 
       <div className="mt-6 rounded-xl border border-destructive/40 bg-destructive/10 p-4">
         <p className="text-sm font-medium text-destructive">
@@ -28,7 +28,7 @@ export default function TermsPage() {
           <p>
             By accessing or using Project Vaal (the &quot;Service&quot;), you agree to be bound by
             these Terms of Service (&quot;Terms&quot;). If you do not agree to these Terms, do not
-            use the Service. The Service is operated by [OPERATOR NAME].
+            use the Service. The Service is operated by Jaycee McCullough.
           </p>
         </section>
 
@@ -133,7 +133,7 @@ export default function TermsPage() {
           <p>
             We may suspend or terminate your account if you violate these Terms. The Service does
             not currently have a self-serve delete-account feature. If you would like your account
-            deleted, contact [CONTACT EMAIL] and we will process your request.
+            deleted, contact contact.projectvaal@gmail.com and we will process your request.
           </p>
         </section>
 
@@ -144,7 +144,7 @@ export default function TermsPage() {
           <p>
             The Service is not directed at children under the age of 13, and we do not knowingly
             collect personal information from children under 13. If you believe a child under 13
-            has provided us with personal information, please contact us at [CONTACT EMAIL] so we
+            has provided us with personal information, please contact us at contact.projectvaal@gmail.com so we
             can address it.
           </p>
         </section>
@@ -187,7 +187,7 @@ export default function TermsPage() {
 
         <section className="space-y-3">
           <h2 className="font-heading text-xl font-semibold tracking-tight">13. Contact</h2>
-          <p>Questions about these Terms can be sent to [CONTACT EMAIL].</p>
+          <p>Questions about these Terms can be sent to contact.projectvaal@gmail.com.</p>
         </section>
       </div>
     </main>

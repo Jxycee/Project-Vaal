@@ -67,14 +67,24 @@ export default function Home() {
         Path of Exile 2 is a trademark of Grinding Gear Games. Not affiliated with or
         endorsed by Grinding Gear Games.
       </p>
-      <a
-        href="https://github.com/Jxycee/Project-Vaal"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-2 text-xs font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground"
-      >
-        View on GitHub
-      </a>
+      <div className="mt-2 flex items-center gap-3 text-xs font-medium text-muted-foreground">
+        <Link href="/terms" className="underline underline-offset-4 hover:text-foreground">
+          Terms
+        </Link>
+        <span aria-hidden="true">·</span>
+        <Link href="/privacy" className="underline underline-offset-4 hover:text-foreground">
+          Privacy
+        </Link>
+        <span aria-hidden="true">·</span>
+        <a
+          href="https://github.com/Jxycee/Project-Vaal"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-4 hover:text-foreground"
+        >
+          GitHub
+        </a>
+      </div>
     </main>
   )
 }
