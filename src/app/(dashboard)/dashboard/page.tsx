@@ -1,10 +1,12 @@
 // /dashboard — authenticated landing. Live tools + upcoming features.
 import Link from 'next/link'
 import Image from 'next/image'
-import { getCachedUser } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { VaalOrb } from '@/components/dashboard/vaal-orb'
 import { Icon } from '@/components/ui/icon'
 import { Card } from '@/components/ui/card'
+import { ALL_CHECKPOINT_IDS } from '@/lib/campaign/data'
+import { relativeTime } from '@/lib/prices/format'
 
 const LIVE_TOOLS = [
   {
@@ -37,6 +39,65 @@ export default async function DashboardPage() {
     data: { user },
   } = await getCachedUser()
   const account = user?.email ?? 'Exile'
+
+  const supabase = await createClient()
+
+  // Three real, already-stored numbers — no fabricated metrics. Each query
+  // is scoped to fail soft (null/0) rather than break the whole page if one
+  // table has a hiccup.
+  const [campaignResult, buildsResult, syncResult] = await Promise.all([
+    user
+      ? supabase
+          .from('campaign_progress')
+          .select('progress')
+          .eq('user_id', user.id)
+          .is('character_id', null)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    user
+      ? supabase.from('builds').select('*', { count: 'exact', head: true }).eq('user_id', user.id)
+      : Promise.resolve({ count: 0 }),
+    supabase
+      .from('price_entries')
+      .select('fetched_at')
+      .order('fetched_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ])
+
+  const campaignProgress =
+    campaignResult.data?.progress &&
+    typeof campaignResult.data.progress === 'object' &&
+    !Array.isArray(campaignResult.data.progress)
+      ? (campaignResult.data.progress as Record<string, boolean>)
+      : {}
+  const campaignDone = ALL_CHECKPOINT_IDS.filter((id) => campaignProgress[id]).length
+  const campaignTotal = ALL_CHECKPOINT_IDS.length
+  const campaignPct = campaignTotal > 0 ? Math.round((campaignDone / campaignTotal) * 100) : 0
+
+  const buildsCount = buildsResult.count ?? 0
+  const lastSynced = syncResult.data?.fetched_at ?? null
+
+  const QUICK_STATS = [
+    {
+      label: 'Campaign progress',
+      value: `${campaignPct}%`,
+      sub: `${campaignDone} / ${campaignTotal} checkpoints`,
+      icon: 'campaign',
+    },
+    {
+      label: 'Builds saved',
+      value: String(buildsCount),
+      sub: buildsCount === 0 ? 'Build Planner coming soon' : 'in your library',
+      icon: 'builds',
+    },
+    {
+      label: 'Prices',
+      value: lastSynced ? 'Synced' : 'No data yet',
+      sub: lastSynced ? `${relativeTime(lastSynced)}` : 'Run the hourly sync',
+      icon: 'prices',
+    },
+  ] as const
 
   return (
     <div className="flex flex-col gap-8 overflow-x-clip pb-6 sm:gap-10">
@@ -116,6 +177,27 @@ export default async function DashboardPage() {
             <VaalOrb className="vaal-orb-stage h-full w-full" />
           </div>
         </div>
+      </section>
+
+      {/* relative: the hero's ember-glow image sits in a position:relative
+          stacking context, which paints after non-positioned siblings
+          regardless of DOM order — without this, the glow bled on top of
+          these cards instead of staying behind them. */}
+      <section className="relative grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {QUICK_STATS.map((stat) => (
+          <Card key={stat.label} className="flex items-center gap-3 p-4">
+            <div className="grid size-10 shrink-0 place-items-center rounded-xl border border-primary/20 bg-primary/10">
+              <Icon name={stat.icon} className="size-5 text-primary" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {stat.label}
+              </p>
+              <p className="font-heading text-xl font-semibold tracking-tight">{stat.value}</p>
+              <p className="truncate text-xs text-muted-foreground">{stat.sub}</p>
+            </div>
+          </Card>
+        ))}
       </section>
 
       <section className="flex flex-col gap-4">

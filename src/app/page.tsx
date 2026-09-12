@@ -62,6 +62,19 @@ export default function Home() {
         Live now: currency &amp; item prices, passive skill tree. Coming soon: campaign
         tracker, build planner, and wiki.
       </p>
+
+      <p className="mt-8 max-w-md text-balance text-[0.65rem] uppercase tracking-[0.15em] text-muted-foreground/70">
+        Path of Exile 2 is a trademark of Grinding Gear Games. Not affiliated with or
+        endorsed by Grinding Gear Games.
+      </p>
+      <a
+        href="https://github.com/Jxycee/Project-Vaal"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-2 text-xs font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground"
+      >
+        View on GitHub
+      </a>
     </main>
   )
 }

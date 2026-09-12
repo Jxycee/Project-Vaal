@@ -51,3 +51,7 @@ next-env.d.ts
 # wiki data recon/capture scratch — decoded GGPK tables + bundle cache,
 # regenerated on demand by scripts/wiki/capture-fixtures.mjs, never tracked
 /scripts/wiki/.extract/
+
+# Superdesign CLI working state (design-system.md, repo-analysis context
+# files) — regenerated on demand, not hand-written project documentation
+/.superdesign/
