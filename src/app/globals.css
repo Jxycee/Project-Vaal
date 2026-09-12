@@ -219,4 +219,29 @@
     -webkit-mask-size: contain;
     mask-size: contain;
   }
+
+  /* Auth pages: slow ambient pulse behind the brand emblem. 4.5s / 0.25
+     peak / 0.1125 trough came from live-tuning the design mockup — see
+     docs/superpowers/specs/2026-09-12-login-page-redesign-design.md.
+     The element using this class supplies its own size/background/filter;
+     this class only owns the animation. */
+  @keyframes auth-glow-pulse {
+    0%,
+    100% {
+      opacity: 0.1125;
+    }
+    50% {
+      opacity: 0.25;
+    }
+  }
+  .auth-glow {
+    opacity: 0.25;
+    animation: auth-glow-pulse 4.5s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .auth-glow {
+      animation: none;
+      opacity: 0.25;
+    }
+  }
 }
