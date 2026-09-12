@@ -184,10 +184,12 @@ function LoginForm() {
       {/* Hairline between panels, desktop only */}
       <div className="hidden w-px bg-gradient-to-b from-transparent via-primary/25 to-transparent md:block" />
 
-      {/* Mobile brand header — replaces the desktop panel below md */}
-      <div className="flex flex-col items-center gap-2 pb-2 pt-10 md:hidden">
-        <EmblemWithGlow size={64} glowSize={160} glowBlur={12} priority />
-        <h1 className="font-heading text-lg font-semibold tracking-tight">Project Vaal</h1>
+      {/* Mobile brand header — replaces the desktop panel below md. Sized up
+          (and the glow with it) to fill the vertical space that a small
+          emblem left as dead air above the form. */}
+      <div className="flex flex-col items-center gap-4 pb-4 pt-10 md:hidden">
+        <EmblemWithGlow size={150} glowSize={360} glowBlur={18} priority />
+        <h1 className="font-heading text-xl font-semibold tracking-tight">Project Vaal</h1>
       </div>
 
       {/* Sign-in form — no hard-bordered card, just a centered stack */}
