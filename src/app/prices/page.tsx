@@ -140,13 +140,30 @@ export default function PricesPage() {
     [currencyRows, baseId]
   )
 
+  // Only show category pills that actually have items for this league —
+  // a category with zero rows is dead weight in the filter row.
+  const availableCategories = useMemo(() => {
+    const present = new Set(rows.map((r) => r.category))
+    return Object.entries(CATEGORY_LABELS).filter(([key]) => present.has(key))
+  }, [rows])
+
+  // If the selected category has no items (e.g. switching leagues drops
+  // it), fall back to the first available one for filtering/highlighting
+  // — derived at render time rather than corrected via an effect, so
+  // there's no extra render or setState-in-effect.
+  const effectiveCategory = availableCategories.some(([key]) => key === category)
+    ? category
+    : (availableCategories[0]?.[0] ?? category)
+
   // Search spans ALL categories via Fuse; empty search = active category pill only.
   const fuse = useMemo(() => new Fuse(rows, { keys: ['name'], ...FUZZY_SEARCH_TUNING }), [rows])
   const searching = search.trim().length > 0
   const listRows = useMemo(() => {
-    const base = searching ? fuse.search(search.trim()).map((r) => r.item) : rows.filter((r) => r.category === category)
+    const base = searching
+      ? fuse.search(search.trim()).map((r) => r.item)
+      : rows.filter((r) => r.category === effectiveCategory)
     return base.filter((r) => r.api_id !== baseRow?.api_id)
-  }, [rows, category, search, searching, fuse, baseRow])
+  }, [rows, effectiveCategory, search, searching, fuse, baseRow])
 
   const lastSynced = rows[0]?.fetched_at ?? null
 
@@ -263,14 +280,14 @@ export default function PricesPage() {
           {searching ? (
             <p className="text-xs text-muted-foreground">Showing matches across all categories.</p>
           ) : (
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+            <div className="themed-scrollbar flex gap-2 overflow-x-auto pb-2">
+              {availableCategories.map(([key, label]) => (
                 <button
                   key={key}
                   onClick={() => setCategory(key)}
                   className={cn(
                     'whitespace-nowrap rounded-full px-3 py-1.5 text-sm transition-colors',
-                    category === key
+                    effectiveCategory === key
                       ? 'bg-primary text-primary-foreground shadow-[0_6px_16px_-8px_var(--primary)]'
                       : 'bg-card text-muted-foreground hover:text-foreground'
                   )}

@@ -244,4 +244,26 @@
       opacity: 0.25;
     }
   }
+
+  /* Themed scrollbar for horizontally-scrolling strips (e.g. the prices
+     category pill row) — the browser default scrollbar is a stark white
+     bar that clashes with the dark theme. */
+  .themed-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .themed-scrollbar::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+  }
+  .themed-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .themed-scrollbar::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+    border-radius: 9999px;
+  }
+  .themed-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: var(--muted-foreground);
+  }
 }
