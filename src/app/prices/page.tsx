@@ -34,6 +34,50 @@ interface PriceRow {
   fetched_at: string
 }
 
+// Fixed candidates for the headline strip, in priority order — real,
+// well-known high-value currencies, not a fabricated "trending" list.
+const HIGHLIGHT_CANDIDATES = ['mirror', 'divine', 'exalted', 'chaos']
+
+// Shared value math for both the highlight strip and the list rows —
+// one row valued against the current base currency. `highValue` is a
+// real-data-driven accent (worth 50+ of the base), not a fabricated
+// trend/gainer signal.
+function valueOf(row: PriceRow, base: PriceRow) {
+  const rate = (row.exalted_value ?? 0) / (base.exalted_value ?? 1)
+  const flipped = rate < 1
+  return {
+    main: fmtCount(flipped ? 1 / rate : rate),
+    sub: flipped ? `per ${base.name}` : base.name,
+    highValue: !flipped && rate >= 50,
+  }
+}
+
+// Icon in a bordered, tinted box — same "icon chip" language as the
+// dashboard's tool cards and stat tiles, applied here to currency icons.
+function CurrencyIcon({
+  iconUrl,
+  size = 'size-8',
+}: {
+  iconUrl: string | null
+  size?: string
+}) {
+  return (
+    <div
+      className={cn(
+        'grid shrink-0 place-items-center rounded-lg border border-primary/15 bg-primary/8',
+        size
+      )}
+    >
+      {iconUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={iconUrl} alt="" className="size-[70%] object-contain" loading="lazy" />
+      ) : (
+        <div className="size-[60%] rounded bg-muted" />
+      )}
+    </div>
+  )
+}
+
 export default function PricesPage() {
   const supabase = useMemo(() => createClient(), [])
 
@@ -120,17 +164,65 @@ export default function PricesPage() {
     return base.filter((r) => r.api_id !== baseRow?.api_id)
   }, [rows, category, search, searching, fuse, baseRow])
 
+  // Headline strip: a few universally-recognized high-value currencies,
+  // valued in whatever base is currently selected (never fabricated —
+  // just the same real numbers the list below already shows).
+  const highlights = useMemo(() => {
+    if (!baseRow) return []
+    return HIGHLIGHT_CANDIDATES.map((id) => currencyRows.find((r) => r.api_id === id))
+      .filter((r): r is PriceRow => !!r && r.api_id !== baseRow.api_id)
+      .slice(0, 3)
+  }, [currencyRows, baseRow])
+
   const lastSynced = rows[0]?.fetched_at ?? null
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="font-heading text-2xl font-bold tracking-tight">Price Check</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Updated hourly. PoE2 has one shared economy across PC, PS5 and Xbox. These prices
-          roughly reflect the in-game Currency Exchange (Ange).
-        </p>
+      <div className="relative overflow-hidden rounded-xl border border-border bg-card/40 p-4 sm:p-5">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_0%,color-mix(in_oklab,var(--primary)_10%,transparent),transparent_55%)]" />
+        <div className="relative">
+          <h1 className="font-heading text-2xl font-bold tracking-tight">Price Check</h1>
+          <Image
+            src="/ornaments/divider.png"
+            alt=""
+            width={1096}
+            height={182}
+            sizes="140px"
+            className="my-2 h-auto w-32 opacity-70"
+          />
+          <p className="text-sm text-muted-foreground">
+            Updated hourly. PoE2 has one shared economy across PC, PS5 and Xbox. These prices
+            roughly reflect the in-game Currency Exchange (Ange).
+          </p>
+        </div>
       </div>
+
+      {highlights.length > 0 && baseRow && (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {highlights.map((h) => {
+            const v = valueOf(h, baseRow)
+            return (
+              <Card key={h.api_id} className="flex items-center gap-3 p-3.5">
+                <CurrencyIcon iconUrl={h.icon_url} size="size-10" />
+                <div className="min-w-0">
+                  <p className="truncate text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {h.name}
+                  </p>
+                  <p
+                    className={cn(
+                      'font-heading text-lg font-semibold tabular-nums tracking-tight',
+                      v.highValue && 'text-primary'
+                    )}
+                  >
+                    {v.main}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">{v.sub}</p>
+                </div>
+              </Card>
+            )
+          })}
+        </div>
+      )}
 
       {leagues.length > 1 && (
         <Select value={league} onValueChange={setLeague}>
@@ -162,21 +254,27 @@ export default function PricesPage() {
                 { id: 'exalted', label: 'Exalted Orb' },
                 { id: 'divine', label: 'Divine Orb' },
               ].map((q) => {
-                const available = currencyRows.some((r) => r.api_id === q.id)
+                const row = currencyRows.find((r) => r.api_id === q.id)
                 const active = (baseRow?.api_id ?? '') === q.id
                 return (
                   <button
                     key={q.id}
                     type="button"
-                    disabled={!available}
+                    disabled={!row}
                     onClick={() => setBaseId(q.id)}
                     className={cn(
-                      'rounded-lg border px-3.5 py-1.5 text-sm font-medium transition-colors disabled:opacity-40',
+                      'flex items-center gap-2 rounded-lg border py-1.5 pl-2 pr-3.5 text-sm font-medium transition-colors disabled:opacity-40',
                       active
-                        ? 'border-primary bg-primary text-primary-foreground'
+                        ? 'border-primary bg-primary text-primary-foreground shadow-[0_0_0_1px_var(--primary),0_8px_20px_-10px_var(--primary)]'
                         : 'border-border bg-card text-muted-foreground hover:text-foreground'
                     )}
                   >
+                    {row?.icon_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={row.icon_url} alt="" className="size-5 object-contain" />
+                    ) : (
+                      <div className="size-5 rounded bg-current opacity-20" />
+                    )}
                     {q.label}
                   </button>
                 )
@@ -226,7 +324,7 @@ export default function PricesPage() {
                   className={cn(
                     'whitespace-nowrap rounded-full px-3 py-1.5 text-sm transition-colors',
                     category === key
-                      ? 'bg-primary text-primary-foreground'
+                      ? 'bg-primary text-primary-foreground shadow-[0_6px_16px_-8px_var(--primary)]'
                       : 'bg-card text-muted-foreground hover:text-foreground'
                   )}
                 >
@@ -255,24 +353,14 @@ export default function PricesPage() {
             <ul className="divide-y divide-border rounded-lg border border-border bg-card/40">
               {baseRow &&
                 listRows.map((r) => {
-                  const rate = (r.exalted_value ?? 0) / (baseRow.exalted_value ?? 1)
-                  const flipped = rate < 1
-                  const valueMain = fmtCount(flipped ? 1 / rate : rate)
-                  const valueSub = flipped ? `per ${baseRow.name}` : baseRow.name
+                  const v = valueOf(r, baseRow)
 
                   return (
-                    <li key={`${r.category}:${r.api_id}`} className="flex items-center gap-3 px-3 py-2.5 hover:bg-accent/30">
-                      {r.icon_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={r.icon_url}
-                          alt=""
-                          className="size-8 shrink-0 rounded-md bg-background/40 object-contain p-0.5"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="size-8 shrink-0 rounded-md bg-muted" />
-                      )}
+                    <li
+                      key={`${r.category}:${r.api_id}`}
+                      className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-accent/30"
+                    >
+                      <CurrencyIcon iconUrl={r.icon_url} />
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm">{r.name}</div>
                         {searching && (
@@ -282,9 +370,16 @@ export default function PricesPage() {
                         )}
                       </div>
                       <div className="shrink-0 text-right">
-                        <div className="text-sm font-semibold tabular-nums">{valueMain}</div>
+                        <div
+                          className={cn(
+                            'text-sm font-semibold tabular-nums',
+                            v.highValue && 'text-primary'
+                          )}
+                        >
+                          {v.main}
+                        </div>
                         <div className="text-xs font-normal tabular-nums text-muted-foreground">
-                          {valueSub}
+                          {v.sub}
                         </div>
                       </div>
                     </li>
