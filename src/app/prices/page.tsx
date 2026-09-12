@@ -34,14 +34,9 @@ interface PriceRow {
   fetched_at: string
 }
 
-// Fixed candidates for the headline strip, in priority order — real,
-// well-known high-value currencies, not a fabricated "trending" list.
-const HIGHLIGHT_CANDIDATES = ['mirror', 'divine', 'exalted', 'chaos']
-
-// Shared value math for both the highlight strip and the list rows —
-// one row valued against the current base currency. `highValue` is a
-// real-data-driven accent (worth 50+ of the base), not a fabricated
-// trend/gainer signal.
+// Shared value math for the list rows — one row valued against the
+// current base currency. `highValue` is a real-data-driven accent
+// (worth 50+ of the base), not a fabricated trend/gainer signal.
 function valueOf(row: PriceRow, base: PriceRow) {
   const rate = (row.exalted_value ?? 0) / (base.exalted_value ?? 1)
   const flipped = rate < 1
@@ -54,20 +49,9 @@ function valueOf(row: PriceRow, base: PriceRow) {
 
 // Icon in a bordered, tinted box — same "icon chip" language as the
 // dashboard's tool cards and stat tiles, applied here to currency icons.
-function CurrencyIcon({
-  iconUrl,
-  size = 'size-8',
-}: {
-  iconUrl: string | null
-  size?: string
-}) {
+function CurrencyIcon({ iconUrl }: { iconUrl: string | null }) {
   return (
-    <div
-      className={cn(
-        'grid shrink-0 place-items-center rounded-lg border border-primary/15 bg-primary/8',
-        size
-      )}
-    >
+    <div className="grid size-8 shrink-0 place-items-center rounded-lg border border-primary/15 bg-primary/8">
       {iconUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={iconUrl} alt="" className="size-[70%] object-contain" loading="lazy" />
@@ -164,16 +148,6 @@ export default function PricesPage() {
     return base.filter((r) => r.api_id !== baseRow?.api_id)
   }, [rows, category, search, searching, fuse, baseRow])
 
-  // Headline strip: a few universally-recognized high-value currencies,
-  // valued in whatever base is currently selected (never fabricated —
-  // just the same real numbers the list below already shows).
-  const highlights = useMemo(() => {
-    if (!baseRow) return []
-    return HIGHLIGHT_CANDIDATES.map((id) => currencyRows.find((r) => r.api_id === id))
-      .filter((r): r is PriceRow => !!r && r.api_id !== baseRow.api_id)
-      .slice(0, 3)
-  }, [currencyRows, baseRow])
-
   const lastSynced = rows[0]?.fetched_at ?? null
 
   return (
@@ -196,33 +170,6 @@ export default function PricesPage() {
           </p>
         </div>
       </div>
-
-      {highlights.length > 0 && baseRow && (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {highlights.map((h) => {
-            const v = valueOf(h, baseRow)
-            return (
-              <Card key={h.api_id} className="flex items-center gap-3 p-3.5">
-                <CurrencyIcon iconUrl={h.icon_url} size="size-10" />
-                <div className="min-w-0">
-                  <p className="truncate text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    {h.name}
-                  </p>
-                  <p
-                    className={cn(
-                      'font-heading text-lg font-semibold tabular-nums tracking-tight',
-                      v.highValue && 'text-primary'
-                    )}
-                  >
-                    {v.main}
-                  </p>
-                  <p className="truncate text-xs text-muted-foreground">{v.sub}</p>
-                </div>
-              </Card>
-            )
-          })}
-        </div>
-      )}
 
       {leagues.length > 1 && (
         <Select value={league} onValueChange={setLeague}>
