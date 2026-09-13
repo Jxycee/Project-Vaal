@@ -8,7 +8,7 @@ import type { CategoryGroup } from '@/lib/wiki/categoryGroups';
 import type { CategorySection } from '@/lib/wiki/categoryTaxonomy';
 
 const NAV_CLASS =
-  'flex max-h-32 flex-row flex-wrap gap-1.5 overflow-y-auto md:w-56 md:max-h-[calc(100vh-6rem)] md:shrink-0 md:flex-col md:flex-nowrap md:gap-1 md:sticky md:top-6 md:overflow-y-auto';
+  'themed-scrollbar flex max-h-32 flex-row flex-wrap gap-1.5 overflow-y-auto md:w-56 md:max-h-[calc(100vh-6rem)] md:shrink-0 md:flex-col md:flex-nowrap md:gap-1 md:sticky md:top-6 md:overflow-y-auto';
 
 function pillClass(active: boolean) {
   return cn(
