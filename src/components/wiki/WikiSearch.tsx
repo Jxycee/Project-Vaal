@@ -1,6 +1,6 @@
 'use client';
 
-import { useDeferredValue, useMemo, useState } from 'react';
+import { useDeferredValue, useMemo, useRef, useState } from 'react';
 import Fuse from 'fuse.js';
 import Link from 'next/link';
 import { Icon } from '@/components/ui/icon';
@@ -66,14 +66,10 @@ export function WikiSearch({
     onQueryChange?.(value);
   }
 
-  // Memoize the Fuse instance — only rebuild when entries change
-  const fuse = useMemo(() =>
-    new Fuse(entries, {
-      keys: ['name', 'category', 'tags'],
-      ...FUZZY_SEARCH_TUNING,
-    }),
-    [entries]
-  );
+  // Lazy Fuse index: only build when actually needed (on first non-empty search).
+  // Cache the instance alongside the entries reference it was built with;
+  // if entries change, the cache is invalidated.
+  const fuseCache = useRef<{ instance: Fuse<WikiSearchEntry>; entriesRef: WikiSearchEntry[] } | null>(null);
 
   // The input itself stays bound to `query` so typing is never delayed;
   // only the (potentially expensive, ~12,700-entry) search computation reads
@@ -81,8 +77,26 @@ export function WikiSearch({
   // the keystroke.
   const deferredQuery = useDeferredValue(query);
 
-  // Compute results using the memoized Fuse instance
-  const results = useMemo(() => filterEntries(entries, deferredQuery, fuse), [entries, deferredQuery, fuse]);
+  // Compute results — only build Fuse index when actually needed (non-empty query)
+  const results = useMemo(() => {
+    if (deferredQuery.trim() === '') return entries;
+
+    // Lazy-build Fuse instance: cache it alongside the entries reference it was built with
+    // eslint-disable-next-line react-hooks/refs
+    let fuse = fuseCache.current?.entriesRef === entries ? fuseCache.current.instance : null;
+    // eslint-disable-next-line react-hooks/refs
+    if (!fuse) {
+      fuse = new Fuse(entries, {
+        keys: ['name', 'category', 'tags'],
+        ...FUZZY_SEARCH_TUNING,
+      });
+      // eslint-disable-next-line react-hooks/refs
+      fuseCache.current = { instance: fuse, entriesRef: entries };
+    }
+
+    // eslint-disable-next-line react-hooks/refs
+    return filterEntries(entries, deferredQuery, fuse);
+  }, [entries, deferredQuery]);
 
   // Gates on `deferredQuery`, the same value `results` is computed from —
   // not the immediate `query` — so the two can never disagree. Gating this
