@@ -17,7 +17,7 @@ index 39a9b32..eb69e7c 100644
  /** Imperative handle exposed via `controls` for external zoom buttons. */
  export interface TreeViewControls {
 diff --git a/node_modules/@poe2-toolkit/tree-react/dist/TreeView.js b/node_modules/@poe2-toolkit/tree-react/dist/TreeView.js
-index d518736..6962e4b 100644
+index d518736..1052cc2 100644
 --- a/node_modules/@poe2-toolkit/tree-react/dist/TreeView.js
 +++ b/node_modules/@poe2-toolkit/tree-react/dist/TreeView.js
 @@ -15,7 +15,7 @@ import { centreViewport, clampViewport, edgeKey, hitTest, viewportForRect, world
@@ -29,7 +29,7 @@ index d518736..6962e4b 100644
      // The host element Pixi renders into. We own a wrapper <div> (stable across
      // renders) and let Pixi create its own <canvas> inside it, rather than handing
      // Pixi a React-owned <canvas>. A canvas hosts exactly one WebGL context for its
-@@ -52,6 +52,11 @@ export function TreeView({ scene, resources, activeClassId, activeAscendancy, ce
+@@ -52,6 +52,23 @@ export function TreeView({ scene, resources, activeClassId, activeAscendancy, ce
      const highlightActiveRef = useRef(false);
      const activeAscendancyRef = useRef(activeAscendancy);
      const rebuildRef = useRef(null);
@@ -38,10 +38,22 @@ index d518736..6962e4b 100644
 +    // effect and `rebuildCentre` below. Kept in sync with `rebuild`'s inputs
 +    // the same way (a dedicated effect sets it after every render).
 +    const rebuildCentreRef = useRef(null);
++    // Project Vaal patch (Tier 2): the id-indexed record of what the last FULL
++    // rebuild actually built (skill id -> its sprites), plus the last-applied
++    // allocation/weaponSet/jewel per node and `active` per mastery effect, and
++    // the exact props that full rebuild was built for. `rebuild` below uses
++    // these to detect an allocation-only scene change and update just the
++    // sprites that changed in place, instead of destroying and recreating
++    // every one of the tree's 1500+ node sprites on every click. See
++    // `applyAllocationDiff`.
++    const sceneIndexRef = useRef(null);
++    const nodeStateRef = useRef(null);
++    const effectStateRef = useRef(null);
++    const lastBuildInputsRef = useRef(null);
      // Resolved zoom/pan extents, in a ref so the ticker, callbacks and clamp all
      // read the current values without re-subscribing. Kept current in the effect
      // below (never assigned during render).
-@@ -127,6 +132,14 @@ export function TreeView({ scene, resources, activeClassId, activeAscendancy, ce
+@@ -127,6 +144,14 @@ export function TreeView({ scene, resources, activeClassId, activeAscendancy, ce
              const labelLayer = new Container();
              labelLayer.visible = false;
              world.addChild(centreLayer, effectLayer, connLayer, nodeLayer, ascLayer, overlay, labelLayer);
@@ -56,7 +68,53 @@ index d518736..6962e4b 100644
              app.stage.addChild(world);
              appRef.current = app;
              worldRef.current = world;
-@@ -197,35 +210,68 @@ export function TreeView({ scene, resources, activeClassId, activeAscendancy, ce
+@@ -182,14 +207,43 @@ export function TreeView({ scene, resources, activeClassId, activeAscendancy, ce
+         if (!readyRef.current) {
+             return;
+         }
+-        buildScene({
++        const layers = {
+             centreLayer: centreLayerRef.current,
+             effectLayer: effectLayerRef.current,
+             connLayer: connLayerRef.current,
+             nodeLayer: nodeLayerRef.current,
+             ascLayer: ascLayerRef.current,
+             labelLayer: labelLayerRef.current,
+-        }, scene, resources, centreSprites, activeClassId, activeAscendancy, texRef.current, debugIds ?? false);
++        };
++        const resolvedDebugIds = debugIds ?? false;
++        // Project Vaal patch (Tier 2): when this scene change is caused ONLY by
++        // an allocation/weapon-set click — same class, same ascendancy, same
++        // resources/centreSprites/debugIds as the last full build indexed —
++        // update just the sprites that actually changed in place instead of
++        // paying for a full destroy+recreate of every node/connection. Falls
++        // through to the full rebuild below whenever that assumption doesn't
++        // hold: first build, class/ascendancy/resources/centreSprites/debugIds
++        // changed, or the diff hits something it doesn't know how to update in
++        // place (topology drift, a jewel change) and bails out for safety.
++        const inputs = lastBuildInputsRef.current;
++        const sameBuildInputs = inputs !== null &&
++            inputs.resources === resources &&
++            inputs.centreSprites === centreSprites &&
++            inputs.activeClassId === activeClassId &&
++            inputs.activeAscendancy === activeAscendancy &&
++            inputs.debugIds === resolvedDebugIds;
++        if (sameBuildInputs &&
++            applyAllocationDiff(layers, sceneIndexRef.current, nodeStateRef.current, effectStateRef.current, scene, resources, activeAscendancy, texRef.current)) {
++            sync();
++            return;
++        }
++        const index = buildScene(layers, scene, resources, centreSprites, activeClassId, activeAscendancy, texRef.current, resolvedDebugIds);
++        sceneIndexRef.current = index;
++        nodeStateRef.current = index ? snapshotNodeState(scene.nodes, index) : null;
++        effectStateRef.current = index ? snapshotEffectState(scene.masteryEffects, index) : null;
++        lastBuildInputsRef.current = index
++            ? { resources, centreSprites, activeClassId, activeAscendancy, debugIds: resolvedDebugIds }
++            : null;
+         // Centre the view on first build, then keep it across rebuilds.
+         const canvas = containerRef.current;
+         if (canvas && !viewportRef.current && canvas.clientWidth > 0) {
+@@ -197,35 +251,78 @@ export function TreeView({ scene, resources, activeClassId, activeAscendancy, ce
          }
          sync();
      }, [scene, resources, centreSprites, activeClassId, activeAscendancy, debugIds, sync]);
@@ -69,6 +127,16 @@ index d518736..6962e4b 100644
 +        if (!readyRef.current) {
 +            return;
 +        }
++        // Project Vaal patch: `buildCentre` only ever appends — it never clears
++        // `centreLayer` itself (the full `buildScene` rebuild clears it first,
++        // as part of clearing every layer). On a slow connection (the mobile
++        // case this whole rebuild-avoidance effort targets) the portrait and
++        // the two ring sprites can each finish loading well apart, so this
++        // narrow path can run more than once per mount; without clearing
++        // first, each call re-adds sprites for every already-loaded slot on
++        // top of the previous call's, permanently doubling (tripling, …) the
++        // centre's sprite count and leaking one Sprite/Texture per repeat.
++        centreLayerRef.current.removeChildren().forEach((child) => child.destroy());
 +        buildCentre(centreLayerRef.current, scene, centreSprites, activeClassId, texRef.current);
 +        sync();
 +    }, [scene, centreSprites, activeClassId, sync]);
@@ -131,7 +199,261 @@ index d518736..6962e4b 100644
          }
      }, [scene, centreSprites]);
      // ---- Sizing --------------------------------------------------------------
-@@ -687,6 +733,21 @@ function idLabel(skill, x, y) {
+@@ -430,11 +527,20 @@ export function TreeView({ scene, resources, activeClassId, activeAscendancy, ce
+             }
+         }, onDoubleClick: onDoubleClick }));
+ }
+-/** (Re)build the whole world scene graph from the scene + resources. */
++/**
++ * (Re)build the whole world scene graph from the scene + resources.
++ *
++ * Project Vaal patch (Tier 2): returns an id-indexed record of every sprite it
++ * built — `{ main, asc, effects, ascGraphics }`, keyed by skill id (plus the
++ * persistent ascendancy-disc connections Graphics, if one was built) — so a
++ * later allocation-only scene change can update sprites in place via
++ * `applyAllocationDiff` instead of calling this function again. Returns null
++ * when the layers weren't ready to build into.
++ */
+ function buildScene(layers, scene, resources, centreSprites, activeClassId, activeAscendancy, tex, debugIds) {
+     const { centreLayer, effectLayer, connLayer, nodeLayer, ascLayer, labelLayer } = layers;
+     if (!centreLayer || !effectLayer || !connLayer || !nodeLayer || !ascLayer || !labelLayer) {
+-        return;
++        return null;
+     }
+     centreLayer.removeChildren().forEach((child) => child.destroy());
+     effectLayer.removeChildren().forEach((child) => child.destroy());
+@@ -443,12 +549,14 @@ function buildScene(layers, scene, resources, centreSprites, activeClassId, acti
+     labelLayer.removeChildren().forEach((child) => child.destroy());
+     connLayer.clear();
+     buildCentre(centreLayer, scene, centreSprites, activeClassId, tex);
++    const index = { main: new Map(), asc: new Map(), effects: new Map(), ascGraphics: null };
+     if (resources) {
+         for (const effect of scene.masteryEffects) {
+             const sprite = atlasSprite(resources, effectKeyFor(effect.patternKey), effect.x, effect.y, effect.size, tex);
+             if (sprite) {
+                 sprite.alpha = effect.active ? 1 : 0.15;
+                 effectLayer.addChild(sprite);
++                index.effects.set(effect.skill, sprite);
+             }
+         }
+     }
+@@ -459,7 +567,10 @@ function buildScene(layers, scene, resources, centreSprites, activeClassId, acti
+         if (node.ascendancy) {
+             continue;
+         }
+-        buildNode(nodeLayer, node, resources, tex);
++        const built = buildNode(nodeLayer, node, resources, tex);
++        if (built) {
++            index.main.set(node.skill, built);
++        }
+         if (debugIds) {
+             labelLayer.addChild(idLabel(node.skill, node.x, node.y));
+         }
+@@ -473,9 +584,13 @@ function buildScene(layers, scene, resources, centreSprites, activeClassId, acti
+         const ascGraphics = new Graphics();
+         buildConnections(ascGraphics, ascConns, true);
+         ascLayer.addChild(ascGraphics);
++        index.ascGraphics = ascGraphics;
+         for (const node of scene.nodes) {
+             if (node.ascendancy === activeAscendancy) {
+-                buildNode(ascLayer, node, resources, tex);
++                const built = buildNode(ascLayer, node, resources, tex);
++                if (built) {
++                    index.asc.set(node.skill, built);
++                }
+                 // Debug ids live on the (un-offset) label layer, so add the disc's
+                 // relocation offset to land each label on its relocated node.
+                 if (debugIds) {
+@@ -484,6 +599,132 @@ function buildScene(layers, scene, resources, centreSprites, activeClassId, acti
+             }
+         }
+     }
++    return index;
++}
++/**
++ * Project Vaal patch (Tier 2): the cheap path for a scene change caused only
++ * by an allocation/weapon-set click (see the eligibility check in `rebuild`).
++ * Updates, in place, exactly the node sprites and mastery-effect alphas whose
++ * underlying data actually changed since the indexed full build, then
++ * redraws the (at most two) connection Graphics from the new scene's
++ * connections — Pixi's Graphics has no partial-invalidation API, so a
++ * targeted per-edge update isn't possible, but redrawing the Graphics
++ * geometry is what the original full rebuild already paid for on every click
++ * too; the win here is skipping the 1500+ sprite destroy+recreate calls
++ * around it.
++ *
++ * A node's overlay FRAME sprite (not just its icon) can use a genuinely
++ * different atlas image for allocated vs. unallocated (see `frameKeyFor` in
++ * `spriteKeys.js` — e.g. `KeystoneFrameAllocated` vs. `KeystoneFrameUnallocated`,
++ * not a tint variant), so a flipped node's frame gets its `.texture`
++ * reassigned, not just its `.tint`; the icon sprite only ever needs a tint
++ * change (there is no separate unallocated icon image — see `iconKeyFor`).
++ *
++ * Returns false (meaning: give up, caller should do a full rebuild instead)
++ * whenever something doesn't match what the index was built for: an unknown
++ * node id (topology drifted from what was indexed), an ascendancy-disc
++ * presence mismatch, or a node's `jewel` changed (jewel display isn't
++ * diffed here — always undefined today with no Save-to-Build yet, but keeping
++ * this bail means a future jewel change can never render incorrectly, only
++ * fall back to the always-correct full rebuild).
++ */
++function applyAllocationDiff(layers, index, nodeState, effectState, scene, resources, activeAscendancy, tex) {
++    const { connLayer } = layers;
++    if (!index || !nodeState || !effectState || !connLayer) {
++        return false;
++    }
++    for (const node of scene.nodes) {
++        if (node.kind === 'mastery') {
++            continue; // no direct sprite — only its effect pattern, handled below
++        }
++        if (node.ascendancy && node.ascendancy !== activeAscendancy) {
++            continue; // belongs to a non-active ascendancy panel — never drawn
++        }
++        const bucket = node.ascendancy ? index.asc : index.main;
++        const sprites = bucket.get(node.skill);
++        if (!sprites) {
++            return false; // topology drifted from what was indexed — bail safe
++        }
++        const prev = nodeState.get(node.skill);
++        const jewel = node.jewel ?? null;
++        if (prev && prev.jewel !== jewel) {
++            return false; // jewel display isn't diffed here — bail safe
++        }
++        if (prev && prev.allocated === node.allocated && prev.weaponSet === node.weaponSet) {
++            continue; // nothing about this node's look changed
++        }
++        const visual = nodeVisual(node);
++        if (sprites.icon && visual?.icon) {
++            sprites.icon.tint = visual.icon.tint ?? 0xffffff;
++        }
++        if (sprites.frame && visual?.frame && resources) {
++            const frameTexture = atlasTexture(resources, visual.frame.key, tex);
++            if (frameTexture) {
++                sprites.frame.texture = frameTexture;
++            }
++            sprites.frame.tint = visual.frame.tint ?? 0xffffff;
++        }
++        if (sprites.disc) {
++            sprites.disc.alpha = node.allocated ? 1 : 0.4;
++        }
++        nodeState.set(node.skill, { allocated: node.allocated, weaponSet: node.weaponSet, jewel });
++    }
++    for (const effect of scene.masteryEffects) {
++        const sprite = index.effects.get(effect.skill);
++        if (!sprite) {
++            continue; // no sprite built for it (resources not loaded at index time)
++        }
++        const prev = effectState.get(effect.skill);
++        if (prev && prev.active === effect.active) {
++            continue;
++        }
++        sprite.alpha = effect.active ? 1 : 0.15;
++        effectState.set(effect.skill, { active: effect.active });
++    }
++    // Connections: redraw fully (no partial-invalidation API on Graphics) —
++    // still far cheaper than the sprite churn this path exists to avoid.
++    connLayer.clear();
++    buildConnections(connLayer, scene.connections, false);
++    const offset = ascendancyOffset(scene, activeAscendancy);
++    if (Boolean(offset) !== Boolean(index.ascGraphics)) {
++        return false; // ascendancy-disc presence changed — shouldn't happen while
++                       // activeAscendancy is held fixed, but bail safe if it does
++    }
++    if (offset && index.ascGraphics) {
++        const ascConns = scene.connections.filter((conn) => conn.ascendancy === activeAscendancy);
++        index.ascGraphics.clear();
++        buildConnections(index.ascGraphics, ascConns, true);
++    }
++    return true;
++}
++/**
++ * Project Vaal patch (Tier 2): a compact skill id -> last-applied-state map,
++ * seeded right after a full build. `applyAllocationDiff` compares each new
++ * scene's nodes against this (and keeps it current) so it can tell "nothing
++ * about this node changed" apart from destructuring every node's full visual
++ * on every click.
++ */
++function snapshotNodeState(nodes, index) {
++    const state = new Map();
++    for (const node of nodes) {
++        if (node.kind === 'mastery') {
++            continue;
++        }
++        if (index.main.has(node.skill) || index.asc.has(node.skill)) {
++            state.set(node.skill, { allocated: node.allocated, weaponSet: node.weaponSet, jewel: node.jewel ?? null });
++        }
++    }
++    return state;
++}
++/** Project Vaal patch (Tier 2): the mastery-effect counterpart of {@link snapshotNodeState}. */
++function snapshotEffectState(effects, index) {
++    const state = new Map();
++    for (const effect of effects) {
++        if (index.effects.has(effect.skill)) {
++            state.set(effect.skill, { active: effect.active });
++        }
++    }
++    return state;
+ }
+ /** Draw all connections as twin parallel rails into a Graphics (world units). */
+ function buildConnections(g, connections, ascendancyOnly) {
+@@ -511,12 +752,21 @@ function addConnPaths(g, connections, ox = 0, oy = 0) {
+         }
+     }
+ }
+-/** Build a node's icon + frame sprites (and jewel gem) into the layer. */
++/**
++ * Build a node's icon + frame sprites (and jewel gem) into the layer.
++ *
++ * Project Vaal patch (Tier 2): returns `{ icon, frame, disc }` — the sprites
++ * it just created (whichever apply), so `applyAllocationDiff` can update them
++ * in place on a later allocation-only change without calling this function
++ * (and creating brand-new sprites) again. Returns null for a mastery node
++ * (drawn as its effect pattern only, no sprite of its own here).
++ */
+ function buildNode(layer, node, resources, tex) {
+     const visual = nodeVisual(node);
+     if (!visual) {
+-        return; // mastery — drawn as its effect pattern
++        return null; // mastery — drawn as its effect pattern
+     }
++    const built = { icon: null, frame: null, disc: null };
+     let drew = false;
+     if (resources) {
+         const icon = visual.icon ? atlasSprite(resources, visual.icon.key, node.x, node.y, node.iconSize, tex) : null;
+@@ -525,6 +775,7 @@ function buildNode(layer, node, resources, tex) {
+                 icon.tint = visual.icon.tint;
+             }
+             layer.addChild(icon);
++            built.icon = icon;
+             drew = true;
+         }
+         const frame = visual.frame ? atlasSprite(resources, visual.frame.key, node.x, node.y, node.frameSize, tex) : null;
+@@ -533,6 +784,7 @@ function buildNode(layer, node, resources, tex) {
+                 frame.tint = visual.frame.tint;
+             }
+             layer.addChild(frame);
++            built.frame = frame;
+             drew = true;
+         }
+     }
+@@ -542,6 +794,7 @@ function buildNode(layer, node, resources, tex) {
+             alpha: visual.fallback.alpha,
+         });
+         layer.addChild(disc);
++        built.disc = disc;
+     }
+     if (visual.jewel) {
+         const sprite = visual.jewel.iconUrl ? urlSprite(visual.jewel.iconUrl, node.x, node.y, visual.jewel.spriteSize, tex) : null;
+@@ -553,6 +806,7 @@ function buildNode(layer, node, resources, tex) {
+             layer.addChild(gem);
+         }
+     }
++    return built;
+ }
+ /** Build the hub: portrait, rotating active ring, ornate frame — or a vector stand-in. */
+ function buildCentre(layer, scene, centreSprites, activeClassId, tex) {
+@@ -687,6 +941,21 @@ function idLabel(skill, x, y) {
      group.position.set(x, y);
      return group;
  }
