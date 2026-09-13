@@ -8,6 +8,7 @@ export function TooltipDivider() {
       alt=""
       width={1096}
       height={182}
+      sizes="96px"
       className="mx-auto h-auto w-24 opacity-60"
     />
   );
