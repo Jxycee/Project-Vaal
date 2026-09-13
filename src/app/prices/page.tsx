@@ -1,390 +1,62 @@
-'use client'
-
 // =============================================================================
 // /prices — public Price Check (no account required).
-// Unified market list: every item across every category in one continuous,
-// searchable/filterable list. A single "value everything in <currency>" base
-// re-values every row live — replaces the old Exchange/Browse tab split.
-// Rows are already sorted by exalted_value descending (from the DB query);
-// rescaling to a different base currency is a positive linear transform, so
-// that order stays correct for any base without re-sorting client-side.
-// The shared app shell provides the page container + nav.
+// Server Component: discovers the default league and fetches its price rows
+// at request time, so first paint has real data instead of a client-side
+// fetch waterfall (league discovery -> price_entries, sequentially, on
+// mount). PricesClient owns all interactivity (search, category filters,
+// currency-base switching, league switching) and re-fetches client-side
+// only when the user actively switches leagues.
+//
+// No `revalidate` here: createClient() (below) reads cookies() under the
+// hood, which is a Request-time API — per
+// node_modules/next/dist/docs/01-app/02-guides/caching-without-cache-components.md
+// that opts the whole route out of static/ISR rendering regardless of a
+// `revalidate` export, so setting one would be a no-op (and misleading).
+// The route is already fully dynamic; that's still strictly faster than the
+// old client-side waterfall it replaces.
 // =============================================================================
 
-import { useEffect, useMemo, useState } from 'react'
-import Image from 'next/image'
-import Fuse from 'fuse.js'
-import { createClient } from '@/lib/supabase/client'
-import { CATEGORY_LABELS } from '@/lib/prices/categories'
-import { fmtCount, relativeTime } from '@/lib/prices/format'
-import { FUZZY_SEARCH_TUNING } from '@/lib/fuseOptions'
-import { Icon } from '@/components/ui/icon'
-import { Card } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { cn } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/server'
+import PricesClient, { type PriceRow } from './PricesClient'
 
-interface PriceRow {
-  league: string
-  category: string
-  api_id: string
-  name: string
-  icon_url: string | null
-  exalted_value: number | null
-  divine_value: number | null
-  fetched_at: string
-}
-
-// Shared value math for the list rows — one row valued against the
-// current base currency. `highValue` is a real-data-driven accent
-// (worth 50+ of the base), not a fabricated trend/gainer signal.
-function valueOf(row: PriceRow, base: PriceRow) {
-  const rate = (row.exalted_value ?? 0) / (base.exalted_value ?? 1)
-  const flipped = rate < 1
-  return {
-    main: fmtCount(flipped ? 1 / rate : rate),
-    sub: flipped ? `per ${base.name}` : base.name,
-    highValue: !flipped && rate >= 50,
-  }
-}
-
-// Icon in a bordered, tinted box — same "icon chip" language as the
-// dashboard's tool cards and stat tiles, applied here to currency icons.
-function CurrencyIcon({ iconUrl }: { iconUrl: string | null }) {
-  return (
-    <div className="grid size-8 shrink-0 place-items-center rounded-lg border border-primary/15 bg-primary/8">
-      {iconUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={iconUrl} alt="" className="size-[70%] object-contain" loading="lazy" />
-      ) : (
-        <div className="size-[60%] rounded bg-muted" />
-      )}
-    </div>
-  )
-}
-
-export default function PricesPage() {
-  const supabase = useMemo(() => createClient(), [])
-
-  const [rows, setRows] = useState<PriceRow[]>([])
-  const [leagues, setLeagues] = useState<string[]>([])
-  const [league, setLeague] = useState<string>('')
-  const [loading, setLoading] = useState(true)
-
-  const [baseId, setBaseId] = useState<string>('exalted')
-  const [category, setCategory] = useState<string>('currency')
-  const [search, setSearch] = useState('')
+export default async function PricesPage() {
+  const supabase = await createClient()
 
   // Discover leagues once — price_entry_leagues is a DISTINCT view over
   // price_entries (see the migration), so this returns each league exactly
-  // once already sorted, instead of scanning up to 2000 raw rows to dedupe
-  // client-side. Also means the league <select> below activates on its own
-  // the moment a second league's rows exist (e.g. a new season starting),
-  // with no code change needed here.
-  useEffect(() => {
-    let cancelled = false
-    async function discover() {
-      const { data, error } = await supabase.from('price_entry_leagues').select('league')
-      if (cancelled) return
-      if (error) {
-        console.error('league discovery failed:', error)
-        setLoading(false)
-        return
-      }
-      // price_entry_leagues' Row type marks `league` nullable (Postgres views
-      // don't carry the base table's NOT NULL constraint through to the
-      // generated types), but price_entries.league itself is NOT NULL.
-      const unique = (data ?? []).flatMap((r) => (r.league ? [r.league] : []))
-      setLeagues(unique)
-      if (unique.length > 0) setLeague((prev) => prev || unique[0])
-      if (unique.length === 0) setLoading(false)
+  // once already sorted, instead of scanning up to 2000 raw rows to dedupe.
+  const { data: leagueData, error: leagueError } = await supabase
+    .from('price_entry_leagues')
+    .select('league')
+  if (leagueError) {
+    console.error('league discovery failed:', leagueError)
+  }
+  // price_entry_leagues' Row type marks `league` nullable (Postgres views
+  // don't carry the base table's NOT NULL constraint through to the
+  // generated types), but price_entries.league itself is NOT NULL.
+  const initialLeagues = (leagueData ?? []).flatMap((r) => (r.league ? [r.league] : []))
+  const initialLeague = initialLeagues[0] ?? ''
+
+  let initialRows: PriceRow[] = []
+  if (initialLeague) {
+    const { data: rowsData, error: rowsError } = await supabase
+      .from('price_entries')
+      .select('league, category, api_id, name, icon_url, exalted_value, divine_value, fetched_at')
+      .eq('league', initialLeague)
+      .order('exalted_value', { ascending: false, nullsFirst: false })
+      .limit(5000)
+    if (rowsError) {
+      console.error('price_entries query failed:', rowsError)
+    } else {
+      initialRows = (rowsData as PriceRow[]) ?? []
     }
-    discover()
-    return () => {
-      cancelled = true
-    }
-  }, [supabase])
-
-  // Load all rows for the league.
-  useEffect(() => {
-    if (!league) return
-    let cancelled = false
-    async function load() {
-      setLoading(true)
-      const { data, error } = await supabase
-        .from('price_entries')
-        .select('league, category, api_id, name, icon_url, exalted_value, divine_value, fetched_at')
-        .eq('league', league)
-        .order('exalted_value', { ascending: false, nullsFirst: false })
-        .limit(5000)
-      if (cancelled) return
-      if (error) {
-        console.error('price_entries query failed:', error)
-        setRows([])
-      } else {
-        setRows((data as PriceRow[]) ?? [])
-      }
-      setLoading(false)
-    }
-    load()
-    return () => {
-      cancelled = true
-    }
-  }, [supabase, league])
-
-  const currencyRows = useMemo(
-    () => rows.filter((r) => r.category === 'currency' && (r.exalted_value ?? 0) > 0),
-    [rows]
-  )
-  const baseRow = useMemo(
-    () => currencyRows.find((r) => r.api_id === baseId) ?? currencyRows[0],
-    [currencyRows, baseId]
-  )
-
-  // Only show category pills that actually have items for this league —
-  // a category with zero rows is dead weight in the filter row.
-  const availableCategories = useMemo(() => {
-    const present = new Set(rows.map((r) => r.category))
-    return Object.entries(CATEGORY_LABELS).filter(([key]) => present.has(key))
-  }, [rows])
-
-  // If the selected category has no items (e.g. switching leagues drops
-  // it), fall back to the first available one for filtering/highlighting
-  // — derived at render time rather than corrected via an effect, so
-  // there's no extra render or setState-in-effect.
-  const effectiveCategory = availableCategories.some(([key]) => key === category)
-    ? category
-    : (availableCategories[0]?.[0] ?? category)
-
-  // Search spans ALL categories via Fuse; empty search = active category pill only.
-  const fuse = useMemo(() => new Fuse(rows, { keys: ['name'], ...FUZZY_SEARCH_TUNING }), [rows])
-  const searching = search.trim().length > 0
-  const listRows = useMemo(() => {
-    const base = searching
-      ? fuse.search(search.trim()).map((r) => r.item)
-      : rows.filter((r) => r.category === effectiveCategory)
-    return base.filter((r) => r.api_id !== baseRow?.api_id)
-  }, [rows, effectiveCategory, search, searching, fuse, baseRow])
-
-  // The true most-recent sync time, not just whichever row happens to sort
-  // first by value — `rows` is ordered by exalted_value, not fetched_at, so
-  // rows[0] could be a hair stale relative to the actual latest sync batch
-  // (this was visibly inconsistent with the dashboard's own last-sync stat,
-  // which queries fetched_at directly).
-  const lastSynced = useMemo(
-    () => rows.reduce<string | null>((max, r) => (!max || r.fetched_at > max ? r.fetched_at : max), null),
-    [rows]
-  )
+  }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="relative overflow-hidden rounded-xl border border-border bg-card/40 p-4 sm:p-5">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_0%,color-mix(in_oklab,var(--primary)_10%,transparent),transparent_55%)]" />
-        <div className="relative">
-          <h1 className="font-heading text-2xl font-bold tracking-tight">Price Check</h1>
-          <Image
-            src="/ornaments/divider.png"
-            alt=""
-            width={1096}
-            height={182}
-            sizes="140px"
-            className="my-2 h-auto w-32 opacity-70"
-          />
-          <p className="text-sm text-muted-foreground">
-            Updated hourly. PoE2 has one shared economy across PC, PS5 and Xbox. These prices
-            roughly reflect the in-game Currency Exchange (Ange).
-          </p>
-        </div>
-      </div>
-
-      {leagues.length > 1 && (
-        <Select value={league} onValueChange={setLeague}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {leagues.map((l) => (
-              <SelectItem key={l} value={l}>
-                {l}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
-
-      {loading ? (
-        <p className="py-12 text-center text-sm text-muted-foreground">Loading…</p>
-      ) : rows.length === 0 ? (
-        <p className="py-12 text-center text-sm text-muted-foreground">
-          No prices yet. Run the hourly sync, then check back.
-        </p>
-      ) : (
-        <>
-          {/* Base currency — every row's value below is priced in this. */}
-          <div className="flex flex-col gap-2">
-            <div className="flex gap-2">
-              {[
-                { id: 'exalted', label: 'Exalted Orb' },
-                { id: 'divine', label: 'Divine Orb' },
-              ].map((q) => {
-                const row = currencyRows.find((r) => r.api_id === q.id)
-                const active = (baseRow?.api_id ?? '') === q.id
-                return (
-                  <button
-                    key={q.id}
-                    type="button"
-                    disabled={!row}
-                    onClick={() => setBaseId(q.id)}
-                    className={cn(
-                      'flex items-center gap-2 rounded-lg border py-1.5 pl-2 pr-3.5 text-sm font-medium transition-colors disabled:opacity-40',
-                      active
-                        ? 'border-primary bg-primary text-primary-foreground shadow-[0_0_0_1px_var(--primary),0_8px_20px_-10px_var(--primary)]'
-                        : 'border-border bg-card text-muted-foreground hover:text-foreground'
-                    )}
-                  >
-                    {row?.icon_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={row.icon_url} alt="" className="size-5 object-contain" />
-                    ) : (
-                      <div className="size-5 rounded bg-current opacity-20" />
-                    )}
-                    {q.label}
-                  </button>
-                )
-              })}
-            </div>
-
-            <label className="text-xs text-muted-foreground" htmlFor="base-currency">
-              Value everything in
-            </label>
-            <Select value={baseRow?.api_id ?? ''} onValueChange={setBaseId}>
-              <SelectTrigger id="base-currency">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {currencyRows.map((r) => (
-                  <SelectItem key={r.api_id} value={r.api_id}>
-                    {r.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Search + category filter */}
-          <div className="relative">
-            <Icon
-              name="search"
-              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-            />
-            <input
-              type="search"
-              placeholder="Search all items…"
-              className="h-11 w-full rounded-lg border border-input bg-card pl-9 pr-3 text-base placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 outline-none"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-
-          {searching ? (
-            <p className="text-xs text-muted-foreground">Showing matches across all categories.</p>
-          ) : (
-            <div className="themed-scrollbar flex gap-2 overflow-x-auto pb-2">
-              {availableCategories.map(([key, label]) => (
-                <button
-                  key={key}
-                  onClick={() => setCategory(key)}
-                  className={cn(
-                    'whitespace-nowrap rounded-full px-3 py-1.5 text-sm transition-colors',
-                    effectiveCategory === key
-                      ? 'bg-primary text-primary-foreground shadow-[0_6px_16px_-8px_var(--primary)]'
-                      : 'bg-card text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Market list */}
-          {listRows.length === 0 ? (
-            <div className="flex flex-col items-center py-10 text-center">
-              <Image
-                src="/illustrations/empty-prices.png"
-                alt=""
-                width={480}
-                height={483}
-                sizes="112px"
-                className="size-28 opacity-80"
-              />
-              <p className="mt-3 text-sm text-muted-foreground">
-                {searching ? 'No items match your search.' : 'No items in this category yet.'}
-              </p>
-            </div>
-          ) : (
-            <ul className="divide-y divide-border rounded-lg border border-border bg-card/40">
-              {baseRow &&
-                listRows.map((r) => {
-                  const v = valueOf(r, baseRow)
-
-                  return (
-                    <li
-                      key={`${r.category}:${r.api_id}`}
-                      className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-accent/30"
-                    >
-                      <CurrencyIcon iconUrl={r.icon_url} />
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm">{r.name}</div>
-                        {searching && (
-                          <div className="truncate text-xs text-muted-foreground">
-                            {CATEGORY_LABELS[r.category] ?? r.category}
-                          </div>
-                        )}
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <div
-                          className={cn(
-                            'text-sm font-semibold tabular-nums',
-                            v.highValue && 'text-primary'
-                          )}
-                        >
-                          {v.main}
-                        </div>
-                        <div className="text-xs font-normal tabular-nums text-muted-foreground">
-                          {v.sub}
-                        </div>
-                      </div>
-                    </li>
-                  )
-                })}
-            </ul>
-          )}
-        </>
-      )}
-
-      {lastSynced && (
-        <p className="text-center text-xs text-muted-foreground">Last synced {relativeTime(lastSynced)}</p>
-      )}
-
-      {/* Rare items deep link */}
-      <Card className="mt-2 p-4">
-        <h2 className="font-heading font-semibold">Looking for a rare item?</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Rare items with specific mods can&apos;t be priced from cached data. Use the official
-          trade site — searches open in your browser with your own PoE account.
-        </p>
-        <a
-          href={`https://www.pathofexile.com/trade2/search/poe2/${encodeURIComponent(league || 'Standard')}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-3 inline-flex h-11 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-        >
-          Open official trade site
-          <Icon name="external" className="size-3.5 text-primary-foreground" />
-        </a>
-      </Card>
-
-      <p className="text-center text-xs text-muted-foreground">Price data courtesy of poe2scout.com</p>
-    </div>
+    <PricesClient
+      initialLeagues={initialLeagues}
+      initialLeague={initialLeague}
+      initialRows={initialRows}
+    />
   )
 }
