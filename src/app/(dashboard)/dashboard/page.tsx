@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient, getCachedUser } from '@/lib/supabase/server'
-import { VaalOrb } from '@/components/dashboard/vaal-orb'
+import { VaalOrbLoader } from '@/components/dashboard/vaal-orb-loader'
 import { Icon } from '@/components/ui/icon'
 import { Card } from '@/components/ui/card'
 import { ALL_CHECKPOINT_IDS } from '@/lib/campaign/data'
@@ -179,7 +179,7 @@ export default async function DashboardPage() {
           {/* Keep positioning on a wrapper. VaalOrb itself stays relative so its
               absolutely positioned WebGL canvas receives a real width/height. */}
           <div className="absolute inset-x-0 -inset-y-8 z-10 sm:-inset-x-8 sm:-inset-y-12 lg:-inset-x-12 lg:-inset-y-14">
-            <VaalOrb className="vaal-orb-stage h-full w-full" />
+            <VaalOrbLoader className="vaal-orb-stage h-full w-full" />
           </div>
         </div>
       </section>

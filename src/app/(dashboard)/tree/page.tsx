@@ -5,11 +5,26 @@
 // export to PassiveTree, which normalises it (tree-core) and renders it
 // (tree-react). Account-gated by proxy.ts (PROTECTED_PREFIXES).
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import type { GggTreeJson } from '@poe2-toolkit/tree-core/ggg';
-import PassiveTree from '@/components/tree/PassiveTree';
 
 // Vendored tree export version (see public/data/tree/<version>/SOURCE.md).
 const TREE_VERSION = '0.5.2';
+
+// PassiveTree wraps @poe2-toolkit/tree-react (a pixi.js/WebGL renderer for a
+// 1500+ node graph) — genuinely heavy and browser-only, so it's deferred to
+// a separate chunk (ssr: false) fetched in parallel with the data fetch
+// below rather than parsed as part of this page's initial bundle. The
+// loading fallback matches the !raw branch below exactly so component-JS
+// loading and data loading look identical to the user.
+const PassiveTree = dynamic(() => import('@/components/tree/PassiveTree'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+      Loading passive tree…
+    </div>
+  ),
+});
 
 export default function TreePage() {
   const [raw, setRaw] = useState<GggTreeJson | null>(null);
