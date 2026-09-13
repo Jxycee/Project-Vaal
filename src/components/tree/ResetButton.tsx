@@ -16,8 +16,8 @@ export default function ResetButton({ disabled, onReset }: { disabled: boolean; 
       onClick={handleClick}
       className={
         armed
-          ? 'rounded px-2 py-1 text-xs bg-destructive text-destructive-foreground'
-          : 'rounded px-2 py-1 text-xs bg-background text-muted-foreground disabled:opacity-40'
+          ? 'rounded-full px-2.5 py-1 text-xs font-medium bg-destructive text-destructive-foreground transition-colors'
+          : 'rounded-full px-2.5 py-1 text-xs font-medium bg-background/60 text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground disabled:opacity-40'
       }
     >
       {armed ? 'Tap again to reset' : 'Reset'}

@@ -68,15 +68,15 @@ export default function TreeControls({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="mb-1 flex items-center gap-1 rounded bg-card/90 px-2 py-1 text-xs text-muted-foreground backdrop-blur"
+        className="mb-1.5 flex items-center gap-1.5 rounded-lg border border-border bg-card/90 px-2.5 py-1.5 text-xs font-medium text-foreground backdrop-blur transition-colors hover:border-primary/35"
       >
         {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         {active?.name ?? 'Select class'}
       </button>
 
       {open && (
-        <div className="flex flex-col gap-2 rounded-lg bg-card/90 p-2 backdrop-blur">
-          <div className="flex items-center gap-1.5 rounded bg-background px-2 py-1">
+        <div className="flex flex-col gap-2.5 rounded-xl border border-border bg-card/90 p-2.5 backdrop-blur">
+          <div className="flex items-center gap-1.5 rounded-lg border border-input bg-background/60 px-2.5 py-1.5 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
             <Search size={14} className="shrink-0 text-muted-foreground" />
             <input
               type="text"
@@ -87,7 +87,7 @@ export default function TreeControls({
             />
           </div>
 
-          <div className="flex flex-wrap gap-1 border-t border-border pt-2">
+          <div className="flex flex-wrap gap-1.5 border-t border-border pt-2.5">
             {classes.map((c) => (
               <button
                 key={c.id}
@@ -95,8 +95,8 @@ export default function TreeControls({
                 onClick={() => onClass(c.id)}
                 className={
                   c.id === classId
-                    ? 'rounded px-2 py-1 text-xs bg-primary text-primary-foreground'
-                    : 'rounded px-2 py-1 text-xs bg-background text-muted-foreground'
+                    ? 'rounded-full px-2.5 py-1 text-xs font-medium bg-primary text-primary-foreground shadow-[0_6px_16px_-8px_var(--primary)] transition-colors'
+                    : 'rounded-full px-2.5 py-1 text-xs font-medium bg-background/60 text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground'
                 }
               >
                 {c.name}
@@ -105,7 +105,7 @@ export default function TreeControls({
           </div>
 
           {active && active.ascendancies.length > 0 && (
-            <div className="flex flex-wrap gap-1 border-t border-border pt-2">
+            <div className="flex flex-wrap gap-1.5 border-t border-border pt-2.5">
               {active.ascendancies.map((a) => (
                 <button
                   key={a.id}
@@ -113,8 +113,8 @@ export default function TreeControls({
                   onClick={() => onAscendancy(ascendancyId === a.id ? undefined : a.id)}
                   className={
                     ascendancyId === a.id
-                      ? 'rounded px-2 py-1 text-xs bg-primary text-primary-foreground'
-                      : 'rounded px-2 py-1 text-xs bg-background text-muted-foreground'
+                      ? 'rounded-full px-2.5 py-1 text-xs font-medium bg-primary text-primary-foreground shadow-[0_6px_16px_-8px_var(--primary)] transition-colors'
+                      : 'rounded-full px-2.5 py-1 text-xs font-medium bg-background/60 text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground'
                   }
                 >
                   {a.name}
@@ -123,7 +123,7 @@ export default function TreeControls({
             </div>
           )}
 
-          <div className="flex gap-1 border-t border-border pt-2">
+          <div className="flex gap-1.5 border-t border-border pt-2.5">
             {([0, 1, 2] as const).map((m) => {
               const [spent, max] =
                 m === 0
@@ -138,8 +138,8 @@ export default function TreeControls({
                   onClick={() => onMode(m)}
                   className={
                     m === mode
-                      ? 'flex items-center gap-1.5 rounded px-2 py-1 text-xs bg-primary text-primary-foreground'
-                      : 'flex items-center gap-1.5 rounded px-2 py-1 text-xs bg-background text-muted-foreground'
+                      ? 'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-primary text-primary-foreground shadow-[0_6px_16px_-8px_var(--primary)] transition-colors'
+                      : 'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-background/60 text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground'
                   }
                 >
                   <span className={`h-2 w-2 rounded-full ${MODE_DOT[m]}`} />
@@ -152,7 +152,7 @@ export default function TreeControls({
             })}
           </div>
 
-          <div className="flex justify-end border-t border-border pt-2">
+          <div className="flex justify-end border-t border-border pt-2.5">
             <ResetButton disabled={!hasAllocations} onReset={onReset} />
           </div>
         </div>

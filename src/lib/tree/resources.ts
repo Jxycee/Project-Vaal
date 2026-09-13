@@ -100,6 +100,19 @@ export interface ClassCentreSprites {
   ringActive: { url: string; sx: number; sy: number; sw: number; sh: number };
 }
 
+// The "Nth ascendancy -> ClassN" rule below (trailing digit of the raw GGG
+// id) breaks for an id that isn't just digits — Abyssal Lich's raw id is
+// "Witch3b" (GGG's own suffix for a variant sharing Lich's "Witch3" graph;
+// see abyssalLich.test.ts), and `/\d+/` on it matches "3", silently reusing
+// Lich's own portrait instead of Abyssal Lich's. The atlas already ships a
+// distinct Class4 sub-image for it (confirmed: same composition as Class3
+// with a green tint, exactly matching the real in-game portrait) — GGG's
+// asset just isn't reachable through the digit-suffix rule. One-off index
+// overrides for ids the trailing-digit rule gets wrong.
+const PORTRAIT_INDEX_OVERRIDES: Record<string, number> = {
+  Witch3b: 4, // Abyssal Lich
+};
+
 // The gold ring frame is identical for every class (group-background.webp);
 // only the portrait differs per class (background-<class>.webp).
 let ringCache: Promise<TpJson> | null = null;
@@ -122,7 +135,8 @@ function ringJson(version: string): Promise<TpJson> {
  *
  * Portrait mapping: background-<class>.webp bundles 5 sub-images, Class0..4.
  * Class0 is the base (no ascendancy chosen); Class{N} is the Nth ascendancy's
- * portrait, where N is the trailing digit of its internal id (Witch2 -> Class2).
+ * portrait, where N is the trailing digit of its internal id (Witch2 -> Class2)
+ * — except the ids in PORTRAIT_INDEX_OVERRIDES, which aren't pure digits.
  * Verified against the vendored background-<class>.json sub-rects (5x 1500²
  * frames matching CentreArt.art's stable 1500² size) for 0.5.2.
  */
@@ -162,13 +176,23 @@ export function useClassCentreSprites(
         const ringStatic = ring.frames['startNode:MainCircle'].frame;
 
         const classKey = `class${className}`; // e.g. "classWitch"
-        const n = ascendancyInternalId?.match(/\d+/)?.[0] ?? '0';
+        const n =
+          (ascendancyInternalId ? PORTRAIT_INDEX_OVERRIDES[ascendancyInternalId] : undefined) ??
+          ascendancyInternalId?.match(/\d+/)?.[0] ??
+          '0';
         const portraitKey = `${classKey}:Class${n}`;
-        const portrait =
+        const portraitFrame =
           portraitAtlas.frames[portraitKey]?.frame ?? portraitAtlas.frames[`${classKey}:Class0`].frame;
+        const portrait = {
+          url: `${BASE(version)}/background-${slug}.webp`,
+          sx: portraitFrame.x,
+          sy: portraitFrame.y,
+          sw: portraitFrame.w,
+          sh: portraitFrame.h,
+        };
 
         setSprites({
-          portrait: { url: `${BASE(version)}/background-${slug}.webp`, sx: portrait.x, sy: portrait.y, sw: portrait.w, sh: portrait.h },
+          portrait,
           ringStatic: { url: `${BASE(version)}/group-background.webp`, sx: ringStatic.x, sy: ringStatic.y, sw: ringStatic.w, sh: ringStatic.h },
           ringActive: { url: `${BASE(version)}/group-background.webp`, sx: ringActive.x, sy: ringActive.y, sw: ringActive.w, sh: ringActive.h },
         });
