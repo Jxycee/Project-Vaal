@@ -27,11 +27,16 @@ const LIVE_TOOLS = [
     icon: 'campaign',
     blurb: 'Boss checkpoints and rewards, act by act.',
   },
+  {
+    href: '/wiki',
+    title: 'Wiki',
+    icon: 'wiki',
+    blurb: 'Searchable item, skill gem, and mod database.',
+  },
 ] as const
 
 const COMING_SOON = [
   { title: 'Build Planner', icon: 'builds', blurb: 'Create, save, and share builds via link.' },
-  { title: 'Item Wiki', icon: 'wiki', blurb: 'Searchable bases, mods, and skill gems.' },
 ] as const
 
 export default async function DashboardPage() {
@@ -182,8 +187,12 @@ export default async function DashboardPage() {
       {/* relative: the hero's ember-glow image sits in a position:relative
           stacking context, which paints after non-positioned siblings
           regardless of DOM order — without this, the glow bled on top of
-          these cards instead of staying behind them. */}
-      <section className="relative grid grid-cols-1 gap-3 sm:grid-cols-3">
+          these cards instead of staying behind them. mt-* grows with the
+          breakpoints because the ember bleed itself grows (-bottom-14%
+          at the base size up to -bottom-19% at lg) — without the extra
+          clearance the embers visually spilled onto these cards instead
+          of settling below the orb. */}
+      <section className="relative mt-2 grid grid-cols-1 gap-3 sm:mt-4 sm:grid-cols-3 lg:mt-10">
         {QUICK_STATS.map((stat) => (
           <Card key={stat.label} className="flex items-center gap-3 p-4">
             <div className="grid size-10 shrink-0 place-items-center rounded-xl border border-primary/20 bg-primary/10">
@@ -208,10 +217,10 @@ export default async function DashboardPage() {
             </p>
             <h2 className="mt-1 font-heading text-xl font-semibold tracking-tight">Tools</h2>
           </div>
-          <span className="text-xs text-muted-foreground">3 live</span>
+          <span className="text-xs text-muted-foreground">{LIVE_TOOLS.length} live</span>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {LIVE_TOOLS.map((item) => (
             <Link key={item.href} href={item.href} className="group">
               <Card className="relative h-full overflow-hidden p-4 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-accent/35 hover:shadow-[0_18px_45px_-30px_color-mix(in_oklab,var(--primary)_45%,transparent)] sm:p-5">
