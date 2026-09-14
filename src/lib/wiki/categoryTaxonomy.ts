@@ -2,13 +2,13 @@ import type { CategoryGroup } from './categoryGroups';
 import { UNUSED_OR_REMOVED_CATEGORY, ESSENCE_CATEGORY } from './normalize';
 
 /**
- * Groups the wiki's ~92 real item categories into a small set of top-level
+ * Groups the wiki's ~90 real item categories into a small set of top-level
  * sections for the browse-page sidebar, so the list is short enough to scan
- * by default instead of 92 flat rows. Verified against the real synced
- * index (2026-08-22): covers all 92 categories with none left over, none
- * duplicated. Skills (3 categories) and mods (13) don't need this — they
- * stay flat, per the design decision that only items has enough categories
- * to warrant grouping.
+ * by default instead of 90 flat rows. Verified against the real synced
+ * index (2026-09-14, post wiki-data-refresh): covers all 90 categories with
+ * none left over, none duplicated. Skills (3 categories) and mods (13)
+ * don't need this — they stay flat, per the design decision that only
+ * items has enough categories to warrant grouping.
  *
  * The four `_OLD`-suffixed classes that used to live in `Currency` below
  * (`UncutSkillGem_OLD`, `UncutReservationGem_OLD`, `UncutSupportGem_OLD`,
@@ -25,7 +25,7 @@ export const ITEM_CATEGORY_GROUPS: Record<string, string[]> = {
     'DelveSocketableCurrency', 'PantheonSoul', 'UncutSkillGemStackable',
     'UncutReservationGemStackable', 'UncutSupportGemStackable',
     'ArchnemesisMod', 'DivinationCard',
-    'Currency', 'PinnacleKeyStackable', 'VaultKey', 'MemoryLine',
+    'Currency', 'AtlasCurrency', 'PinnacleKeyStackable', 'VaultKey', 'MemoryLine',
     'BrequelFruit', ESSENCE_CATEGORY,
   ],
   'Unused / Removed': [UNUSED_OR_REMOVED_CATEGORY],
