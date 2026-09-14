@@ -48,6 +48,18 @@ export const ITEM_CATEGORY_GROUPS: Record<string, string[]> = {
   Flasks: ['LifeFlask', 'ManaFlask', 'UtilityFlask', 'Life Flask', 'Mana Flask'],
 };
 
+/**
+ * Real search-index categories not covered by {@link ITEM_CATEGORY_GROUPS}.
+ * Used by categoryTaxonomy.test.ts (hard-fails CI on drift) and by
+ * scripts/sync-wiki.ts (surfaces the same gap as a workflow annotation on
+ * the sync PR, right when a patch introduces a new item class, instead of
+ * only being discoverable by running the test locally).
+ */
+export function findUnmappedCategories(categories: Iterable<string>): string[] {
+  const assignedSet = new Set(Object.values(ITEM_CATEGORY_GROUPS).flat());
+  return [...new Set(categories)].filter((c) => !assignedSet.has(c));
+}
+
 export interface CategorySection {
   label: string;
   total: number;

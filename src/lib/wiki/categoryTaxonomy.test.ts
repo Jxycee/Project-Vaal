@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { describe, it, expect } from 'vitest';
-import { groupByTaxonomy, ITEM_CATEGORY_GROUPS } from './categoryTaxonomy';
+import { groupByTaxonomy, ITEM_CATEGORY_GROUPS, findUnmappedCategories } from './categoryTaxonomy';
 import { groupByCategory } from './categoryGroups';
 import { toSearchEntry } from './normalize';
 import { WIKI_DATA_VERSION } from './types';
@@ -74,7 +74,6 @@ describe('ITEM_CATEGORY_GROUPS', () => {
     const assignedSet = new Set(assigned);
     expect(assigned.length).toBe(assignedSet.size); // no duplicates across groups
 
-    const missing = [...realCategories].filter((c) => !assignedSet.has(c));
-    expect(missing).toEqual([]);
+    expect(findUnmappedCategories(realCategories)).toEqual([]);
   });
 });

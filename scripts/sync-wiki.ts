@@ -20,6 +20,7 @@ import { extractMods } from '@poe2-toolkit/mod-extractor';
 import { normalizeItem, normalizeSkill, normalizeMod, normalizeEffect, normalizeMap, toSearchEntry, slugify, parsePobUniqueFile, stripBracketMarkup } from '../src/lib/wiki/normalize';
 import type { CurrencyText, PobUniqueEntry, EffectRow, MapRow } from '../src/lib/wiki/normalize';
 import { WIKI_DATA_VERSION, WIKI_PATCH_VERSION } from '../src/lib/wiki/types';
+import { findUnmappedCategories } from '../src/lib/wiki/categoryTaxonomy';
 import type { WikiSearchEntry, WikiItemDetail, WikiSkillDetail, WikiModDetail, WikiEffectDetail, WikiMapDetail, WikiItemFlask, WikiEntryKind, WikiCommunitySource, WikiSoulCoreEffect } from '../src/lib/wiki/types';
 
 const WIKI_ROOT = path.join(process.cwd(), 'public', 'data', 'wiki');
@@ -892,6 +893,20 @@ function writeKind(
   if (kind !== 'mod') details = attachKeywordDefinitions(details, readKeywordDefinitions(TABLES_DIR));
   const entries = details.map(toSearchEntry);
   validateSyncResult(entries, previousCount(kind), { allowShrink: ALLOW_SHRINK });
+
+  if (kind === 'item') {
+    // A patch can introduce a new itemClass ITEM_CATEGORY_GROUPS doesn't
+    // cover yet - categoryTaxonomy.test.ts already hard-fails CI on that
+    // gap, but only someone running it locally would know *what* to add.
+    // `::warning::` is a GitHub Actions workflow command: printed during
+    // this workflow's own `npm run sync:wiki` step, it becomes a yellow
+    // annotation on that run (and on the auto-opened PR's checks tab),
+    // naming the exact category to add the moment the sync runs. A no-op
+    // outside Actions - any other stdout consumer just sees a console.warn.
+    for (const category of findUnmappedCategories(entries.map((e) => e.category))) {
+      console.warn(`::warning::New item category "${category}" isn't in ITEM_CATEGORY_GROUPS (src/lib/wiki/categoryTaxonomy.ts) - the taxonomy-coverage test will fail CI until it's added.`);
+    }
+  }
 
   // Rebuild the detail directory from empty rather than writing over it.
   // Overwriting in place leaks: an entity dropped upstream (or one whose
