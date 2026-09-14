@@ -67,6 +67,50 @@ function isProtectedPath(pathname: string): boolean {
   return candidates.some((p) => PROTECTED_PREFIXES.some((prefix) => p.startsWith(prefix)))
 }
 
+// supabase.auth.getUser() round-trips to Supabase's auth server on EVERY
+// request this middleware matches (i.e. every page navigation) — there is
+// no timeout on that call by default, so a stalled connection (observed on
+// mobile: extreme lag switching pages, sometimes appearing to not load at
+// all) leaves the request hanging indefinitely with zero user-visible
+// feedback, since nothing downstream (not even a page's own loading.tsx)
+// gets a chance to render until this resolves.
+//
+// On timeout, this resolves as if there is no session — the same safe,
+// fail-closed outcome as an actually-expired/invalid session: an
+// unauthenticated result on a protected path still redirects to /login
+// (never silently grants access), and on a public path the request simply
+// proceeds treated as signed-out. A real session is not revoked by this —
+// only THIS request's redirect decision falls back conservatively; the next
+// request gets a fresh, un-timed-out attempt. 4s is a starting point: long
+// enough that a normal slow mobile connection shouldn't spuriously bounce a
+// signed-in user to /login, short enough that a truly stalled connection
+// gives up and lets the browser show something instead of hanging forever.
+const AUTH_TIMEOUT_MS = 4000
+
+// Only the `user` shape is used at any call site (the SDK's own success/
+// error discriminated union isn't preserved through the timeout branch —
+// there is no real error/session to report on a timeout, just "no user").
+function withAuthTimeout<U>(
+  promise: Promise<{ data: { user: U } }>,
+  timedOutUser: U
+): Promise<{ data: { user: U } }> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve({ data: { user: timedOutUser } }), AUTH_TIMEOUT_MS)
+    promise.then(
+      (result) => {
+        clearTimeout(timer)
+        resolve(result)
+      },
+      () => {
+        // A rejected getUser() call is the same fail-closed outcome as a
+        // timeout — resolve immediately rather than waiting out the timer.
+        clearTimeout(timer)
+        resolve({ data: { user: timedOutUser } })
+      }
+    )
+  })
+}
+
 export async function proxy(request: NextRequest) {
   // We must return a response and keep cookies in sync.
   // Follow the pattern from @supabase/ssr docs exactly — do not reorder.
@@ -100,7 +144,37 @@ export async function proxy(request: NextRequest) {
   // will cause users to appear logged out after token expiry.
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await withAuthTimeout(supabase.auth.getUser(), null)
+
+  // Project Vaal: propagate the email this call just validated to Server
+  // Components via a request header, so AppShell (src/components/layout/
+  // app-shell.tsx, rendered on every page) can read it synchronously
+  // instead of paying for a SECOND supabase.auth.getUser() round-trip on
+  // every single navigation just to display it. Must use the
+  // `request: { headers }` form of NextResponse.next — confirmed against
+  // node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md
+  // ("Setting headers"): that form makes the header available upstream to
+  // Server Components' headers(); passing `headers` directly instead (no
+  // `request` wrapper) would instead send it to the BROWSER as a visible
+  // response header, leaking the user's email client-side for no reason —
+  // never do that with this header.
+  //
+  // This does not move any trust boundary: the value is always exactly
+  // what THIS call just validated (or '' when there is no session) — a
+  // client cannot inject or override it, since `requestHeaders` is built
+  // fresh from `request.headers` and this one key is unconditionally
+  // overwritten below, on every request this middleware matches.
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-vaal-user-email', user?.email ?? '')
+  const responseWithUserHeader = NextResponse.next({ request: { headers: requestHeaders } })
+  // `responseWithUserHeader` is a distinct NextResponse instance and starts
+  // with none of the cookies `supabaseResponse` may have accumulated above
+  // (set during setAll, e.g. a refreshed session token) — carry them over
+  // rather than dropping them.
+  for (const cookie of supabaseResponse.cookies.getAll()) {
+    responseWithUserHeader.cookies.set(cookie)
+  }
+  supabaseResponse = responseWithUserHeader
 
   // Redirect unauthenticated users away from protected routes
   if (isProtectedPath(request.nextUrl.pathname) && !user) {
