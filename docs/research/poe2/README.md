@@ -23,6 +23,10 @@ Encyclopedic reference on Path of Exile 2, gathered for Project Vaal (PoE2 conso
 | `patch-history-and-meta.md` | Full EA version timeline (0.1.0→0.5.5), current league, community sentiment | WebSearch synthesis — fills the ~8-month gap past model training cutoff |
 | `console-player-experience.md` | What PC tools console lacks, controller UX pain points, crossplay/cross-save, patch-cadence parity | WebSearch synthesis, partial (search quota hit) |
 | `glossary.md` | ~70-term alphabetical PoE2 jargon lookup, notes what PoE1 concepts do NOT carry over | WebSearch + trained knowledge |
+| `build-sharing-ecosystem.md` | PoB2 community tool + share-code format, GGG's official `.build` planner file schema, **GGG's OAuth character API with realm=poe2 support** (live character import — used by Maxroll today) | Read PoB2 and poe2-build-planner source directly off GitHub — first-party-grade, not snippets |
+| `monsters-and-loot.md` | Monster rarity/affixes, loot filters, no Divination Cards (Reliquary Key is the closest analogue), boss-locked uniques, Item Rarity nerf controversy | WebSearch synthesis; cross-checked against `endgame-and-atlas.md` for consistency |
+| `data-tooling-ecosystem.md` | How `@poe2-toolkit` actually extracts data (GGPK/patch-CDN via `pathofexile-dat`, PyPoE's successor), poe2scout.com's stack, GGG API's per-endpoint PoE2 coverage, **this repo's toolkit pins are behind upstream** (breaking 1.0.0/2.0.0 releases already shipped) | Read `@poe2-toolkit`, poe2scout, and `pathofexile-dat` source directly off GitHub |
+| `accessibility-and-platform-notes.md` | Colorblind/QoL settings, known bugs process, monetization (confirmed F2P; **EA's $30 entry paywall drops at 1.0**), crossplay/cross-progression, Twitch drops | WebSearch synthesis, partial (search quota hit) |
 
 ## Known research gaps / re-verify list
 
@@ -34,6 +38,11 @@ Every wave-1 agent hit the same two sandbox limits: **WebFetch was egress-blocke
 - **Item/gem/skill wiki** (`src/app/wiki`, `src/lib/wiki`, `public/data/wiki/`) → `items-and-crafting.md`, `gems-and-skills.md`
 - **Price check** (`src/app/prices`, `src/lib/prices`) → `currency-and-economy.md`
 - **Campaign tracker** (`src/components/campaign`, `src/lib/campaign`) → `campaign-and-acts.md`
-- **Build sharing** → `classes-and-ascendancies.md`, `gems-and-skills.md`, `passive-tree.md`
-- **Console-first positioning / UX rationale** → `console-player-experience.md`
-- **Anything else, jargon lookup** → `glossary.md`, `patch-history-and-meta.md`
+- **Build sharing** → `build-sharing-ecosystem.md` (start here — has the GGG character-API finding), `classes-and-ascendancies.md`, `gems-and-skills.md`, `passive-tree.md`
+- **Console-first positioning / UX rationale** → `console-player-experience.md`, `accessibility-and-platform-notes.md`
+- **`@poe2-toolkit` upgrade planning / wiki-sync tooling** → `data-tooling-ecosystem.md` (flags this repo's pinned versions are behind upstream)
+- **Anything else, jargon lookup** → `glossary.md`, `patch-history-and-meta.md`, `monsters-and-loot.md`
+
+## Wave 2 additions (2026-09-16, same session)
+
+Added after the initial 9: `build-sharing-ecosystem.md`, `monsters-and-loot.md`, `data-tooling-ecosystem.md`, `accessibility-and-platform-notes.md`. Same sandbox limitations applied (WebFetch egress-blocked for gaming-wiki domains, generally still worked for raw GitHub). Where an agent could substitute a GitHub source read for a blocked wiki page, sourcing quality is notably higher (see `build-sharing-ecosystem.md`, `data-tooling-ecosystem.md`, and `passive-tree.md`) — prefer those three when you need a citable fact instead of a synthesized one.
