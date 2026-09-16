@@ -2,6 +2,8 @@
 
 Encyclopedic reference on Path of Exile 2, gathered for Project Vaal (PoE2 console companion app). Written for a Claude context to load quickly, not for prose reading. Each file is independently useful; cross-reference by filename, not by memorizing this index.
 
+**In a hurry? Read `CHEATSHEET.md` instead of this whole index — it's the condensed version of everything below.**
+
 **Baseline facts true across all files as of 2026-09-16** (re-verify before trusting long-term — this game moves fast):
 - PoE2 is **Early Access**, not 1.0. Current patch: **0.5.5 "Forbidden Rites"** (event league, started 2026-09-04), running alongside base patch **0.5.0 "Return of the Ancients"** (challenge league "Runes of Aldur", started 2026-05-29).
 - **1.0 full release targeted 2026-12-11** — free-to-play, expected to add Acts 5-6, a Duelist class + Swords. Not live yet; treat as roadmap, not current state.
@@ -53,3 +55,8 @@ Added after the initial 9: `build-sharing-ecosystem.md`, `monsters-and-loot.md`,
 - `verified-corrections.md` — **read this before trusting a flagged claim in any other file.** A dedicated re-verification pass that resolved 17 items previously marked uncertain, mostly by cloning `PathOfBuildingCommunity/PathOfBuilding-PoE2` and `SilkroadLabs/rePoE2` off GitHub and reading GGG's actual exported game data (tree JSON, item/mod/essence/catalyst data) instead of wiki snippets. Confirmed exact per-class attribute totals (29 total, split 15/7/7 or 11/11/7), the 8-point ascendancy cap, and full Essence/Omen/Catalyst lists; **corrected** the Catalyst name list (real names are PoE1-legacy: Reaver/Adaptive/Chayula's/etc — ring/amulet only, not belts) and confirmed the PoE1 3-identical-uniques vendor recipe does **not** exist in PoE2 (fully replaced by the Reforging Bench). Also flags a technique caveat: this data-mining approach gives false positives for "does this mechanic exist" questions (Delve/Heist/Blight assets ship in the client despite being confirmed absent from live PoE2) — use it for exact names/numbers, not existence questions.
 
 This verification agent hit a session-wide API rate limit partway through and had to be resumed — 2 items (Incursion's existence in PoE2, exact rare-monster affix ceiling, GGG OAuth registration status) remain genuinely unresolved despite the extra effort; see that file's own summary table for the full CONFIRMED/CORRECTED/STILL UNVERIFIED breakdown.
+
+## Wave 4 addition (2026-09-16, same session)
+
+- `pvp-and-competitive.md` — the one genuine gap left after waves 1-3. Short and conclusive: **PoE2 has no PvP in Early Access** (no duels, arena, PvP ladder, or PvP league — PoE1 had all of these and none carried over). "Competitive" content is entirely PvE: per-league level ladders and periodic fixed-seed race events, including an ExileCon 2026 qualifier series. Guilds are chat + shared stash only, no guild-vs-guild content.
+- `CHEATSHEET.md` — a one-page condensed cross-reference of every file's key findings and corrections, written directly (not by a subagent) for a Claude context that needs fast orientation without reading all 17 content files. **Start here.**
