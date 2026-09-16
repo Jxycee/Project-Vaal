@@ -1,0 +1,39 @@
+# PoE2 Research — Index
+
+Encyclopedic reference on Path of Exile 2, gathered for Project Vaal (PoE2 console companion app). Written for a Claude context to load quickly, not for prose reading. Each file is independently useful; cross-reference by filename, not by memorizing this index.
+
+**Baseline facts true across all files as of 2026-09-16** (re-verify before trusting long-term — this game moves fast):
+- PoE2 is **Early Access**, not 1.0. Current patch: **0.5.5 "Forbidden Rites"** (event league, started 2026-09-04), running alongside base patch **0.5.0 "Return of the Ancients"** (challenge league "Runes of Aldur", started 2026-05-29).
+- **1.0 full release targeted 2026-12-11** — free-to-play, expected to add Acts 5-6, a Duelist class + Swords. Not live yet; treat as roadmap, not current state.
+- ExileCon 2026: Nov 7-8, Auckland — expect 1.0 reveals there.
+- 8 base classes currently live: Warrior, Ranger, Monk, Sorceress, Mercenary, Witch, Huntress (added 0.2.0), Druid (added 0.4.0).
+- Campaign is **4 acts + 3 Interludes + Epilogue**, not 6 acts and not a PoE1-style "Cruel" repeat (Cruel was removed in 0.3.0).
+
+## Files
+
+| File | Covers | Strongest source |
+|---|---|---|
+| `passive-tree.md` | Node types, keystones, ascendancy unlock, jewel sockets, GGG's actual tree-export JSON schema | **Verified directly against GGG's public data repo** (github.com/grindinggear/poe2-skilltree-export) — most reliable doc in the set |
+| `gems-and-skills.md` | Gem/socket system, Spirit resource, ailments, combat mechanics, weapon sets | Cross-checked against repo's own `public/data/wiki/2026-08-25/skills/*.json` |
+| `items-and-crafting.md` | Rarity tiers, affixes, currency orbs, Runes/Soul Cores, essences, trade | WebSearch synthesis; flags open items to re-verify |
+| `currency-and-economy.md` | Currency Exchange mechanics, currency hierarchy, leagues, poe2scout.com API shape | Cross-checked against repo's own `src/lib/prices/poe2scout.ts` client |
+| `campaign-and-acts.md` | Per-act zones/bosses/NPCs, ascendancy trial locations, checkpoints | WebSearch synthesis (WebFetch blocked this run) |
+| `endgame-and-atlas.md` | Waystones, Atlas passive tree, league mechanics, pinnacle bosses, Citadels | WebSearch synthesis (WebFetch blocked this run) |
+| `classes-and-ascendancies.md` | Per-class attributes/weapons/playstyle, all 22 ascendancies | WebSearch synthesis; flags 2 unverified specifics |
+| `patch-history-and-meta.md` | Full EA version timeline (0.1.0→0.5.5), current league, community sentiment | WebSearch synthesis — fills the ~8-month gap past model training cutoff |
+| `console-player-experience.md` | What PC tools console lacks, controller UX pain points, crossplay/cross-save, patch-cadence parity | WebSearch synthesis, partial (search quota hit) |
+| `glossary.md` | ~70-term alphabetical PoE2 jargon lookup, notes what PoE1 concepts do NOT carry over | WebSearch + trained knowledge |
+
+## Known research gaps / re-verify list
+
+Every wave-1 agent hit the same two sandbox limits: **WebFetch was egress-blocked for nearly all gaming domains** (poe2wiki.net, poe2db.tw, maxroll.gg, fextralife, game8, pathofexile2.com, even Wikipedia), and **WebSearch has a ~200-call/session budget** that several agents exhausted. Everything not sourced from the repo's own data or GGG's public GitHub rests on search-result-snippet synthesis, not full-page reads. Treat exact numbers (attribute totals, ascendancy point counts, exact currency ratios, essence/omen counts) as approximate until re-verified with a working fetch path. Each file's own "Sources" section flags its weakest specific claims.
+
+## Relevance map to Project Vaal features
+
+- **Passive tree viewer** (`src/components/tree`, `src/lib/tree`, `public/data/tree/`) → `passive-tree.md`
+- **Item/gem/skill wiki** (`src/app/wiki`, `src/lib/wiki`, `public/data/wiki/`) → `items-and-crafting.md`, `gems-and-skills.md`
+- **Price check** (`src/app/prices`, `src/lib/prices`) → `currency-and-economy.md`
+- **Campaign tracker** (`src/components/campaign`, `src/lib/campaign`) → `campaign-and-acts.md`
+- **Build sharing** → `classes-and-ascendancies.md`, `gems-and-skills.md`, `passive-tree.md`
+- **Console-first positioning / UX rationale** → `console-player-experience.md`
+- **Anything else, jargon lookup** → `glossary.md`, `patch-history-and-meta.md`
