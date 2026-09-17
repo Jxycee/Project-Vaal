@@ -603,49 +603,76 @@ useEffect(() => {
 }, [onStateChange, data, classId, ascendancyId, main, ascendancyNodes]);
 ```
 
-- [ ] **Step 4: Enforce the ascendancy cap**
+- [ ] **Step 4: Enforce the ascendancy cap at BOTH commit sites**
 
-**Read the surrounding code before editing — there are two call sites of `toggleAscendancyAllocation` and they are not the same.** One (around line 195) is a dry run that feeds the hover/tap preview; the other (around line 315) is the real click handler that commits state. The line numbers are approximate; identify the call sites by what they do, not by line number.
+**There are three call sites of `toggleAscendancyAllocation`, and two of them commit.** Read all of them before editing:
 
-**The cap belongs on the committing call site.** Capping the preview as well is optional and cosmetic — without it, hovering a 9th node shows a path that then refuses on click. Adding it to the preview is acceptable; adding it to the preview *instead* of the commit path is not, because the preview does not change state and would enforce nothing.
+| Location | Role | Needs the cap? |
+|---|---|---|
+| `preview` memo, ~line 195 | Computes `next` for the visual preview | No (display only) |
+| `preview.commit` closure, ~lines 197-200 | **Commits on touch**, fired by `handleConfirmPending` | **Yes** |
+| `handleNodeClick`, ~lines 313-317 | **Commits on desktop** (mouse commits immediately) | **Yes** |
 
-Find the committing call:
+Guarding only `handleNodeClick` leaves the cap unenforced on phones, which is the primary target platform. Both commit paths must be capped.
+
+Both commit sites currently run the same two lines:
+
+```tsx
+const mainSet = new Set(main.allocated);
+setAscendancyNodes(next.filter((id) => !mainSet.has(id)));
+```
+
+Replace that duplication with one helper, defined after the state declarations, and call it from both sites:
+
+```tsx
+// tree-core's toggleAscendancyAllocation does no point counting, so the cap
+// lives here. Both commit paths (touch confirm and desktop click) route
+// through this — capping only one of them would leave the other unbounded.
+const commitAscendancy = useCallback(
+  (next: number[]) => {
+    const mainSet = new Set(main.allocated);
+    const nextAscendancy = next.filter((id) => !mainSet.has(id));
+    // Refuse growth past the cap; always allow a click that shrinks the
+    // allocation, so a user at the cap can still deallocate.
+    if (
+      nextAscendancy.length > MAX_ASCENDANCY_POINTS &&
+      nextAscendancy.length > ascendancyNodes.length
+    ) {
+      return;
+    }
+    setAscendancyNodes(nextAscendancy);
+  },
+  [main.allocated, ascendancyNodes.length],
+);
+```
+
+Then in the `preview.commit` closure:
+
+```tsx
+commit = () => commitAscendancy(next);
+```
+
+And in `handleNodeClick`:
 
 ```tsx
 const next = toggleAscendancyAllocation(data, node.ascendancyName, new Set(allocated), skill, ascGraph);
+commitAscendancy(next);
 ```
 
-Guard the resulting set before committing it. Allocation past the cap is refused; removal is always allowed:
-
-```tsx
-const next = toggleAscendancyAllocation(
-  data,
-  node.ascendancyName,
-  new Set(allocated),
-  skill,
-  ascGraph,
-);
-const nextAscendancy = next.filter((id) => id !== startNode);
-// tree-core does no point counting, so the cap is enforced here. Refuse
-// growth past the cap; always allow a click that shrinks the allocation.
-if (
-  nextAscendancy.length > MAX_ASCENDANCY_POINTS &&
-  nextAscendancy.length > ascendancyNodes.length
-) {
-  return;
-}
-```
-
-Then assign `nextAscendancy` where the existing code assigned the toggle result.
+Update the dependency arrays of the `preview` memo and `handleNodeClick` to include `commitAscendancy` in place of the `main.allocated` reference they no longer use directly. Let lint's exhaustive-deps rule guide this — do not suppress it.
 
 - [ ] **Step 5: Verify gates**
 
 Run: `npm run type-check` then `npm run lint` then `npm test` then `npm run build`
 Expected: all PASS.
 
-- [ ] **Step 6: Browser check the cap**
+- [ ] **Step 6: Browser check the cap on BOTH input paths**
 
-Start the dev server, sign in with the test account, go to `/tree`, pick a class and ascendancy, and click ascendancy nodes until 8 are allocated. The 9th must refuse. Removing must still work at 8.
+Start the dev server, sign in with the test account, go to `/tree`, pick a class and ascendancy.
+
+**Desktop path:** at a normal viewport, click ascendancy nodes until 8 are allocated. The 9th must refuse. Removing must still work while at 8.
+
+**Touch path (this is the one that matters most):** switch to a 375px mobile viewport so the component's touch branch activates, then repeat. On touch, allocation is two-step — tap a node to preview, then confirm via the panel's button. The 9th node's confirm must refuse. A cap that works on desktop and not here is a failed task, because phones are the primary platform.
 
 - [ ] **Step 7: Commit**
 
