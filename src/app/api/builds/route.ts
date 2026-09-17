@@ -16,10 +16,10 @@ import { nanoid } from 'nanoid';
 import { createClient } from '@/lib/supabase/server';
 import { GAME_VERSION } from '@/lib/build/constants';
 import type { PassiveState } from '@/lib/build/types';
-import type { Json } from '@/types/database';
+import type { Database, Json } from '@/types/database';
 
 interface SaveBuildBody {
-  id?: string;
+  id?: unknown;
   name?: unknown;
   class?: unknown;
   ascendancy?: unknown;
@@ -31,11 +31,17 @@ interface SaveBuildBody {
   gem_state?: Record<string, unknown>;
 }
 
+type BuildUpdate = Database['public']['Tables']['builds']['Update'];
+
+function isFiniteNumberArray(value: unknown): value is number[] {
+  return Array.isArray(value) && value.every((n) => typeof n === 'number' && Number.isFinite(n));
+}
+
 function isPassiveState(value: unknown): value is PassiveState {
   if (typeof value !== 'object' || value === null) return false;
   const v = value as Record<string, unknown>;
   return (
-    Array.isArray(v.set1) && Array.isArray(v.set2) && Array.isArray(v.ascendancyNodes)
+    isFiniteNumberArray(v.set1) && isFiniteNumberArray(v.set2) && isFiniteNumberArray(v.ascendancyNodes)
   );
 }
 
@@ -49,11 +55,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  let body: SaveBuildBody;
+  let parsedBody: unknown;
   try {
-    body = (await request.json()) as SaveBuildBody;
+    parsedBody = await request.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
+
+  // A JSON body of null, a number, a string, or an array all pass the
+  // try/catch above (they're valid JSON) but aren't a request we can read
+  // fields off of — reject them with a 400 instead of letting `body.name`
+  // throw further down and surface as a generic 500.
+  if (typeof parsedBody !== 'object' || parsedBody === null || Array.isArray(parsedBody)) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+  const body = parsedBody as SaveBuildBody;
+
+  if (body.id !== undefined && typeof body.id !== 'string') {
+    return NextResponse.json({ error: 'Invalid build id' }, { status: 400 });
   }
 
   const name = typeof body.name === 'string' ? body.name.trim() : '';
@@ -82,23 +101,39 @@ export async function POST(request: NextRequest) {
     ascendancyNodes: [],
   };
 
+  // Fields every save (insert or update) always writes in full — the caller
+  // always supplies these via BuildSavePanel/handleSave, so omission is not
+  // meaningful for them the way it is for gear/gem/main_skill below.
   const shared = {
     name,
     class: className,
     ascendancy: typeof body.ascendancy === 'string' ? body.ascendancy : null,
     level,
     league: typeof body.league === 'string' && body.league.trim() ? body.league.trim() : 'Standard',
-    main_skill: typeof body.main_skill === 'string' ? body.main_skill : null,
     passive_state: passive_state as unknown as Json,
-    gear_state: (body.gear_state ?? {}) as unknown as Json,
-    gem_state: (body.gem_state ?? {}) as unknown as Json,
     game_version: GAME_VERSION,
   };
 
   if (body.id) {
+    // On update, gear_state/gem_state/main_skill are included only when the
+    // request body actually sent that key. Task 1 never sends them, so
+    // defaulting them to {}/{}/null unconditionally is harmless today — but
+    // once gear/gem editors exist, any save that omits them (because it was
+    // only touching, say, the tree) would silently wipe whatever was there.
+    // The insert path below keeps unconditional defaults: a new row
+    // genuinely starts empty.
+    const updatePayload: BuildUpdate = {
+      ...shared,
+      ...('gear_state' in body ? { gear_state: body.gear_state as unknown as Json } : {}),
+      ...('gem_state' in body ? { gem_state: body.gem_state as unknown as Json } : {}),
+      ...('main_skill' in body
+        ? { main_skill: typeof body.main_skill === 'string' ? body.main_skill : null }
+        : {}),
+    };
+
     const { data, error } = await supabase
       .from('builds')
-      .update(shared)
+      .update(updatePayload)
       .eq('id', body.id)
       .select()
       .maybeSingle();
@@ -117,7 +152,14 @@ export async function POST(request: NextRequest) {
 
   const { data, error } = await supabase
     .from('builds')
-    .insert({ ...shared, user_id: user.id, share_token: nanoid() })
+    .insert({
+      ...shared,
+      main_skill: typeof body.main_skill === 'string' ? body.main_skill : null,
+      gear_state: (body.gear_state ?? {}) as unknown as Json,
+      gem_state: (body.gem_state ?? {}) as unknown as Json,
+      user_id: user.id,
+      share_token: nanoid(),
+    })
     .select()
     .single();
 

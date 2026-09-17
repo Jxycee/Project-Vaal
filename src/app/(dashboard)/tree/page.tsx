@@ -5,10 +5,14 @@
 // export to PassiveTree, which normalises it (tree-core) and renders it
 // (tree-react). Account-gated by proxy.ts (PROTECTED_PREFIXES).
 //
-// Also wires build persistence: loads a build from ?build=<uuid> (RLS-scoped —
-// "not found" and "not yours" are deliberately indistinguishable), holds the
+// Also wires build persistence: loads a build from ?build=<uuid>, holds the
 // live editor state PassiveTree reports upward, drafts it to localStorage as
-// a refresh safety net, and saves it via POST /api/builds.
+// a refresh safety net, and saves it via POST /api/builds. RLS's "public
+// builds are readable by anyone" policy applies to authenticated selects
+// too, so the load path itself compares the row's user_id against the
+// session user and folds a mismatch into the same "not found" outcome as a
+// genuinely missing id — deliberately, so the UI can't be used to probe
+// which build ids exist.
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
@@ -71,12 +75,18 @@ function TreePageInner() {
   const [loadedFor, setLoadedFor] = useState<string | undefined>(undefined);
   const [loadError, setLoadError] = useState<string | null>(null);
   const ready = !buildId || loadedFor === buildId;
-  // The row that actually belongs to the current context. In scratch mode
-  // (no ?build=) `build` is whatever the first save created, and updating it
-  // is correct. With ?build= present, a row whose id does not match the URL
-  // is stale — from a previous build that is still in state because this
-  // route component survives soft navigation — and must never be written to.
-  const activeBuild = buildId ? (build?.id === buildId ? build : null) : build;
+  // Two separate slices, never reused for both purposes. `build` holds a row
+  // loaded from ?build=<uuid> and is only ever trusted when its id still
+  // matches the CURRENT buildId — a soft navigation (this route component
+  // survives them) can leave it holding a previous build's row for a render
+  // or two. `scratchBuild` holds whatever the current no-?build= session has
+  // created; it is never touched by ?build= loads or by scratch saves that
+  // belong to a different mount of this state. Collapsing these into one
+  // slice (e.g. trusting `build` whenever there's no buildId) is what let
+  // build A survive a soft nav to plain /tree and get silently overwritten
+  // by an Update tap in what looked like scratch mode.
+  const [scratchBuild, setScratchBuild] = useState<SavedBuild | null>(null);
+  const activeBuild = buildId ? (build?.id === buildId ? build : null) : scratchBuild;
 
   useEffect(() => {
     if (!buildId) return;
@@ -88,21 +98,31 @@ function TreePageInner() {
     queueMicrotask(() => {
       if (!cancelled) setLoadError(null);
     });
-    supabase
-      .from('builds')
-      .select('*')
-      .eq('id', buildId)
-      .maybeSingle()
-      .then(({ data, error: err }) => {
-        if (cancelled) return;
-        // RLS means "not ours" and "does not exist" are the same result here.
-        if (err) setLoadError(err.message);
-        else if (!data) setLoadError('That build could not be found.');
-        else setBuild(data as unknown as SavedBuild);
-        // Set on every settled outcome — error, no-row, and success alike —
-        // so a failed load still releases the gate instead of spinning forever.
-        setLoadedFor(buildId);
-      });
+    // Run alongside the row fetch (not after it) so confirming ownership
+    // costs no extra latency over the old RLS-only query.
+    Promise.all([
+      supabase.auth.getUser(),
+      supabase.from('builds').select('*').eq('id', buildId).maybeSingle(),
+    ]).then(([{ data: userData }, { data, error: err }]) => {
+      if (cancelled) return;
+      if (err) {
+        console.error('Failed to load build:', err);
+        setLoadError('That build could not be found.');
+      } else if (!data || data.user_id !== userData.user?.id) {
+        // A row can come back here even though it is not ours — the "public
+        // builds are readable by anyone" RLS policy applies to authenticated
+        // selects too. Treat "exists but not ours" the same as "does not
+        // exist": this editor has no read-only view yet, so opening someone
+        // else's build would hydrate it as editable with no way to save a
+        // copy, and every Update would just 404.
+        setLoadError('That build could not be found.');
+      } else {
+        setBuild(data as unknown as SavedBuild);
+      }
+      // Set on every settled outcome — error, no-row, and success alike —
+      // so a failed load still releases the gate instead of spinning forever.
+      setLoadedFor(buildId);
+    });
     return () => {
       cancelled = true;
     };
@@ -140,6 +160,15 @@ function TreePageInner() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  // Which buildId saveError/savedAt belong to — the same pattern loadedFor
+  // uses for ready. TreePageInner survives a soft navigation, so without
+  // this a save result from build A would still show on build B's (or
+  // scratch's) freshly remounted panel. Derived into displaySaveError /
+  // displaySavedAt below rather than cleared inside an effect, per the
+  // repo's react-hooks/set-state-in-effect rule.
+  const [saveStatusFor, setSaveStatusFor] = useState<string | undefined>(undefined);
+  const displaySaveError = saveStatusFor === buildId ? saveError : null;
+  const displaySavedAt = saveStatusFor === buildId ? savedAt : null;
 
   const handleSave = useCallback(
     async (meta: { name: string; level: number; league: string }) => {
@@ -163,22 +192,30 @@ function TreePageInner() {
         const payload = (await res.json()) as { build?: SavedBuild; error?: string };
         if (!res.ok) {
           setSaveError(payload.error ?? 'Could not save this build.');
+          setSaveStatusFor(buildId);
           return;
         }
         if (payload.build) {
-          setBuild(payload.build);
+          // Write to the slice that matches the current mode — with
+          // ?build= present this updates the loaded row; in scratch mode it
+          // must never touch `build`, or a later soft nav to plain /tree
+          // would resurrect a stale row and route the next Update to it.
+          if (buildId) setBuild(payload.build);
+          else setScratchBuild(payload.build);
           setSavedAt(new Date().toLocaleTimeString());
+          setSaveStatusFor(buildId);
           setLoadError(null);
           // Only clear the draft once the server has the work.
           clearDraft(editorState.classId, editorState.ascendancyId);
         }
       } catch {
         setSaveError('Could not reach the server. Your work is still here.');
+        setSaveStatusFor(buildId);
       } finally {
         setSaving(false);
       }
     },
-    [editorState, activeBuild],
+    [editorState, activeBuild, buildId],
   );
 
   return (
@@ -214,8 +251,8 @@ function TreePageInner() {
             initialLevel={activeBuild?.level ?? 1}
             initialLeague={activeBuild?.league ?? 'Standard'}
             saving={saving}
-            error={saveError ?? loadError}
-            savedAt={savedAt}
+            error={displaySaveError ?? loadError}
+            savedAt={displaySavedAt}
             onSave={handleSave}
           />
         </>

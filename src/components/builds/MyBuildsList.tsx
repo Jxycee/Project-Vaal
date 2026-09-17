@@ -1,8 +1,14 @@
 'use client';
 
-// The signed-in user's own builds. RLS scopes the select to the owner, so
-// there is deliberately no user_id filter here — adding one would imply the
-// query is what enforces ownership, and it is not.
+// The signed-in user's own builds. Both queries below filter on
+// `user_id = <session user>` — that filter only scopes which rows this list
+// displays as "yours". It does not enforce ownership: the "Public builds are
+// readable by anyone" RLS policy is a permissive `SELECT` policy for role
+// `public`, which Postgres OR's together with the owner policy, so without
+// this filter a signed-in user's select would also return every other
+// user's public build, rendered here with Rename/Delete buttons that would
+// silently hit zero rows. RLS is still what enforces ownership on every
+// write (update/delete) — this filter just keeps foreign rows off the page.
 //
 // Rename and delete go direct through the browser client rather than an API
 // route: neither touches a server-generated value, so RLS is the whole story.
@@ -34,15 +40,19 @@ export default function MyBuildsList() {
   const cancelRenameRef = useRef(false);
 
   const load = useCallback(async () => {
+    if (!user) return;
     setError(null);
     const supabase = createClient();
     const { data, error: err } = await supabase
       .from('builds')
       .select('*')
+      .eq('user_id', user.id)
       .order('updated_at', { ascending: false });
-    if (err) setError(err.message);
-    else setBuilds((data ?? []) as unknown as SavedBuild[]);
-  }, []);
+    if (err) {
+      console.error('Failed to load builds:', err);
+      setError("Couldn't load your builds.");
+    } else setBuilds((data ?? []) as unknown as SavedBuild[]);
+  }, [user]);
 
   // Inlined rather than calling `load()` from the effect body: eslint's
   // react-hooks/set-state-in-effect rule traces a direct call to a
@@ -67,11 +77,14 @@ export default function MyBuildsList() {
       supabase
         .from('builds')
         .select('*')
+        .eq('user_id', userData.user.id)
         .order('updated_at', { ascending: false })
         .then(({ data, error: err }) => {
           if (cancelled) return;
-          if (err) setError(err.message);
-          else setBuilds((data ?? []) as unknown as SavedBuild[]);
+          if (err) {
+            console.error('Failed to load builds:', err);
+            setError("Couldn't load your builds.");
+          } else setBuilds((data ?? []) as unknown as SavedBuild[]);
         });
     });
     return () => {
@@ -92,8 +105,10 @@ export default function MyBuildsList() {
     setError(null);
     const supabase = createClient();
     const { error: err } = await supabase.from('builds').update({ name }).eq('id', id);
-    if (err) setError(err.message);
-    else await load();
+    if (err) {
+      console.error('Failed to rename build:', err);
+      setError("Couldn't rename that build.");
+    } else await load();
   }
 
   async function confirmDelete(id: string) {
@@ -101,8 +116,10 @@ export default function MyBuildsList() {
     setError(null);
     const supabase = createClient();
     const { error: err } = await supabase.from('builds').delete().eq('id', id);
-    if (err) setError(err.message);
-    else await load();
+    if (err) {
+      console.error('Failed to delete build:', err);
+      setError("Couldn't delete that build.");
+    } else await load();
   }
 
   if (user === undefined) {
