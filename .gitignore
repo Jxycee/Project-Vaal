@@ -55,3 +55,7 @@ next-env.d.ts
 # Superdesign CLI working state (design-system.md, repo-analysis context
 # files) — regenerated on demand, not hand-written project documentation
 /.superdesign/
+
+# Claude Code superpowers working state (SDD/dispatch context, task briefs) —
+# regenerated on demand, not hand-written project files
+/.superpowers/

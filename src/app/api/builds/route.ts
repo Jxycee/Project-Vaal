@@ -104,7 +104,8 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('Failed to update build:', error);
+      return NextResponse.json({ error: 'Could not save this build.' }, { status: 500 });
     }
     if (!data) {
       // RLS matched nothing: either it does not exist or it is not ours.
@@ -121,7 +122,8 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Failed to create build:', error);
+    return NextResponse.json({ error: 'Could not save this build.' }, { status: 500 });
   }
   return NextResponse.json({ build: data });
 }
