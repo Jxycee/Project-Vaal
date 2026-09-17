@@ -7,7 +7,7 @@
 // Rename and delete go direct through the browser client rather than an API
 // route: neither touches a server-generated value, so RLS is the whole story.
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Input } from '@/components/ui/input';
@@ -19,8 +19,15 @@ export default function MyBuildsList() {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  // Set true the instant Escape cancels a rename, read at the top of
+  // commitRename. Unmounting the focused <Input> (setRenamingId(null)) fires
+  // a native blur that React still delivers to onBlur on that fiber, so
+  // commitRename runs anyway — this flag is what lets it tell "Escape, then
+  // the resulting blur" apart from "the user actually blurred to commit".
+  const cancelRenameRef = useRef(false);
 
   const load = useCallback(async () => {
+    setError(null);
     const supabase = createClient();
     const { data, error: err } = await supabase
       .from('builds')
@@ -55,9 +62,16 @@ export default function MyBuildsList() {
   }, []);
 
   async function commitRename(id: string) {
+    // Escape already discarded the rename and flagged this — the blur that
+    // unmounting the input triggers must not resurrect it as a save.
+    if (cancelRenameRef.current) {
+      cancelRenameRef.current = false;
+      return;
+    }
     const name = draftName.trim();
     setRenamingId(null);
     if (!name) return;
+    setError(null);
     const supabase = createClient();
     const { error: err } = await supabase.from('builds').update({ name }).eq('id', id);
     if (err) setError(err.message);
@@ -66,13 +80,18 @@ export default function MyBuildsList() {
 
   async function confirmDelete(id: string) {
     setPendingDeleteId(null);
+    setError(null);
     const supabase = createClient();
     const { error: err } = await supabase.from('builds').delete().eq('id', id);
     if (err) setError(err.message);
     else await load();
   }
 
-  if (error) {
+  // Only bail out to an error-only view when there is genuinely nothing else
+  // to show — the initial load itself failed. Once builds is populated, a
+  // later failure (a rename or delete hitting a network blip) must not blank
+  // out every other build; it renders as a banner above the list instead.
+  if (error && builds === null) {
     return (
       <p className="text-sm text-destructive" role="alert">
         {error}
@@ -84,9 +103,16 @@ export default function MyBuildsList() {
     return <p className="text-sm text-muted-foreground">Loading your builds…</p>;
   }
 
+  const errorBanner = error ? (
+    <p className="text-sm text-destructive" role="alert">
+      {error}
+    </p>
+  ) : null;
+
   if (builds.length === 0) {
     return (
       <div className="py-10 text-center">
+        {errorBanner}
         <p className="text-sm text-muted-foreground">You have not saved a build yet.</p>
         <Link href="/tree" className="mt-2 inline-block text-sm underline">
           Plan one on the passive tree
@@ -96,72 +122,79 @@ export default function MyBuildsList() {
   }
 
   return (
-    <ul className="divide-y divide-border rounded-lg border border-border bg-card/40">
-      {builds.map((b) => (
-        <li key={b.id} className="flex items-center gap-3 px-3 py-2.5">
-          <div className="min-w-0 flex-1">
-            {renamingId === b.id ? (
-              <Input
-                autoFocus
-                value={draftName}
-                onChange={(e) => setDraftName(e.target.value)}
-                onBlur={() => void commitRename(b.id)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') void commitRename(b.id);
-                  if (e.key === 'Escape') setRenamingId(null);
-                }}
-                className="h-11"
-              />
-            ) : (
-              <Link href={`/tree?build=${b.id}`} className="block truncate font-medium">
-                {b.name}
-              </Link>
-            )}
-            <p className="truncate text-xs text-muted-foreground">
-              {b.ascendancy ?? b.class} · Level {b.level} · {b.league}
-            </p>
-          </div>
+    <div className="flex flex-col gap-3">
+      {errorBanner}
+      <ul className="divide-y divide-border rounded-lg border border-border bg-card/40">
+        {builds.map((b) => (
+          <li key={b.id} className="flex items-center gap-3 px-3 py-2.5">
+            <div className="min-w-0 flex-1">
+              {renamingId === b.id ? (
+                <Input
+                  autoFocus
+                  value={draftName}
+                  onChange={(e) => setDraftName(e.target.value)}
+                  onBlur={() => void commitRename(b.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') void commitRename(b.id);
+                    if (e.key === 'Escape') {
+                      cancelRenameRef.current = true;
+                      setRenamingId(null);
+                    }
+                  }}
+                  className="h-11"
+                />
+              ) : (
+                <Link href={`/tree?build=${b.id}`} className="block truncate font-medium">
+                  {b.name}
+                </Link>
+              )}
+              <p className="truncate text-xs text-muted-foreground">
+                {b.ascendancy ?? b.class} · Level {b.level} · {b.league}
+              </p>
+            </div>
 
-          {pendingDeleteId === b.id ? (
-            <div className="flex shrink-0 gap-2">
-              <button
-                type="button"
-                onClick={() => void confirmDelete(b.id)}
-                className="h-11 rounded-lg px-3 text-sm text-destructive"
-              >
-                Delete
-              </button>
-              <button
-                type="button"
-                onClick={() => setPendingDeleteId(null)}
-                className="h-11 rounded-lg px-3 text-sm text-muted-foreground"
-              >
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <div className="flex shrink-0 gap-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setRenamingId(b.id);
-                  setDraftName(b.name);
-                }}
-                className="h-11 rounded-lg px-3 text-sm text-muted-foreground"
-              >
-                Rename
-              </button>
-              <button
-                type="button"
-                onClick={() => setPendingDeleteId(b.id)}
-                className="h-11 rounded-lg px-3 text-sm text-muted-foreground"
-              >
-                Delete
-              </button>
-            </div>
-          )}
-        </li>
-      ))}
-    </ul>
+            {pendingDeleteId === b.id ? (
+              <div className="flex shrink-0 gap-2">
+                <button
+                  type="button"
+                  onClick={() => void confirmDelete(b.id)}
+                  className="h-11 rounded-lg px-3 text-sm text-destructive"
+                >
+                  Delete
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPendingDeleteId(null)}
+                  className="h-11 rounded-lg px-3 text-sm text-muted-foreground"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div className="flex shrink-0 gap-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    cancelRenameRef.current = false;
+                    setRenamingId(b.id);
+                    setDraftName(b.name);
+                  }}
+                  className="h-11 rounded-lg px-3 text-sm text-muted-foreground"
+                >
+                  Rename
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPendingDeleteId(b.id)}
+                  className="h-11 rounded-lg px-3 text-sm text-muted-foreground"
+                >
+                  Delete
+                </button>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
