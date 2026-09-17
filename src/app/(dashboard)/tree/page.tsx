@@ -71,6 +71,12 @@ function TreePageInner() {
   const [loadedFor, setLoadedFor] = useState<string | undefined>(undefined);
   const [loadError, setLoadError] = useState<string | null>(null);
   const ready = !buildId || loadedFor === buildId;
+  // The row that actually belongs to the current context. In scratch mode
+  // (no ?build=) `build` is whatever the first save created, and updating it
+  // is correct. With ?build= present, a row whose id does not match the URL
+  // is stale — from a previous build that is still in state because this
+  // route component survives soft navigation — and must never be written to.
+  const activeBuild = buildId ? (build?.id === buildId ? build : null) : build;
 
   useEffect(() => {
     if (!buildId) return;
@@ -105,22 +111,23 @@ function TreePageInner() {
   // The page does not normalize the tree export. It passes the class name
   // straight through; PassiveTree resolves it.
   //
-  // Guarded against a mismatched row on purpose: during a soft navigation
-  // from build A to build B, `build` can still hold A's row for a render or
-  // two after `buildId` has already become B (B's fetch hasn't resolved
-  // yet). Seeding from `build` without checking would hand PassiveTree A's
-  // allocation under B's key — silently, since PassiveTree consumes
-  // initialState as one-shot lazy state and never re-reads it.
+  // Reads activeBuild, not build, so it can never seed from a mismatched
+  // row: during a soft navigation from build A to build B, `build` can still
+  // hold A's row for a render or two after `buildId` has already become B
+  // (B's fetch hasn't resolved yet), but activeBuild is already null in that
+  // window. Seeding from stale `build` would hand PassiveTree A's allocation
+  // under B's key — silently, since PassiveTree consumes initialState as
+  // one-shot lazy state and never re-reads it.
   const initialState = useMemo<PassiveTreeInitialState | undefined>(() => {
-    if (!build || build.id !== buildId) return undefined;
-    const { main, ascendancyNodes } = fromPassiveState(build.passive_state);
+    if (!activeBuild) return undefined;
+    const { main, ascendancyNodes } = fromPassiveState(activeBuild.passive_state);
     return {
-      className: build.class,
-      ascendancyId: build.ascendancy ?? undefined,
+      className: activeBuild.class,
+      ascendancyId: activeBuild.ascendancy ?? undefined,
       main,
       ascendancyNodes,
     };
-  }, [build, buildId]);
+  }, [activeBuild]);
 
   // ---- Live editor state + draft persistence ------------------------------
   const [editorState, setEditorState] = useState<BuildEditorState | null>(null);
@@ -144,7 +151,7 @@ function TreePageInner() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            id: build?.id,
+            id: activeBuild?.id,
             name: meta.name,
             class: editorState.className,
             ascendancy: editorState.ascendancyId ?? null,
@@ -171,7 +178,7 @@ function TreePageInner() {
         setSaving(false);
       }
     },
-    [editorState, build],
+    [editorState, activeBuild],
   );
 
   return (
@@ -202,10 +209,10 @@ function TreePageInner() {
           />
           <BuildSavePanel
             key={buildId ?? 'scratch'}
-            buildId={build?.id}
-            initialName={build?.name ?? ''}
-            initialLevel={build?.level ?? 1}
-            initialLeague={build?.league ?? 'Standard'}
+            buildId={activeBuild?.id}
+            initialName={activeBuild?.name ?? ''}
+            initialLevel={activeBuild?.level ?? 1}
+            initialLeague={activeBuild?.league ?? 'Standard'}
             saving={saving}
             error={saveError ?? loadError}
             savedAt={savedAt}
