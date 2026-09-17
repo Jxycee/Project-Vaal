@@ -80,11 +80,18 @@ function TreePageInner() {
   // matches the CURRENT buildId — a soft navigation (this route component
   // survives them) can leave it holding a previous build's row for a render
   // or two. `scratchBuild` holds whatever the current no-?build= session has
-  // created; it is never touched by ?build= loads or by scratch saves that
-  // belong to a different mount of this state. Collapsing these into one
-  // slice (e.g. trusting `build` whenever there's no buildId) is what let
-  // build A survive a soft nav to plain /tree and get silently overwritten
-  // by an Update tap in what looked like scratch mode.
+  // created; it is never WRITTEN by ?build= loads or saves, but it IS kept
+  // in sync (see the load effect and handleSave below) whenever a fresher
+  // copy of the same row arrives via `build`, so that a scratch-created
+  // build the user goes on to open and edit at ?build=<id> doesn't revert to
+  // its original allocation the moment they soft-nav back to plain /tree —
+  // `scratchBuild` is what `activeBuild` reads there, and reading a stale
+  // pre-edit snapshot would post reverted state on the next Update, with
+  // the id still matching (so it wouldn't even create a new row — it would
+  // silently overwrite the newer one with older data). Collapsing the two
+  // slices into one (e.g. trusting `build` whenever there's no buildId) is
+  // what let build A survive a soft nav to plain /tree and get silently
+  // overwritten by an Update tap in what looked like scratch mode.
   const [scratchBuild, setScratchBuild] = useState<SavedBuild | null>(null);
   const activeBuild = buildId ? (build?.id === buildId ? build : null) : scratchBuild;
 
@@ -117,7 +124,17 @@ function TreePageInner() {
         // copy, and every Update would just 404.
         setLoadError('That build could not be found.');
       } else {
-        setBuild(data as unknown as SavedBuild);
+        const row = data as unknown as SavedBuild;
+        setBuild(row);
+        // Keep scratchBuild in sync if it refers to this same row — a
+        // functional updater so this never needs scratchBuild in the deps
+        // array. Without this, a build created in scratch mode and then
+        // reopened and edited at ?build=<id> would leave scratchBuild
+        // holding the pre-edit snapshot; soft-navigating back to plain
+        // /tree would seed the tree from that stale copy and the next
+        // scratch-mode Update would silently revert the newer edits (same
+        // id, so it overwrites rather than creating a new row).
+        setScratchBuild((prev) => (prev && prev.id === row.id ? row : prev));
       }
       // Set on every settled outcome — error, no-row, and success alike —
       // so a failed load still releases the gate instead of spinning forever.
@@ -200,8 +217,20 @@ function TreePageInner() {
           // ?build= present this updates the loaded row; in scratch mode it
           // must never touch `build`, or a later soft nav to plain /tree
           // would resurrect a stale row and route the next Update to it.
-          if (buildId) setBuild(payload.build);
-          else setScratchBuild(payload.build);
+          if (buildId) {
+            setBuild(payload.build);
+            // If this row was originally created in scratch mode and the
+            // user opened it via ?build= to keep editing, scratchBuild
+            // still holds the pre-edit snapshot from that first save. Sync
+            // it here too, or a later soft nav back to plain /tree would
+            // seed the tree from that stale copy and the next scratch-mode
+            // Update would silently revert this edit (same id, so it
+            // overwrites rather than creating a new row).
+            const row = payload.build;
+            setScratchBuild((prev) => (prev && prev.id === row.id ? row : prev));
+          } else {
+            setScratchBuild(payload.build);
+          }
           setSavedAt(new Date().toLocaleTimeString());
           setSaveStatusFor(buildId);
           setLoadError(null);
