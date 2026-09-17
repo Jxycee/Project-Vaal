@@ -19,11 +19,43 @@ Explicitly out of scope, and why:
 - **GGG API / ladder / OAuth.** `ladder_entries` and `user_profiles.ggg_*` exist in the schema but nothing reads or writes them. This is 0% done, not half-done. Untouched here.
 - **PoB2 import/export and `.build` JSON.** Alternate ways of filling the same editor. Worthless until the editor exists.
 - **Rune / Soul Core sockets.** PoE2 does have rune sockets on gear (see Appendix A), but they are a separate item-pick interaction and add no value before base gear selection works. The socket counts are recorded in Appendix A so a later task can add them without re-researching.
+- **Forks and likes.** The live database already models both (`forked_from*` columns with an index; a `build_likes` table whose RLS blocks accounts under a day old). Neither was in the kickoff scope and neither is built here. They are cheap follow-ups precisely because the server side is already done — noted so the next person does not rebuild what exists.
 - **Jeweller's Orb socket-count progression.** Support sockets are modelled as "up to 5" rather than tracking a gem's current upgrade state. A planner describes the target build, not the current inventory.
 
 ## Verified ground truth
 
 Every claim below was checked against source this session, not assumed from planning docs.
+
+### ⚠️ `supabase/schema.sql` is stale — the live database is authoritative
+
+The checked-in `supabase/schema.sql` does **not** describe the real `builds` table. Three migrations landed after it was written and it was never regenerated:
+
+```
+20260828024123  builds_visibility_forks_likes
+20260828024222  builds_visibility_forks_likes_advisor_fixes
+20260828024741  builds_get_author_name
+```
+
+The kickoff handoff verified its claims against that file and inherited its errors. Anyone reading `schema.sql` will be misled the same way. **Verify against the live database or `src/types/database.ts` (which is generated, and correct), never against `schema.sql`.** Regenerating `schema.sql` is tracked separately; it is not part of this work.
+
+What actually differs, and what it means for this design:
+
+| `schema.sql` claims | Live database | Consequence |
+|---|---|---|
+| `is_public boolean DEFAULT false` | `visibility text NOT NULL DEFAULT 'private'`, CHECK `('private','unlisted','public')` | Three states, not two. `unlisted` = reachable by share link, absent from the finder — exactly the right semantics for sharing. |
+| `builds_public_idx (is_public, class, league)` | `builds_visibility_idx (visibility, class, league) WHERE visibility = 'public'` | Finder filters are still index-backed, on the new column. |
+| — | `main_skill text` + `builds_main_skill_idx WHERE visibility='public'` | The finder is *designed* to filter by main skill. Task 3 should populate this when a primary skill is chosen. |
+| — | `forked_from`, `forked_from_name`, `forked_from_user` + `builds_forked_from_idx` | Fork lineage is modelled. Not built here (see Non-goals). |
+| — | `build_likes` table, RLS requires the liking account be ≥ 1 day old | Anti-spam already handled server-side. Not built here. |
+| `passive_state` default includes `ascendancyNodes` | Live default is `{"set1": [], "set2": []}` | **Never rely on the column default.** Always write the complete three-key shape explicitly. |
+
+**Server-side functions that already exist (all SECURITY DEFINER, all verified):**
+
+| Function | Behaviour |
+|---|---|
+| `get_build_by_share_token(p_token text) → SETOF builds` | Returns the build where `share_token = p_token` **and** `visibility IN ('public','unlisted')`. This is the only path that can read an unlisted build — the RLS SELECT policy exposes `visibility = 'public'` only. The public view **must** use this RPC, not a plain select. |
+| `increment_build_view_count(p_build_id uuid) → void` | Increments, guarded by the same `IN ('public','unlisted')` check. |
+| `get_build_author_name(p_build_id uuid) → text` | Returns the author's `display_name` for public attribution. |
 
 ### Game mechanics (from `docs/research/poe2/`)
 
@@ -136,7 +168,7 @@ Encoding: `weaponSets[nodeId]` of `1` → `set1` only; `2` → `set2` only; abse
 
 **`/builds` Mine tab.** List, create, rename, delete. Direct Supabase calls from the client via `createClient()`, matching how other authenticated pages already read.
 
-**Why saves go through a route handler but renames do not:** a save must mint a `share_token` server-side on first write, and server-side token generation is the one thing a client call cannot do trustworthily. Renames, deletes, and the `is_public` toggle touch no server-generated value, so they go direct and lean on RLS — adding a route for them would be ceremony with no security benefit. Nav's `/builds` entry flips to `live:true`.
+**Why saves go through a route handler but renames do not:** a save must mint a `share_token` server-side on first write, and server-side token generation is the one thing a client call cannot do trustworthily. Renames, deletes, and the visibility change touch no server-generated value, so they go direct and lean on RLS — adding a route for them would be ceremony with no security benefit. Nav's `/builds` entry flips to `live:true`.
 
 ## Task 2 — Gear
 
@@ -170,11 +202,11 @@ flask1, flask2, charm1, charm2, charm3
 
 ## Task 4 — Sharing
 
-**Finder** (`/builds`, Public tab). Lists `is_public = true`, filtered by class / league / tag. Class and league are served by the existing `builds_public_idx` partial index; tags join `build_tags`.
+**Finder** (`/builds`, Public tab). Lists `visibility = 'public'`, filtered by class / league / main skill / tag. Class and league are served by `builds_visibility_idx`; main skill by `builds_main_skill_idx`; tags join `build_tags`. `unlisted` builds are deliberately absent — that is what unlisted means.
 
-**Public view** (`/builds/[shareToken]`). Fetch by token, fire `increment_build_view_count` once per view, render through the *same* Tree/Gear/Gems components with a `readOnly` prop threaded down. No second renderer.
+**Public view** (`/builds/[shareToken]`). Calls `get_build_by_share_token(token)`, **not** a plain select. This is not a style preference: the RLS SELECT policy exposes `visibility = 'public'` only, so a direct select returns nothing for an unlisted build and the share link would appear broken for exactly the builds most likely to be shared. Then fire `increment_build_view_count` once per view and render through the *same* Tree/Gear/Gems components with a `readOnly` prop threaded down. No second renderer. Author attribution via `get_build_author_name`.
 
-**Publish.** Owner-only toggle on `is_public`. Default false — publishing is always an explicit act. The share token is generated on first save regardless and is never regenerated; unpublishing sets `is_public = false`, which the RLS policy already honours.
+**Visibility control.** Owner-only, three-way (private / unlisted / public), default `private`. The share token is minted on first save regardless of visibility, and is never regenerated. Moving to `private` revokes link access immediately — both the share-token RPC and the view-count RPC check `visibility IN ('public','unlisted')` server-side, so revocation needs no client cooperation.
 
 **Bookmarks and tags.** Inserts/deletes against the complete `build_bookmarks` / `build_tags` tables. Tags are freeform, 1–32 chars per the existing CHECK constraint.
 
@@ -223,7 +255,15 @@ Literal `category` strings as they appear in the live index, verified against th
 | belt | `Belt` |
 | weapon*_main | `One Hand Sword`, `Two Hand Sword`, `One Hand Axe`, `Two Hand Axe`, `One Hand Mace`, `Two Hand Mace`, `Mace`, `Bow`, `Crossbow`, `Claw`, `Dagger`, `Flail`, `Spear`, `Sceptre`, `Wand`, `Staff`, `Warstaff` |
 | weapon*_off | `Shield`, `Buckler`, `Focus`, `Quiver` |
-| flask1, flask2 | Flasks group |
-| charm1–3 | Charm categories — **verify against live index before hardcoding**; charms are new in PoE2 and the taxonomy was written before they were confirmed. |
+| flask1 (Life) | `LifeFlask`, `Life Flask` |
+| flask2 (Mana) | `ManaFlask`, `Mana Flask` |
+| charm1–3 | `Charm`, `UtilityFlask` |
 
-`Focii` appears in `ITEM_CATEGORY_GROUPS` but is absent from live data. Filter on `Focus`.
+Verified against the live `item-index.json` (4,975 entries, 89 distinct categories), not inferred from the taxonomy file.
+
+**Two traps in the flask/charm data:**
+
+1. **Base items and uniques use different spellings of the same category.** Base flasks are concatenated (`LifeFlask` ×9: "Lesser Life Flask", "Medium Life Flask"…) while uniques are space-separated (`Life Flask` ×3: "Olroth's Resolve", "Blood of the Warrior"…). Filtering on only one spelling silently hides either every base item or every unique. Both must be included.
+2. **`UtilityFlask` holds charms, not flasks.** Its 13 entries are named "Thawing Charm", "Staunching Charm", "Antidote Charm" — PoE1 utility flasks became PoE2 charms, but the category label was never renamed in the data. The charm slots must search `UtilityFlask` alongside `Charm`, or they will offer only the 12 unique charms and none of the ordinary ones.
+
+`Focii` appears in `ITEM_CATEGORY_GROUPS` but is absent from live data (0 entries). Filter on `Focus` (51 entries).
