@@ -27,6 +27,8 @@ import TreeControls, { type PickerClass } from '@/components/tree/TreeControls';
 import NodeTooltip, { type HoveredNode } from '@/components/tree/NodeTooltip';
 import NodeInfoPanel, { type SelectedNode } from '@/components/tree/NodeInfoPanel';
 import { useTreeResources, useClassCentreSprites } from '@/lib/tree/resources';
+import { MAX_ASCENDANCY_POINTS } from '@/lib/build/constants';
+import type { BuildEditorState, PassiveTreeInitialState } from '@/lib/build/types';
 
 const TREE_VERSION = '0_5';
 const ASSET_VERSION = '0.5.2';
@@ -59,20 +61,67 @@ function useIsTouch(): boolean {
   return isTouch;
 }
 
-export default function PassiveTree({ raw }: { raw: GggTreeJson }) {
+export default function PassiveTree({
+  raw,
+  initialState,
+  onStateChange,
+}: {
+  raw: GggTreeJson;
+  initialState?: PassiveTreeInitialState;
+  onStateChange?: (state: BuildEditorState) => void;
+}) {
   const data: TreeData = useMemo(() => normalizeGggTree(raw, TREE_VERSION), [raw]);
   const mainGraph = useMemo(() => buildTreeGraph(data), [data]);
 
   // Default to the first real class (one with released ascendancies) —
   // index 0 in the raw export is "Marauder", a legacy attribute-origin slot
   // with none, and we never vendored centre art for it.
-  const [classId, setClassId] = useState(
-    () => data.classes.find((c) => c.ascendancies.length > 0)?.id ?? 0,
+  const [classId, setClassId] = useState(() => {
+    const named = initialState?.className
+      ? data.classes.find((c) => c.name === initialState.className)
+      : undefined;
+    return named?.id ?? data.classes.find((c) => c.ascendancies.length > 0)?.id ?? 0;
+  });
+  const [ascendancyId, setAscendancyId] = useState<string | undefined>(
+    initialState?.ascendancyId,
   );
-  const [ascendancyId, setAscendancyId] = useState<string | undefined>(undefined);
   const [mode, setMode] = useState<AllocMode>(0);
-  const [main, setMain] = useState<WeaponSetAllocation>(EMPTY_MAIN);
-  const [ascendancyNodes, setAscendancyNodes] = useState<number[]>([]);
+  const [main, setMain] = useState<WeaponSetAllocation>(initialState?.main ?? EMPTY_MAIN);
+  const [ascendancyNodes, setAscendancyNodes] = useState<number[]>(
+    initialState?.ascendancyNodes ?? [],
+  );
+
+  // Report the allocation upward so the page can save it. Deliberately not
+  // debounced: it is a cheap object build, and the page only stores it.
+  useEffect(() => {
+    onStateChange?.({
+      classId,
+      className: data.classes[classId]?.name ?? '',
+      ascendancyId,
+      main,
+      ascendancyNodes,
+    });
+  }, [onStateChange, data, classId, ascendancyId, main, ascendancyNodes]);
+
+  // tree-core's toggleAscendancyAllocation does no point counting, so the cap
+  // lives here. Both commit paths (touch confirm and desktop click) route
+  // through this — capping only one of them would leave the other unbounded.
+  const commitAscendancy = useCallback(
+    (next: number[]) => {
+      const mainSet = new Set(main.allocated);
+      const nextAscendancy = next.filter((id) => !mainSet.has(id));
+      // Refuse growth past the cap; always allow a click that shrinks the
+      // allocation, so a user at the cap can still deallocate.
+      if (
+        nextAscendancy.length > MAX_ASCENDANCY_POINTS &&
+        nextAscendancy.length > ascendancyNodes.length
+      ) {
+        return;
+      }
+      setAscendancyNodes(nextAscendancy);
+    },
+    [main.allocated, ascendancyNodes.length],
+  );
 
   // Tooltips: real pointer hover only fires for a mouse (touch always starts
   // a drag ref on pointerdown, so onNodeHover never fires on tap — traced in
@@ -194,10 +243,7 @@ export default function PassiveTree({ raw }: { raw: GggTreeJson }) {
       if (!ascGraph) return null; // ascendancy node targeted with none active — nothing to preview
       const next = toggleAscendancyAllocation(data, node.ascendancyName, oldSet, previewTarget, ascGraph);
       newSet = new Set(next);
-      commit = () => {
-        const mainSet = new Set(main.allocated);
-        setAscendancyNodes(next.filter((id) => !mainSet.has(id)));
-      };
+      commit = () => commitAscendancy(next);
     } else {
       const prospective = toggleAllocationInMode(data, startNode, main, previewTarget, mode, pathingGraph);
       newSet = new Set([...prospective.allocated, ...ascendancyNodes]);
@@ -220,7 +266,19 @@ export default function PassiveTree({ raw }: { raw: GggTreeJson }) {
 
     const allocationPreview: AllocationPreview = { kind, nodes: new Set(changedNodes), edges };
     return { kind, preview: allocationPreview, commit };
-  }, [previewTarget, data, allocated, ascGraph, main, ascendancyNodes, startNode, mode, pathingGraph, scene.connections]);
+  }, [
+    previewTarget,
+    data,
+    allocated,
+    ascGraph,
+    main,
+    ascendancyNodes,
+    startNode,
+    mode,
+    pathingGraph,
+    scene.connections,
+    commitAscendancy,
+  ]);
 
   // Commits the pending touch tap. Desktop never calls this — its preview
   // (hover-driven) has no confirm step; a mouse click commits immediately via
@@ -313,13 +371,12 @@ export default function PassiveTree({ raw }: { raw: GggTreeJson }) {
       if (node.ascendancyName) {
         if (!ascGraph) return; // clicked an ascendancy node with none active — ignore
         const next = toggleAscendancyAllocation(data, node.ascendancyName, new Set(allocated), skill, ascGraph);
-        const mainSet = new Set(main.allocated);
-        setAscendancyNodes(next.filter((id) => !mainSet.has(id)));
+        commitAscendancy(next);
       } else {
         setMain((cur) => toggleAllocationInMode(data, startNode, cur, skill, mode, pathingGraph));
       }
     },
-    [data, allocated, main.allocated, ascGraph, startNode, mode, pathingGraph, isTouch, activeAscendancyDef],
+    [data, allocated, commitAscendancy, ascGraph, startNode, mode, pathingGraph, isTouch, activeAscendancyDef],
   );
 
   const handleNodeHover = useCallback(
