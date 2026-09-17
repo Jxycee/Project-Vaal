@@ -3,7 +3,8 @@ import { draftKey, saveDraft, loadDraft, clearDraft } from '@/lib/build/draft';
 import type { BuildEditorState } from '@/lib/build/types';
 
 const state: BuildEditorState = {
-  classId: 3,
+  classId: 2,
+  className: 'Witch',
   ascendancyId: 'Lich',
   main: { allocated: [1, 2], weaponSets: { 2: 1 } },
   ascendancyNodes: [40],
@@ -23,11 +24,11 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe('draftKey', () => {
   it('namespaces by class and ascendancy', () => {
-    expect(draftKey(3, 'Lich')).toBe('vaal:tree-draft:3:Lich');
+    expect(draftKey(2, 'Lich')).toBe('vaal:tree-draft:2:Lich');
   });
 
   it('uses a stable placeholder when no ascendancy is chosen', () => {
-    expect(draftKey(3, undefined)).toBe('vaal:tree-draft:3:none');
+    expect(draftKey(2, undefined)).toBe('vaal:tree-draft:2:none');
   });
 });
 
@@ -36,7 +37,7 @@ describe('save and load', () => {
 
   it('round-trips a draft', () => {
     saveDraft(state);
-    expect(loadDraft(3, 'Lich')).toEqual(state);
+    expect(loadDraft(2, 'Lich')).toEqual(state);
   });
 
   it('returns null when nothing is stored', () => {
@@ -44,14 +45,14 @@ describe('save and load', () => {
   });
 
   it('returns null for corrupt JSON instead of throwing', () => {
-    localStorage.setItem(draftKey(3, 'Lich'), '{not json');
-    expect(loadDraft(3, 'Lich')).toBeNull();
+    localStorage.setItem(draftKey(2, 'Lich'), '{not json');
+    expect(loadDraft(2, 'Lich')).toBeNull();
   });
 
   it('clears a draft', () => {
     saveDraft(state);
-    clearDraft(3, 'Lich');
-    expect(loadDraft(3, 'Lich')).toBeNull();
+    clearDraft(2, 'Lich');
+    expect(loadDraft(2, 'Lich')).toBeNull();
   });
 });
 
@@ -69,7 +70,7 @@ describe('storage unavailable', () => {
       },
     });
     expect(() => saveDraft(state)).not.toThrow();
-    expect(loadDraft(3, 'Lich')).toBeNull();
-    expect(() => clearDraft(3, 'Lich')).not.toThrow();
+    expect(loadDraft(2, 'Lich')).toBeNull();
+    expect(() => clearDraft(2, 'Lich')).not.toThrow();
   });
 });
