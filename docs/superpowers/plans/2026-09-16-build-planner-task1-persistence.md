@@ -77,9 +77,29 @@ export interface PassiveState {
   ascendancyNodes: number[];
 }
 
-/** The editor's in-memory allocation, as PassiveTree holds it. */
+/**
+ * The editor's in-memory allocation, as PassiveTree reports it upward.
+ *
+ * Carries BOTH classId and className deliberately. classId is tree-core's
+ * index and is meaningless without the normalized tree; className is what
+ * builds.class stores. Reporting the name means the page never has to
+ * normalize the tree export itself just to translate an index — PassiveTree
+ * already holds the normalized data, so it does the mapping.
+ */
 export interface BuildEditorState {
   classId: number;
+  className: string;
+  ascendancyId: string | undefined;
+  main: WeaponSetAllocation;
+  ascendancyNodes: number[];
+}
+
+/**
+ * What the page hands PassiveTree to hydrate a saved build. Keyed by class
+ * NAME, not id, because that is what came out of the database.
+ */
+export interface PassiveTreeInitialState {
+  className: string | undefined;
   ascendancyId: string | undefined;
   main: WeaponSetAllocation;
   ascendancyNodes: number[];
@@ -512,10 +532,12 @@ git commit -m "feat(api): add authenticated build save route"
 - Modify: `src/components/tree/PassiveTree.tsx`
 
 **Interfaces:**
-- Consumes: `BuildEditorState` (Task 1), `MAX_ASCENDANCY_POINTS` (Task 1)
-- Produces: `PassiveTree` accepting `{ raw, initialState?: BuildEditorState, onStateChange?: (s: BuildEditorState) => void }`
+- Consumes: `BuildEditorState`, `PassiveTreeInitialState`, `MAX_ASCENDANCY_POINTS` (Task 1)
+- Produces: `PassiveTree` accepting `{ raw, initialState?: PassiveTreeInitialState, onStateChange?: (s: BuildEditorState) => void }`
 
 **Context:** `tree-core`'s `toggleAscendancyAllocation` does no point counting — verified in its `.d.ts`. Without this task a user can allocate unlimited ascendancy nodes.
+
+**Note on class identity:** the component takes a class *name* in and reports both the name and the internal id out. It owns this mapping because it already holds the normalized tree; the page must never normalize the export itself just to translate an index.
 
 - [ ] **Step 1: Widen the component's props**
 
@@ -528,7 +550,7 @@ export default function PassiveTree({
   onStateChange,
 }: {
   raw: GggTreeJson;
-  initialState?: BuildEditorState;
+  initialState?: PassiveTreeInitialState;
   onStateChange?: (state: BuildEditorState) => void;
 }) {
 ```
@@ -537,20 +559,20 @@ Add the import alongside the existing ones:
 
 ```tsx
 import { MAX_ASCENDANCY_POINTS } from '@/lib/build/constants';
-import type { BuildEditorState } from '@/lib/build/types';
+import type { BuildEditorState, PassiveTreeInitialState } from '@/lib/build/types';
 ```
 
 - [ ] **Step 2: Seed the state slices from `initialState`**
 
-Change the four `useState` initialisers (lines ~69-75) to prefer `initialState`:
+Change the four `useState` initialisers (lines ~69-75) to prefer `initialState`. The class name is resolved to an id here, against the normalized `data` the component already has:
 
 ```tsx
-const [classId, setClassId] = useState(
-  () =>
-    initialState?.classId ??
-    data.classes.find((c) => c.ascendancies.length > 0)?.id ??
-    0,
-);
+const [classId, setClassId] = useState(() => {
+  const named = initialState?.className
+    ? data.classes.find((c) => c.name === initialState.className)
+    : undefined;
+  return named?.id ?? data.classes.find((c) => c.ascendancies.length > 0)?.id ?? 0;
+});
 const [ascendancyId, setAscendancyId] = useState<string | undefined>(
   initialState?.ascendancyId,
 );
@@ -561,23 +583,33 @@ const [ascendancyNodes, setAscendancyNodes] = useState<number[]>(
 );
 ```
 
-These are lazy/initial values only — they intentionally do not re-sync if `initialState` changes later. The page remounts the component via `key` when it loads a different build (Task 8).
+These are lazy/initial values only — they intentionally do not re-sync if `initialState` changes later. The page remounts the component via `key` when it loads a different build (Task 7).
 
 - [ ] **Step 3: Report state upward**
 
-Add after the state declarations:
+Add after the state declarations. Note it reports `className` so the page never needs the normalized tree:
 
 ```tsx
 // Report the allocation upward so the page can save it. Deliberately not
 // debounced: it is a cheap object build, and the page only stores it.
 useEffect(() => {
-  onStateChange?.({ classId, ascendancyId, main, ascendancyNodes });
-}, [onStateChange, classId, ascendancyId, main, ascendancyNodes]);
+  onStateChange?.({
+    classId,
+    className: data.classes[classId]?.name ?? '',
+    ascendancyId,
+    main,
+    ascendancyNodes,
+  });
+}, [onStateChange, data, classId, ascendancyId, main, ascendancyNodes]);
 ```
 
 - [ ] **Step 4: Enforce the ascendancy cap**
 
-Find the ascendancy toggle call at roughly line 315:
+**Read the surrounding code before editing — there are two call sites of `toggleAscendancyAllocation` and they are not the same.** One (around line 195) is a dry run that feeds the hover/tap preview; the other (around line 315) is the real click handler that commits state. The line numbers are approximate; identify the call sites by what they do, not by line number.
+
+**The cap belongs on the committing call site.** Capping the preview as well is optional and cosmetic — without it, hovering a 9th node shows a path that then refuses on click. Adding it to the preview is acceptable; adding it to the preview *instead* of the commit path is not, because the preview does not change state and would enforce nothing.
+
+Find the committing call:
 
 ```tsx
 const next = toggleAscendancyAllocation(data, node.ascendancyName, new Set(allocated), skill, ascGraph);
@@ -631,7 +663,7 @@ git commit -m "feat(tree): add build state props and enforce 8-point ascendancy 
 - Test: `src/lib/build/__tests__/draft.test.ts`
 
 **Interfaces:**
-- Consumes: `BuildEditorState`, `PassiveState` (Task 1), converters (Task 2)
+- Consumes: `BuildEditorState` (Task 1). Deliberately does **not** use the Task 2 converters — a draft stores the editor's own shape verbatim, since it never crosses the database boundary.
 - Produces:
   - `draftKey(classId: number, ascendancyId: string | undefined): string`
   - `saveDraft(state: BuildEditorState): void`
@@ -995,14 +1027,19 @@ Import `useSearchParams` from `next/navigation` and `createClient` from `@/lib/s
 
 - [ ] **Step 2: Derive the initial editor state**
 
+The page does **not** normalize the tree export. It passes the class name straight through; `PassiveTree` resolves it (Task 4).
+
 ```tsx
-const initialState = useMemo<BuildEditorState | undefined>(() => {
-  if (!build || !raw) return undefined;
+const initialState = useMemo<PassiveTreeInitialState | undefined>(() => {
+  if (!build) return undefined;
   const { main, ascendancyNodes } = fromPassiveState(build.passive_state);
-  const data = normalizeGggTree(raw, '0_5');
-  const classId = data.classes.find((c) => c.name === build.class)?.id ?? 0;
-  return { classId, ascendancyId: build.ascendancy ?? undefined, main, ascendancyNodes };
-}, [build, raw]);
+  return {
+    className: build.class,
+    ascendancyId: build.ascendancy ?? undefined,
+    main,
+    ascendancyNodes,
+  };
+}, [build]);
 ```
 
 - [ ] **Step 3: Hold the live editor state and persist drafts**
@@ -1024,19 +1061,17 @@ const [savedAt, setSavedAt] = useState<string | null>(null);
 
 const handleSave = useCallback(
   async (meta: { name: string; level: number; league: string }) => {
-    if (!editorState || !raw) return;
+    if (!editorState) return;
     setSaving(true);
     setSaveError(null);
     try {
-      const data = normalizeGggTree(raw, '0_5');
-      const className = data.classes[editorState.classId]?.name ?? '';
       const res = await fetch('/api/builds', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: build?.id,
           name: meta.name,
-          class: className,
+          class: editorState.className,
           ascendancy: editorState.ascendancyId ?? null,
           level: meta.level,
           league: meta.league,
@@ -1060,7 +1095,7 @@ const handleSave = useCallback(
       setSaving(false);
     }
   },
-  [editorState, raw, build?.id],
+  [editorState, build?.id],
 );
 ```
 
