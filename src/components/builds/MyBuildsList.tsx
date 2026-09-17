@@ -9,11 +9,18 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import type { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
 import { Input } from '@/components/ui/input';
 import type { SavedBuild } from '@/lib/build/types';
 
 export default function MyBuildsList() {
+  // undefined = auth state not yet known (initial check in flight);
+  // null = checked and signed out; a User = checked and signed in.
+  // /builds is public (see proxy.ts) so, unlike /tree, there is no
+  // redirect to fall back on — this component is what decides whether
+  // the personal list is safe to render at all.
+  const [user, setUser] = useState<User | null | undefined>(undefined);
   const [builds, setBuilds] = useState<SavedBuild[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -44,18 +51,29 @@ export default function MyBuildsList() {
   // directly (as the tree page's build-load effect and WikiBrowse's index
   // fetch already do) keeps the setState calls inside a plain promise
   // callback, which the rule does not flag.
+  //
+  // getUser() is checked first, and the builds query only fires once a
+  // session is confirmed. RLS would happily answer an anonymous query too
+  // (via the "public builds" policy), which is exactly the bug this guards
+  // against — a signed-out visitor must never see that data rendered under
+  // "Your builds", so we don't even fetch it for them.
   useEffect(() => {
     let cancelled = false;
     const supabase = createClient();
-    supabase
-      .from('builds')
-      .select('*')
-      .order('updated_at', { ascending: false })
-      .then(({ data, error: err }) => {
-        if (cancelled) return;
-        if (err) setError(err.message);
-        else setBuilds((data ?? []) as unknown as SavedBuild[]);
-      });
+    supabase.auth.getUser().then(({ data: userData }) => {
+      if (cancelled) return;
+      setUser(userData.user);
+      if (!userData.user) return;
+      supabase
+        .from('builds')
+        .select('*')
+        .order('updated_at', { ascending: false })
+        .then(({ data, error: err }) => {
+          if (cancelled) return;
+          if (err) setError(err.message);
+          else setBuilds((data ?? []) as unknown as SavedBuild[]);
+        });
+    });
     return () => {
       cancelled = true;
     };
@@ -85,6 +103,21 @@ export default function MyBuildsList() {
     const { error: err } = await supabase.from('builds').delete().eq('id', id);
     if (err) setError(err.message);
     else await load();
+  }
+
+  if (user === undefined) {
+    return <p className="text-sm text-muted-foreground">Loading your builds…</p>;
+  }
+
+  if (user === null) {
+    return (
+      <div className="py-10 text-center">
+        <p className="text-sm text-muted-foreground">Sign in to see your saved builds.</p>
+        <Link href="/login" className="mt-2 inline-block text-sm underline">
+          Sign in
+        </Link>
+      </div>
+    );
   }
 
   // Only bail out to an error-only view when there is genuinely nothing else

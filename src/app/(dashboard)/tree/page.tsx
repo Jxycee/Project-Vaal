@@ -202,13 +202,13 @@ function TreePageInner() {
       ) : (
         <>
           <PassiveTree
-            key={buildId ?? 'scratch'}
+            key={`tree-${buildId ?? 'scratch'}`}
             raw={raw}
             initialState={initialState}
             onStateChange={setEditorState}
           />
           <BuildSavePanel
-            key={buildId ?? 'scratch'}
+            key={`panel-${buildId ?? 'scratch'}`}
             buildId={activeBuild?.id}
             initialName={activeBuild?.name ?? ''}
             initialLevel={activeBuild?.level ?? 1}
