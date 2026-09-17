@@ -17,7 +17,7 @@ const NAV: NavItem[] = [
   { href: '/prices', label: 'Prices', icon: 'prices', live: true },
   { href: '/tree', label: 'Tree', icon: 'tree', live: true },
   { href: '/campaign', label: 'Campaign', icon: 'campaign', live: true },
-  { href: '/builds', label: 'Builds', icon: 'builds', live: false },
+  { href: '/builds', label: 'Builds', icon: 'builds', live: true },
   { href: '/wiki', label: 'Wiki', icon: 'wiki', live: true },
 ]
 
