@@ -71,6 +71,12 @@ function TreePageInner() {
     if (!buildId) return;
     let cancelled = false;
     const supabase = createClient();
+    // Clear any stale error from a previous load before this one resolves —
+    // deferred a tick (rather than a synchronous setState at the top of the
+    // effect) to satisfy the set-state-in-effect lint rule.
+    queueMicrotask(() => {
+      if (!cancelled) setLoadError(null);
+    });
     supabase
       .from('builds')
       .select('*')
@@ -141,6 +147,7 @@ function TreePageInner() {
         if (payload.build) {
           setBuild(payload.build);
           setSavedAt(new Date().toLocaleTimeString());
+          setLoadError(null);
           // Only clear the draft once the server has the work.
           clearDraft(editorState.classId, editorState.ascendancyId);
         }
@@ -174,12 +181,13 @@ function TreePageInner() {
       ) : (
         <>
           <PassiveTree
-            key={build?.id ?? 'scratch'}
+            key={buildId ?? 'scratch'}
             raw={raw}
             initialState={initialState}
             onStateChange={setEditorState}
           />
           <BuildSavePanel
+            key={buildId ?? 'scratch'}
             buildId={build?.id}
             initialName={build?.name ?? ''}
             initialLevel={build?.level ?? 1}
