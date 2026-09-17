@@ -64,8 +64,13 @@ function TreePageInner() {
   const buildId = searchParams.get('build') ?? undefined;
 
   const [build, setBuild] = useState<SavedBuild | null>(null);
-  const [buildLoaded, setBuildLoaded] = useState(!buildId);
+  // Which build id the load effect has actually settled for — compared
+  // against the CURRENT buildId (not just "have we ever loaded") so a soft
+  // navigation from one build to another is stale-proof by construction:
+  // readiness goes false the instant buildId changes, not just on mount.
+  const [loadedFor, setLoadedFor] = useState<string | undefined>(undefined);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const ready = !buildId || loadedFor === buildId;
 
   useEffect(() => {
     if (!buildId) return;
@@ -88,7 +93,9 @@ function TreePageInner() {
         if (err) setLoadError(err.message);
         else if (!data) setLoadError('That build could not be found.');
         else setBuild(data as unknown as SavedBuild);
-        setBuildLoaded(true);
+        // Set on every settled outcome — error, no-row, and success alike —
+        // so a failed load still releases the gate instead of spinning forever.
+        setLoadedFor(buildId);
       });
     return () => {
       cancelled = true;
@@ -97,8 +104,15 @@ function TreePageInner() {
 
   // The page does not normalize the tree export. It passes the class name
   // straight through; PassiveTree resolves it.
+  //
+  // Guarded against a mismatched row on purpose: during a soft navigation
+  // from build A to build B, `build` can still hold A's row for a render or
+  // two after `buildId` has already become B (B's fetch hasn't resolved
+  // yet). Seeding from `build` without checking would hand PassiveTree A's
+  // allocation under B's key — silently, since PassiveTree consumes
+  // initialState as one-shot lazy state and never re-reads it.
   const initialState = useMemo<PassiveTreeInitialState | undefined>(() => {
-    if (!build) return undefined;
+    if (!build || build.id !== buildId) return undefined;
     const { main, ascendancyNodes } = fromPassiveState(build.passive_state);
     return {
       className: build.class,
@@ -106,7 +120,7 @@ function TreePageInner() {
       main,
       ascendancyNodes,
     };
-  }, [build]);
+  }, [build, buildId]);
 
   // ---- Live editor state + draft persistence ------------------------------
   const [editorState, setEditorState] = useState<BuildEditorState | null>(null);
@@ -174,7 +188,7 @@ function TreePageInner() {
         <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
           Loading passive tree…
         </div>
-      ) : !buildLoaded ? (
+      ) : !ready ? (
         <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
           Loading build…
         </div>
