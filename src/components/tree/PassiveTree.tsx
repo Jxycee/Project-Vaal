@@ -211,8 +211,8 @@ export default function PassiveTree({
       if (set === 1) setI++;
       else if (set === 2) setII++;
     }
-    return { basic: main.allocated.length - setI - setII, setI, setII };
-  }, [main]);
+    return { basic: main.allocated.length - setI - setII, setI, setII, ascendancy: ascendancyNodes.length };
+  }, [main, ascendancyNodes]);
 
   const scene = useMemo(
     () =>

@@ -7,6 +7,7 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Search } from 'lucide-react';
 import type { AllocMode } from '@poe2-toolkit/tree-core';
+import { MAX_ASCENDANCY_POINTS } from '@/lib/build/constants';
 import ResetButton from '@/components/tree/ResetButton';
 
 export interface PickerClass {
@@ -19,6 +20,7 @@ export interface PointCounts {
   basic: number;
   setI: number;
   setII: number;
+  ascendancy: number;
 }
 
 interface TreeControlsProps {
@@ -123,7 +125,7 @@ export default function TreeControls({
             </div>
           )}
 
-          <div className="flex gap-1.5 border-t border-border pt-2.5">
+          <div className="flex flex-wrap gap-1.5 border-t border-border pt-2.5">
             {([0, 1, 2] as const).map((m) => {
               const [spent, max] =
                 m === 0
@@ -150,6 +152,18 @@ export default function TreeControls({
                 </button>
               );
             })}
+            <div
+              className={
+                pointCounts.ascendancy >= MAX_ASCENDANCY_POINTS
+                  ? 'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-primary text-primary-foreground shadow-[0_6px_16px_-8px_var(--primary)]'
+                  : 'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-background/60 text-muted-foreground'
+              }
+            >
+              <span>Asc</span>
+              <span className="tabular-nums opacity-80">
+                {pointCounts.ascendancy}/{MAX_ASCENDANCY_POINTS}
+              </span>
+            </div>
           </div>
 
           <div className="flex justify-end border-t border-border pt-2.5">
