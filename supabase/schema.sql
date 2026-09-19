@@ -1,5 +1,21 @@
 -- =============================================================================
 -- Project Vaal — Supabase Schema
+-- =============================================================================
+-- GENERATED FROM THE LIVE DATABASE — do not hand-edit and let it drift.
+--
+-- Source:           Supabase project `mjxadehorflhncendqiy`
+-- Generated:        2026-09-18
+-- Latest migration: 20260829195704_add_preferred_price_league_to_user_profiles
+-- Regenerate by:    introspecting the live project (information_schema for
+--                    columns; pg_constraint/pg_get_constraintdef for keys and
+--                    checks; pg_indexes for indexes incl. partial-index
+--                    predicates; pg_policies + pg_class.relrowsecurity for
+--                    RLS; pg_proc/pg_get_functiondef for functions;
+--                    pg_trigger/pg_get_triggerdef for triggers;
+--                    information_schema.role_routine_grants for function
+--                    grants) via the Supabase MCP tools (execute_sql,
+--                    list_migrations) and rewriting this file to match.
+--
 -- Apply via: Supabase dashboard → SQL Editor, or supabase db push
 -- =============================================================================
 
@@ -48,12 +64,45 @@ BEGIN
   UPDATE public.builds
   SET view_count = view_count + 1
   WHERE id = p_build_id
-    AND is_public = true;          -- only count views on public builds
+    AND visibility IN ('public', 'unlisted');   -- count views on public + unlisted (link-shared) builds
 END;
 $$;
 
 -- Grant execute on the view counter to all roles (including anon)
 GRANT EXECUTE ON FUNCTION public.increment_build_view_count(uuid) TO anon, authenticated;
+
+-- Look up a build by its share token; runs as DEFINER so an anon visitor with
+-- a valid link can read a build regardless of its RLS-visible ownership.
+-- Only public/unlisted builds are returned — a private build's token (if any)
+-- never resolves.
+CREATE OR REPLACE FUNCTION public.get_build_by_share_token(p_token text)
+RETURNS SETOF builds
+LANGUAGE sql
+STABLE SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+  SELECT * FROM public.builds
+  WHERE share_token = p_token
+    AND visibility IN ('public', 'unlisted');
+$$;
+
+-- Resolve a build's author display name for public-facing UI (build finder,
+-- shared build page). SECURITY DEFINER so it can read user_profiles.display_name
+-- across owners without granting broader profile-read access via RLS.
+CREATE OR REPLACE FUNCTION public.get_build_author_name(p_build_id uuid)
+RETURNS text
+LANGUAGE sql
+STABLE SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+  SELECT up.display_name
+  FROM public.builds b
+  JOIN public.user_profiles up ON up.id = b.user_id
+  WHERE b.id = p_build_id;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_build_by_share_token(text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_build_author_name(uuid) TO anon, authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Table: user_profiles
@@ -63,6 +112,10 @@ GRANT EXECUTE ON FUNCTION public.increment_build_view_count(uuid) TO anon, authe
 
 CREATE TABLE public.user_profiles (
   id                    uuid        PRIMARY KEY REFERENCES auth.users ON DELETE CASCADE,
+  -- Public-facing name shown as build author/credit. Nullable — no UI to set
+  -- this yet; NULL falls back to a generic label ("Anonymous") wherever it's
+  -- rendered. Read cross-user via get_build_author_name(), not direct RLS.
+  display_name          text        CHECK (display_name IS NULL OR length(display_name) BETWEEN 1 AND 32),
   ggg_account_name      text,
   ggg_realm             text        CHECK (ggg_realm IN ('pc', 'xbox', 'sony')),
   -- Tokens encrypted at rest via pgp_sym_encrypt(value, app_secret).
@@ -158,20 +211,25 @@ CREATE TABLE public.builds (
   league          text        NOT NULL DEFAULT 'Standard',
 
   -- JSONB build state — shapes documented in schema.md and §6 of planning doc
-  -- passive_state: { set1: [nodeId, ...], set2: [nodeId, ...], ascendancyNodes: [nodeId, ...] }
-  -- (matches plan §6, updated 2026-07-06 for ascendancy support — this file had
-  -- drifted behind that update; ascendancyNodes was missing from the default)
-  passive_state   jsonb       NOT NULL DEFAULT '{"set1": [], "set2": [], "ascendancyNodes": []}',
+  -- passive_state: { set1: [nodeId, ...], set2: [nodeId, ...] }
+  passive_state   jsonb       NOT NULL DEFAULT '{"set1": [], "set2": []}',
   -- gear_state:    { head: {...item}|null, body: {...item}|null, ... }
   gear_state      jsonb       NOT NULL DEFAULT '{}',
   -- gem_state:     { slots: [{ skill: {...gem}, supports: [{...gem}] }] }
   gem_state       jsonb       NOT NULL DEFAULT '{}',
 
+  -- Derived from gem_state.slots[0] at save time. Denormalized for
+  -- build-finder filtering — not authoritative, gem_state is.
+  main_skill      text,
+
   -- Sharing
-  is_public       boolean     NOT NULL DEFAULT false,
+  -- private: owner only. unlisted: readable via share_token (see
+  -- get_build_by_share_token), absent from the public finder. public:
+  -- readable by anyone, listed in the finder.
+  visibility      text        NOT NULL DEFAULT 'private' CHECK (visibility IN ('private', 'unlisted', 'public')),
   -- share_token: 21-char nanoid; generated server-side on first save.
   -- NULL until the build is explicitly saved/published.
-  -- Never regenerated — invalidate by setting is_public = false.
+  -- Never regenerated — invalidate a link by setting visibility = 'private'.
   share_token     text        UNIQUE,
   view_count      int         NOT NULL DEFAULT 0,
 
@@ -179,14 +237,23 @@ CREATE TABLE public.builds (
   -- Shown as "Created in 0.2.0" label in build finder.
   game_version    text        NOT NULL DEFAULT '0.2.0',
 
+  -- Forking — set on copy ("Copy to my builds"). forked_from_name/_user are
+  -- denormalized: they're what's actually rendered, kept even if the source
+  -- build later disappears or goes private.
+  forked_from       uuid      REFERENCES public.builds ON DELETE SET NULL,
+  forked_from_name  text,
+  forked_from_user  text,
+
   created_at      timestamptz NOT NULL DEFAULT now(),
   updated_at      timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE INDEX builds_user_id_idx       ON public.builds (user_id);
 CREATE INDEX builds_share_token_idx   ON public.builds (share_token) WHERE share_token IS NOT NULL;
-CREATE INDEX builds_public_idx        ON public.builds (is_public, class, league) WHERE is_public = true;
-CREATE INDEX builds_game_version_idx  ON public.builds (game_version) WHERE is_public = true;
+CREATE INDEX builds_visibility_idx    ON public.builds (visibility, class, league) WHERE visibility = 'public';
+CREATE INDEX builds_game_version_idx  ON public.builds (game_version) WHERE visibility = 'public';
+CREATE INDEX builds_main_skill_idx    ON public.builds (main_skill) WHERE visibility = 'public';
+CREATE INDEX builds_forked_from_idx   ON public.builds (forked_from) WHERE forked_from IS NOT NULL;
 
 CREATE TRIGGER set_builds_updated_at
   BEFORE UPDATE ON public.builds
@@ -202,7 +269,7 @@ CREATE POLICY "Owners can do everything with their builds"
 CREATE POLICY "Public builds are readable by anyone"
   ON public.builds FOR SELECT
   TO PUBLIC
-  USING (is_public = true);
+  USING (visibility = 'public');
 
 -- ---------------------------------------------------------------------------
 -- Table: build_tags
@@ -226,7 +293,7 @@ CREATE POLICY "Tags on own or public builds are readable"
     EXISTS (
       SELECT 1 FROM public.builds b
       WHERE b.id = build_tags.build_id
-        AND (b.user_id = auth.uid() OR b.is_public = true)
+        AND (b.user_id = (SELECT auth.uid()) OR b.visibility = 'public')
     )
   );
 
@@ -262,7 +329,8 @@ CREATE TABLE public.build_bookmarks (
   PRIMARY KEY (user_id, build_id)
 );
 
-CREATE INDEX build_bookmarks_user_id_idx ON public.build_bookmarks (user_id);
+CREATE INDEX build_bookmarks_user_id_idx  ON public.build_bookmarks (user_id);
+CREATE INDEX build_bookmarks_build_id_idx ON public.build_bookmarks (build_id);
 
 ALTER TABLE public.build_bookmarks ENABLE ROW LEVEL SECURITY;
 
@@ -270,6 +338,66 @@ CREATE POLICY "Users can manage own bookmarks"
   ON public.build_bookmarks FOR ALL
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Build owners can see who bookmarked their builds"
+  ON public.build_bookmarks FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.builds b
+      WHERE b.id = build_bookmarks.build_id
+        AND b.user_id = (SELECT auth.uid())
+    )
+  );
+
+-- ---------------------------------------------------------------------------
+-- Table: build_likes
+-- ---------------------------------------------------------------------------
+-- Users like community builds from the build finder. Separate from
+-- build_bookmarks (bookmarks = "save to my library", likes = a public signal).
+
+CREATE TABLE public.build_likes (
+  user_id     uuid        NOT NULL REFERENCES public.user_profiles ON DELETE CASCADE,
+  build_id    uuid        NOT NULL REFERENCES public.builds ON DELETE CASCADE,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, build_id)
+);
+
+CREATE INDEX build_likes_build_id_idx ON public.build_likes (build_id);
+
+ALTER TABLE public.build_likes ENABLE ROW LEVEL SECURITY;
+
+-- Likes inherit the visibility of their parent build
+CREATE POLICY "Likes on own or public builds are readable"
+  ON public.build_likes FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.builds b
+      WHERE b.id = build_likes.build_id
+        AND (b.user_id = (SELECT auth.uid()) OR b.visibility = 'public')
+    )
+  );
+
+-- Anti-abuse: the liking account must be at least one day old, and the
+-- target build must be public (or the liker's own).
+CREATE POLICY "Members of 1+ day can like public (or their own) builds"
+  ON public.build_likes FOR INSERT
+  WITH CHECK (
+    (SELECT auth.uid()) = user_id
+    AND EXISTS (
+      SELECT 1 FROM public.user_profiles up
+      WHERE up.id = (SELECT auth.uid())
+        AND up.created_at <= now() - INTERVAL '1 day'
+    )
+    AND EXISTS (
+      SELECT 1 FROM public.builds b
+      WHERE b.id = build_likes.build_id
+        AND (b.visibility = 'public' OR b.user_id = (SELECT auth.uid()))
+    )
+  );
+
+CREATE POLICY "Users can remove their own like"
+  ON public.build_likes FOR DELETE
+  USING ((SELECT auth.uid()) = user_id);
 
 -- ---------------------------------------------------------------------------
 -- Table: campaign_progress
@@ -344,6 +472,51 @@ CREATE POLICY "Ladder data is publicly readable"
 
 -- No INSERT/UPDATE/DELETE policies for public or authenticated roles.
 -- All writes go through the service role (cron job) which bypasses RLS.
+
+-- ---------------------------------------------------------------------------
+-- Table: price_entries
+-- ---------------------------------------------------------------------------
+-- Cached currency/item price data for the /prices page, sourced from
+-- poe2scout.com's CDN (see src/lib/prices/poe2scout.ts). Written only by
+-- cron (service role). Composite PK (league, category, api_id) — upsert
+-- replaces stale entries cleanly, same pattern as ladder_entries.
+
+CREATE TABLE public.price_entries (
+  league          text  NOT NULL,
+  category        text  NOT NULL,
+  api_id          text  NOT NULL,
+  name            text  NOT NULL,
+  icon_url        text,
+  exalted_value   numeric,
+  divine_value    numeric,
+  -- Full upstream API response stored for future extensibility without re-fetch
+  snapshot        jsonb,
+  fetched_at      timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (league, category, api_id)
+);
+
+CREATE INDEX price_entries_name_idx ON public.price_entries (league, name);
+
+ALTER TABLE public.price_entries ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Price data is publicly readable"
+  ON public.price_entries FOR SELECT
+  TO PUBLIC
+  USING (true);
+
+-- No INSERT/UPDATE/DELETE policies for public or authenticated roles.
+-- All writes go through the service role (cron job) which bypasses RLS.
+
+-- ---------------------------------------------------------------------------
+-- View: price_entry_leagues
+-- ---------------------------------------------------------------------------
+-- Distinct list of leagues with cached price data, backing the /prices
+-- league switcher (added in add_price_entry_leagues_view migration).
+
+CREATE VIEW public.price_entry_leagues AS
+  SELECT DISTINCT league
+  FROM public.price_entries
+  ORDER BY league;
 
 -- =============================================================================
 -- End of schema
