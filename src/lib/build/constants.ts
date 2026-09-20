@@ -9,3 +9,13 @@ export const GAME_VERSION = '0.5.5';
 
 /** 8 total: 2 per trial completion, up to 4 completions. */
 export const MAX_ASCENDANCY_POINTS = 8;
+
+/**
+ * Shape-check for a `builds.id` value. `?build=` on /tree and the `id`
+ * argument to the Server Functions in `builds/actions.ts` are both UUIDs;
+ * /builds/[shareToken] is a separate, 21-char nanoid and does not use this.
+ * Checking shape before querying turns a junk value into our own
+ * "not found" copy instead of a Postgres 22P02 (invalid input syntax for
+ * type uuid) round-trip. Shared here so it is declared exactly once.
+ */
+export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

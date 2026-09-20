@@ -7,14 +7,10 @@
 // exactly once) unreachable rather than merely defended against.
 import { createClient, getCachedUser } from '@/lib/supabase/server';
 import type { SavedBuild } from '@/lib/build/types';
+import { UUID_RE } from '@/lib/build/constants';
 import TreeEditor from '@/components/tree/TreeEditor';
 
 export const metadata = { title: 'Passive tree' };
-
-// ?build= is a UUID; /builds/[shareToken] is a 21-char nanoid. Shape-check
-// before querying so a junk value returns our own "not found" copy instead
-// of a Postgres 22P02 (invalid input syntax for type uuid) round-trip.
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function TreePage({
   searchParams,

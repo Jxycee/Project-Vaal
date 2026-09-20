@@ -1,37 +1,44 @@
 'use client';
 
-// The signed-in user's own builds. Both queries below filter on
-// `user_id = <session user>` — that filter only scopes which rows this list
-// displays as "yours". It does not enforce ownership: the "Public builds are
-// readable by anyone" RLS policy is a permissive `SELECT` policy for role
-// `public`, which Postgres OR's together with the owner policy, so without
-// this filter a signed-in user's select would also return every other
-// user's public build, rendered here with Rename/Delete buttons that would
-// silently hit zero rows. RLS is still what enforces ownership on every
-// write (update/delete) — this filter just keeps foreign rows off the page.
+// The signed-in user's own builds — presentational only.
 //
-// Rename and delete go direct through the browser client rather than an API
-// route: neither touches a server-generated value, so RLS is the whole story.
+// All data (the rows, and any load error) comes down as props from the
+// Server Component at builds/page.tsx: there is no client-side fetch here,
+// and no signed-out branch — an unauthenticated visitor never reaches this
+// component, because the page renders the "Sign in to see your saved
+// builds" copy itself before ever mounting this list.
+//
+// Rename and delete now go through the Server Functions in builds/actions.ts
+// instead of a direct browser Supabase call. That trades the previous
+// instant client-side update for a server round-trip on every mutation —
+// accepted deliberately, given the bug history behind this migration.
+// `revalidatePath('/builds')` inside each action refreshes the `builds`
+// prop; there is no local list state to reconcile and no refetch to call.
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
-import type { User } from '@supabase/supabase-js';
-import { createClient } from '@/lib/supabase/client';
 import { Input } from '@/components/ui/input';
 import type { SavedBuild } from '@/lib/build/types';
+import type { ActionResult } from '@/app/(dashboard)/builds/actions';
 
-export default function MyBuildsList() {
-  // undefined = auth state not yet known (initial check in flight);
-  // null = checked and signed out; a User = checked and signed in.
-  // /builds is public (see proxy.ts) so, unlike /tree, there is no
-  // redirect to fall back on — this component is what decides whether
-  // the personal list is safe to render at all.
-  const [user, setUser] = useState<User | null | undefined>(undefined);
-  const [builds, setBuilds] = useState<SavedBuild[] | null>(null);
+interface MyBuildsListProps {
+  builds: SavedBuild[] | null;
+  loadError: string | null;
+  renameAction: (id: string, name: string) => Promise<ActionResult>;
+  deleteAction: (id: string) => Promise<ActionResult>;
+}
+
+export default function MyBuildsList({
+  builds,
+  loadError,
+  renameAction,
+  deleteAction,
+}: MyBuildsListProps) {
   const [error, setError] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
   // Set true the instant Escape cancels a rename, read at the top of
   // commitRename. Unmounting the focused <Input> (setRenamingId(null)) fires
   // a native blur that React still delivers to onBlur on that fiber, so
@@ -39,60 +46,7 @@ export default function MyBuildsList() {
   // the resulting blur" apart from "the user actually blurred to commit".
   const cancelRenameRef = useRef(false);
 
-  const load = useCallback(async () => {
-    if (!user) return;
-    setError(null);
-    const supabase = createClient();
-    const { data, error: err } = await supabase
-      .from('builds')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('updated_at', { ascending: false });
-    if (err) {
-      console.error('Failed to load builds:', err);
-      setError("Couldn't load your builds.");
-    } else setBuilds((data ?? []) as unknown as SavedBuild[]);
-  }, [user]);
-
-  // Inlined rather than calling `load()` from the effect body: eslint's
-  // react-hooks/set-state-in-effect rule traces a direct call to a
-  // useCallback-defined async helper and flags the setState inside it, even
-  // though it only runs after the await. Chaining `.then()` on the query
-  // directly (as the tree page's build-load effect and WikiBrowse's index
-  // fetch already do) keeps the setState calls inside a plain promise
-  // callback, which the rule does not flag.
-  //
-  // getUser() is checked first, and the builds query only fires once a
-  // session is confirmed. RLS would happily answer an anonymous query too
-  // (via the "public builds" policy), which is exactly the bug this guards
-  // against — a signed-out visitor must never see that data rendered under
-  // "Your builds", so we don't even fetch it for them.
-  useEffect(() => {
-    let cancelled = false;
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: userData }) => {
-      if (cancelled) return;
-      setUser(userData.user);
-      if (!userData.user) return;
-      supabase
-        .from('builds')
-        .select('*')
-        .eq('user_id', userData.user.id)
-        .order('updated_at', { ascending: false })
-        .then(({ data, error: err }) => {
-          if (cancelled) return;
-          if (err) {
-            console.error('Failed to load builds:', err);
-            setError("Couldn't load your builds.");
-          } else setBuilds((data ?? []) as unknown as SavedBuild[]);
-        });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  async function commitRename(id: string) {
+  function commitRename(id: string) {
     // Escape already discarded the rename and flagged this — the blur that
     // unmounting the input triggers must not resurrect it as a save.
     if (cancelRenameRef.current) {
@@ -103,48 +57,29 @@ export default function MyBuildsList() {
     setRenamingId(null);
     if (!name) return;
     setError(null);
-    const supabase = createClient();
-    const { error: err } = await supabase.from('builds').update({ name }).eq('id', id);
-    if (err) {
-      console.error('Failed to rename build:', err);
-      setError("Couldn't rename that build.");
-    } else await load();
+    startTransition(async () => {
+      const result = await renameAction(id, name);
+      if (!result.ok) setError(result.error);
+    });
   }
 
-  async function confirmDelete(id: string) {
+  function confirmDelete(id: string) {
     setPendingDeleteId(null);
     setError(null);
-    const supabase = createClient();
-    const { error: err } = await supabase.from('builds').delete().eq('id', id);
-    if (err) {
-      console.error('Failed to delete build:', err);
-      setError("Couldn't delete that build.");
-    } else await load();
-  }
-
-  if (user === undefined) {
-    return <p className="text-sm text-muted-foreground">Loading your builds…</p>;
-  }
-
-  if (user === null) {
-    return (
-      <div className="py-10 text-center">
-        <p className="text-sm text-muted-foreground">Sign in to see your saved builds.</p>
-        <Link href="/login" className="mt-2 inline-block text-sm underline">
-          Sign in
-        </Link>
-      </div>
-    );
+    startTransition(async () => {
+      const result = await deleteAction(id);
+      if (!result.ok) setError(result.error);
+    });
   }
 
   // Only bail out to an error-only view when there is genuinely nothing else
   // to show — the initial load itself failed. Once builds is populated, a
   // later failure (a rename or delete hitting a network blip) must not blank
   // out every other build; it renders as a banner above the list instead.
-  if (error && builds === null) {
+  if (loadError && builds === null) {
     return (
       <p className="text-sm text-destructive" role="alert">
-        {error}
+        {loadError}
       </p>
     );
   }
@@ -183,9 +118,9 @@ export default function MyBuildsList() {
                   autoFocus
                   value={draftName}
                   onChange={(e) => setDraftName(e.target.value)}
-                  onBlur={() => void commitRename(b.id)}
+                  onBlur={() => commitRename(b.id)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') void commitRename(b.id);
+                    if (e.key === 'Enter') commitRename(b.id);
                     if (e.key === 'Escape') {
                       cancelRenameRef.current = true;
                       setRenamingId(null);
@@ -207,13 +142,15 @@ export default function MyBuildsList() {
               <div className="flex shrink-0 gap-2">
                 <button
                   type="button"
-                  onClick={() => void confirmDelete(b.id)}
+                  disabled={pending}
+                  onClick={() => confirmDelete(b.id)}
                   className="h-11 rounded-lg px-3 text-sm text-destructive"
                 >
                   Delete
                 </button>
                 <button
                   type="button"
+                  disabled={pending}
                   onClick={() => setPendingDeleteId(null)}
                   className="h-11 rounded-lg px-3 text-sm text-muted-foreground"
                 >
@@ -224,6 +161,7 @@ export default function MyBuildsList() {
               <div className="flex shrink-0 gap-1">
                 <button
                   type="button"
+                  disabled={pending}
                   onClick={() => {
                     cancelRenameRef.current = false;
                     setRenamingId(b.id);
@@ -235,6 +173,7 @@ export default function MyBuildsList() {
                 </button>
                 <button
                   type="button"
+                  disabled={pending}
                   onClick={() => setPendingDeleteId(b.id)}
                   className="h-11 rounded-lg px-3 text-sm text-muted-foreground"
                 >
