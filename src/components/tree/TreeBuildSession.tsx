@@ -134,7 +134,14 @@ export default function TreeBuildSession({
         initialLevel={build?.level ?? 1}
         initialLeague={build?.league ?? 'Standard'}
         saving={saving}
-        error={saveError ?? loadError}
+        // Once a scratch save has succeeded, a ?build= load error is stale:
+        // the user's work now lives in a real row, so continuing to show
+        // "That build could not be found." is actively misleading. The old
+        // client version cleared this with setLoadError(null) on save
+        // success. loadError is a prop now, so this is derived instead —
+        // storing and clearing it would be a setState in an effect, which
+        // react-hooks/set-state-in-effect rejects here.
+        error={saveError ?? (createdBuild ? null : loadError)}
         savedAt={savedAt}
         onSave={handleSave}
       />

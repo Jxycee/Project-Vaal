@@ -190,7 +190,11 @@ export default async function TreePage({
   - **This local state is safe where the old `scratchBuild` was not**, because the component remounts when `buildId` changes. Comment it, or a future reader will reintroduce the old defences.
   - On success in scratch mode, keep the returned row in `createdBuild` so a second tap updates rather than inserting a duplicate. Do **not** navigate or rewrite the URL — changing `?build=` would remount this component via the key and is an unrequested behaviour change.
   - `saveError` / `savedAt` become plain state. `saveStatusFor` is deleted: the panel remounts with this component, so a result can no longer leak across builds.
-- [ ] **Step 4:** `error` passed to `BuildSavePanel` stays `saveError ?? loadError`, as today.
+- [ ] **Step 4:** `error` passed to `BuildSavePanel` is `saveError ?? (createdBuild ? null : loadError)`.
+
+  **Corrected 2026-09-20 — the original instruction here said "stays `saveError ?? loadError`, as today" and that was wrong.** It described the expression but not the stateful clearing the old code paired with it: the old version called `setLoadError(null)` on save success. `loadError` is an immutable prop now, so a stale "That build could not be found." would survive a *successful* save forever. Repro: open `/tree?build=<deleted or not-yours uuid>` → `loadError` set, `build` null → allocate → Save → the insert succeeds and `createdBuild` is set, but the banner still reads "That build could not be found.", and `BuildSavePanel`'s `{savedAt && !error}` branch never renders the "Saved" confirmation. Indistinguishable from a hard failure for the rest of the session.
+
+  Derive it, do not store-and-clear it — clearing a prop-mirroring state inside an effect is exactly what `react-hooks/set-state-in-effect` rejects here.
 - [ ] **Step 5:** `BuildSavePanel` no longer needs its own `key` — its parent is keyed. Remove it. (React keys must be unique among siblings; two siblings shared a key in an earlier round. Do not reintroduce that.)
 
 ### Task D1.4 — Gates and commit
