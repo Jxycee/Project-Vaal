@@ -4,13 +4,14 @@
 //
 // Rendered by TreeEditor with `key={buildId ?? 'scratch'}` (see that file).
 // Owns everything that is derived from a specific build: the live editor
-// state PassiveTree reports upward, the draft-to-localStorage safety net,
-// and the save call. Because the key changes whenever buildId changes, React
-// unmounts and remounts this entire subtree on every build switch — there is
-// no build-derived state left that can outlive the build it belongs to. That
-// is what makes the old two-slice (`build` / `scratchBuild`) stale-state
-// defence unnecessary: it existed only because the previous version of this
-// component survived soft navigation and had to detect staleness itself.
+// state PassiveTree reports upward, the draft-to-localStorage safety net (and
+// its restore prompt), and the save call. Because the key changes whenever
+// buildId changes, React unmounts and remounts this entire subtree on every
+// build switch — there is no build-derived state left that can outlive the
+// build it belongs to. That is what makes the old two-slice (`build` /
+// `scratchBuild`) stale-state defence unnecessary: it existed only because
+// the previous version of this component survived soft navigation and had
+// to detect staleness itself.
 import {
   useCallback,
   useEffect,
@@ -23,18 +24,21 @@ import type { GggTreeJson } from '@poe2-toolkit/tree-core/ggg';
 import type PassiveTreeComponent from '@/components/tree/PassiveTree';
 import BuildSavePanel from '@/components/tree/BuildSavePanel';
 import { fromPassiveState, toPassiveState } from '@/lib/build/passiveState';
-import { saveDraft, clearDraft } from '@/lib/build/draft';
+import { saveDraft, loadDraft, clearDraft } from '@/lib/build/draft';
+import { draftDiffersFrom } from '@/lib/build/draftCompare';
 import type { BuildEditorState, PassiveTreeInitialState, SavedBuild } from '@/lib/build/types';
 
 type PassiveTreeProps = ComponentProps<typeof PassiveTreeComponent>;
 
 export default function TreeBuildSession({
   raw,
+  buildId,
   build,
   loadError,
   PassiveTree,
 }: {
   raw: GggTreeJson;
+  buildId?: string;
   build: SavedBuild | null;
   loadError: string | null;
   PassiveTree: ComponentType<PassiveTreeProps>;
@@ -59,6 +63,53 @@ export default function TreeBuildSession({
     };
   }, [build]);
 
+  // ---- Draft restore --------------------------------------------------
+  //
+  // Read BEFORE any effect runs, in a lazy useState initialiser. PassiveTree
+  // reports its seeded state upward on mount (see its onStateChange effect),
+  // and the draft-save effect below writes that report straight over
+  // whatever draft localStorage held — so anything that reads the draft
+  // AFTER mount can only ever find the value it just clobbered. This is the
+  // one point in the component's life where the previous session's draft
+  // still exists untouched. Keyed remount per build (see TreeEditor) is what
+  // makes reading it here, keyed only by buildId, correct.
+  const [storedDraft] = useState(() => loadDraft(buildId));
+  // Whether the just-read draft is worth prompting about at all — computed
+  // once, against the `build` this instance was mounted for, so a build that
+  // was reloaded exactly as saved (the common case: the mount report is a
+  // pure echo of `initialState`) does not show a bogus prompt.
+  const [draftPromptOpen, setDraftPromptOpen] = useState(
+    () => storedDraft !== null && draftDiffersFrom(storedDraft, build),
+  );
+  // Bumped on Restore to force PassiveTree to remount and re-seed from the
+  // draft rather than from `initialState`. PassiveTree only reads its
+  // `initialState` prop as one-shot lazy state, so re-seeding an already
+  // -mounted instance by changing props alone would do nothing.
+  const [seedKey, setSeedKey] = useState(0);
+  const [restoredDraft, setRestoredDraft] = useState<BuildEditorState | null>(null);
+
+  const passiveInitialState = useMemo<PassiveTreeInitialState | undefined>(() => {
+    if (!restoredDraft) return initialState;
+    return {
+      className: restoredDraft.className,
+      ascendancyId: restoredDraft.ascendancyId,
+      main: restoredDraft.main,
+      ascendancyNodes: restoredDraft.ascendancyNodes,
+    };
+  }, [restoredDraft, initialState]);
+
+  const handleRestoreDraft = useCallback(() => {
+    if (!storedDraft) return;
+    setRestoredDraft(storedDraft);
+    setSeedKey((k) => k + 1);
+    setDraftPromptOpen(false);
+  }, [storedDraft]);
+
+  const handleDiscardDraft = useCallback(() => {
+    clearDraft(buildId);
+    setDraftPromptOpen(false);
+  }, [buildId]);
+
   // ---- Live editor state + draft persistence ------------------------------
   const [editorState, setEditorState] = useState<BuildEditorState | null>(null);
 
@@ -66,8 +117,8 @@ export default function TreeBuildSession({
   // trip react-hooks/set-state-in-effect the way updating component state
   // here would.
   useEffect(() => {
-    if (editorState) saveDraft(editorState);
-  }, [editorState]);
+    if (editorState) saveDraft(buildId, editorState);
+  }, [editorState, buildId]);
 
   // ---- Save ------------------------------------------------------------
   const [saving, setSaving] = useState(false);
@@ -112,7 +163,7 @@ export default function TreeBuildSession({
           if (!build) setCreatedBuild(payload.build);
           setSavedAt(new Date().toLocaleTimeString());
           // Only clear the draft once the server has the work.
-          clearDraft(editorState.classId, editorState.ascendancyId);
+          clearDraft(buildId);
         }
       } catch {
         setSaveError('Could not reach the server. Your work is still here.');
@@ -120,14 +171,47 @@ export default function TreeBuildSession({
         setSaving(false);
       }
     },
-    [editorState, build, createdBuild],
+    [editorState, build, createdBuild, buildId],
   );
 
   const activeBuildId = build?.id ?? createdBuild?.id;
 
   return (
     <>
-      <PassiveTree raw={raw} initialState={initialState} onStateChange={setEditorState} />
+      <PassiveTree
+        key={seedKey}
+        raw={raw}
+        initialState={passiveInitialState}
+        onStateChange={setEditorState}
+      />
+      {draftPromptOpen ? (
+        // Non-blocking chip. Positioned below the top row rather than at
+        // either top corner or the full-width bottom strip, so its resting
+        // position never overlaps TreeControls (left-3 top-3),
+        // BuildSavePanel (right-3 top-3), or NodeInfoPanel (inset-x-3
+        // bottom-3) — all three of those stay exactly where they are. At
+        // 375px the two top chips are ~2.75rem tall including their top-3
+        // offset; top-16 (4rem) clears that with room to spare.
+        <div className="absolute inset-x-3 top-16 z-10 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card/95 px-3 py-2 backdrop-blur">
+          <p className="text-sm text-foreground">Unsaved changes from last time.</p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleRestoreDraft}
+              className="h-11 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
+            >
+              Restore
+            </button>
+            <button
+              type="button"
+              onClick={handleDiscardDraft}
+              className="h-11 rounded-md border border-border px-4 text-sm font-medium text-muted-foreground"
+            >
+              Discard
+            </button>
+          </div>
+        </div>
+      ) : null}
       <BuildSavePanel
         buildId={activeBuildId}
         initialName={build?.name ?? ''}

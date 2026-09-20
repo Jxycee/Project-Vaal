@@ -86,6 +86,7 @@ export default function TreeEditor({
         <TreeBuildSession
           key={buildId ?? 'scratch'}
           raw={raw}
+          buildId={buildId}
           build={build}
           loadError={loadError}
           PassiveTree={PassiveTree}
