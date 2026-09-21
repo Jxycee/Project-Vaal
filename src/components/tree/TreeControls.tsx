@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { ChevronDown, ChevronUp, Search } from 'lucide-react';
 import type { AllocMode } from '@poe2-toolkit/tree-core';
 import { MAX_ASCENDANCY_POINTS } from '@/lib/build/constants';
+import { WEAPON_SET_DOT } from '@/lib/build/weaponSetColors';
 import ResetButton from '@/components/tree/ResetButton';
 
 export interface PickerClass {
@@ -39,7 +40,9 @@ interface TreeControlsProps {
 }
 
 const MODE_LABEL: Record<AllocMode, string> = { 0: 'Main', 1: 'Set I', 2: 'Set II' };
-const MODE_DOT: Record<AllocMode, string> = { 0: 'bg-primary', 1: 'bg-[#e5484d]', 2: 'bg-[#46a758]' };
+// Mode 0 (shared/basic) has no weapon set — it keeps the primary colour
+// rather than one of the two set colours from weaponSetColors.ts.
+const MODE_DOT: Record<AllocMode, string> = { 0: 'bg-primary', 1: WEAPON_SET_DOT[1], 2: WEAPON_SET_DOT[2] };
 
 // Max points obtainable in one build: 99 from levelling (2-100) + 24 from
 // quest rewards = 123 shared/basic points; each weapon set draws from its own,

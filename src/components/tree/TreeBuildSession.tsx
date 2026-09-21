@@ -23,9 +23,12 @@ import {
 import type { GggTreeJson } from '@poe2-toolkit/tree-core/ggg';
 import type PassiveTreeComponent from '@/components/tree/PassiveTree';
 import BuildSavePanel from '@/components/tree/BuildSavePanel';
+import GearSheet from '@/components/build/GearSheet';
 import { fromPassiveState, toPassiveState } from '@/lib/build/passiveState';
 import { saveDraft, loadDraft, clearDraft } from '@/lib/build/draft';
 import { draftDiffersFrom } from '@/lib/build/draftCompare';
+import { emptyGearState, parseGearState } from '@/lib/build/gearState';
+import type { GearItem, GearSlot } from '@/lib/build/gearSlots';
 import type { BuildEditorState, PassiveTreeInitialState, SavedBuild } from '@/lib/build/types';
 
 type PassiveTreeProps = ComponentProps<typeof PassiveTreeComponent>;
@@ -113,6 +116,19 @@ export default function TreeBuildSession({
   // ---- Live editor state + draft persistence ------------------------------
   const [editorState, setEditorState] = useState<BuildEditorState | null>(null);
 
+  // ---- Gear ---------------------------------------------------------------
+  // Lazily seeded from `build.gear_state` (validated — see gearState.ts's
+  // header), same one-shot-per-mount reasoning as `initialState` above: this
+  // component remounts on every build switch (keyed by buildId in
+  // TreeEditor), so there is no later point where `build` can change out
+  // from under an already-mounted instance.
+  const [gearState, setGearState] = useState(() => (build ? parseGearState(build.gear_state) : emptyGearState()));
+  const [gearSheetOpen, setGearSheetOpen] = useState(false);
+
+  const handleGearChange = useCallback((slot: GearSlot, item: GearItem | null) => {
+    setGearState((prev) => ({ ...prev, [slot]: item }));
+  }, []);
+
   // Writes to localStorage only, never calls a setState — so this does not
   // trip react-hooks/set-state-in-effect the way updating component state
   // here would.
@@ -161,6 +177,13 @@ export default function TreeBuildSession({
             level: meta.level,
             league: meta.league,
             passive_state: toPassiveState(editorState.main, editorState.ascendancyNodes),
+            // Sent on every save (not conditionally) now that gear exists —
+            // POST /api/builds only writes gear_state when the key is
+            // present in the body, precisely so a save that omits it can't
+            // wipe existing gear. Since this editor always has gear state in
+            // memory (even if every slot is null), always sending it is the
+            // correct behaviour, not the dangerous one.
+            gear_state: gearState,
           }),
         });
         const payload = (await res.json()) as {
@@ -185,7 +208,7 @@ export default function TreeBuildSession({
         setSaving(false);
       }
     },
-    [editorState, build, createdBuild, buildId],
+    [editorState, build, createdBuild, buildId, gearState],
   );
 
   const activeBuildId = build?.id ?? createdBuild?.id;
@@ -212,8 +235,23 @@ export default function TreeBuildSession({
         pointer-events-none on the container, auto on each child: the empty
         column below a short notice must not swallow drags meant for the
         canvas, which on a phone is most of the interface.
+
+        The build-section chip row (currently just Gear; a later task adds
+        Jewels and Gems) lives here too, as a child rather than a fifth
+        independently-positioned overlay — see gear-design.md. `self-start`
+        keeps its footprint to its own content width so the empty rest of
+        this full-width strip stays pointer-events-none for canvas drags.
       */}
       <div className="pointer-events-none absolute inset-x-3 top-16 z-10 flex flex-col gap-2">
+        <div className="pointer-events-auto flex self-start gap-2">
+          <button
+            type="button"
+            onClick={() => setGearSheetOpen(true)}
+            className="flex h-11 items-center gap-1.5 rounded-lg border border-border bg-card/90 px-3 text-sm font-medium text-foreground backdrop-blur"
+          >
+            Gear
+          </button>
+        </div>
         {visibleLoadError ? (
           <div className="pointer-events-auto flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/40 bg-card/95 px-3 py-2 backdrop-blur">
             <p className="text-sm text-destructive" role="alert">
@@ -265,6 +303,12 @@ export default function TreeBuildSession({
         error={saveError}
         savedAt={savedAt}
         onSave={handleSave}
+      />
+      <GearSheet
+        open={gearSheetOpen}
+        gear={gearState}
+        onChange={handleGearChange}
+        onClose={() => setGearSheetOpen(false)}
       />
     </>
   );

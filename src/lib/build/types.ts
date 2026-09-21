@@ -56,5 +56,14 @@ export interface SavedBuild {
   share_token: string | null;
   game_version: string;
   passive_state: PassiveState;
+  /**
+   * Raw jsonb as it comes off the row — validate with
+   * `parseGearState` (`@/lib/build/gearState`) before use, never trust it
+   * directly. Untyped here (not `GearState`) because the column has no
+   * shape guarantee the way `passive_state` gets from `isPassiveState` at
+   * the API boundary; a hand-edited or pre-gear-feature row can hold
+   * anything jsonb allows.
+   */
+  gear_state: unknown;
   updated_at: string;
 }

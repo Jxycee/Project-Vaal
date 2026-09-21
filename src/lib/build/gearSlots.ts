@@ -38,6 +38,27 @@ export function isGearSlot(value: string): value is GearSlot {
   return (GEAR_SLOTS as readonly string[]).includes(value);
 }
 
+/** Display label per slot — used by GearSheet's rows and ItemPickerSheet's header. UI vocabulary, not a second source of truth for the category mapping above. */
+export const GEAR_SLOT_LABELS: Record<GearSlot, string> = {
+  head: 'Helmet',
+  body: 'Body Armour',
+  gloves: 'Gloves',
+  boots: 'Boots',
+  amulet: 'Amulet',
+  ring1: 'Ring 1',
+  ring2: 'Ring 2',
+  belt: 'Belt',
+  weapon1_main: 'Weapon',
+  weapon1_off: 'Off-hand',
+  weapon2_main: 'Weapon',
+  weapon2_off: 'Off-hand',
+  flask1: 'Life Flask',
+  flask2: 'Mana Flask',
+  charm1: 'Charm 1',
+  charm2: 'Charm 2',
+  charm3: 'Charm 3',
+};
+
 /**
  * Jewels are deliberately NOT one of the 17 gear slots — PoE2 sockets a
  * jewel into the passive tree, not onto the character (see
