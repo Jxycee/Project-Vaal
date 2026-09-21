@@ -29,6 +29,7 @@ import NodeInfoPanel, { type SelectedNode } from '@/components/tree/NodeInfoPane
 import { useTreeResources, useClassCentreSprites } from '@/lib/tree/resources';
 import { MAX_ASCENDANCY_POINTS } from '@/lib/build/constants';
 import type { BuildEditorState, PassiveTreeInitialState } from '@/lib/build/types';
+import type { TreeTestApi } from '@/lib/tree/testApi';
 
 const TREE_VERSION = '0_5';
 const ASSET_VERSION = '0.5.2';
@@ -348,6 +349,27 @@ export default function PassiveTree({
     (activeClass?.ascendancies.length ?? 0) > 0,
   );
 
+  // The actual allocation commit, shared by the desktop click path and the
+  // dev-only automation hook below. Extracted rather than duplicated so a
+  // test can never pass against a code path the app does not itself use.
+  // Returns false when the node is not something this call can toggle.
+  const commitNode = useCallback(
+    (skill: number): boolean => {
+      const node = data.nodes[skill];
+      if (!node) return false;
+
+      if (node.ascendancyName) {
+        if (!ascGraph) return false; // an ascendancy node with none active — ignore
+        const next = toggleAscendancyAllocation(data, node.ascendancyName, new Set(allocated), skill, ascGraph);
+        commitAscendancy(next);
+        return true;
+      }
+      setMain((cur) => toggleAllocationInMode(data, startNode, cur, skill, mode, pathingGraph));
+      return true;
+    },
+    [data, allocated, commitAscendancy, ascGraph, startNode, mode, pathingGraph],
+  );
+
   const handleNodeClick = useCallback(
     (skill: number) => {
       const node = data.nodes[skill];
@@ -368,15 +390,9 @@ export default function PassiveTree({
         return;
       }
 
-      if (node.ascendancyName) {
-        if (!ascGraph) return; // clicked an ascendancy node with none active — ignore
-        const next = toggleAscendancyAllocation(data, node.ascendancyName, new Set(allocated), skill, ascGraph);
-        commitAscendancy(next);
-      } else {
-        setMain((cur) => toggleAllocationInMode(data, startNode, cur, skill, mode, pathingGraph));
-      }
+      commitNode(skill);
     },
-    [data, allocated, commitAscendancy, ascGraph, startNode, mode, pathingGraph, isTouch, activeAscendancyDef],
+    [data, isTouch, activeAscendancyDef, commitNode],
   );
 
   const handleNodeHover = useCallback(
@@ -427,6 +443,58 @@ export default function PassiveTree({
     setHoveredSkill(null);
     setPendingSkill(null);
   }, []);
+
+  // ---- Dev-only automation hook -------------------------------------------
+  //
+  // TreeView is a pixi.js/WebGL canvas: it renders 5,151 nodes with no DOM
+  // structure per node, so an end-to-end test has no element to click and can
+  // only guess pixel coordinates. That guessing is slow, flaky, and silently
+  // passes when it misses. This exposes the editor's real commit paths by node
+  // id instead — `commitNode` is the same function handleNodeClick uses, so a
+  // test cannot pass against logic the app does not run.
+  //
+  // `process.env.NODE_ENV` is inlined by the bundler at build time, so the
+  // whole body below is statically unreachable in a production build and is
+  // eliminated. Verified by grepping the built chunks for `__vaalTree`.
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') return;
+    const w = window as typeof window & { __vaalTree?: TreeTestApi };
+    w.__vaalTree = {
+      getState: () => ({
+        classId,
+        className: data.classes[classId]?.name ?? '',
+        ascendancyId,
+        allocated: [...main.allocated],
+        ascendancyNodes: [...ascendancyNodes],
+      }),
+      startNode: () => startNode,
+      neighbours: (skill) =>
+        (data.nodes[skill]?.connections ?? [])
+          .map((c) => c.id)
+          .filter((id) => {
+            const n = data.nodes[id];
+            return Boolean(n) && !n.ascendancyName && !n.isJewelSocket && !n.conditional;
+          }),
+      allocate: (skill) => commitNode(skill),
+      setClass: (id) => handleClass(id),
+      setAscendancy: (id) => handleAscendancy(id),
+      reset: () => handleReset(),
+    };
+    return () => {
+      delete w.__vaalTree;
+    };
+  }, [
+    classId,
+    data,
+    ascendancyId,
+    main.allocated,
+    ascendancyNodes,
+    commitNode,
+    startNode,
+    handleClass,
+    handleAscendancy,
+    handleReset,
+  ]);
 
   const pickerClasses: PickerClass[] = useMemo(
     () =>

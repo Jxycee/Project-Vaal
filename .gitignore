@@ -59,3 +59,9 @@ next-env.d.ts
 # Claude Code superpowers working state (SDD/dispatch context, task briefs) —
 # regenerated on demand, not hand-written project files
 /.superpowers/
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/e2e/.auth/
