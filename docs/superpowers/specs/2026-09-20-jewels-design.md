@@ -37,7 +37,7 @@ data.jewelSlots        31 node ids
 | `Crystalline Phylactery` | 1 |
 | `Zarokh's Gift` | 1 |
 
-`[X]` and `[X|Y]` are GGG's markup, where the piped form means "render Y". Printing these verbatim shows users literal brackets and pipes. They must be normalised for display (`[Jewel] Socket` → "Jewel Socket"; `[SinisterJewelSockets|Sinister] [Jewel] Socket` → "Sinister Jewel Socket"). `src/lib/wiki/mentions.ts` already deals with this token family for wiki text — reuse or mirror its handling rather than inventing a second parser.
+`[X]` and `[X|Y]` are GGG's markup, where the piped form means "render Y". Printing these verbatim shows users literal brackets and pipes. They must be normalised for display (`[Jewel] Socket` → "Jewel Socket"; `[SinisterJewelSockets|Sinister] [Jewel] Socket` → "Sinister Jewel Socket"). `parseStatText` in `src/lib/tree/statText.ts` already unwraps this token family for tree stat tooltips — reuse it rather than inventing a second parser. (**Corrected 2026-09-21:** this line originally pointed at `src/lib/wiki/mentions.ts`, which contains no bracket-token handling at all; the implementer found the real parser.)
 
 None of the 19 sit on an ascendancy, so socket availability is a pure main-tree concern.
 
