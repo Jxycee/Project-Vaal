@@ -69,7 +69,7 @@ Changes from the original are marked. Everything unmarked is unchanged and was r
 | amulet | `Amulet` | 49 |
 | ring1, ring2 | `Ring` | 66 |
 | belt | `Belt` | 38 |
-| weapon1_main, weapon2_main | `One Hand Sword`, `Two Hand Sword`, `One Hand Axe`, `Two Hand Axe`, `One Hand Mace`, `Two Hand Mace`, `Mace`, `Bow`, `Crossbow`, `Claw`, `Dagger`, `Flail`, `Spear`, `Sceptre`, `Wand`, `Staff`, `Warstaff`, **`Talisman` (added)** | 471 |
+| weapon1_main, weapon2_main | `One Hand Sword`, `Two Hand Sword`, `One Hand Axe`, `Two Hand Axe`, `One Hand Mace`, `Two Hand Mace`, `Mace`, `Bow`, `Crossbow`, `Claw`, `Dagger`, `Flail`, `Spear`, `Sceptre`, `Wand`, `Staff`, `Warstaff`, **`Talisman` (added)** | 478 |
 | weapon1_off, weapon2_off | `Shield`, `Buckler`, `Focus`, **`Focii` (added)**, `Quiver` | 302 |
 | flask1 (Life) | `LifeFlask`, `Life Flask` | 12 |
 | flask2 (Mana) | `ManaFlask`, `Mana Flask` | 12 |
