@@ -19,6 +19,7 @@ import {
   readKeywordDefinitions,
   attachKeywordDefinitions,
   joinSoulCoresByName,
+  createRetryingCdnFetch,
 } from './sync-wiki';
 
 const entry = (slug: string) => ({
@@ -753,5 +754,107 @@ description
       [],
     );
     expect(joinSoulCoresByName(dir, statIndex)).toEqual(new Map());
+  });
+});
+
+describe('createRetryingCdnFetch', () => {
+  const CDN = 'https://patch-poe2.poecdn.com/4.5.5.3/Bundles2/_.index.bin';
+  // Every test drives the retry loop through an injected `sleep`, so the
+  // backoff is asserted rather than waited out.
+  const harness = () => {
+    const waits: number[] = [];
+    const logs: string[] = [];
+    return {
+      waits,
+      logs,
+      options: {
+        attempts: 4,
+        baseDelayMs: 2000,
+        sleep: async (ms: number) => { waits.push(ms); },
+        log: (message: string) => { logs.push(message); },
+      },
+    };
+  };
+  const timeout = () => Object.assign(new Error('The operation was aborted due to timeout'), { name: 'TimeoutError' });
+
+  it('retries a timed-out CDN fetch and returns the attempt that succeeds', async () => {
+    const h = harness();
+    let calls = 0;
+    const base = async () => {
+      calls += 1;
+      if (calls < 3) throw timeout();
+      return new Response('bundle bytes', { status: 200 });
+    };
+    const res = await createRetryingCdnFetch(base as unknown as typeof fetch, h.options)(CDN);
+    expect(calls).toBe(3);
+    expect(await res.text()).toBe('bundle bytes');
+    expect(h.waits).toEqual([2000, 4000]);
+  });
+
+  it('gives each attempt its own timeout signal, not the spent one it was handed', async () => {
+    const h = harness();
+    const signals: (AbortSignal | undefined)[] = [];
+    let calls = 0;
+    const base = async (_input: RequestInfo | URL, init?: RequestInit) => {
+      signals.push(init?.signal ?? undefined);
+      calls += 1;
+      if (calls < 2) throw timeout();
+      return new Response('ok', { status: 200 });
+    };
+    // The caller's signal is already aborted — exactly the state the toolkit
+    // loader's own `AbortSignal.timeout` is in by the time a retry starts.
+    await createRetryingCdnFetch(base as unknown as typeof fetch, h.options)(CDN, { signal: AbortSignal.abort() });
+    expect(signals).toHaveLength(2);
+    expect(signals[0]).not.toBe(signals[1]);
+    expect(signals.every((s) => s?.aborted === false)).toBe(true);
+  });
+
+  it('rethrows the last error once the attempts are spent', async () => {
+    const h = harness();
+    let calls = 0;
+    const base = async () => { calls += 1; throw timeout(); };
+    await expect(createRetryingCdnFetch(base as unknown as typeof fetch, h.options)(CDN))
+      .rejects.toThrow(/aborted due to timeout/);
+    expect(calls).toBe(4);
+    expect(h.waits).toEqual([2000, 4000, 8000]);
+  });
+
+  it('retries a 503 but hands back a 404 untouched — a missing bundle is a real answer', async () => {
+    const h = harness();
+    let calls = 0;
+    const base = async () => {
+      calls += 1;
+      return new Response('', { status: calls === 1 ? 503 : 404 });
+    };
+    const res = await createRetryingCdnFetch(base as unknown as typeof fetch, h.options)(CDN);
+    expect(res.status).toBe(404);
+    expect(calls).toBe(2);
+    expect(h.waits).toEqual([2000]);
+  });
+
+  it('leaves non-CDN hosts on the untouched built-in fetch', async () => {
+    const h = harness();
+    let calls = 0;
+    const base = async () => { calls += 1; throw timeout(); };
+    const retrying = createRetryingCdnFetch(base as unknown as typeof fetch, h.options);
+    await expect(retrying('https://raw.githubusercontent.com/x/y.lua')).rejects.toThrow();
+    expect(calls).toBe(1);
+    expect(h.waits).toEqual([]);
+  });
+
+  it('buffers the body inside the attempt so a caller read cannot outlive the timeout', async () => {
+    const h = harness();
+    let bodyReadAfterReturn = false;
+    const base = async () => new Response(new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('bundle bytes'));
+        controller.close();
+        bodyReadAfterReturn = true;
+      },
+    }), { status: 200 });
+    const res = await createRetryingCdnFetch(base as unknown as typeof fetch, h.options)(CDN);
+    expect(bodyReadAfterReturn).toBe(true);
+    expect(res.bodyUsed).toBe(false);
+    expect(await res.arrayBuffer()).toHaveProperty('byteLength', 12);
   });
 });

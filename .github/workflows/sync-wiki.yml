@@ -16,6 +16,14 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    # The sync retries a stalled patch-CDN bundle fetch (see
+    # createRetryingCdnFetch in scripts/sync-wiki.ts), but the
+    # `npx pathofexile-dat` table-decode step runs in its own process with
+    # its own loader, which calls fetch() with no timeout at all - a CDN
+    # connection that opens and never answers hangs it until GitHub's 6h
+    # default kills the job. A full sync is minutes; cap it well under that
+    # so a hang fails fast and the weekly run is retryable the same day.
+    timeout-minutes: 45
     permissions:
       contents: write
       pull-requests: write

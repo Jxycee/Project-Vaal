@@ -409,11 +409,140 @@ export function dedupeSlug(baseSlug: string, disambiguator: string, used: Set<st
   return candidate;
 }
 
-// GGG's patch CDN occasionally drops the first connection attempt from a
-// fresh runner (seen in CI as an immediate "Failed to fetch _.index.bin from
-// CDN." with no timeout — a connection-level blip, not a slow download). A
-// few retries with backoff ride that out instead of failing the whole sync
-// on what a re-run one minute later would have skated past.
+/** Patch-CDN hostname whose requests get the retry treatment below. */
+const CDN_HOST = 'patch-poe2.poecdn.com';
+
+/**
+ * Per-attempt budget for one bundle fetch. Replaces the 30s
+ * `AbortSignal.timeout` @poe2-toolkit/ggpk's own loader hard-codes (that
+ * signal is created once per `fetchAndCache` call, so reusing it for a
+ * second attempt would abort instantly). 60s is deliberately generous: the
+ * failures this rides out are stalls, and a runner that is merely slow
+ * should finish rather than burn a retry.
+ */
+const CDN_FETCH_TIMEOUT_MS = 60_000;
+
+/** Total tries per bundle, first attempt included. */
+const CDN_FETCH_ATTEMPTS = 4;
+
+/** First backoff; each further wait doubles it (2s, 4s, 8s). */
+const CDN_RETRY_BASE_DELAY_MS = 2_000;
+
+/**
+ * Statuses worth another attempt. A 404 is not one of them: some texture
+ * bundles genuinely aren't on the patch CDN (only in a full install), and
+ * the toolkit's loader treats that miss as "skip this file". Retrying every
+ * expected miss four times with backoff would add minutes to every sync and
+ * still end in the same skip.
+ */
+const RETRIABLE_STATUS = new Set([408, 425, 429, 500, 502, 503, 504]);
+
+/** Statuses the `Response` constructor refuses to pair with a body. */
+const NULL_BODY_STATUS = new Set([204, 205, 304]);
+
+/**
+ * Wraps `fetch` so patch-CDN requests survive a transient stall instead of
+ * killing the whole sync.
+ *
+ * GGG's patch CDN intermittently stalls a bundle request from a fresh
+ * runner: the connection opens and then nothing arrives, until the loader's
+ * `AbortSignal.timeout` fires and the sync dies mid-extraction with
+ * `DOMException [TimeoutError]` out of `CdnCachingLoader.fetchAndCache`.
+ * There's nothing wrong with the request — a re-run a minute later fetches
+ * the same bundle fine — so a few attempts with backoff ride it out.
+ *
+ * This has to be a `globalThis.fetch` wrapper rather than an option we pass
+ * in: `createCdnSource` constructs its own `CdnCachingLoader` internally and
+ * exposes no hook for the loader, the timeout, or a retry policy (checked
+ * against @poe2-toolkit/ggpk 1.1.0, the newest published). Scoping the
+ * wrapper to {@link CDN_HOST} keeps every other caller — notably
+ * {@link fetchPobUniquesByName}, which has its own degrade-gracefully
+ * handling — on the untouched built-in.
+ *
+ * A successful response is fully buffered inside the attempt that made it,
+ * then handed back as a fresh `Response`: the per-attempt timeout covers
+ * body consumption too, and a body read that stalls in the *caller* would
+ * otherwise throw somewhere this wrapper can't retry.
+ *
+ * Exported for tests; `installCdnFetchRetry` is what the sync itself calls.
+ */
+export function createRetryingCdnFetch(
+  baseFetch: typeof fetch,
+  options: {
+    host?: string;
+    attempts?: number;
+    timeoutMs?: number;
+    baseDelayMs?: number;
+    sleep?: (ms: number) => Promise<void>;
+    log?: (message: string) => void;
+  } = {},
+): typeof fetch {
+  const {
+    host = CDN_HOST,
+    attempts = CDN_FETCH_ATTEMPTS,
+    timeoutMs = CDN_FETCH_TIMEOUT_MS,
+    baseDelayMs = CDN_RETRY_BASE_DELAY_MS,
+    sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
+    log = (message: string) => console.warn(message),
+  } = options;
+
+  return async function retryingFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+    const url = input instanceof Request ? input.url : String(input);
+    let hostname: string;
+    try {
+      hostname = new URL(url).hostname;
+    } catch {
+      return baseFetch(input, init);
+    }
+    if (hostname !== host) return baseFetch(input, init);
+
+    let lastError: unknown;
+    let lastResponse: Response | undefined;
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+      lastError = undefined;
+      lastResponse = undefined;
+      let failure: string;
+      try {
+        // A fresh timeout per attempt, replacing whatever the caller passed.
+        // The only signal that reaches here is the toolkit loader's own
+        // `AbortSignal.timeout(30_000)` — a deadline, not a user cancellation,
+        // and one already spent by the time a retry starts.
+        const res = await baseFetch(input, { ...init, signal: AbortSignal.timeout(timeoutMs) });
+        if (res.ok) {
+          // 204/205 carry no body, and `new Response(body, { status })` throws
+          // for those statuses rather than accepting an empty one.
+          if (NULL_BODY_STATUS.has(res.status)) return res;
+          const body = await res.arrayBuffer();
+          return new Response(body, { status: res.status, statusText: res.statusText, headers: res.headers });
+        }
+        if (!RETRIABLE_STATUS.has(res.status)) return res;
+        lastResponse = res;
+        failure = `HTTP ${res.status}`;
+      } catch (err) {
+        lastError = err;
+        failure = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+      }
+      if (attempt < attempts) {
+        const delay = baseDelayMs * 2 ** (attempt - 1);
+        log(`wiki sync: CDN fetch for ${url} failed (${failure}) — retrying in ${delay}ms (attempt ${attempt + 1} of ${attempts}).`);
+        await sleep(delay);
+      }
+    }
+    if (lastError !== undefined) throw lastError;
+    return lastResponse as Response;
+  };
+}
+
+/**
+ * Installs {@link createRetryingCdnFetch} over `globalThis.fetch` for the
+ * rest of the process. Called once at the top of {@link main}, before any
+ * `createCdnSource` reader exists.
+ */
+function installCdnFetchRetry(): void {
+  const baseFetch = globalThis.fetch.bind(globalThis);
+  globalThis.fetch = createRetryingCdnFetch(baseFetch);
+}
+
 /**
  * Live PoE2 patch version, via the same raw patch-server handshake
  * poe2-toolkit's own build uses for `"patch": "latest"` (see
@@ -935,6 +1064,7 @@ function writeKind(
 }
 
 async function main(): Promise<void> {
+  installCdnFetchRetry();
   const patchVersion = await resolveLatestPatchVersion();
   ensureTablesDecoded(patchVersion);
   // One instant for the whole run: see normalizeItem's note on why every
