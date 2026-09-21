@@ -99,7 +99,12 @@ export default function MyBuildsList({
       <div className="py-10 text-center">
         {errorBanner}
         <p className="text-sm text-muted-foreground">You have not saved a build yet.</p>
-        <Link href="/tree" className="mt-2 inline-block text-sm underline">
+        {/* h-11: this is the empty state's only call to action, so it needs a
+            real tap target on a phone, not a 20px inline text link. */}
+        <Link
+          href="/tree"
+          className="mt-2 inline-flex h-11 items-center justify-center text-sm underline"
+        >
           Plan one on the passive tree
         </Link>
       </div>

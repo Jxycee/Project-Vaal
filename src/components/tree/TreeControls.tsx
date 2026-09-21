@@ -62,7 +62,13 @@ export default function TreeControls({
   onSearchChange,
   onReset,
 }: TreeControlsProps) {
-  const [open, setOpen] = useState(true);
+  // Collapsed by default. On a phone the canvas IS the interface and drag
+  // surface is scarce: expanded, this panel covers roughly half a 375px screen
+  // and extends underneath BuildSavePanel's chip in the opposite corner (caught
+  // by e2e/mobile-layout.spec.ts, which asserts the resting overlays never
+  // intersect). The chip still shows the active class, so nothing is hidden —
+  // only folded away until asked for.
+  const [open, setOpen] = useState(false);
   const active = classes.find((c) => c.id === classId);
 
   return (

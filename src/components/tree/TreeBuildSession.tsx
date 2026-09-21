@@ -133,6 +133,17 @@ export default function TreeBuildSession({
   // always null for the lifetime of this instance.
   const [createdBuild, setCreatedBuild] = useState<SavedBuild | null>(null);
 
+  // A ?build= load error, unless it has gone stale or been dismissed.
+  //
+  // It goes stale the moment a scratch save succeeds: the user's work now
+  // lives in a real row, so still saying "That build could not be found." is
+  // actively misleading. The pre-migration version cleared this by calling
+  // setLoadError(null) on save success; loadError is a server prop now, so
+  // this is derived instead — mirroring a prop into state and clearing it in
+  // an effect is what react-hooks/set-state-in-effect rejects here.
+  const [loadErrorDismissed, setLoadErrorDismissed] = useState(false);
+  const visibleLoadError = createdBuild || loadErrorDismissed ? null : loadError;
+
   const handleSave = useCallback(
     async (meta: { name: string; level: number; league: string }) => {
       if (!editorState) return;
@@ -152,7 +163,10 @@ export default function TreeBuildSession({
             passive_state: toPassiveState(editorState.main, editorState.ascendancyNodes),
           }),
         });
-        const payload = (await res.json()) as { build?: SavedBuild; error?: string };
+        const payload = (await res.json()) as {
+          build?: SavedBuild;
+          error?: string;
+        };
         if (!res.ok) {
           setSaveError(payload.error ?? 'Could not save this build.');
           return;
@@ -184,48 +198,71 @@ export default function TreeBuildSession({
         initialState={passiveInitialState}
         onStateChange={setEditorState}
       />
-      {draftPromptOpen ? (
-        // Non-blocking chip. Positioned below the top row rather than at
-        // either top corner or the full-width bottom strip, so its resting
-        // position never overlaps TreeControls (left-3 top-3),
-        // BuildSavePanel (right-3 top-3), or NodeInfoPanel (inset-x-3
-        // bottom-3) — all three of those stay exactly where they are. At
-        // 375px the two top chips are ~2.75rem tall including their top-3
-        // offset; top-16 (4rem) clears that with room to spare.
-        <div className="absolute inset-x-3 top-16 z-10 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card/95 px-3 py-2 backdrop-blur">
-          <p className="text-sm text-foreground">Unsaved changes from last time.</p>
-          <div className="flex gap-2">
+      {/*
+        Notices stack below the top row rather than sitting at either top
+        corner or the full-width bottom strip, so they never overlap
+        TreeControls (left-3 top-3), BuildSavePanel (right-3 top-3) or
+        NodeInfoPanel (inset-x-3 bottom-3). At 375px the two top chips are
+        ~2.75rem tall including their top-3 offset; top-16 (4rem) clears that.
+
+        A single flex column, because the load error and the draft prompt can
+        both be showing at once — absolutely positioning them independently is
+        how they would end up on top of each other.
+
+        pointer-events-none on the container, auto on each child: the empty
+        column below a short notice must not swallow drags meant for the
+        canvas, which on a phone is most of the interface.
+      */}
+      <div className="pointer-events-none absolute inset-x-3 top-16 z-10 flex flex-col gap-2">
+        {visibleLoadError ? (
+          <div className="pointer-events-auto flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/40 bg-card/95 px-3 py-2 backdrop-blur">
+            <p className="text-sm text-destructive" role="alert">
+              {visibleLoadError}
+            </p>
             <button
               type="button"
-              onClick={handleRestoreDraft}
-              className="h-11 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
+              onClick={() => setLoadErrorDismissed(true)}
+              className="h-11 rounded-md px-3 text-sm text-muted-foreground"
             >
-              Restore
-            </button>
-            <button
-              type="button"
-              onClick={handleDiscardDraft}
-              className="h-11 rounded-md border border-border px-4 text-sm font-medium text-muted-foreground"
-            >
-              Discard
+              Dismiss
             </button>
           </div>
-        </div>
-      ) : null}
+        ) : null}
+        {draftPromptOpen ? (
+          <div className="pointer-events-auto flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card/95 px-3 py-2 backdrop-blur">
+            <p className="text-sm text-foreground">Unsaved changes from last time.</p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleRestoreDraft}
+                className="h-11 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
+              >
+                Restore
+              </button>
+              <button
+                type="button"
+                onClick={handleDiscardDraft}
+                className="h-11 rounded-md border border-border px-4 text-sm font-medium text-muted-foreground"
+              >
+                Discard
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </div>
       <BuildSavePanel
         buildId={activeBuildId}
         initialName={build?.name ?? ''}
         initialLevel={build?.level ?? 1}
         initialLeague={build?.league ?? 'Standard'}
         saving={saving}
-        // Once a scratch save has succeeded, a ?build= load error is stale:
-        // the user's work now lives in a real row, so continuing to show
-        // "That build could not be found." is actively misleading. The old
-        // client version cleared this with setLoadError(null) on save
-        // success. loadError is a prop now, so this is derived instead —
-        // storing and clearing it would be a setState in an effect, which
-        // react-hooks/set-state-in-effect rejects here.
-        error={saveError ?? (createdBuild ? null : loadError)}
+        // Only the save's own error. A ?build= load error is surfaced as a
+        // canvas notice above instead: BuildSavePanel renders `error` only
+        // while it is expanded, and it is collapsed to a chip by default — so
+        // routing the load error through here meant a bad ?build= link showed
+        // a perfectly normal-looking empty editor with no indication anything
+        // had gone wrong. The spec requires an inline notice for that case.
+        error={saveError}
         savedAt={savedAt}
         onSave={handleSave}
       />
