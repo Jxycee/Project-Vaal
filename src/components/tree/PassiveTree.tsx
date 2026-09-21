@@ -479,6 +479,11 @@ export default function PassiveTree({
       setClass: (id) => handleClass(id),
       setAscendancy: (id) => handleAscendancy(id),
       reset: () => handleReset(),
+      // data.jewelSlots (normalizeGggTree) is already `.map(Number)`'d but,
+      // like the raw export, still includes ids with no matching node — see
+      // jewelSockets.ts's header comment for the same filter applied to the
+      // panel itself.
+      jewelSockets: () => data.jewelSlots.filter((id) => Boolean(data.nodes[id])),
     };
     return () => {
       delete w.__vaalTree;

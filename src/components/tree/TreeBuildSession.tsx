@@ -24,10 +24,13 @@ import type { GggTreeJson } from '@poe2-toolkit/tree-core/ggg';
 import type PassiveTreeComponent from '@/components/tree/PassiveTree';
 import BuildSavePanel from '@/components/tree/BuildSavePanel';
 import GearSheet from '@/components/build/GearSheet';
+import JewelsChip from '@/components/build/JewelsChip';
+import JewelsSheet from '@/components/build/JewelsSheet';
 import { fromPassiveState, toPassiveState } from '@/lib/build/passiveState';
 import { saveDraft, loadDraft, clearDraft } from '@/lib/build/draft';
 import { draftDiffersFrom } from '@/lib/build/draftCompare';
 import { emptyGearState, parseGearState } from '@/lib/build/gearState';
+import { summarizeJewels } from '@/lib/build/jewelState';
 import type { GearItem, GearSlot } from '@/lib/build/gearSlots';
 import type { BuildEditorState, PassiveTreeInitialState, SavedBuild } from '@/lib/build/types';
 
@@ -127,6 +130,38 @@ export default function TreeBuildSession({
 
   const handleGearChange = useCallback((slot: GearSlot, item: GearItem | null) => {
     setGearState((prev) => ({ ...prev, [slot]: item }));
+  }, []);
+
+  // ---- Jewels ---------------------------------------------------------
+  // Sockets are derived, not stored: `raw.jewelSlots` intersected with
+  // whatever PassiveTree currently reports as allocated (`editorState`),
+  // resolved/normalised by summarizeJewels — see jewelSockets.ts and
+  // jewelState.ts. `gearState.jewels` (part of the same lazily-seeded state
+  // above) is the only thing actually persisted; this is a pure read of it
+  // against the live allocation, recomputed on every relevant change rather
+  // than kept as its own state — nothing here is a side effect, so there is
+  // no react-hooks/set-state-in-effect concern.
+  const [jewelsSheetOpen, setJewelsSheetOpen] = useState(false);
+
+  const jewelsSummary = useMemo(
+    () => summarizeJewels(raw, editorState?.main.allocated ?? [], gearState.jewels),
+    [raw, editorState, gearState.jewels],
+  );
+
+  const handleJewelPick = useCallback((socketId: string, item: GearItem) => {
+    setGearState((prev) => ({ ...prev, jewels: { ...prev.jewels, [socketId]: item } }));
+  }, []);
+
+  // Explicit discard only — a socket row's Clear or an orphan row's Remove.
+  // Never called as a side effect of the tree deallocating a socket (the
+  // orphan rule): that path only ever changes `editorState.main.allocated`,
+  // which this function has no connection to.
+  const handleJewelClear = useCallback((socketId: string) => {
+    setGearState((prev) => {
+      const jewels = { ...prev.jewels };
+      delete jewels[socketId];
+      return { ...prev, jewels };
+    });
   }, []);
 
   // Writes to localStorage only, never calls a setState — so this does not
@@ -236,14 +271,19 @@ export default function TreeBuildSession({
         column below a short notice must not swallow drags meant for the
         canvas, which on a phone is most of the interface.
 
-        The build-section chip row (currently just Gear; a later task adds
-        Jewels and Gems) lives here too, as a child rather than a fifth
-        independently-positioned overlay — see gear-design.md. `self-start`
-        keeps its footprint to its own content width so the empty rest of
-        this full-width strip stays pointer-events-none for canvas drags.
+        The build-section chip row (Gear and Jewels; a later task adds Gems)
+        lives here too, as a child rather than a sixth independently-
+        positioned overlay — see gear-design.md and jewels-design.md.
+        `self-start` keeps the row's footprint to its own content width so
+        the empty rest of this full-width strip stays pointer-events-none for
+        canvas drags. `flex-wrap` on the row itself lets the Jewels chip (its
+        width varies with how many sockets are allocated) drop to a second
+        line instead of overflowing the 375px viewport horizontally, which
+        e2e/mobile-layout.spec.ts's "no horizontal page scroll" check would
+        fail on.
       */}
       <div className="pointer-events-none absolute inset-x-3 top-16 z-10 flex flex-col gap-2">
-        <div className="pointer-events-auto flex self-start gap-2">
+        <div className="pointer-events-auto flex flex-wrap self-start gap-2">
           <button
             type="button"
             onClick={() => setGearSheetOpen(true)}
@@ -251,6 +291,7 @@ export default function TreeBuildSession({
           >
             Gear
           </button>
+          <JewelsChip summary={jewelsSummary} onOpen={() => setJewelsSheetOpen(true)} />
         </div>
         {visibleLoadError ? (
           <div className="pointer-events-auto flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/40 bg-card/95 px-3 py-2 backdrop-blur">
@@ -309,6 +350,14 @@ export default function TreeBuildSession({
         gear={gearState}
         onChange={handleGearChange}
         onClose={() => setGearSheetOpen(false)}
+      />
+      <JewelsSheet
+        open={jewelsSheetOpen}
+        sockets={jewelsSummary.sockets}
+        orphans={jewelsSummary.orphans}
+        onPick={handleJewelPick}
+        onClear={handleJewelClear}
+        onClose={() => setJewelsSheetOpen(false)}
       />
     </>
   );

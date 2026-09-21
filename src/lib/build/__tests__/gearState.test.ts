@@ -6,12 +6,13 @@ import type { GearItem } from '../gearSlots';
 const boots: GearItem = { slug: 'wanderlust', name: 'Wanderlust', category: 'Boots', isUnique: true, iconUrl: null };
 
 describe('emptyGearState', () => {
-  it('has all 17 slots present and null', () => {
+  it('has all 17 slots present and null, plus an empty jewels map', () => {
     const state = emptyGearState();
-    expect(Object.keys(state)).toHaveLength(17);
+    expect(Object.keys(state)).toHaveLength(18);
     for (const slot of GEAR_SLOTS) {
       expect(state[slot]).toBeNull();
     }
+    expect(state.jewels).toEqual({});
   });
 });
 
@@ -32,10 +33,11 @@ describe('isGearItem', () => {
 });
 
 describe('parseGearState', () => {
-  it('returns an all-null state for non-object input (new build, missing column)', () => {
+  it('returns an all-null state (and empty jewels) for non-object input (new build, missing column)', () => {
     for (const raw of [null, undefined, 'garbage', 42, []]) {
       const state = parseGearState(raw);
       for (const slot of GEAR_SLOTS) expect(state[slot]).toBeNull();
+      expect(state.jewels).toEqual({});
     }
   });
 
@@ -44,11 +46,11 @@ describe('parseGearState', () => {
     expect(state.boots).toEqual(boots);
     // Every other slot still defaults to null rather than being absent.
     expect(state.head).toBeNull();
-    expect(Object.keys(state)).toHaveLength(17);
+    expect(Object.keys(state)).toHaveLength(18);
   });
 
   it('drops unknown keys (e.g. a stale/renamed slot) without throwing', () => {
-    const state = parseGearState({ boots, notASlot: boots, jewels: [boots] });
+    const state = parseGearState({ boots, notASlot: boots });
     expect(state.boots).toEqual(boots);
     expect((state as Record<string, unknown>).notASlot).toBeUndefined();
   });
@@ -62,5 +64,24 @@ describe('parseGearState', () => {
   it('accepts an explicit null for a slot', () => {
     const state = parseGearState({ boots: null });
     expect(state.boots).toBeNull();
+  });
+
+  it('round-trips a well-formed jewels map, keyed by socket node id', () => {
+    const state = parseGearState({ boots, jewels: { '12345': boots } });
+    expect(state.boots).toEqual(boots);
+    expect(state.jewels).toEqual({ '12345': boots });
+  });
+
+  it('drops a malformed jewels value (wrong top-level shape) to an empty map rather than crashing', () => {
+    for (const badJewels of [[boots], 'garbage', 42, null]) {
+      const state = parseGearState({ boots, jewels: badJewels });
+      expect(state.boots).toEqual(boots);
+      expect(state.jewels).toEqual({});
+    }
+  });
+
+  it('drops one malformed jewel entry without blanking the others', () => {
+    const state = parseGearState({ jewels: { '1': boots, '2': { name: 'onlyAName' } } });
+    expect(state.jewels).toEqual({ '1': boots });
   });
 });

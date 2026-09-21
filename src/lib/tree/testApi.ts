@@ -51,4 +51,12 @@ export interface TreeTestApi {
   setClass: (id: number) => void;
   setAscendancy: (id: string | undefined) => void;
   reset: () => void;
+  /**
+   * Ids of every jewel socket that resolves to a real node in this tree
+   * export — the same ~40%-dangling filter the jewels panel itself uses (see
+   * src/lib/tree/jewelSockets.ts), regardless of current allocation. A test
+   * allocates one of these via `allocate` before exercising the jewels panel,
+   * since the canvas has no DOM for it to click directly.
+   */
+  jewelSockets: () => number[];
 }

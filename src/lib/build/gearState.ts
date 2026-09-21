@@ -13,12 +13,29 @@
 
 import { GEAR_SLOTS, isGearSlot, type GearItem, type GearSlot } from './gearSlots';
 
-export type GearState = Record<GearSlot, GearItem | null>;
+/**
+ * `jewels` rides alongside the 17 gear slots in the same jsonb column but is
+ * keyed differently: by socket NODE ID (a string, since it round-trips
+ * through jsonb), not by one of the 17 `GearSlot` keys — jewels aren't a gear
+ * slot at all (see gearSlots.ts's `JEWEL_PSEUDO_SLOT`). Keying by node id
+ * rather than array index or socket order means reallocating the tree can
+ * never shuffle which jewel sits in which socket.
+ *
+ * An entry survives its socket being deallocated — the orphan rule in
+ * docs/superpowers/specs/2026-09-20-jewels-design.md: respeccing must never
+ * silently discard a chosen item. Neither this module nor jewelState.ts's
+ * `summarizeJewels` ever prunes an entry; only an explicit user action
+ * (JewelsSheet's Clear/Remove, wired in TreeBuildSession) does.
+ */
+export type GearState = Record<GearSlot, GearItem | null> & {
+  jewels: Record<string, GearItem>;
+};
 
-/** All 17 slots empty — the starting state for a build with no gear yet. */
+/** All 17 slots empty and no jewels — the starting state for a build with no gear yet. */
 export function emptyGearState(): GearState {
   const state = {} as GearState;
   for (const slot of GEAR_SLOTS) state[slot] = null;
+  state.jewels = {};
   return state;
 }
 
@@ -48,6 +65,7 @@ export function parseGearState(raw: unknown): GearState {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return state;
   const v = raw as Record<string, unknown>;
   for (const key of Object.keys(v)) {
+    if (key === 'jewels') continue; // handled separately below — not a GearSlot
     if (!isGearSlot(key)) continue;
     const item = v[key];
     if (item === null) {
@@ -57,5 +75,21 @@ export function parseGearState(raw: unknown): GearState {
     }
     // Anything else (wrong shape) is left at the `null` default from emptyGearState.
   }
+  state.jewels = parseJewelsRecord(v.jewels);
   return state;
+}
+
+/**
+ * Defensive parse for `gear_state.jewels`. A malformed top-level value (not a
+ * plain object — an array, a string, a number, ...) drops to `{}` rather than
+ * crashing; a malformed individual entry is skipped the same way a malformed
+ * gear slot is above, so one bad jewel can't blank the others.
+ */
+function parseJewelsRecord(value: unknown): Record<string, GearItem> {
+  const jewels: Record<string, GearItem> = {};
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return jewels;
+  for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+    if (isGearItem(item)) jewels[key] = item;
+  }
+  return jewels;
 }
