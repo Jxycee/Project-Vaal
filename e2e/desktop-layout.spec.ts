@@ -21,6 +21,10 @@ test.describe('desktop layout', () => {
 
   test('the tree canvas starts where the sidebar ends', async ({ page }) => {
     await openTree(page);
+    // openTree only waits for the dev hook, which PassiveTree installs on
+    // mount — pixi attaches its <canvas> a tick later, so measuring straight
+    // after it found no canvas and reported "both must be present".
+    await expect(page.locator('canvas')).toBeVisible({ timeout: 60_000 });
 
     const geometry = await page.evaluate(() => {
       const aside = document.querySelector('aside');

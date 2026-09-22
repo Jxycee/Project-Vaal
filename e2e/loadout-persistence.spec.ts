@@ -62,6 +62,13 @@ async function pickFirstItem(page: Page, opener: Locator, subject: Locator): Pro
 }
 
 test.describe('loadout persistence', () => {
+  // This spec deliberately does in one pass what three separate specs used to
+  // do in three: gear, a socketed jewel and a gem loadout, through one save and
+  // one reload. That is the point — one POST and one server-component load
+  // instead of three — but it also means one test legitimately runs longer than
+  // the 180s per-test default, which it was overrunning.
+  test.setTimeout(420_000);
+
   test.afterAll(async ({ browser }) => {
     await cleanupWithFreshPage(browser);
   });
