@@ -49,7 +49,9 @@ function SocketRow({
         <button
           type="button"
           onClick={onOpenPicker}
-          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+          // h-full for the same reason as GearSheet's row button: the row is
+          // h-14 but a heightless button collapses to its content.
+          className="flex h-full min-w-0 flex-1 items-center gap-3 text-left"
         >
           <JewelIcon item={socket.item} />
           <span className="flex min-w-0 flex-col">

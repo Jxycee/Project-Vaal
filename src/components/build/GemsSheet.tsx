@@ -110,7 +110,10 @@ function LoadoutCard({
               type="button"
               onClick={() => onRemoveSupport(supportIndex)}
               aria-label={`Remove ${support.name}`}
-              className="flex h-full items-center px-1 text-muted-foreground"
+              // Full height AND w-11. This was a ~20px-wide target inside an
+              // h-11 chip, which looks compliant if you only measure height —
+              // which is exactly what the tap-target e2e check used to do.
+              className="flex h-full w-11 items-center justify-center text-muted-foreground"
             >
               <X size={12} />
             </button>
@@ -142,8 +145,8 @@ function LoadoutCard({
                 onClick={() => onToggleSet(set)}
                 className={
                   active
-                    ? 'flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-medium bg-primary text-primary-foreground'
-                    : 'flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-medium bg-background/60 text-muted-foreground'
+                    ? 'flex h-11 items-center gap-1.5 rounded-full px-3 text-xs font-medium bg-primary text-primary-foreground'
+                    : 'flex h-11 items-center gap-1.5 rounded-full px-3 text-xs font-medium bg-background/60 text-muted-foreground'
                 }
               >
                 <span className={`h-2 w-2 rounded-full ${WEAPON_SET_DOT[set]}`} />

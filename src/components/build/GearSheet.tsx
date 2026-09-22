@@ -64,7 +64,10 @@ function SlotRow({
         <button
           type="button"
           onClick={onOpenPicker}
-          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+          // h-full: the row is h-14, but a button with no height collapses to
+          // its 36px content, so the actual tap target was smaller than the
+          // row it appears to be.
+          className="flex h-full min-w-0 flex-1 items-center gap-3 text-left"
         >
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-card/60 overflow-hidden">
             {item?.iconUrl ? (
@@ -157,8 +160,8 @@ export default function GearSheet({
                 onClick={() => setWeaponSet(set)}
                 className={
                   set === weaponSet
-                    ? 'flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-medium bg-primary text-primary-foreground'
-                    : 'flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-medium bg-background/60 text-muted-foreground'
+                    ? 'flex h-11 items-center gap-1.5 rounded-full px-3 text-xs font-medium bg-primary text-primary-foreground'
+                    : 'flex h-11 items-center gap-1.5 rounded-full px-3 text-xs font-medium bg-background/60 text-muted-foreground'
                 }
               >
                 <span className={`h-2 w-2 rounded-full ${WEAPON_SET_DOT[set]}`} />
