@@ -72,12 +72,18 @@ export default defineConfig({
   // Starts the dev server from THIS directory, which is the fix for a trap that
   // has produced false results repeatedly here: a server left running by
   // something else (or started from another checkout) silently serves different
-  // code, and nothing warns you. reuseExistingServer is off outside CI-less
-  // runs for exactly that reason.
+  // code, and nothing warns you. So reuse is OFF by default, and a full run
+  // always pays a cold compile.
+  //
+  // E2E_REUSE=1 opts into reusing whatever is already on the port, for tight
+  // iteration against a dev server you are already running (Fast Refresh keeps
+  // it current as you edit, so this is genuinely fast). Only use it with a
+  // server you started from THIS directory, and never to judge a full run —
+  // that is exactly how the trap above bites.
   webServer: {
     command: `npm run dev -- -p ${PORT} --webpack`,
     url: BASE_URL,
-    reuseExistingServer: false,
+    reuseExistingServer: process.env.E2E_REUSE === '1',
     timeout: 120_000,
     stdout: 'ignore',
     stderr: 'pipe',
