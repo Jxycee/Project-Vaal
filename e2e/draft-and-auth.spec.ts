@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import {
   allocateNodes,
-  cleanupTestBuilds,
+  cleanupWithFreshPage,
   openTree,
   saveBuild,
   testBuildName,
@@ -21,9 +21,7 @@ async function twoNodes(page: import('@playwright/test').Page) {
 
 test.describe('draft restore', () => {
   test.afterAll(async ({ browser }) => {
-    const page = await browser.newPage();
-    await cleanupTestBuilds(page);
-    await page.close();
+    await cleanupWithFreshPage(browser);
   });
 
   test('offers to restore unsaved work after a reload, and restores it', async ({ page }) => {

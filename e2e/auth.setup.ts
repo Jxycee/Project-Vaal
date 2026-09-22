@@ -1,6 +1,7 @@
 import { test as setup, expect } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
+import { cleanupTestBuilds } from './helpers';
 
 const AUTH_FILE = path.join(__dirname, '.auth', 'user.json');
 
@@ -61,4 +62,17 @@ setup('authenticate', async ({ page }) => {
   ]);
   expect(warm[0].status(), 'warm-up POST /api/builds must be rejected, not written').toBe(400);
   expect(warm[1].status(), 'warm-up GET /api/wiki/items').toBe(200);
+
+  // ---- Sweep debris from previous runs --------------------------------------
+  //
+  // Every spec deletes its own rows in afterAll, but an afterAll cannot run if
+  // the worker never got to it — Ctrl-C, a crash, a `--max-failures` stop. This
+  // account is shared and its /builds page is a real page someone reads, so
+  // leaked E2E- rows are not harmless; they also make the "exactly one row with
+  // this name" assertions in build-persistence.spec.ts noisier to debug.
+  //
+  // Here is the one place in the run that is guaranteed to execute, so the
+  // sweep lives here rather than in a global teardown that a kill would skip
+  // just as easily.
+  await cleanupTestBuilds(page);
 });

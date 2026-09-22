@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { e2eBaseUrl, e2ePort } from './e2e/baseUrl';
 
 // .env.local is gitignored and holds the Supabase keys the dev server needs
 // plus the e2e test account. Playwright does not read it the way Next does, and
@@ -24,8 +25,11 @@ function loadEnvLocal(): void {
 }
 loadEnvLocal();
 
-const PORT = Number(process.env.E2E_PORT ?? 3100);
-export const BASE_URL = `http://localhost:${PORT}`;
+// Read after loadEnvLocal(), which is why e2e/baseUrl.ts exports functions
+// rather than constants: helpers.ts imports the same two so the cleanup context
+// it builds by hand cannot drift from the server this config starts.
+const PORT = e2ePort();
+const BASE_URL = e2eBaseUrl();
 
 export default defineConfig({
   testDir: './e2e',
@@ -58,12 +62,25 @@ export default defineConfig({
     {
       // Mobile FIRST, deliberately: this app's users are console players on
       // phones, so a failure at 375px is a real failure, not a partial pass.
+      // It runs everything except the desktop-only geometry spec.
       name: 'mobile',
+      testIgnore: /desktop-layout\.spec\.ts/,
       use: { ...devices['Pixel 7'], storageState: 'e2e/.auth/user.json' },
       dependencies: ['setup'],
     },
     {
+      // Deliberately narrow. This project used to re-run every spec at 1280px,
+      // which cost roughly seventeen extra full /tree loads — each one a 5.1MB
+      // GGG export fetched and parsed — to exercise five `md:` utilities that
+      // none of those specs assert anything about. Their subject is server
+      // state, not pixels, so the second pass re-proved the first one's result.
+      //
+      // The genuinely desktop-only behaviour (the sidebar, and the canvas
+      // offset that has to match its width) is now measured directly, in one
+      // spec, at a cost of one tree load. If a desktop-specific branch appears
+      // somewhere else, add a check there rather than widening this back out.
       name: 'desktop',
+      testMatch: /desktop-layout\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], storageState: 'e2e/.auth/user.json' },
       dependencies: ['setup'],
     },

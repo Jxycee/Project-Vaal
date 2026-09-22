@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import {
   allocateNodes,
-  cleanupTestBuilds,
+  cleanupWithFreshPage,
   listedBuildNames,
   openTree,
   saveBuild,
@@ -49,9 +49,7 @@ async function nodesNearStart(page: import('@playwright/test').Page, count: numb
 }
 
 test.afterAll(async ({ browser }) => {
-  const page = await browser.newPage();
-  await cleanupTestBuilds(page);
-  await page.close();
+  await cleanupWithFreshPage(browser);
 });
 
 test('saving twice from scratch updates one row instead of creating two', async ({ page }) => {
