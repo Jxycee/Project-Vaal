@@ -65,5 +65,13 @@ export interface SavedBuild {
    * anything jsonb allows.
    */
   gear_state: unknown;
+  /**
+   * Raw jsonb as it comes off the row — validate with `parseGemState`
+   * (`@/lib/build/gemState`) before use, never trust it directly. Same
+   * reasoning as `gear_state` above.
+   */
+  gem_state: unknown;
+  /** The primary loadout's skill name (see `deriveMainSkill`), or null if no loadout has a skill yet. */
+  main_skill: string | null;
   updated_at: string;
 }

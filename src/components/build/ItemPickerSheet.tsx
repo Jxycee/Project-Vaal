@@ -18,20 +18,28 @@
 // (rather than relying on GearSheet's own portal) keeps this component
 // correct if the jewels task — or anything else — ever mounts it somewhere
 // that doesn't already portal for it.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import Link from 'next/link';
 import { fetchWikiCardSnippet } from '@/lib/wiki/fetchDetail';
 import { GEAR_SLOT_LABELS, JEWEL_PSEUDO_SLOT, isGearSlot, type GearItem, type GearSlot } from '@/lib/build/gearSlots';
-import type { WikiSearchEntry } from '@/lib/wiki/types';
+import { GEM_SKILL_PSEUDO_SLOT, GEM_SUPPORT_PSEUDO_SLOT, isGemPseudoSlot, type GemPseudoSlot } from '@/lib/build/gemSlots';
+import type { WikiEntryKind, WikiSearchEntry } from '@/lib/wiki/types';
 
-export type ItemPickerSlot = GearSlot | typeof JEWEL_PSEUDO_SLOT;
+export type ItemPickerSlot = GearSlot | typeof JEWEL_PSEUDO_SLOT | GemPseudoSlot;
 
 /** Debounce for the search-as-you-type network call — short enough to feel live, long enough not to fire one request per keystroke. */
 const SEARCH_DEBOUNCE_MS = 300;
 
+/** Which wiki index (and therefore which detail-file directory) a slot's picker reads from. Gem pseudo-slots read the SKILL index; everything else reads the ITEM index. */
+function pickerKind(slot: ItemPickerSlot): WikiEntryKind {
+  return isGemPseudoSlot(slot) ? 'skill' : 'item';
+}
+
 function slotLabel(slot: ItemPickerSlot): string {
+  if (slot === GEM_SKILL_PSEUDO_SLOT) return 'Skill gem';
+  if (slot === GEM_SUPPORT_PSEUDO_SLOT) return 'Support gem';
   return isGearSlot(slot) ? GEAR_SLOT_LABELS[slot] : 'Jewel';
 }
 
@@ -97,16 +105,30 @@ export default function ItemPickerSheet({
     return () => clearTimeout(handle);
   }, [open, slot, query]);
 
+  // 17 names repeat inside the pickable skill set (Spark, Herald of Ash,
+  // Blink, Unleash, …) — item- and ascendancy-granted variants of the same
+  // skill. Two identical-looking rows is a worse bug than a long subtitle,
+  // and dropping one is worse still (some variants have no canonical
+  // sibling), so the slug disambiguates only where it must. Computed for
+  // every kind (not just skill) — it's a cheap no-op for gear/jewel lists,
+  // which don't have the duplicate-name problem.
+  const duplicateNames = useMemo(() => {
+    if (state.status !== 'ready') return new Set<string>();
+    return new Set(state.entries.map((e) => e.name).filter((n, i, all) => all.indexOf(n) !== i));
+  }, [state]);
+
   // Also gates the SSR pass, where `document` does not exist — moot in
   // practice since `open` starts `false` and only flips true from a client
   // event, but cheap to guard explicitly rather than rely on that.
   if (!open || typeof document === 'undefined') return null;
 
+  const isSkillKind = pickerKind(slot) === 'skill';
+
   async function handleRowPick(entry: WikiSearchEntry) {
     setPickingSlug(entry.slug);
     let iconUrl: string | null = null;
     try {
-      const snippet = await fetchWikiCardSnippet('item', entry.slug);
+      const snippet = await fetchWikiCardSnippet(pickerKind(slot), entry.slug);
       iconUrl = snippet.iconUrl;
     } catch {
       // A failed icon fetch must never block the pick — store null and
@@ -186,7 +208,13 @@ export default function ItemPickerSheet({
                           </span>
                         ) : null}
                       </span>
-                      <span className="truncate text-xs text-muted-foreground">{entry.category}</span>
+                      <span className="truncate text-xs text-muted-foreground">
+                        {isSkillKind
+                          ? [entry.tags.slice(0, 3).join(' · '), duplicateNames.has(entry.name) ? entry.slug : null]
+                              .filter(Boolean)
+                              .join(' — ')
+                          : entry.category}
+                      </span>
                     </span>
                     {pickingSlug === entry.slug ? (
                       <span className="shrink-0 text-xs text-muted-foreground">Picking…</span>

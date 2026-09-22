@@ -1,18 +1,27 @@
 // src/app/api/wiki/items/route.ts
 // =============================================================================
-// GET /api/wiki/items — server-side gear/jewel picker search.
+// GET /api/wiki/items — server-side gear/jewel/gem picker search.
 //
-// Filters the item index down to one slot's categories and applies the
-// wiki's own search ranking, so a phone never downloads the 722KB raw index
-// to fill a single gear slot. See docs/superpowers/specs/2026-09-20-gear-
-// design.md, "The one substantive change from the original spec" — a
-// filtered response for one slot is roughly 5KB, on an interaction users
-// perform 17 times to fill a character.
+// Filters an index down to one slot's categories and applies the wiki's own
+// search ranking, so a phone never downloads the raw index to fill a single
+// slot. See docs/superpowers/specs/2026-09-20-gear-design.md, "The one
+// substantive change from the original spec" — a filtered response for one
+// slot is roughly 5KB, on an interaction users perform many times to fill a
+// character.
 //
-// `/api/` is NOT in PROTECTED_PREFIXES (src/proxy.ts), but the index file
-// this route reads under `/data/wiki/` IS. Without its own auth check this
+// Also serves the two gem pseudo-slots (`gem_skill`, `gem_support` — see
+// docs/superpowers/plans/2026-09-22-task3-gems.md). Gems live in the SKILL
+// index, not the item index — a disjoint `category` vocabulary — so the slot
+// lookup below resolves to a `{ kind, categories }` pair rather than just
+// categories, and `loadIndex(kind)` picks the right on-disk file. The route
+// keeps its `/items` name: it's a URL, not a type name, and renaming it for
+// three call sites would buy nothing.
+//
+// `/api/` is NOT in PROTECTED_PREFIXES (src/proxy.ts), but the index files
+// this route reads under `/data/wiki/` ARE. Without its own auth check this
 // route would be an unauthenticated side door around that gate — same
-// reasoning, same fix, as POST /api/builds.
+// reasoning, same fix, as POST /api/builds. That check runs first, below,
+// before any slot/kind resolution.
 // =============================================================================
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -26,19 +35,23 @@ import { loadIndex, WikiIndexLoadError } from '@/lib/wiki/loadIndex';
 // function for its own (client-side) callers.
 import { filterEntries } from '@/lib/wiki/filterEntries';
 import { isGearSlot, categoriesForSlot, JEWEL_PSEUDO_SLOT, JEWEL_CATEGORIES } from '@/lib/build/gearSlots';
+import { categoriesForGemSlot, isGemPseudoSlot } from '@/lib/build/gemSlots';
+import type { WikiEntryKind } from '@/lib/wiki/types';
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
 
 /**
- * `slot` covers both the 17 gear slots and the `jewels` pseudo-slot (the
- * jewel picker reuses this same route — see 2026-09-20-jewels-design.md).
+ * `slot` covers the 17 gear slots, the `jewels` pseudo-slot, and the two gem
+ * pseudo-slots. Gems live in the SKILL index, whose category vocabulary is
+ * disjoint from the item index's — hence a kind alongside the categories.
  * Returns `null` for anything else so the caller can 400 rather than let an
  * arbitrary category string reach the filter.
  */
-function categoriesForParam(slot: string): readonly string[] | null {
-  if (slot === JEWEL_PSEUDO_SLOT) return JEWEL_CATEGORIES;
-  if (isGearSlot(slot)) return categoriesForSlot(slot);
+function filterForParam(slot: string): { kind: WikiEntryKind; categories: readonly string[] } | null {
+  if (isGemPseudoSlot(slot)) return { kind: 'skill', categories: categoriesForGemSlot(slot) };
+  if (slot === JEWEL_PSEUDO_SLOT) return { kind: 'item', categories: JEWEL_CATEGORIES };
+  if (isGearSlot(slot)) return { kind: 'item', categories: categoriesForSlot(slot) };
   return null;
 }
 
@@ -56,10 +69,11 @@ export async function GET(request: NextRequest) {
   if (!slotParam) {
     return NextResponse.json({ error: 'slot is required' }, { status: 400 });
   }
-  const categories = categoriesForParam(slotParam);
-  if (!categories) {
+  const filter = filterForParam(slotParam);
+  if (!filter) {
     return NextResponse.json({ error: `Unknown slot: ${slotParam}` }, { status: 400 });
   }
+  const { kind, categories } = filter;
 
   let limit = DEFAULT_LIMIT;
   const limitParam = searchParams.get('limit');
@@ -75,13 +89,13 @@ export async function GET(request: NextRequest) {
 
   let index;
   try {
-    index = await loadIndex('item');
+    index = await loadIndex(kind);
   } catch (err) {
     // WikiIndexLoadError (malformed on-disk artifact) and a raw fs error
     // both mean the same thing to the caller: the data isn't usable right
     // now. Named separately in loadIndex.ts so a caller that cares CAN
     // distinguish; this route doesn't need to.
-    const message = err instanceof WikiIndexLoadError ? err.message : 'Failed to load item data';
+    const message = err instanceof WikiIndexLoadError ? err.message : `Failed to load ${kind} data`;
     return NextResponse.json({ error: message }, { status: 500 });
   }
 

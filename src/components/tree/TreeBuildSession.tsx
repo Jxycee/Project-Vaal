@@ -26,12 +26,27 @@ import BuildSavePanel from '@/components/tree/BuildSavePanel';
 import GearSheet from '@/components/build/GearSheet';
 import JewelsChip from '@/components/build/JewelsChip';
 import JewelsSheet from '@/components/build/JewelsSheet';
+import GemsChip from '@/components/build/GemsChip';
+import GemsSheet from '@/components/build/GemsSheet';
 import { fromPassiveState, toPassiveState } from '@/lib/build/passiveState';
 import { saveDraft, loadDraft, clearDraft } from '@/lib/build/draft';
 import { draftDiffersFrom } from '@/lib/build/draftCompare';
 import { emptyGearState, parseGearState } from '@/lib/build/gearState';
 import { summarizeJewels } from '@/lib/build/jewelState';
+import {
+  addLoadout,
+  addSupport,
+  deriveMainSkill,
+  emptyGemState,
+  parseGemState,
+  removeLoadout,
+  removeSupport,
+  setPrimary,
+  setSets,
+  setSkill,
+} from '@/lib/build/gemState';
 import type { GearItem, GearSlot } from '@/lib/build/gearSlots';
+import type { WeaponSet } from '@poe2-toolkit/tree-core';
 import type { BuildEditorState, PassiveTreeInitialState, SavedBuild } from '@/lib/build/types';
 
 type PassiveTreeProps = ComponentProps<typeof PassiveTreeComponent>;
@@ -164,6 +179,37 @@ export default function TreeBuildSession({
     });
   }, []);
 
+  // ---- Gems -------------------------------------------------------------
+  // Lazily seeded from `build.gem_state` (validated — see gemState.ts's
+  // header), same one-shot-per-mount reasoning as gear/jewels above: this
+  // component remounts on every build switch (keyed by buildId in
+  // TreeEditor).
+  const [gemState, setGemState] = useState(() => (build ? parseGemState(build.gem_state) : emptyGemState()));
+  const [gemsSheetOpen, setGemsSheetOpen] = useState(false);
+
+  // Every decision (the support cap, set normalisation, primary clearing) is
+  // inside gemState.ts's pure reducers, unit-tested there — these handlers
+  // only route events.
+  const handleAddLoadout = useCallback(() => setGemState((prev) => addLoadout(prev)), []);
+  const handleRemoveLoadout = useCallback((id: string) => setGemState((prev) => removeLoadout(prev, id)), []);
+  const handleSetSkill = useCallback(
+    (id: string, item: GearItem | null) => setGemState((prev) => setSkill(prev, id, item)),
+    [],
+  );
+  const handleAddSupport = useCallback(
+    (id: string, item: GearItem) => setGemState((prev) => addSupport(prev, id, item)),
+    [],
+  );
+  const handleRemoveSupport = useCallback(
+    (id: string, supportIndex: number) => setGemState((prev) => removeSupport(prev, id, supportIndex)),
+    [],
+  );
+  const handleSetSets = useCallback(
+    (id: string, sets: readonly WeaponSet[]) => setGemState((prev) => setSets(prev, id, sets)),
+    [],
+  );
+  const handleSetPrimary = useCallback((id: string) => setGemState((prev) => setPrimary(prev, id)), []);
+
   // Writes to localStorage only, never calls a setState — so this does not
   // trip react-hooks/set-state-in-effect the way updating component state
   // here would.
@@ -219,6 +265,14 @@ export default function TreeBuildSession({
             // memory (even if every slot is null), always sending it is the
             // correct behaviour, not the dangerous one.
             gear_state: gearState,
+            gem_state: gemState,
+            // Always sent, string or null. POST /api/builds writes
+            // main_skill on update only when the key is present
+            // ('main_skill' in body), and JSON.stringify drops an undefined
+            // value — so sending `undefined` here would make clearing the
+            // main skill impossible. deriveMainSkill returns null, not
+            // undefined, for exactly that reason.
+            main_skill: deriveMainSkill(gemState),
           }),
         });
         const payload = (await res.json()) as {
@@ -243,7 +297,7 @@ export default function TreeBuildSession({
         setSaving(false);
       }
     },
-    [editorState, build, createdBuild, buildId, gearState],
+    [editorState, build, createdBuild, buildId, gearState, gemState],
   );
 
   const activeBuildId = build?.id ?? createdBuild?.id;
@@ -271,9 +325,9 @@ export default function TreeBuildSession({
         column below a short notice must not swallow drags meant for the
         canvas, which on a phone is most of the interface.
 
-        The build-section chip row (Gear and Jewels; a later task adds Gems)
-        lives here too, as a child rather than a sixth independently-
-        positioned overlay — see gear-design.md and jewels-design.md.
+        The build-section chip row (Gear, Jewels and Gems) lives here too, as
+        a child rather than a sixth independently-positioned overlay — see
+        gear-design.md, jewels-design.md and the 2026-09-22 gems plan.
         `self-start` keeps the row's footprint to its own content width so
         the empty rest of this full-width strip stays pointer-events-none for
         canvas drags. `flex-wrap` on the row itself lets the Jewels chip (its
@@ -292,6 +346,7 @@ export default function TreeBuildSession({
             Gear
           </button>
           <JewelsChip summary={jewelsSummary} onOpen={() => setJewelsSheetOpen(true)} />
+          <GemsChip loadouts={gemState.loadouts} onOpen={() => setGemsSheetOpen(true)} />
         </div>
         {visibleLoadError ? (
           <div className="pointer-events-auto flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/40 bg-card/95 px-3 py-2 backdrop-blur">
@@ -358,6 +413,18 @@ export default function TreeBuildSession({
         onPick={handleJewelPick}
         onClear={handleJewelClear}
         onClose={() => setJewelsSheetOpen(false)}
+      />
+      <GemsSheet
+        open={gemsSheetOpen}
+        gemState={gemState}
+        onAddLoadout={handleAddLoadout}
+        onRemoveLoadout={handleRemoveLoadout}
+        onSetSkill={handleSetSkill}
+        onAddSupport={handleAddSupport}
+        onRemoveSupport={handleRemoveSupport}
+        onSetSets={handleSetSets}
+        onSetPrimary={handleSetPrimary}
+        onClose={() => setGemsSheetOpen(false)}
       />
     </>
   );
