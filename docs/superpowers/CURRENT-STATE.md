@@ -170,6 +170,6 @@ None of these have been deleted — they are the record of how the work happened
 | `plans/2026-09-22-task4-sharing.md` | Its body is pre-swap throughout; only its top amendment is current |
 | `handoffs/2026-09-18-server-side-migration-kickoff.md` | The RPC filter and the column default; its work is complete |
 | `plans/2026-09-16-build-planner-task1-persistence.md` | The column default |
-| `supabase/schema.sql` | Patched 2026-09-23 for the visibility migration; everything else still dates from the 2026-09-18 generation, so treat it as a convenience copy, never an authority |
+| `supabase/schema.sql` | **Deleted 2026-09-23.** It claimed to be generated while nothing generated it, so it went stale on every migration and twice misled work — once by three migrations, once by stating the inverse of the privacy model. Replaced by `supabase/migrations/` (the record) plus `npm run db:schema` (a generated, uncommitted view). Older docs still cite it; they mean the deleted file. |
 
 `plans/2026-07-12-pwa-serwist.md` also matches a grep for "unlisted" — that is an unrelated npm dependency, not a visibility claim. Checked, not stale.

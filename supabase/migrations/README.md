@@ -33,11 +33,25 @@ After applying, regenerate the types and commit them alongside:
 npm run db:types
 ```
 
-## Never treat `../schema.sql` as authoritative
+## There is no `../schema.sql` any more
 
-It is a convenience dump. It has been wrong twice, the second time stating the
-**inverse** of the privacy model underneath a "generated from the live
-database" header. To verify a database fact, query the live project with the
+It was deleted on 2026-09-23. It had been hand-maintained under a "GENERATED
+FROM THE LIVE DATABASE" header while nothing generated it, so it went stale
+the instant any migration ran — twice with consequences, the second time
+stating the **inverse** of the privacy model.
+
+If you want a single-file view of the live schema, generate one:
+
+```bash
+npm run db:schema
+```
+
+That writes `supabase/schema.generated.sql`, which is **gitignored on
+purpose**. Committing a snapshot is a promise to keep it current, and that
+promise is exactly what failed. It needs `SUPABASE_DB_URL` in `.env.local`;
+the script explains how if it is missing.
+
+To verify a database fact, use this directory, query the live project with the
 Supabase MCP tools, or read `src/types/database.ts` (generated, correct).
 
 ## Visibility, because it is the thing most often got wrong

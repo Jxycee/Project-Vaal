@@ -68,3 +68,6 @@ next-env.d.ts
 
 # Supabase CLI scratch (version probe, linked-project cache)
 supabase/.temp/
+
+# Generated on demand by `npm run db:schema`; never committed (see scripts/dump-schema.ts)
+supabase/schema.generated.sql

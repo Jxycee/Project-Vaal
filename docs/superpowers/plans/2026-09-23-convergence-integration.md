@@ -21,7 +21,7 @@
 - **`VaalOrb` (`src/components/dashboard/vaal-orb.tsx`) is never altered, replaced, or behaviourally changed.**
 - **Visibility vocabulary inverts the web norm and is correct as written:** `public` = all signed-in users + listed + view-counted; `private` = owner + anyone with the share link; `unlisted` = owner only (**the column default**). Do not "fix" either side.
 - **Expected usage is `unlisted` and `public`.** `private` is the niche middle. Weight UI accordingly.
-- **Never verify a database fact against `supabase/schema.sql`.** Query the live project via Supabase MCP, or read `src/types/database.ts`.
+- **`supabase/schema.sql` was deleted 2026-09-23** (Task 2). Verify a database fact against `supabase/migrations/`, `src/types/database.ts`, or the live project via Supabase MCP. `npm run db:schema` generates an uncommitted single-file view when you want one.
 - **Gates before every commit:** `npm run type-check` → `npm run lint` → `npm test` → `npm run build`. Report actual output, never expected.
 - **Check ports 3100–3110 at the START of any browser task**, not only the end.
 - **`npm install` silently reverts the `@poe2-toolkit` patches.** Recover with `npx patch-package`.
@@ -80,7 +80,7 @@ Each was checked on 2026-09-23 by the method named. Re-verify before trusting; d
 | Tree nodes are keyed by GGG numeric skill id (`"42761"`), 5,151 nodes, `public/data/tree/0.5.2/data.json` | read on disk |
 | `item-index.json`: 4,994 entries, **0 duplicate names** | script over the index |
 | `skill-index.json`: 1,118 entries, **17 duplicate names**, all hidden/triggered variants (`spark` vs `spark-skill-gem-unique-earthbound-triggered-spark`; `unleash` ×3) | script over the index |
-| `@poe2-toolkit/gem-extractor`'s `Gem` interface carries **no GGG metadata id** — `name, kind, color, tags, description, req, icon, hoverImage` | `dist/buildGems.d.ts` |
+| `@poe2-toolkit/gem-extractor`'s `Gem` **value** carries no GGG metadata id — but `GemData.gems` is **keyed** by it (`SkillGemIceNova`), and `normalizeSkill` took that key and discarded it. Fixed and synced 2026-09-23; all 1,118 records now carry `gemId`, and PoB import matches **20/20** | `dist/buildGems.d.ts`, `dist/buildGems.js:168,193`, then re-measured against the fixture |
 | Item detail files carry `twoHanded`, `requirements`, `armour`, `weapon`, `spirit`, `dropLevel`, `implicitMods` | read on disk |
 | Mod files carry `rolls: [{stat, min, max}]` with `tier`, `level`, `generationType`, `families`, `spawnWeights` | read on disk |
 
