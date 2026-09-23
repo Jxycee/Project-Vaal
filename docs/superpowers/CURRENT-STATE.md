@@ -130,11 +130,11 @@ All **37 Talisman items carry `twoHanded: false`**, which contradicts `docs/rese
 
 | | |
 |---|---|
-| Unit (vitest, `node` env, no DOM harness) | **476 tests / 35 files** |
+| Unit (vitest, `node` env, no DOM harness) | **480 tests / 35 files** |
 | E2E (Playwright, mobile + desktop) | **20 / 20** |
 | type-check, lint, build | clean |
 
-*Verified: `npm test`, `npx playwright test`, `npm run type-check`, `npm run lint` on 2026-09-23, after the gem-level / notes / level-budget commit.*
+*Verified: `npm test`, `npm run type-check`, `npm run lint`, `npm run build` on 2026-09-23, after the migration-backfill commit. The unit count read 476 when this table was first written, before the two `normalizeSkill` fixes added their regression tests; `npx playwright test` was last run at the gem-level / notes / level-budget commit and has not been re-run since.*
 
 **One deliberate gap in automated coverage:** the gem level and quality inputs are `<input type="number">`, which puts them outside `mobile-layout.spec.ts`'s `button, a[href]` tap-target selector. They are sized `h-11` by hand. If that selector is ever widened, expect them to be scanned.
 

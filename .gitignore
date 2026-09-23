@@ -65,3 +65,6 @@ next-env.d.ts
 /playwright-report/
 /blob-report/
 /e2e/.auth/
+
+# Supabase CLI scratch (version probe, linked-project cache)
+supabase/.temp/
