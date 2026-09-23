@@ -125,7 +125,17 @@ export async function saveBuild(
  * loud failure instead of a silently empty result.
  */
 export async function gotoBuilds(page: Page): Promise<void> {
-  await page.goto('/builds');
+  // A goto to the URL the page is ALREADY on can be aborted by Chromium as a
+  // no-op navigation — `net::ERR_ABORTED`, which surfaces as a hard failure.
+  // auth.setup.ts hits exactly that: it warms /builds and then, a few lines
+  // later, sweeps leftover rows through this helper. The page is healthy in
+  // that state (it is rendered and serving 200), so a reload is both the
+  // correct intent and the thing that cannot be elided.
+  if (new URL(page.url()).pathname === '/builds') {
+    await page.reload();
+  } else {
+    await page.goto('/builds');
+  }
   const ready = page
     .locator('ul > li a[href^="/tree?build="]')
     .or(page.getByText('You have not saved a build yet.'));
