@@ -59,3 +59,8 @@ next-env.d.ts
 # Claude Code superpowers working state (SDD/dispatch context, task briefs) —
 # regenerated on demand, not hand-written project files
 /.superpowers/
+
+# Agent skills: canonical copies live in .agents/skills/.
+# .claude/skills/ holds generated symlinks (core.symlinks=false on Windows
+# would commit them as duplicated content). Regenerate with `npx skills add`.
+/.claude/skills/
