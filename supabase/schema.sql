@@ -1,29 +1,33 @@
 -- =============================================================================
 -- Project Vaal — Supabase Schema
 -- =============================================================================
--- GENERATED FROM THE LIVE DATABASE — do not hand-edit and let it drift.
+-- NOT AN AUTHORITY. DO NOT VERIFY A DATABASE FACT AGAINST THIS FILE.
 --
--- Source:           Supabase project `mjxadehorflhncendqiy`
--- Generated:        2026-09-18
--- Latest migration: 20260829195704_add_preferred_price_league_to_user_profiles
+-- It has been wrong twice. The second time it stated the INVERSE of the
+-- privacy model while claiming, on this very line, to have been generated
+-- from the live database. That claim is why it was believed.
 --
--- HAND-PATCHED 2026-09-23 for migration `swap_private_unlisted_visibility_semantics`
--- (builds.visibility default, get_build_by_share_token, increment_build_view_count).
--- Everything else in this file still dates from the 2026-09-18 generation, so
--- treat it as a convenience copy and NOT as an authority: verify against the
--- live database before relying on any claim here. This file has already
--- misled work twice.
--- Regenerate by:    introspecting the live project (information_schema for
---                    columns; pg_constraint/pg_get_constraintdef for keys and
---                    checks; pg_indexes for indexes incl. partial-index
---                    predicates; pg_policies + pg_class.relrowsecurity for
---                    RLS; pg_proc/pg_get_functiondef for functions;
---                    pg_trigger/pg_get_triggerdef for triggers;
---                    information_schema.role_routine_grants for function
---                    grants) via the Supabase MCP tools (execute_sql,
---                    list_migrations) and rewriting this file to match.
+-- Where the truth actually lives, in order of preference:
+--   1. supabase/migrations/  — every applied migration, recovered verbatim
+--                              from supabase_migrations.schema_migrations on
+--                              2026-09-23 and md5-verified against the live
+--                              database. This is the authoritative record.
+--   2. src/types/database.ts — generated; tables, columns, functions.
+--   3. The live project itself, via the Supabase MCP tools.
 --
--- Apply via: Supabase dashboard → SQL Editor, or supabase db push
+-- Source:    Supabase project `mjxadehorflhncendqiy`
+-- Generated: 2026-09-18, and STALE from that date onward except where noted.
+-- Hand-patched 2026-09-23 for `swap_private_unlisted_visibility_semantics`
+-- (builds.visibility default, get_build_by_share_token,
+-- increment_build_view_count). Nothing else has been touched since 2026-09-18.
+--
+-- A clean regeneration is still outstanding. `supabase db dump` needs a
+-- database password this project's tooling does not hold, and the
+-- introspect-and-retype route is exactly how this file drifted in the first
+-- place. Now that supabase/migrations/ carries a verified record, the open
+-- question is whether to regenerate this file at all or simply delete it.
+--
+-- Do not apply this file to anything. Use supabase/migrations/.
 -- =============================================================================
 
 -- ---------------------------------------------------------------------------

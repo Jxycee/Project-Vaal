@@ -246,51 +246,14 @@ export async function removeBuildTag(buildId: string, tag: string): Promise<Acti
   return { ok: true };
 }
 
-export async function toggleBuildBookmark(buildId: string): Promise<ActionResult> {
-  if (typeof buildId !== 'string' || !UUID_RE.test(buildId)) {
-    return NOT_FOUND;
-  }
-
-  const { data: userData } = await getCachedUser();
-  if (!userData.user) {
-    return { ok: false, error: 'Sign in to bookmark builds.' };
-  }
-
-  const supabase = await createClient();
-  // build_bookmarks' RLS is a single ALL policy, auth.uid() = user_id, with
-  // NO visibility check on the build itself (verified) — a caller could
-  // bookmark any build id they guess, private ones included. Low severity
-  // (they still cannot read it back through this), but worth the toggle
-  // being reachable only for a build id this session actually resolved.
-  const { data: existing, error: selectError } = await supabase
-    .from('build_bookmarks')
-    .select('build_id')
-    .eq('build_id', buildId)
-    .eq('user_id', userData.user.id)
-    .maybeSingle();
-  if (selectError) {
-    console.error('Failed to look up bookmark:', selectError);
-    return { ok: false, error: "Couldn't update that bookmark." };
-  }
-
-  if (existing) {
-    const { error } = await supabase
-      .from('build_bookmarks')
-      .delete()
-      .eq('build_id', buildId)
-      .eq('user_id', userData.user.id);
-    if (error) {
-      console.error('Failed to remove bookmark:', error);
-      return { ok: false, error: "Couldn't remove that bookmark." };
-    }
-  } else {
-    const { error } = await supabase.from('build_bookmarks').insert({ build_id: buildId, user_id: userData.user.id });
-    if (error) {
-      console.error('Failed to add bookmark:', error);
-      return { ok: false, error: "Couldn't add that bookmark." };
-    }
-  }
-
-  revalidatePath('/builds');
-  return { ok: true };
-}
+// `toggleBuildBookmark` used to live here and was removed 2026-09-23: nothing
+// in the app ever called it (verified by grep over src/ and e2e/), while a
+// Server Function is reachable by direct POST regardless. No bookmarks UI is
+// planned through the convergence slices.
+//
+// The `build_bookmarks` table and both its policies are untouched, so wiring
+// a UI later needs no migration. If you do: its RLS is a single ALL policy,
+// `auth.uid() = user_id`, with NO visibility check on the build itself — a
+// caller can bookmark any build id they guess, private ones included. They
+// still cannot read it back through this, but scope the toggle to a build id
+// the session actually resolved rather than trusting the argument.
