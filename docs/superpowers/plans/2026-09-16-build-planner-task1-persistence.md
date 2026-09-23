@@ -1,5 +1,12 @@
 # Build Planner — Task 1: Persistence Implementation Plan
 
+> ## ✅ COMPLETE — HISTORICAL RECORD. Read `docs/superpowers/CURRENT-STATE.md` for what is true now.
+>
+> Task 1 shipped. One factual claim is now false: `builds.visibility` defaults
+> to `'unlisted'`, not `'private'`, and the meanings of those two words were
+> swapped on 2026-09-23. Verified live on that date.
+
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Make the passive tree editor's allocation savable to and loadable from `public.builds`, and give users a private list of their saved builds.

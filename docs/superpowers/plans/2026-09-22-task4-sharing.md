@@ -9,6 +9,22 @@
 
 ---
 
+## ✅ COMPLETE — HISTORICAL RECORD. Read `docs/superpowers/CURRENT-STATE.md` for what is true now.
+
+Task 4 shipped. **Everything below this line, including the 2026-09-22 amendment,
+uses the PRE-SWAP meanings of `private` and `unlisted`** — it was written before
+the 2026-09-23 product decision that inverted them. Where this plan says a build
+is shared by link as `unlisted`, the shipped behaviour is `private`; where it says
+`private` revokes a link, the shipped behaviour is `unlisted`. The live
+`get_build_by_share_token` resolves `IN ('public','private')`, verified 2026-09-23.
+
+One thing this plan states that is NOT stale and still matters: authentication is
+not authorisation. The `builds` SELECT policy exposes `visibility = 'public'` only,
+so a plain select still cannot read a link-shared build even for a signed-in
+caller. The share-token RPC remains the only path.
+
+---
+
 ## AMENDMENT — 2026-09-22, decided by the user. Read this before anything below.
 
 The user was asked how shared builds should show item icons, given `/data/wiki/` is auth-gated. Their answer changes the architecture:
