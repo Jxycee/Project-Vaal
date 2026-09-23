@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import type { GggTreeJson } from '@poe2-toolkit/tree-core/ggg';
 import type { SavedBuild } from '@/lib/build/types';
+import { activeCheckpoint, type BuildCheckpoint } from '@/lib/build/checkpointState';
 import TreeBuildSession from '@/components/tree/TreeBuildSession';
 
 // Vendored tree export version (see public/data/tree/<version>/SOURCE.md).
@@ -44,12 +45,38 @@ const PassiveTree = dynamic(() => import('@/components/tree/PassiveTree'), {
 export default function TreeEditor({
   buildId,
   build,
+  checkpoints,
+  checkpointParam,
   loadError,
 }: {
   buildId?: string;
   build: SavedBuild | null;
+  /** The build's checkpoints in position order. Empty in scratch mode, and if they failed to load. */
+  checkpoints: BuildCheckpoint[];
+  /** Raw ?checkpoint= value. Unknown or absent falls back to the first checkpoint. */
+  checkpointParam: string | null;
   loadError: string | null;
 }) {
+  // The checkpoint being edited, and the build as that checkpoint sees it.
+  //
+  // TreeBuildSession seeds EVERYTHING — tree, gear, gems, level — from
+  // `build`, and was written before checkpoints existed. Handing it a `build`
+  // whose state columns come from the active checkpoint leaves that whole
+  // seeding path untouched; the builds row's own copies are only a mirror of
+  // the last-saved checkpoint anyway. With no checkpoints (scratch mode, or a
+  // failed load) the build passes through unchanged.
+  const active = build ? activeCheckpoint(checkpoints, checkpointParam) : null;
+  const sessionBuild: SavedBuild | null =
+    build && active
+      ? {
+          ...build,
+          level: active.level,
+          passive_state: active.passive_state,
+          gear_state: active.gear_state,
+          gem_state: active.gem_state,
+        }
+      : build;
+
   const [raw, setRaw] = useState<GggTreeJson | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -87,10 +114,16 @@ export default function TreeEditor({
         </div>
       ) : (
         <TreeBuildSession
-          key={buildId ?? 'scratch'}
+          // Keyed by build AND checkpoint. The keyed remount is what makes
+          // stale build-scoped state unreachable (see TreeBuildSession's
+          // header) — switching checkpoint changes every piece of that state
+          // just as switching build does, so it must remount just the same.
+          key={`${buildId ?? 'scratch'}:${active?.id ?? 'none'}`}
           raw={raw}
           buildId={buildId}
-          build={build}
+          build={sessionBuild}
+          checkpointId={active?.id}
+          checkpoints={checkpoints}
           loadError={loadError}
           PassiveTree={PassiveTree}
         />

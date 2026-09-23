@@ -61,8 +61,11 @@ export async function treeState(page: Page): Promise<TreeTestState> {
  * nothing. A human cannot refresh that fast, but a test can, and without this
  * the resulting failure looks like "draft restore is broken".
  */
-export async function waitForDraft(page: Page, buildId?: string): Promise<void> {
-  const key = `vaal:tree-draft:${buildId ?? 'scratch'}`;
+export async function waitForDraft(page: Page, buildId?: string, checkpointId?: string): Promise<void> {
+  // Mirrors draftKey() in src/lib/build/draft.ts, whose unit tests pin this
+  // exact format — including that it is unchanged when there is no checkpoint.
+  const base = `vaal:tree-draft:${buildId ?? 'scratch'}`;
+  const key = checkpointId ? `${base}:${checkpointId}` : base;
   await page.waitForFunction((k) => localStorage.getItem(k) !== null, key, { timeout: 30_000 });
 }
 
@@ -71,6 +74,33 @@ export async function allocateNodes(page: Page, ids: number[]): Promise<void> {
   await page.evaluate((nodeIds) => {
     for (const id of nodeIds) window.__vaalTree!.allocate(id);
   }, ids);
+}
+
+/**
+ * Walks outward from the class start and returns `count` main-tree node ids.
+ * Moved here from build-persistence.spec.ts once a second spec needed it.
+ */
+export async function nodesNearStart(page: Page, count: number): Promise<number[]> {
+  return page.evaluate((want) => {
+    const api = window.__vaalTree!;
+    const start = api.startNode();
+    const seen = new Set<number>([start]);
+    const found: number[] = [];
+    let frontier = [start];
+    while (frontier.length > 0 && found.length < want) {
+      const next: number[] = [];
+      for (const id of frontier) {
+        for (const n of api.neighbours(id)) {
+          if (seen.has(n)) continue;
+          seen.add(n);
+          next.push(n);
+          if (found.length < want) found.push(n);
+        }
+      }
+      frontier = next;
+    }
+    return found;
+  }, count);
 }
 
 export async function openTree(page: Page, buildId?: string): Promise<void> {

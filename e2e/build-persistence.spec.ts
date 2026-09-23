@@ -3,6 +3,7 @@ import {
   allocateNodes,
   cleanupWithFreshPage,
   listedBuildNames,
+  nodesNearStart,
   openTree,
   saveBuild,
   softNavigate,
@@ -23,30 +24,6 @@ import {
 // These write real rows to the production-linked Supabase project under the
 // shared test account. Everything created is prefixed E2E- and deleted in
 // afterAll.
-
-/** Walks outward from the class start and returns `count` main-tree node ids. */
-async function nodesNearStart(page: import('@playwright/test').Page, count: number) {
-  return page.evaluate((want) => {
-    const api = window.__vaalTree!;
-    const start = api.startNode();
-    const seen = new Set<number>([start]);
-    const found: number[] = [];
-    let frontier = [start];
-    while (frontier.length > 0 && found.length < want) {
-      const next: number[] = [];
-      for (const id of frontier) {
-        for (const n of api.neighbours(id)) {
-          if (seen.has(n)) continue;
-          seen.add(n);
-          next.push(n);
-          if (found.length < want) found.push(n);
-        }
-      }
-      frontier = next;
-    }
-    return found;
-  }, count);
-}
 
 test.afterAll(async ({ browser }) => {
   await cleanupWithFreshPage(browser);

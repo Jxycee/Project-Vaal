@@ -20,6 +20,7 @@ import {
   type ComponentProps,
   type ComponentType,
 } from 'react';
+import { useRouter } from 'next/navigation';
 import type { GggTreeJson } from '@poe2-toolkit/tree-core/ggg';
 import type PassiveTreeComponent from '@/components/tree/PassiveTree';
 import BuildSavePanel from '@/components/tree/BuildSavePanel';
@@ -28,6 +29,8 @@ import JewelsChip from '@/components/build/JewelsChip';
 import JewelsSheet from '@/components/build/JewelsSheet';
 import GemsChip from '@/components/build/GemsChip';
 import GemsSheet from '@/components/build/GemsSheet';
+import CheckpointsSheet from '@/components/build/CheckpointsSheet';
+import type { BuildCheckpoint } from '@/lib/build/checkpointState';
 import { fromPassiveState, toPassiveState } from '@/lib/build/passiveState';
 import { saveDraft, loadDraft, clearDraft } from '@/lib/build/draft';
 import { draftDiffersFrom } from '@/lib/build/draftCompare';
@@ -57,15 +60,26 @@ export default function TreeBuildSession({
   raw,
   buildId,
   build,
+  checkpointId,
+  checkpoints,
   loadError,
   PassiveTree,
 }: {
   raw: GggTreeJson;
   buildId?: string;
+  /**
+   * The build as the ACTIVE checkpoint sees it — TreeEditor substitutes that
+   * checkpoint's tree, gear, gems and level — so everything below seeds from
+   * the checkpoint being edited without knowing checkpoints exist.
+   */
   build: SavedBuild | null;
+  /** The checkpoint being edited. Undefined in scratch mode and if checkpoints failed to load. */
+  checkpointId?: string;
+  checkpoints: BuildCheckpoint[];
   loadError: string | null;
   PassiveTree: ComponentType<PassiveTreeProps>;
 }) {
+  const router = useRouter();
   // The page does not normalize the tree export. It passes the class name
   // straight through; PassiveTree resolves it.
   //
@@ -105,7 +119,7 @@ export default function TreeBuildSession({
   // one point in the component's life where the previous session's draft
   // still exists untouched. Keyed remount per build (see TreeEditor) is what
   // makes reading it here, keyed only by buildId, correct.
-  const [storedDraft] = useState(() => loadDraft(buildId));
+  const [storedDraft] = useState(() => loadDraft(buildId, checkpointId));
   // Whether the just-read draft is worth prompting about at all — computed
   // once, against the `build` this instance was mounted for, so a build that
   // was reloaded exactly as saved (the common case: the mount report is a
@@ -189,6 +203,7 @@ export default function TreeBuildSession({
   // TreeEditor).
   const [gemState, setGemState] = useState(() => (build ? parseGemState(build.gem_state) : emptyGemState()));
   const [gemsSheetOpen, setGemsSheetOpen] = useState(false);
+  const [checkpointsSheetOpen, setCheckpointsSheetOpen] = useState(false);
 
   // Every decision (the support cap, set normalisation, primary clearing) is
   // inside gemState.ts's pure reducers, unit-tested there — these handlers
@@ -239,9 +254,9 @@ export default function TreeBuildSession({
   }, [storedDraft]);
 
   const handleDiscardDraft = useCallback(() => {
-    clearDraft(buildId);
+    clearDraft(buildId, checkpointId);
     setDraftPromptOpen(false);
-  }, [buildId]);
+  }, [buildId, checkpointId]);
 
   // Writes to localStorage only, never calls a setState — so this does not
   // trip react-hooks/set-state-in-effect the way updating component state
@@ -249,8 +264,8 @@ export default function TreeBuildSession({
   // a gear/gem-only edit would never mark the session dirty and that work
   // would vanish silently on refresh with no restore prompt at all.
   useEffect(() => {
-    if (editorState) saveDraft(buildId, { tree: editorState, gear: gearState, gem: gemState });
-  }, [editorState, gearState, gemState, buildId]);
+    if (editorState) saveDraft(buildId, { tree: editorState, gear: gearState, gem: gemState }, checkpointId);
+  }, [editorState, gearState, gemState, buildId, checkpointId]);
 
   // ---- Save ------------------------------------------------------------
   const [saving, setSaving] = useState(false);
@@ -264,6 +279,11 @@ export default function TreeBuildSession({
   // prop the way `scratchBuild` did, because in scratch mode `build` is
   // always null for the lifetime of this instance.
   const [createdBuild, setCreatedBuild] = useState<SavedBuild | null>(null);
+  // The first checkpoint the database made for a scratch-mode build (the
+  // create_initial_build_checkpoint trigger), so later saves can name it.
+  // Nothing breaks without it — POST /api/builds resolves a save with no
+  // checkpoint_id to the build's only checkpoint — but naming it is exact.
+  const [createdCheckpointId, setCreatedCheckpointId] = useState<string | undefined>(undefined);
 
   // A ?build= load error, unless it has gone stale or been dismissed.
   //
@@ -287,6 +307,10 @@ export default function TreeBuildSession({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             id: build?.id ?? createdBuild?.id,
+            // Which checkpoint this tree, gear and gems belong to. Undefined
+            // on a first scratch save (the database creates the checkpoint),
+            // and JSON.stringify drops it, so the route sees no key at all.
+            checkpoint_id: checkpointId ?? createdCheckpointId,
             name: meta.name,
             class: editorState.className,
             ascendancy: editorState.ascendancyId ?? null,
@@ -319,6 +343,7 @@ export default function TreeBuildSession({
         });
         const payload = (await res.json()) as {
           build?: SavedBuild;
+          checkpoint?: { id: string } | null;
           error?: string;
         };
         if (!res.ok) {
@@ -329,9 +354,16 @@ export default function TreeBuildSession({
           // `build` (the prop) never changes for the life of this keyed
           // instance, so only scratch mode needs to remember the new row.
           if (!build) setCreatedBuild(payload.build);
+          if (payload.checkpoint?.id) setCreatedCheckpointId(payload.checkpoint.id);
           setSavedAt(new Date().toLocaleTimeString());
           // Only clear the draft once the server has the work.
-          clearDraft(buildId);
+          clearDraft(buildId, checkpointId);
+          // Re-render the server page so the checkpoint list reflects this
+          // save (its level, for one). This instance is keyed and seeds
+          // lazily, so fresh props cannot reset what is on screen. A Route
+          // Handler cannot call next/cache's refresh() — it is Server-Action
+          // only — which is why the client does it here.
+          router.refresh();
         }
       } catch {
         setSaveError('Could not reach the server. Your work is still here.');
@@ -339,7 +371,7 @@ export default function TreeBuildSession({
         setSaving(false);
       }
     },
-    [editorState, build, createdBuild, buildId, gearState, gemState],
+    [editorState, build, createdBuild, createdCheckpointId, buildId, checkpointId, gearState, gemState, router],
   );
 
   const activeBuildId = build?.id ?? createdBuild?.id;
@@ -390,6 +422,14 @@ export default function TreeBuildSession({
           </button>
           <JewelsChip summary={jewelsSummary} onOpen={() => setJewelsSheetOpen(true)} />
           <GemsChip loadouts={gemState.loadouts} onOpen={() => setGemsSheetOpen(true)} />
+          {/* TEST-GRADE: a plain entry point to CheckpointsSheet, pending the UI session. */}
+          <button
+            type="button"
+            onClick={() => setCheckpointsSheetOpen(true)}
+            className="flex h-11 items-center gap-1.5 rounded-lg border border-border bg-card/90 px-3 text-sm font-medium text-foreground backdrop-blur"
+          >
+            Checkpoints{checkpoints.length > 0 ? ` ${checkpoints.length}` : ''}
+          </button>
         </div>
         {visibleLoadError ? (
           <div className="pointer-events-auto flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/40 bg-card/95 px-3 py-2 backdrop-blur">
@@ -472,6 +512,19 @@ export default function TreeBuildSession({
         onSetLevel={handleSetGemLevel}
         onSetQuality={handleSetGemQuality}
         onClose={() => setGemsSheetOpen(false)}
+      />
+      <CheckpointsSheet
+        open={checkpointsSheetOpen}
+        // The saved build, if there is one yet. A scratch session that has
+        // saved once has a row (createdBuild) but was not loaded with
+        // ?build=, so it has no checkpoint list — the sheet links to the
+        // build instead of pretending the list is empty.
+        buildId={build?.id ?? createdBuild?.id}
+        loadedWithBuild={Boolean(build)}
+        checkpoints={checkpoints}
+        activeId={checkpointId}
+        currentLevel={level}
+        onClose={() => setCheckpointsSheetOpen(false)}
       />
     </>
   );
