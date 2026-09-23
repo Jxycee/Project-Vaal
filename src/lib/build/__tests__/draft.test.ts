@@ -64,6 +64,42 @@ describe('draftKey', () => {
   it('uses a stable placeholder for scratch mode', () => {
     expect(draftKey(undefined)).toBe('vaal:tree-draft:scratch');
   });
+
+  it('is byte-identical to the old key when no checkpoint is given', () => {
+    // Drafts written before checkpoints existed live under this exact key.
+    // Changing it would orphan them silently.
+    expect(draftKey('build-123', undefined)).toBe('vaal:tree-draft:build-123');
+  });
+
+  it('gives each checkpoint of a build its own key', () => {
+    // Without this, switching checkpoint A -> B would restore A's unsaved
+    // draft into B, and saving would write A's tree over B's.
+    expect(draftKey('build-123', 'cp-a')).toBe('vaal:tree-draft:build-123:cp-a');
+    expect(draftKey('build-123', 'cp-a')).not.toBe(draftKey('build-123', 'cp-b'));
+    expect(draftKey('build-123', 'cp-a')).not.toBe(draftKey('build-123'));
+  });
+});
+
+describe('drafts per checkpoint', () => {
+  beforeEach(() => installMockStorage());
+
+  it('keeps two checkpoints of one build apart', () => {
+    const monk: BuildDraftState = { ...state, tree: { ...treeState, className: 'Monk' } };
+    saveDraft('build-123', state, 'cp-a');
+    saveDraft('build-123', monk, 'cp-b');
+
+    expect(loadDraft('build-123', 'cp-a')?.tree.className).toBe('Witch');
+    expect(loadDraft('build-123', 'cp-b')?.tree.className).toBe('Monk');
+  });
+
+  it('clears only the checkpoint it names', () => {
+    saveDraft('build-123', state, 'cp-a');
+    saveDraft('build-123', state, 'cp-b');
+    clearDraft('build-123', 'cp-a');
+
+    expect(loadDraft('build-123', 'cp-a')).toBeNull();
+    expect(loadDraft('build-123', 'cp-b')).not.toBeNull();
+  });
 });
 
 describe('save and load', () => {

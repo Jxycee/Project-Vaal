@@ -30,13 +30,23 @@ export interface BuildDraftState {
   gem: GemState;
 }
 
-export function draftKey(buildId: string | undefined): string {
-  return `vaal:tree-draft:${buildId ?? 'scratch'}`;
+/**
+ * The localStorage key for one editing session's draft.
+ *
+ * Scoped per checkpoint once a build has them: without that, switching from
+ * checkpoint A to B would restore A's unsaved draft into B, and the next save
+ * would write A's tree over B's. With no checkpoint the key is byte-identical
+ * to the pre-checkpoint format, so drafts written before checkpoints existed —
+ * and every scratch-mode draft — keep resolving.
+ */
+export function draftKey(buildId: string | undefined, checkpointId?: string): string {
+  const base = `vaal:tree-draft:${buildId ?? 'scratch'}`;
+  return checkpointId ? `${base}:${checkpointId}` : base;
 }
 
-export function saveDraft(buildId: string | undefined, draft: BuildDraftState): void {
+export function saveDraft(buildId: string | undefined, draft: BuildDraftState, checkpointId?: string): void {
   try {
-    localStorage.setItem(draftKey(buildId), JSON.stringify(draft));
+    localStorage.setItem(draftKey(buildId, checkpointId), JSON.stringify(draft));
   } catch {
     // Private window, blocked site data, or quota exceeded. A draft is a
     // convenience; losing it must never break the editor.
@@ -84,9 +94,9 @@ function isValidDraftShape(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-export function loadDraft(buildId: string | undefined): BuildDraftState | null {
+export function loadDraft(buildId: string | undefined, checkpointId?: string): BuildDraftState | null {
   try {
-    const raw = localStorage.getItem(draftKey(buildId));
+    const raw = localStorage.getItem(draftKey(buildId, checkpointId));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as unknown;
     if (!isValidDraftShape(parsed)) return null;
@@ -104,9 +114,9 @@ export function loadDraft(buildId: string | undefined): BuildDraftState | null {
   }
 }
 
-export function clearDraft(buildId: string | undefined): void {
+export function clearDraft(buildId: string | undefined, checkpointId?: string): void {
   try {
-    localStorage.removeItem(draftKey(buildId));
+    localStorage.removeItem(draftKey(buildId, checkpointId));
   } catch {
     // See saveDraft.
   }
