@@ -540,6 +540,22 @@ describe('normalizeSkill', () => {
     expect(result.qualityStats).toEqual([]);
   });
 
+  // Same omission as qualityStats, found by diffing the extractor's types
+  // against this normalizer's output: the crit chances and the gem's larger
+  // art were arriving and being discarded. The fixture carries all three.
+  it('carries per-level crit chances through from the extractor', () => {
+    const result = normalizeSkill(raw.key, raw.gem, raw.requirement, raw.scaling, null, SYNCED_AT);
+    const source = raw.scaling.levels[0];
+    expect(result.scaling[0].spellCritChance).toBe(source.spellCritChance);
+    expect(result.scaling[0].attackCritChance).toBe(source.attackCritChance);
+  });
+
+  it('carries the gem hover image through from the extractor', () => {
+    const result = normalizeSkill(raw.key, raw.gem, raw.requirement, raw.scaling, null, SYNCED_AT);
+    expect(raw.gem.hoverImage).toBeTruthy();
+    expect(result.hoverImage).toBe(raw.gem.hoverImage);
+  });
+
   it('falls back to the gem-level requirement when no per-level requirement curve exists', () => {
     const result = normalizeSkill(raw.key, raw.gem, null, null, null, SYNCED_AT);
     expect(result.requirement.level).toBe(raw.gem.req.level);

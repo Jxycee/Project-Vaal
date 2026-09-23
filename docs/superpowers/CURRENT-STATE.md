@@ -103,7 +103,18 @@ Compared 2026-09-23 (`docs/research/poe2/pob2-data-comparison.md`). The short ve
 
 `normalizeSkill` in `src/lib/wiki/normalize.ts` simply never read the field, so it was discarded at the last step and no synced skill file has ever contained gem quality. **Fixed 2026-09-23**, with regression tests against that real fixture.
 
-**Consequence: every skill file on disk still lacks `qualityStats`, because the data has not been re-synced.** `WikiSkillDetail.qualityStats` is therefore declared optional, and every reader must treat it as possibly absent until a full `npm run sync:wiki` regenerates the 1,118 skill records. That sync pulls from the GGPK/patch server and is a deliberate, heavier operation — it has not been run.
+**A systematic audit found three more fields the same normalizer was dropping.** Every extractor type was diffed against its normalizer's output on 2026-09-23:
+
+| Source | Verdict |
+|---|---|
+| `Item` (13 fields + `ItemReq`/`ItemArmour`/`ItemWeapon`) | **nothing dropped** |
+| `Mod` (10 fields + `ModRoll`/`ModSpawnWeight`) | **nothing dropped** |
+| `Map` | nothing dropped |
+| `Gem` / `GemScaling` / `GemLevelScaling` | **four fields dropped** — `qualityStats`, `spellCritChance`, `attackCritChance`, `hoverImage` |
+
+All four were fixed the same day. Crit chance is a number a planner displays and a stat engine needs; `hoverImage` is the gem's larger in-game art. Note `hoverImage` is the **raw GGPK `.dds` path**, not a served URL like `iconUrl` — storing it identifies the art but does not make it renderable without the extraction step `buildIcons` performs for icons.
+
+**Consequence: every skill file on disk still lacks all four fields, because the data has not been re-synced.** `WikiSkillDetail.qualityStats` is therefore declared optional, and every reader must treat it as possibly absent until a full `npm run sync:wiki` regenerates the 1,118 skill records. That sync pulls from the GGPK/patch server and is a deliberate, heavier operation — it has not been run.
 
 **Licence, verified by reading the file header — this matters and the first report got it half right.** PoB2's *code* is MIT (`LICENSE.md`, "Copyright (c) 2018 Xavier Wang"). Its *data* is not: every generated data file carries `-- Skill data (c) Grinding Gear Games`. MIT does not cover it.
 

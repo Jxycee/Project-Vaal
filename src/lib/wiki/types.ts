@@ -212,6 +212,13 @@ export interface WikiSkillLevelScaling {
   castTime: number | null;
   cooldown: number | null;
   reservation: number | null;
+  /**
+   * Per-level crit chance, as the extractor reports it. Optional for the same
+   * reason as {@link WikiSkillDetail.qualityStats}: `normalizeSkill` dropped
+   * both until 2026-09-23, so every record synced before then lacks the keys.
+   */
+  spellCritChance?: number;
+  attackCritChance?: number;
   stats: WikiSkillStatLine[];
 }
 
@@ -235,6 +242,18 @@ export interface WikiSkillDetail extends WikiDetailBase {
    * has regenerated the dataset.
    */
   qualityStats?: WikiSkillStatLine[];
+  /**
+   * The gem's larger in-game art, distinct from the small `iconUrl`. Dropped by
+   * `normalizeSkill` until 2026-09-23, so absent from every record synced
+   * before then. GGG art depicting real in-game content, which `AGENTS.md`
+   * permits.
+   *
+   * NOTE: unlike `iconUrl`, this is the RAW GGPK path the extractor reports
+   * (e.g. `Art/Textures/.../GemHoverImageIceNova.dds`), not a served URL.
+   * Rendering it would need the same extraction step `buildIcons` performs for
+   * icons. Storing it identifies the art; it does not make it displayable.
+   */
+  hoverImage?: string | null;
   iconUrl: string | null;
   /** See {@link WikiItemDetail.iconWidth}. */
   iconWidth: number | null;

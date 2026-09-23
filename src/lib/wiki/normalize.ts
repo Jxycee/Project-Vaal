@@ -406,6 +406,12 @@ export function normalizeSkill(
       castTime: l.castTime,
       cooldown: l.cooldown,
       reservation: l.reservation,
+      // Crit chances were dropped alongside qualityStats — same omission, same
+      // cause: the extractor produces them, this mapping just never listed
+      // them. A planner shows crit, and a defensive/offensive stat engine
+      // needs it, so losing it was not cosmetic.
+      spellCritChance: l.spellCritChance,
+      attackCritChance: l.attackCritChance,
       stats: l.stats.map((s) => ({ text: s.text, min: s.min, max: s.max })),
     })),
     // Gem quality. The extractor has always produced this (see
@@ -418,6 +424,9 @@ export function normalizeSkill(
       min: s.min,
       max: s.max,
     })),
+    // The gem's larger art, separate from the small icon. Also previously
+    // dropped here despite the extractor providing it.
+    hoverImage: gem.hoverImage,
     iconUrl,
     iconWidth: null,
     iconHeight: null,
