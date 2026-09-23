@@ -46,10 +46,10 @@ export default function SharedBuildView({
   /**
    * Only ever populated by the page for `visibility === 'public'` builds —
    * `build_tags`' SELECT policy is `own OR builds.visibility = 'public'` and
-   * does NOT include `unlisted` (verified against pg_policies 2026-09-22), so
-   * a plain select returns zero rows for an unlisted shared build even
+   * covers only own-or-public (verified against pg_policies 2026-09-23), so
+   * a plain select returns zero rows for a link-shared ('private') build even
    * though the build itself renders fine via the RPC. Passing `[]` here for
-   * an unlisted build would read as "this build has no tags" rather than
+   * a link-shared build would read as "this build has no tags" rather than
    * "we cannot see them" — so the page never even queries build_tags for a
    * non-public build, and this prop is `null` (not `[]`) in that case, which
    * is what tells this component to omit the section entirely rather than

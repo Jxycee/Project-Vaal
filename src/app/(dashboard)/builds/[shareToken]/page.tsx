@@ -58,7 +58,7 @@ export default async function SharedBuildPage({ params }: PageProps) {
   const { shareToken } = await params;
   const row = await loadSharedBuild(shareToken);
   // notFound() for a bad token, an RPC error, and a `private` build alike —
-  // the RPC's own `visibility IN ('public','unlisted')` filter is what turns
+  // the RPC's own `visibility IN ('public','private')` filter is what turns
   // "private" into "not found" server-side, with no client cooperation. Same
   // deliberate indistinguishability builds/actions.ts and /tree already use.
   if (!row) notFound();
@@ -69,7 +69,7 @@ export default async function SharedBuildPage({ params }: PageProps) {
 
   const supabase = await createClient();
 
-  // build_tags' SELECT policy omits `unlisted` (see SharedBuildView's `tags`
+  // build_tags' SELECT policy covers only own-or-public (see SharedBuildView's `tags`
   // prop doc comment) — only ever query it for a `public` build, so a
   // non-public one never depends on RLS silently handing back zero rows.
   const tagsQuery =
@@ -85,7 +85,13 @@ export default async function SharedBuildPage({ params }: PageProps) {
   const [authorResult, tagsResult, viewCountResult] = await Promise.allSettled([
     supabase.rpc('get_build_author_name', { p_build_id: row.id }),
     tagsQuery ?? Promise.resolve(null),
-    isOwner ? Promise.resolve(null) : supabase.rpc('increment_build_view_count', { p_build_id: row.id }),
+    // Public builds only, by product decision (2026-09-23): a build shared
+    // privately by link is not a published thing and keeps no public view
+    // count. increment_build_view_count enforces the same rule server-side —
+    // this check just avoids a round trip that would do nothing.
+    isOwner || row.visibility !== 'public'
+      ? Promise.resolve(null)
+      : supabase.rpc('increment_build_view_count', { p_build_id: row.id }),
   ]);
 
   // display_name is nullable with no write path in the app (see Task 4

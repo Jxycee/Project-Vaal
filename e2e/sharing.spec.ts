@@ -9,15 +9,15 @@ import { cleanupWithFreshPage, openTree, saveBuild, testBuildName } from './help
 // and still worth an end-to-end proof, with only one test account available
 // to this suite, is the two blocking decisions from the Task 4 plan:
 //   1. The shared page reads through get_build_by_share_token (not a plain
-//      select) — an 'unlisted' build must render, not 404, for a signed-in
+//      select) — a link-shared ('private') build must render, not 404, for a signed-in
 //      viewer who is not the RLS "public" policy's target.
 //   2. Both counter RPCs are visibility-gated in their own bodies, so
-//      flipping a build to 'private' revokes its link immediately, with no
+//      flipping a build to 'unlisted' revokes its link immediately, with no
 //      client cooperation.
 //
 // Same shared account for "owner" and "viewer" here — this proves the read
 // path is NOT ownership-gated (the shared page never checks `user_id`, only
-// `get_build_by_share_token`'s own `visibility IN ('public','unlisted')`
+// `get_build_by_share_token`'s own `visibility IN ('public','private')`
 // filter), even though it can't independently prove a DIFFERENT account can
 // read it. That would need a second seeded test account, which this suite
 // does not have.
@@ -48,7 +48,7 @@ test.describe('sharing', () => {
     await cleanupWithFreshPage(browser);
   });
 
-  test('an unlisted build renders via its share link, and switching to private revokes it', async ({
+  test('a link-shared build renders via its share link, and switching to owner-only revokes it', async ({
     page,
   }) => {
     await openTree(page);
@@ -76,22 +76,24 @@ test.describe('sharing', () => {
     const name = testBuildName('share');
     await saveBuild(page, { name, level: 20, league: 'Standard' });
 
-    // ---- Set visibility to Unlisted, read the real share link off the page -
+    // ---- Set visibility to Private (this app's link-shareable state — see
+    // src/lib/build/visibility.ts, the vocabulary inverts the usual web
+    // meaning on purpose) and read the real share link off the page.
     await page.goto('/builds');
     const row = page.locator('ul > li').filter({ has: page.locator(`a:has-text("${name}")`) }).first();
     await expect(row).toBeVisible();
 
     await row.getByRole('combobox').click();
-    await page.getByRole('option', { name: 'Unlisted' }).click();
+    await page.getByRole('option', { name: 'Private' }).click();
 
     const shareLink = row.locator('a[href^="/builds/"]');
     await expect(shareLink).toBeVisible({ timeout: 30_000 });
     const href = await shareLink.getAttribute('href');
-    expect(href, 'the row never rendered a share link after switching to Unlisted').toBeTruthy();
+    expect(href, 'the row never rendered a share link after switching to Private').toBeTruthy();
 
     // ---- The RLS trap this proves: get_build_by_share_token, not a plain
     // select. The "Public builds are readable by anyone" RLS policy only
-    // covers visibility='public' — an 'unlisted' build like this one is
+    // covers visibility='public' — a 'private' build like this one is
     // invisible to a bare select for anyone but its owner via the owner
     // policy. Loading it through a real navigation (not the same session's
     // in-memory state) is what makes this a proof of the RPC path rather
@@ -113,16 +115,17 @@ test.describe('sharing', () => {
     );
     expect(overflow, 'horizontal overflow on /builds/<shareToken>').toBeLessThanOrEqual(0);
 
-    // ---- Switch to Private: both counter RPCs check visibility in their own
-    // bodies, so this must revoke the link with no further code involved.
+    // ---- Switch to Unlisted (owner only): the share-token RPC checks
+    // visibility in its own body, so this must revoke the link with no
+    // further code involved.
     await page.goto('/builds');
     const row2 = page.locator('ul > li').filter({ has: page.locator(`a:has-text("${name}")`) }).first();
     await expect(row2).toBeVisible();
     await row2.getByRole('combobox').click();
-    await page.getByRole('option', { name: 'Private' }).click();
+    await page.getByRole('option', { name: 'Unlisted' }).click();
     await expect(row2.locator('a[href^="/builds/"]')).toBeHidden();
 
     await page.goto(href!);
-    await expect(page.getByText('That build is private or does not exist.')).toBeVisible();
+    await expect(page.getByText('That build is not available.')).toBeVisible();
   });
 });

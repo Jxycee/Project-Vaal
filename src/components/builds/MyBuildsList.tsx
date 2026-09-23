@@ -170,7 +170,11 @@ export default function MyBuildsList({
       <ul className="divide-y divide-border rounded-lg border border-border bg-card/40">
         {builds.map((b) => {
           const tags = tagsByBuildId[b.id] ?? [];
-          const linkActive = b.visibility !== 'private' && b.share_token !== null;
+          // 'unlisted' is the owner-only state in this app's vocabulary (see
+          // visibility.ts — it inverts the usual web meaning, deliberately), so
+          // it is the one visibility whose share link resolves to nothing. The
+          // share-token RPC matches on IN ('public','private').
+          const linkActive = b.visibility !== 'unlisted' && b.share_token !== null;
 
           return (
             <li key={b.id} className="flex flex-col gap-2 px-3 py-2.5">
