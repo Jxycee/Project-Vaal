@@ -69,7 +69,9 @@ All on the branch above. Verified by reading the routes and running the suites o
 
 ## What is not built
 
-Deliberate deferrals, each recorded with its reason in the relevant spec: two-handed weapon occupancy (**not enforced for any weapon — but the data for it exists, see "The data we already hold"**), rune sockets, item mods/affixes/rolls, a stat engine of any kind, import/export, leveling stages, and structured stat priorities. The campaign resistance penalty is explicitly **not** implemented — it needs formulas we have not confirmed and belongs with the stat-engine work. Bookmarks have no UI: `toggleBuildBookmark` was **deleted** on 2026-09-23 because nothing called it while a Server Function stays reachable by direct POST. The `build_bookmarks` table and its two policies are untouched, so wiring a UI later needs no migration — see the note left at the foot of `src/app/(dashboard)/builds/actions.ts`.
+Deliberate deferrals, each recorded with its reason in the relevant spec: two-handed weapon occupancy (**not enforced for any weapon — but the data for it exists, see "The data we already hold"**), rune sockets, item mods/affixes/rolls, a stat engine of any kind, import/export, and structured stat priorities.
+
+**Leveling checkpoints are half built (2026-09-23) — schema yes, UI no.** `public.build_checkpoints` exists in the live database with RLS, the single existing build is backfilled as its checkpoint 0, and `get_build_checkpoints_by_share_token` serves share-link readers. `src/lib/build/checkpointState.ts` parses and orders them. **Nothing writes or renders a second checkpoint yet** — `POST /api/builds` does not persist them and there is no UI, so a user cannot create one. Do not describe the feature as shipped. The campaign resistance penalty is explicitly **not** implemented — it needs formulas we have not confirmed and belongs with the stat-engine work. Bookmarks have no UI: `toggleBuildBookmark` was **deleted** on 2026-09-23 because nothing called it while a Server Function stays reachable by direct POST. The `build_bookmarks` table and its two policies are untouched, so wiring a UI later needs no migration — see the note left at the foot of `src/app/(dashboard)/builds/actions.ts`.
 
 **Formulas are not a blocker.** `docs/research/poe2/stat-formula-feasibility.md` establishes that PoB2 is MIT-licensed and implements the defensive calculations in `CalcDefence.lua`, separate from the far larger offence/DPS modules. Crucially, our affix data is **already typed** — 5,267 files under `public/data/wiki/2026-08-25/mods/` carrying `rolls: [{stat, min, max}]` with tiers and spawn weights — so PoB's hardest problem, its 677KB text-parsing `ModParser.lua`, is one we do not have.
 
@@ -130,11 +132,11 @@ All **37 Talisman items carry `twoHanded: false`**, which contradicts `docs/rese
 
 | | |
 |---|---|
-| Unit (vitest, `node` env, no DOM harness) | **482 tests / 35 files** |
+| Unit (vitest, `node` env, no DOM harness) | **499 tests / 36 files** |
 | E2E (Playwright, mobile + desktop) | **20 / 20** |
 | type-check, lint, build | clean |
 
-*Verified: `npm test`, `npm run type-check`, `npm run lint`, `npm run build` on 2026-09-23, after the gemId normalizer fix. The unit count read 476 when this table was first written, before the two `normalizeSkill` fixes added their regression tests; `npx playwright test` was last run at the gem-level / notes / level-budget commit and has not been re-run since.*
+*Verified: `npm test`, `npm run type-check`, `npm run lint`, `npm run build` on 2026-09-23, after the checkpointState module landed. The unit count read 476 when this table was first written, before the two `normalizeSkill` fixes added their regression tests; `npx playwright test` was last run at the gem-level / notes / level-budget commit and has not been re-run since.*
 
 **One deliberate gap in automated coverage:** the gem level and quality inputs are `<input type="number">`, which puts them outside `mobile-layout.spec.ts`'s `button, a[href]` tap-target selector. They are sized `h-11` by hand. If that selector is ever widened, expect them to be scanned.
 
