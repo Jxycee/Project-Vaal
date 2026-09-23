@@ -88,7 +88,9 @@ Each was checked on 2026-09-23 by the method named. Re-verify before trusting; d
 
 **1. Import and affix-authoring are different problems.** "We do not have PoB's `ModParser.lua` problem" is true for *authoring* affixes — the user picks from our typed `rolls[{stat,min,max}]`. It is **false for importing PoB2 items**: PoB2's `<Items>` element stores items as PoE clipboard display text (`"+(5-8) to Strength"`), and reading that back is precisely what `ModParser.lua` does. Slice 2 imports tree + gems + base items and **reports** dropped rolls. Slice 4 adds best-effort text matching against our own mod display strings.
 
-**2. PoB2 code import is cheap; GGG `.build` import is not.** GGG's `.build` JSON keys skills on `Metadata/Items/Gems/SkillGemEarthquake`. Our dataset carries no metadata id at any layer, so that join needs a derived heuristic table we would have to build and maintain. PoB2's XML keys on display names, which join against `skill-index.json` today. **Do PoB2 first. Treat `.build` as a separate, later decision.**
+**2. PoB2 code import is cheap; GGG `.build` import is not.** GGG's `.build` JSON keys skills on `Metadata/Items/Gems/SkillGemEarthquake`. Our dataset carries no metadata id at any layer, so that join needs a derived heuristic table we would have to build and maintain. PoB2's XML resolves against `skill-index.json` today. **Do PoB2 first. Treat `.build` as a separate, later decision.**
+
+> **Amended 2026-09-23 by the Slice 0 spike** (`specs/2026-09-23-pob2-decode-findings.md`). This originally said PoB2's XML "keys on display names". That was narrower than the truth: every `<Gem>` carries `gemId`, `skillId` and `variantId` alongside `nameSpec`. The conclusion holds — we hold no metadata id, so the join stays name-based — but name-based joining measured **60% on a real cross-patch build**, not the near-certainty the original wording implied. A new decision follows from that and is listed in Open Decisions: whether to pull GGG metadata ids through our own extraction before Slice 2, which would make the join exact and unblock `.build` at the same time.
 
 **3. The share path is a hidden tax on every child table.** `get_build_by_share_token` is `SECURITY DEFINER` and returns the `builds` row. A share-link reader is not the owner and the build may not be `public`, so RLS hides any child row from them. Every table added from Slice 1 onward needs its own definer RPC or an extension of the existing one. Budget for it; do not discover it at the end.
 
@@ -393,6 +395,10 @@ Write `docs/superpowers/specs/2026-09-23-pob2-decode-findings.md`. For each answ
 - **Tree hit rate ≥ 95%** → Slice 2 imports the tree. Proceed as planned.
 - **Tree hit rate < 95%** → the tree export versions have drifted. Slice 2 drops to gems + items + notes, and the tree becomes its own investigation. **Record the number; do not average it away.**
 - **`<Tree>` holds only one `<Spec>`** → Slice 1 still proceeds (checkpoints are our own feature and pobb.in demonstrably has 8 of them), but Slice 2's `mapCheckpoints` is dropped and imports produce a single checkpoint.
+
+> **Gate outcome, 2026-09-23 — PASSED.** Tree **99.50%** (600/603 across 8 specs, one unknown node id `15671`), so Slice 2 imports the tree. `<Tree>` holds **8 named `<Spec>` elements**, so Slice 1's checkpoint model is validated and `mapCheckpoints` survives. Gems resolve at **60%** after tier-stripping, which makes the import report mandatory rather than merely good practice.
+>
+> **One assumption this task disproved:** PoB checkpoints are **tree-only** — one `<SkillSet>` and one `<ItemSet>` against eight `<Spec>`s. Slice 1's table stores `gear_state` and `gem_state` per checkpoint, which stays correct as a superset, but `mapCheckpoints` in Slice 2 must write eight copies of the same gear and gems and the report must say it did. Full detail in `specs/2026-09-23-pob2-decode-findings.md`.
 
 - [ ] **Step 5: Commit the fixture and the findings**
 
@@ -1012,6 +1018,7 @@ Sections that go stale the moment this slice lands: **What is built** (checkpoin
 | 1 | Checkpoints before import — this plan inverts the handoff's order | Slice 1 vs 2 | **Checkpoints first.** `builds` holds 1 row today; importing an 8-loadout pobb.in build into a single-snapshot model discards 7 of 8, and the reshape still has to happen afterwards against a populated table. |
 | 2 | Two-handed occupancy: block the pick, or warn | Slice 3 | **Warn.** Consistent with the over-budget precedent, which signals and never blocks — planning ahead of your character is a normal workflow here. |
 | 3 | GGG `.build` import — ever? | post-Slice 2 | **Defer.** No metadata id exists at any layer of our data, so the join needs a derived table we would own and maintain. Revisit if GGG's account-linked Subscribe API ships. |
+| 5 | **Pull GGG metadata ids through `@poe2-toolkit` extraction before Slice 2?** Raised by the decode spike. | Slice 2 scope | **Probably yes, and cheap to find out.** Name matching measured 60% on a real build. `<Gem gemId="Metadata/Items/Gems/SupportGemMartialTempo">` is already in every PoB code; if the extractor can carry the same id, the join becomes exact and GGG `.build` import (decision 3) unblocks as a side effect. First step is a read of the toolkit's extractor to see whether the id survives to its output at all — an hour, not a slice. |
 | 4 | Merge to `main` | all | **Not yet.** Verify a slice on a dev server first. The migrations are already in production regardless of branch; merging only ships 41 commits of application code. |
 
 ## Unresolved, do not build on either side of it
