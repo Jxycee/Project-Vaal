@@ -9,6 +9,41 @@
 
 ---
 
+## AMENDMENT — 2026-09-22, decided by the user. Read this before anything below.
+
+The user was asked how shared builds should show item icons, given `/data/wiki/` is auth-gated. Their answer changes the architecture:
+
+> "The entire build page should be under auth protection. No user that is signed out should even be able to see a public build, it should redirect them to login before being able to view the build page completely."
+
+And, asked specifically about the finder: **protect all of `/builds`.**
+
+### What this overrides
+
+1. **"Blocking decision 1" (the icon 307) is void. Do not implement it.** Do not touch `src/proxy.ts`'s matcher regex, `isProtectedPath`'s internals, or the `/data/wiki/` gating in any way. Every viewer of a shared build is now signed in, so the icons resolve exactly as they do in the editor. The 2026-08-21 security fix that closed the icon bypass stays fully intact — exempting icons would have partially reversed it, and that is now unnecessary rather than merely risky.
+
+2. **Add `'/builds'` to `PROTECTED_PREFIXES`** (no trailing slash, so it covers `/builds` and every child). That is the only `proxy.ts` change in this task.
+
+3. **Update the route map comment at the top of `proxy.ts`.** It currently reads `/builds → PUBLIC (build finder, anonymous planner, shared viewer)`. That is now wrong in all three respects.
+
+4. **`src/app/(dashboard)/layout.tsx`'s comment — "Proxy already gates this group" — becomes true again.** The plan's note about fixing it as stale no longer applies; `/builds` was the one member of that group it was wrong about.
+
+5. **`/builds`'s signed-out branch is now unreachable.** The Server Component's `if (!user)` block rendering "Sign in to see your saved builds" can go, along with its `/login` link. Keep a cheap guard if you like, but it is defence in depth, not a rendered path.
+
+6. **An existing e2e test now asserts the opposite of the product decision and must be changed** — `e2e/draft-and-auth.spec.ts`, `'/builds is public and invites sign-in rather than redirecting'`. Rewrite it to assert `/builds` **redirects to `/login`** when signed out, and add the same for `/builds/<any-token>`. This is the one protected test in the suite that changes; it changes because the requirement changed, not to make anything pass.
+
+### What is unaffected
+
+- **Still use `get_build_by_share_token`.** Authentication is not authorisation: the `builds` SELECT policy exposes `visibility = 'public'` only, so a plain select still returns nothing for an `unlisted` build even for a signed-in caller. The RPC is still the only path that works. Blocking decision 2 stands unchanged.
+- **The finder must still carry `.eq('visibility','public')`.** The owner policy is permissive and ORs in, so a signed-in viewer's bare select would list their own private builds under a "Public" tab. Now *more* important, since every finder visitor is signed in.
+- `build_tags`' SELECT policy still omits `unlisted`, so tags still vanish on an unlisted shared build. Unchanged.
+- Route shape, view counting, attribution, read-only rendering recommendation: all unchanged.
+
+### Consequence worth stating
+
+A "public" build is now public *to signed-in users*, not to the web. Link-sharing to someone without an account sends them to `/login` first. That is the requested behaviour. It also means the shared view is not a search-engine discovery surface — if that is ever wanted, it is a deliberate future reversal, not an oversight.
+
+---
+
 ## Verified against real code/data/database (this session)
 
 Database claims come from live introspection of project `mjxadehorflhncendqiy` (`pg_proc`, `pg_policies`, `pg_indexes`, `pg_constraint`, `pg_trigger`, `information_schema.columns`), never from `supabase/schema.sql`.
