@@ -6,6 +6,13 @@
 -- Source:           Supabase project `mjxadehorflhncendqiy`
 -- Generated:        2026-09-18
 -- Latest migration: 20260829195704_add_preferred_price_league_to_user_profiles
+--
+-- HAND-PATCHED 2026-09-23 for migration `swap_private_unlisted_visibility_semantics`
+-- (builds.visibility default, get_build_by_share_token, increment_build_view_count).
+-- Everything else in this file still dates from the 2026-09-18 generation, so
+-- treat it as a convenience copy and NOT as an authority: verify against the
+-- live database before relying on any claim here. This file has already
+-- misled work twice.
 -- Regenerate by:    introspecting the live project (information_schema for
 --                    columns; pg_constraint/pg_get_constraintdef for keys and
 --                    checks; pg_indexes for indexes incl. partial-index
@@ -64,17 +71,18 @@ BEGIN
   UPDATE public.builds
   SET view_count = view_count + 1
   WHERE id = p_build_id
-    AND visibility IN ('public', 'unlisted');   -- count views on public + unlisted (link-shared) builds
+    AND visibility = 'public';   -- view counts are kept for public builds only
 END;
 $$;
 
 -- Grant execute on the view counter to all roles (including anon)
 GRANT EXECUTE ON FUNCTION public.increment_build_view_count(uuid) TO anon, authenticated;
 
--- Look up a build by its share token; runs as DEFINER so an anon visitor with
--- a valid link can read a build regardless of its RLS-visible ownership.
--- Only public/unlisted builds are returned — a private build's token (if any)
--- never resolves.
+-- Look up a build by its share token; runs as DEFINER so a visitor holding a
+-- valid link can read a build regardless of its RLS-visible ownership.
+-- Only public/private builds are returned — an `unlisted` build's token never
+-- resolves. See the visibility comment on the builds table: this app's
+-- vocabulary deliberately inverts the usual web meaning of those two words.
 CREATE OR REPLACE FUNCTION public.get_build_by_share_token(p_token text)
 RETURNS SETOF builds
 LANGUAGE sql
@@ -83,7 +91,7 @@ SET search_path TO 'public'
 AS $$
   SELECT * FROM public.builds
   WHERE share_token = p_token
-    AND visibility IN ('public', 'unlisted');
+    AND visibility IN ('public', 'private');
 $$;
 
 -- Resolve a build's author display name for public-facing UI (build finder,
@@ -223,13 +231,20 @@ CREATE TABLE public.builds (
   main_skill      text,
 
   -- Sharing
-  -- private: owner only. unlisted: readable via share_token (see
-  -- get_build_by_share_token), absent from the public finder. public:
-  -- readable by anyone, listed in the finder.
-  visibility      text        NOT NULL DEFAULT 'private' CHECK (visibility IN ('private', 'unlisted', 'public')),
+  -- THIS APP'S VOCABULARY INVERTS THE USUAL WEB MEANING OF THESE WORDS. It is
+  -- a deliberate product decision (2026-09-23) and the live database was
+  -- migrated to match it; do not "correct" either side towards the
+  -- YouTube/Google Docs sense of "unlisted".
+  --   unlisted: owner only, share link or not. The default.
+  --   private:  owner, plus anyone holding the share link. Absent from the finder.
+  --   public:   every signed-in user; listed in the finder; view-counted.
+  visibility      text        NOT NULL DEFAULT 'unlisted' CHECK (visibility IN ('private', 'unlisted', 'public')),
   -- share_token: 21-char nanoid; generated server-side on first save.
   -- NULL until the build is explicitly saved/published.
-  -- Never regenerated — invalidate a link by setting visibility = 'private'.
+  -- Never regenerated — invalidate a link by setting visibility = 'unlisted'.
+  -- NOTE: because the token is never rotated, downgrading public -> private
+  -- does NOT revoke access for anyone who already read the token off the
+  -- finder. Only 'unlisted' actually revokes.
   share_token     text        UNIQUE,
   view_count      int         NOT NULL DEFAULT 0,
 

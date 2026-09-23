@@ -12,7 +12,7 @@
 // can never be cached across visitors anyway, since the RPC result and the
 // isOwner-derived "Edit" link both depend on per-request auth state.
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { createClient, getCachedUser } from '@/lib/supabase/server';
 import { SHARE_TOKEN_RE } from '@/lib/build/constants';
 import type { SharedBuildRow } from '@/lib/build/types';
@@ -57,15 +57,28 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function SharedBuildPage({ params }: PageProps) {
   const { shareToken } = await params;
   const row = await loadSharedBuild(shareToken);
-  // notFound() for a bad token, an RPC error, and a `private` build alike —
+  // notFound() for a bad token, an RPC error, and an `unlisted` build alike —
   // the RPC's own `visibility IN ('public','private')` filter is what turns
-  // "private" into "not found" server-side, with no client cooperation. Same
+  // "unlisted" into "not found" server-side, with no client cooperation. Same
   // deliberate indistinguishability builds/actions.ts and /tree already use.
   if (!row) notFound();
 
   const { data: userData } = await getCachedUser(); // memoised per request — AppShell already calls this
   const user = userData.user;
-  const isOwner = user?.id === row.user_id;
+
+  // Defence in depth, not belt-and-braces. "No signed-out visitor may see a
+  // build" is a product decision (2026-09-23), and proxy.ts is otherwise the
+  // ONLY thing enforcing it for this route — while that file's own header
+  // warns its matcher is "optimistic… do not assume this matcher is airtight"
+  // and cites a percent-encoding bypass this repo actually shipped. Every
+  // sibling surface added alongside this one (builds/page.tsx, both API
+  // routes, all five Server Functions) re-verifies the session itself; this
+  // route was the one that did not. The RPCs it calls have EXECUTE granted to
+  // `anon`, so a request that reaches here without a session would otherwise
+  // render the whole build.
+  if (!user) redirect('/login');
+
+  const isOwner = user.id === row.user_id;
 
   const supabase = await createClient();
 

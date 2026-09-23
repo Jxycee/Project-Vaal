@@ -288,8 +288,13 @@ export default function MyBuildsList({
                 ) : null}
               </div>
               {linkActive ? (
+                // 'unlisted' is this app's owner-only state (visibility.ts
+                // explains why the vocabulary inverts the usual web meaning).
+                // This line used to name Private, which is the state that
+                // ENABLES the link — it read as a warning about the option the
+                // user had just chosen.
                 <p className="text-[11px] text-muted-foreground/80">
-                  Switching to Private disables the link immediately.
+                  Switching to Unlisted disables this link immediately.
                 </p>
               ) : null}
 

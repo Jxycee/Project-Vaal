@@ -1,5 +1,5 @@
 // Rendered by notFound() in ./page.tsx — a bad token, an RPC error and a
-// `private` build all land here identically, on purpose (see that file).
+// `unlisted` build all land here identically, on purpose (see that file).
 export default function SharedBuildNotFound() {
   return (
     <div className="flex flex-col items-center gap-2 py-16 text-center">

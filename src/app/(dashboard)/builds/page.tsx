@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient, getCachedUser } from '@/lib/supabase/server';
 import type { PublicBuildRow, SavedBuild } from '@/lib/build/types';
+import { normalizeTag } from '@/lib/build/tags';
 import { parseFinderFilters, type BuildFinderFilters } from '@/lib/build/finderFilters';
 import MyBuildsList from '@/components/builds/MyBuildsList';
 import BuildFinder from '@/components/builds/BuildFinder';
@@ -48,7 +49,11 @@ async function loadPublicBuilds(
     const { data: tagRows, error: tagError } = await supabase
       .from('build_tags')
       .select('build_id')
-      .eq('tag', filters.tag);
+      // normalizeTag, because addBuildTag normalised on the way IN (lowercase,
+      // whitespace-collapsed — see tags.ts). Querying the raw user string made
+      // the filter miss every tag that was not already lowercase: typing
+      // "Minion" found nothing, while the stored tag was "minion".
+      .eq('tag', normalizeTag(filters.tag) ?? filters.tag);
     if (tagError) {
       console.error('Failed to look up build_tags for finder:', tagError);
       return { builds: null, loadError: "Couldn't load public builds." };
