@@ -17,27 +17,75 @@ import { NextRequest } from 'next/server';
 // pure request-shaping decisions, so they belong in a test that runs in
 // milliseconds rather than one that needs a browser and a live database.
 
+type Result = { data: unknown; error: unknown };
+
 const getUserMock = vi.fn();
 const updateMock = vi.fn();
 const insertMock = vi.fn();
+const cpUpdateMock = vi.fn();
+const cpSelectMock = vi.fn();
 
-/** What the mocked `.maybeSingle()` / `.single()` resolve to; set per test. */
-let updateResult: { data: unknown; error: unknown } = { data: { id: 'build-1' }, error: null };
-let insertResult: { data: unknown; error: unknown } = { data: { id: 'build-1' }, error: null };
+/** What each mocked query resolves to; set per test. */
+let updateResult: Result = { data: { id: 'build-1' }, error: null };
+let insertResult: Result = { data: { id: 'build-1' }, error: null };
+let cpUpdateResult: Result = { data: { id: 'cp-0' }, error: null };
+let cpSelectResult: Result = { data: [{ id: 'cp-0' }], error: null };
+
+/** Every .eq() applied to a build_checkpoints query, in order. Scoping is a security property here, so tests assert it. */
+let cpEqCalls: Array<[string, unknown]> = [];
+/** Which table was written first. The route must write the checkpoint before mirroring onto the build. */
+let writeOrder: string[] = [];
+
+/**
+ * A stand-in for a supabase-js query builder: every filter method returns the
+ * builder, and it resolves either through .maybeSingle()/.single() or by being
+ * awaited directly, the way a real list query is.
+ */
+function chain(result: () => Result, eqCalls?: Array<[string, unknown]>) {
+  const builder: Record<string, unknown> = {};
+  builder.select = () => builder;
+  builder.eq = (column: string, value: unknown) => {
+    eqCalls?.push([column, value]);
+    return builder;
+  };
+  builder.order = () => builder;
+  builder.limit = () => builder;
+  builder.maybeSingle = async () => result();
+  builder.single = async () => result();
+  builder.then = (resolve: (v: Result) => unknown, reject?: (e: unknown) => unknown) =>
+    Promise.resolve(result()).then(resolve, reject);
+  return builder;
+}
 
 vi.mock('@/lib/supabase/server', () => ({
   createClient: async () => ({
     auth: { getUser: () => getUserMock() },
-    from: () => ({
-      update: (payload: unknown) => {
-        updateMock(payload);
-        return { eq: () => ({ select: () => ({ maybeSingle: async () => updateResult }) }) };
-      },
-      insert: (payload: unknown) => {
-        insertMock(payload);
-        return { select: () => ({ single: async () => insertResult }) };
-      },
-    }),
+    from: (table: string) => {
+      if (table === 'build_checkpoints') {
+        return {
+          update: (payload: unknown) => {
+            cpUpdateMock(payload);
+            writeOrder.push('build_checkpoints');
+            return chain(() => cpUpdateResult, cpEqCalls);
+          },
+          select: (columns: unknown) => {
+            cpSelectMock(columns);
+            return chain(() => cpSelectResult, cpEqCalls);
+          },
+        };
+      }
+      return {
+        update: (payload: unknown) => {
+          updateMock(payload);
+          writeOrder.push('builds');
+          return chain(() => updateResult);
+        },
+        insert: (payload: unknown) => {
+          insertMock(payload);
+          return chain(() => insertResult);
+        },
+      };
+    },
   }),
 }));
 
@@ -45,6 +93,11 @@ import { POST } from './route';
 
 const AUTHED = { data: { user: { id: 'user-1' } } };
 const ANONYMOUS = { data: { user: null } };
+
+// Real UUIDs. The route rejects a non-UUID id before it reaches Postgres, so
+// any test meant to exercise the database path has to use one.
+const BUILD_ID = '11111111-1111-4111-8111-111111111111';
+const CP_ID = '22222222-2222-4222-8222-222222222222';
 
 /** A body that passes every validation gate, so each test can vary one thing. */
 function validBody(overrides: Record<string, unknown> = {}) {
@@ -70,9 +123,15 @@ beforeEach(() => {
   getUserMock.mockReset();
   updateMock.mockReset();
   insertMock.mockReset();
+  cpUpdateMock.mockReset();
+  cpSelectMock.mockReset();
   getUserMock.mockResolvedValue(AUTHED);
-  updateResult = { data: { id: 'build-1' }, error: null };
-  insertResult = { data: { id: 'build-1' }, error: null };
+  updateResult = { data: { id: BUILD_ID }, error: null };
+  insertResult = { data: { id: BUILD_ID }, error: null };
+  cpUpdateResult = { data: { id: CP_ID }, error: null };
+  cpSelectResult = { data: [{ id: CP_ID }], error: null };
+  cpEqCalls = [];
+  writeOrder = [];
 });
 
 describe('POST /api/builds — rejecting a request before it can write', () => {
@@ -190,7 +249,7 @@ describe('POST /api/builds — updating a row', () => {
     // reach the gear and gem columns at all — writing a default here would
     // erase whatever is stored, which is exactly the class of data loss this
     // route was rewritten to make unreachable.
-    await POST(req(validBody({ id: 'build-1' })));
+    await POST(req(validBody({ id: BUILD_ID })));
 
     const payload = updateMock.mock.calls[0][0] as Record<string, unknown>;
     expect('gear_state' in payload).toBe(false);
@@ -202,12 +261,12 @@ describe('POST /api/builds — updating a row', () => {
   });
 
   it('writes notes when the body carries them, and clears them with an explicit empty string', async () => {
-    await POST(req(validBody({ id: 'build-1', notes: 'Great vs tanky bosses.' })));
+    await POST(req(validBody({ id: BUILD_ID, notes: 'Great vs tanky bosses.' })));
     let payload = updateMock.mock.calls[0][0] as Record<string, unknown>;
     expect(payload.notes).toBe('Great vs tanky bosses.');
 
     updateMock.mockReset();
-    await POST(req(validBody({ id: 'build-1', notes: '' })));
+    await POST(req(validBody({ id: BUILD_ID, notes: '' })));
     payload = updateMock.mock.calls[0][0] as Record<string, unknown>;
     expect('notes' in payload).toBe(true);
     expect(payload.notes).toBeNull();
@@ -217,7 +276,7 @@ describe('POST /api/builds — updating a row', () => {
     const gear = { boots: { name: 'Some Boots' } };
     const gem = { loadouts: [], primaryId: null };
 
-    await POST(req(validBody({ id: 'build-1', gear_state: gear, gem_state: gem })));
+    await POST(req(validBody({ id: BUILD_ID, gear_state: gear, gem_state: gem })));
 
     const payload = updateMock.mock.calls[0][0] as Record<string, unknown>;
     expect(payload.gear_state).toEqual(gear);
@@ -228,7 +287,7 @@ describe('POST /api/builds — updating a row', () => {
     // JSON.stringify drops an undefined value, so the client sends null rather
     // than undefined precisely to reach this branch. If the route treated null
     // as "absent", unsetting a main skill would be impossible.
-    await POST(req(validBody({ id: 'build-1', main_skill: null })));
+    await POST(req(validBody({ id: BUILD_ID, main_skill: null })));
 
     const payload = updateMock.mock.calls[0][0] as Record<string, unknown>;
     expect('main_skill' in payload).toBe(true);
@@ -238,9 +297,12 @@ describe('POST /api/builds — updating a row', () => {
   it('reports 404 when RLS matches no row, rather than confirming the id exists', async () => {
     // Nonexistent and not-ours are deliberately indistinguishable: telling them
     // apart would leak other users' build ids.
+    // RLS hides someone else's checkpoints as well as their build, so the
+    // checkpoint lookup comes back empty before any write is attempted.
+    cpSelectResult = { data: [], error: null };
     updateResult = { data: null, error: null };
 
-    const res = await POST(req(validBody({ id: 'someone-elses-build' })));
+    const res = await POST(req(validBody({ id: BUILD_ID })));
 
     expect(res.status).toBe(404);
     expect(await res.json()).toEqual({ error: 'Build not found' });
@@ -250,10 +312,190 @@ describe('POST /api/builds — updating a row', () => {
     updateResult = { data: null, error: { message: 'relation "builds" does not exist' } };
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    const res = await POST(req(validBody({ id: 'build-1' })));
+    const res = await POST(req(validBody({ id: BUILD_ID })));
 
     expect(res.status).toBe(500);
     expect(await res.json()).toEqual({ error: 'Could not save this build.' });
+    consoleError.mockRestore();
+  });
+});
+
+describe('POST /api/builds — malformed ids', () => {
+  // Every other entry point (builds/actions.ts) answers a non-UUID id with the
+  // same not-found it gives a real id that isn't yours, so "malformed" and
+  // "someone else's" are indistinguishable. This route used to pass the raw
+  // string to Postgres and surface its cast error as a 500 instead.
+  it('answers 404 for a non-UUID build id without touching the database', async () => {
+    const res = await POST(req(validBody({ id: 'not-a-uuid' })));
+
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: 'Build not found' });
+    expect(updateMock).not.toHaveBeenCalled();
+    expect(cpUpdateMock).not.toHaveBeenCalled();
+    expect(cpSelectMock).not.toHaveBeenCalled();
+  });
+
+  it('answers 404 for a non-UUID checkpoint id without touching the database', async () => {
+    const res = await POST(req(validBody({ id: BUILD_ID, checkpoint_id: 'not-a-uuid' })));
+
+    expect(res.status).toBe(404);
+    expect(updateMock).not.toHaveBeenCalled();
+    expect(cpUpdateMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects a checkpoint id on a create, where there is no build to own it yet', async () => {
+    const res = await POST(req(validBody({ checkpoint_id: CP_ID })));
+
+    expect(res.status).toBe(400);
+    expect(insertMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('POST /api/builds — saving into a checkpoint', () => {
+  it('writes the named checkpoint, scoped to this build, before mirroring onto the build', async () => {
+    const passive = { set1: [7, 8], set2: [], ascendancyNodes: [3] };
+
+    const res = await POST(req(validBody({ id: BUILD_ID, checkpoint_id: CP_ID, passive_state: passive, level: 94 })));
+
+    expect(res.status).toBe(200);
+    const cpPayload = cpUpdateMock.mock.calls[0][0] as Record<string, unknown>;
+    expect(cpPayload.passive_state).toEqual(passive);
+    expect(cpPayload.level).toBe(94);
+
+    // Scoped by BOTH ids. Filtering on the checkpoint id alone would let a
+    // save for one of your builds overwrite a checkpoint belonging to another
+    // of your builds — RLS allows it, since you own both.
+    expect(cpEqCalls).toContainEqual(['id', CP_ID]);
+    expect(cpEqCalls).toContainEqual(['build_id', BUILD_ID]);
+
+    // The checkpoint is the source of truth; the build row is a mirror. If the
+    // order were reversed, a failed checkpoint write would leave the mirror
+    // ahead of the thing it mirrors.
+    expect(writeOrder).toEqual(['build_checkpoints', 'builds']);
+    expect((updateMock.mock.calls[0][0] as Record<string, unknown>).passive_state).toEqual(passive);
+  });
+
+  it('applies the anti-wipe rule to the checkpoint too', async () => {
+    // Same reasoning as the build row: a save that only touched the tree must
+    // not reach gear or gems at all.
+    await POST(req(validBody({ id: BUILD_ID, checkpoint_id: CP_ID })));
+
+    const cpPayload = cpUpdateMock.mock.calls[0][0] as Record<string, unknown>;
+    expect('gear_state' in cpPayload).toBe(false);
+    expect('gem_state' in cpPayload).toBe(false);
+  });
+
+  it('writes gear and gems into the checkpoint when the body carries them', async () => {
+    const gear = { boots: { name: 'Some Boots' } };
+    const gem = { loadouts: [], primaryId: null };
+
+    await POST(req(validBody({ id: BUILD_ID, checkpoint_id: CP_ID, gear_state: gear, gem_state: gem })));
+
+    const cpPayload = cpUpdateMock.mock.calls[0][0] as Record<string, unknown>;
+    expect(cpPayload.gear_state).toEqual(gear);
+    expect(cpPayload.gem_state).toEqual(gem);
+  });
+
+  it('answers 404 and leaves the build untouched when the checkpoint matches nothing', async () => {
+    // A checkpoint id from another build, or one already deleted. The build
+    // row must not be updated either — otherwise the mirror would move while
+    // the checkpoint it mirrors did not.
+    cpUpdateResult = { data: null, error: null };
+
+    const res = await POST(req(validBody({ id: BUILD_ID, checkpoint_id: CP_ID })));
+
+    expect(res.status).toBe(404);
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it('does not leak a checkpoint write error, and leaves the build untouched', async () => {
+    cpUpdateResult = { data: null, error: { message: 'relation "build_checkpoints" does not exist' } };
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const res = await POST(req(validBody({ id: BUILD_ID, checkpoint_id: CP_ID })));
+
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ error: 'Could not save this build.' });
+    expect(updateMock).not.toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
+
+  it('returns the checkpoint alongside the build', async () => {
+    cpUpdateResult = { data: { id: CP_ID, position: 0 }, error: null };
+
+    const res = await POST(req(validBody({ id: BUILD_ID, checkpoint_id: CP_ID })));
+
+    expect(await res.json()).toEqual({ build: { id: BUILD_ID }, checkpoint: { id: CP_ID, position: 0 } });
+  });
+});
+
+describe('POST /api/builds — a save that names no checkpoint', () => {
+  // The client before Slice 1's UI sends no checkpoint_id. Without a rule for
+  // that, its saves would update the build row and leave checkpoint 0 behind,
+  // and the mirror would silently drift from what it mirrors. The rule has to
+  // be deterministic, not a guess.
+
+  it('writes the only checkpoint when the build has exactly one', async () => {
+    cpSelectResult = { data: [{ id: CP_ID }], error: null };
+
+    const res = await POST(req(validBody({ id: BUILD_ID })));
+
+    expect(res.status).toBe(200);
+    expect(cpEqCalls).toContainEqual(['build_id', BUILD_ID]);
+    expect(cpEqCalls).toContainEqual(['id', CP_ID]);
+    expect(cpUpdateMock).toHaveBeenCalledTimes(1);
+    expect(writeOrder).toEqual(['build_checkpoints', 'builds']);
+  });
+
+  it('refuses rather than guesses when the build has several', async () => {
+    cpSelectResult = { data: [{ id: CP_ID }, { id: '33333333-3333-4333-8333-333333333333' }], error: null };
+
+    const res = await POST(req(validBody({ id: BUILD_ID })));
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'checkpoint_id is required when a build has more than one checkpoint' });
+    expect(cpUpdateMock).not.toHaveBeenCalled();
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it('answers 404 without writing when no checkpoint is visible', async () => {
+    // Every build has one (a trigger guarantees it), so seeing none means RLS
+    // is hiding the build — it is not ours.
+    cpSelectResult = { data: [], error: null };
+
+    const res = await POST(req(validBody({ id: BUILD_ID })));
+
+    expect(res.status).toBe(404);
+    expect(cpUpdateMock).not.toHaveBeenCalled();
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('POST /api/builds — creating a row returns its first checkpoint', () => {
+  it('returns the checkpoint the database created alongside the build', async () => {
+    // The AFTER INSERT trigger creates checkpoint 0. The client needs its id
+    // for the next save, so the route reads it back rather than making the
+    // client ask.
+    cpSelectResult = { data: { id: CP_ID, position: 0 }, error: null };
+
+    const res = await POST(req(validBody()));
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ build: { id: BUILD_ID }, checkpoint: { id: CP_ID, position: 0 } });
+    expect(cpEqCalls).toContainEqual(['build_id', BUILD_ID]);
+  });
+
+  it('still reports a successful save when reading the checkpoint back fails', async () => {
+    // The build and its checkpoint were written; only the follow-up read
+    // failed. Answering 500 would tell the user their save was lost when it
+    // was not, and a retry would create a duplicate build.
+    cpSelectResult = { data: null, error: { message: 'timeout' } };
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const res = await POST(req(validBody()));
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ build: { id: BUILD_ID }, checkpoint: null });
     consoleError.mockRestore();
   });
 });

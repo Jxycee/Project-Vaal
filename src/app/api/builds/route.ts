@@ -14,12 +14,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { nanoid } from 'nanoid';
 import { createClient } from '@/lib/supabase/server';
-import { GAME_VERSION, MAX_NOTES_LENGTH } from '@/lib/build/constants';
+import { GAME_VERSION, MAX_NOTES_LENGTH, UUID_RE } from '@/lib/build/constants';
 import type { PassiveState } from '@/lib/build/types';
 import type { Database, Json } from '@/types/database';
 
 interface SaveBuildBody {
   id?: unknown;
+  /**
+   * Which checkpoint this save's tree/gear/gems belong to. Only meaningful on
+   * an update — a new build's first checkpoint is created by the database
+   * (the create_initial_build_checkpoint trigger), not by the caller.
+   */
+  checkpoint_id?: unknown;
   name?: unknown;
   class?: unknown;
   ascendancy?: unknown;
@@ -74,6 +80,26 @@ export async function POST(request: NextRequest) {
 
   if (body.id !== undefined && typeof body.id !== 'string') {
     return NextResponse.json({ error: 'Invalid build id' }, { status: 400 });
+  }
+
+  // A string that is not a UUID answers 404, the same as a real id that is
+  // not yours — matching builds/actions.ts, which returns NOT_FOUND for the
+  // same case. Passing it through let Postgres reject the cast, which surfaced
+  // as a 500 and was the one entry point that told the two cases apart.
+  if (typeof body.id === 'string' && !UUID_RE.test(body.id)) {
+    return NextResponse.json({ error: 'Build not found' }, { status: 404 });
+  }
+
+  if (body.checkpoint_id !== undefined) {
+    if (body.id === undefined) {
+      return NextResponse.json(
+        { error: 'checkpoint_id is only valid when updating a build' },
+        { status: 400 },
+      );
+    }
+    if (typeof body.checkpoint_id !== 'string' || !UUID_RE.test(body.checkpoint_id)) {
+      return NextResponse.json({ error: 'Build not found' }, { status: 404 });
+    }
   }
 
   const name = typeof body.name === 'string' ? body.name.trim() : '';
@@ -133,6 +159,78 @@ export async function POST(request: NextRequest) {
   };
 
   if (body.id) {
+    // --- Which checkpoint does this save belong to? -------------------------
+    // Named explicitly when the client sends checkpoint_id. When it does not
+    // — the pre-checkpoint client, or any caller that only knows about builds
+    // — the answer must be deterministic rather than a guess: a build with
+    // exactly one checkpoint is unambiguous, one with several is an error.
+    // Without this rule those saves would update the build row alone, and
+    // the mirror would silently drift away from the checkpoint it mirrors.
+    let checkpointId: string;
+    if (typeof body.checkpoint_id === 'string') {
+      checkpointId = body.checkpoint_id;
+    } else {
+      const { data: rows, error: listError } = await supabase
+        .from('build_checkpoints')
+        .select('id')
+        .eq('build_id', body.id);
+
+      if (listError) {
+        console.error('Failed to list checkpoints:', listError);
+        return NextResponse.json({ error: 'Could not save this build.' }, { status: 500 });
+      }
+      if (!rows || rows.length === 0) {
+        // Every build has at least one (the create_initial_build_checkpoint
+        // trigger guarantees it), so seeing none means RLS is hiding the
+        // build. Same answer as any other not-yours case.
+        return NextResponse.json({ error: 'Build not found' }, { status: 404 });
+      }
+      if (rows.length > 1) {
+        return NextResponse.json(
+          { error: 'checkpoint_id is required when a build has more than one checkpoint' },
+          { status: 400 },
+        );
+      }
+      checkpointId = rows[0].id;
+    }
+
+    // --- Write the checkpoint FIRST ------------------------------------------
+    // The checkpoint is the source of truth and the builds row is a mirror of
+    // it. Writing the checkpoint first means a failure here leaves nothing
+    // written at all; the reverse order could leave the mirror ahead of the
+    // thing it mirrors.
+    //
+    // Scoped by build_id as well as id. RLS alone would allow a save for one
+    // of your builds to overwrite a checkpoint belonging to another of your
+    // builds, because you own both.
+    //
+    // Same conditional-write discipline as the build row below: gear and gems
+    // are written only when the body carried them.
+    const checkpointPayload = {
+      passive_state: passive_state as unknown as Json,
+      level,
+      ...('gear_state' in body ? { gear_state: body.gear_state as unknown as Json } : {}),
+      ...('gem_state' in body ? { gem_state: body.gem_state as unknown as Json } : {}),
+    };
+
+    const { data: checkpoint, error: checkpointError } = await supabase
+      .from('build_checkpoints')
+      .update(checkpointPayload)
+      .eq('id', checkpointId)
+      .eq('build_id', body.id)
+      .select()
+      .maybeSingle();
+
+    if (checkpointError) {
+      console.error('Failed to update checkpoint:', checkpointError);
+      return NextResponse.json({ error: 'Could not save this build.' }, { status: 500 });
+    }
+    if (!checkpoint) {
+      // A checkpoint of some other build, one already deleted, or not ours.
+      // Deliberately the same answer, and nothing has been written.
+      return NextResponse.json({ error: 'Build not found' }, { status: 404 });
+    }
+
     // On update, gear_state/gem_state/main_skill are included only when the
     // request body actually sent that key. Task 1 never sends them, so
     // defaulting them to {}/{}/null unconditionally is harmless today — but
@@ -169,7 +267,7 @@ export async function POST(request: NextRequest) {
       // Deliberately indistinguishable – do not leak other users' build ids.
       return NextResponse.json({ error: 'Build not found' }, { status: 404 });
     }
-    return NextResponse.json({ build: data });
+    return NextResponse.json({ build: data, checkpoint });
   }
 
   const { data, error } = await supabase
@@ -190,5 +288,25 @@ export async function POST(request: NextRequest) {
     console.error('Failed to create build:', error);
     return NextResponse.json({ error: 'Could not save this build.' }, { status: 500 });
   }
-  return NextResponse.json({ build: data });
+
+  // The create_initial_build_checkpoint trigger has already created
+  // checkpoint 0 inside the same transaction as the insert. Read it back so
+  // the client has its id for the next save, rather than making it ask.
+  const { data: checkpoint, error: checkpointError } = await supabase
+    .from('build_checkpoints')
+    .select()
+    .eq('build_id', data.id)
+    .order('position')
+    .limit(1)
+    .maybeSingle();
+
+  if (checkpointError) {
+    // The build and its checkpoint WERE written; only this read failed.
+    // Reporting 500 would tell the user their save was lost when it was not,
+    // and a retry would create a duplicate build. Return success with a null
+    // checkpoint — the next save resolves it by the one-checkpoint rule.
+    console.error('Build saved, but its first checkpoint could not be read back:', checkpointError);
+    return NextResponse.json({ build: data, checkpoint: null });
+  }
+  return NextResponse.json({ build: data, checkpoint });
 }
