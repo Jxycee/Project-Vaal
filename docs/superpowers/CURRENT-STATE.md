@@ -132,17 +132,19 @@ All **37 Talisman items carry `twoHanded: false`**, which contradicts `docs/rese
 
 | | |
 |---|---|
-| Unit (vitest, `node` env, no DOM harness) | **513 tests / 36 files** |
+| Unit (vitest, `node` env, no DOM harness) | **631 tests / 40 files** |
 | E2E (Playwright, mobile + desktop) | **19 / 20** on the last full run — see the intermittent failure below |
 | type-check, lint, build | clean |
 
-*Verified: `npm test`, `npm run type-check`, `npm run lint`, `npm run build` on 2026-09-23, after the save-into-checkpoint route change. The unit count read 476 when this table was first written, before the two `normalizeSkill` fixes added their regression tests; `npx playwright test` was last run at the gem-level / notes / level-budget commit and has not been re-run since.*
+*Verified: `npm test`, `npm run type-check`, `npm run lint`, `npm run build` on 2026-09-23, after the code-review fixes below (unit count re-read then). The unit count read 476 when this table was first written, before the two `normalizeSkill` fixes added their regression tests; `npx playwright test` was last run at the gem-level / notes / level-budget commit and has not been re-run since.*
 
 **One intermittent failure, cause not yet proven (2026-09-23).** A full run after the save-into-checkpoint change passed 19/20. The failure was in `sharing.spec.ts`'s `afterAll` cleanup, *after* its test body passed: the cleanup context's `goto('/builds')` rendered the **dashboard** while signed in, so the "ready" locator never appeared. A rerun of that spec alone, with the cleanup page's document responses logged, passed with a direct `200 /builds`.
 
 What is established rather than guessed: the only code path that lands a signed-in GET on `/dashboard` is `src/proxy.ts`'s "authenticated users away from auth pages" rule, so the cleanup must have been bounced `/builds → /login` first — meaning the proxy saw no user on that one request. **Why `getUser()` returned nothing there is unproven.** It is a GET navigation, so it does not involve `POST /api/builds`.
 
-It exposed a real latent bug either way: that proxy rule redirects a signed-in user on `/login` to `/dashboard` and **drops the `?redirect=` parameter**, so any transient auth miss strands the user on the dashboard. Fixing it needs the redirect target validated in the proxy (same-origin path only), or it becomes an open redirect — so it is tracked separately rather than folded into feature work.
+It exposed a real latent bug either way: that proxy rule redirected a signed-in user on `/login` to `/dashboard` and **dropped the `?redirect=` parameter**, so any transient auth miss stranded the user on the dashboard.
+
+**Fixed (2026-09-23, `02dd001e`).** The rule now sends the user to the `redirect` target when it validates, else `/dashboard`, and never back into `/login` or `/signup`. Validation is the one shared `safeRedirect` in `src/lib/safeRedirect.ts`, which replaced three identical copies (login page, signup page, `/auth/callback`) — all three had accepted `/\evil.com`, which the URL parser resolves to `//evil.com`, an open redirect. *Verified:* `src/lib/safeRedirect.test.ts` (hostile inputs, normal paths with query strings) and `src/proxy.test.ts` (the proxy against a mocked `getUser`, including the no-user → `/login` → signed-in round trip landing back on the original page). Both suites failed against the old code before passing against the new. *Not verified:* e2e has not been re-run since, so the 19/20 above is unchanged. **The cause of the one-off `getUser()` miss is still unproven** — the fix removes its consequence, not its cause.
 
 **One deliberate gap in automated coverage:** the gem level and quality inputs are `<input type="number">`, which puts them outside `mobile-layout.spec.ts`'s `button, a[href]` tap-target selector. They are sized `h-11` by hand. If that selector is ever widened, expect them to be scanned.
 

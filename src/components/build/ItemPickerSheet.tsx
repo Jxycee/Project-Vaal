@@ -91,6 +91,8 @@ export default function ItemPickerSheet({
             return;
           }
           const payload = (await res.json()) as { entries?: WikiSearchEntry[]; total?: number; error?: string };
+          // Checked again: a newer search can finish while this body is still parsing.
+          if (seq !== requestSeq.current) return;
           if (!res.ok) {
             setState({ status: 'error', message: payload.error ?? 'Failed to search items.' });
             return;

@@ -11,8 +11,8 @@
 //
 // The .eq('user_id', ...) filters are defence in depth: RLS's owner policy is
 // what actually enforces the write, but the permissive "Public builds are
-// readable by anyone" policy (role `public`, which includes authenticated
-// users) means a bare .eq('id', ...) is never something to reason about
+// readable by signed-in users" policy (role `authenticated`, which every
+// signed-in caller has) means a bare .eq('id', ...) is never something to reason about
 // casually here — see the comment in builds/page.tsx.
 import { revalidatePath } from 'next/cache';
 import { createClient, getCachedUser } from '@/lib/supabase/server';

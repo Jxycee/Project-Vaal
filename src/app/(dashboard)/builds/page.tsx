@@ -174,8 +174,8 @@ export default async function BuildsPage({
 
   // Mine tab — unchanged from pre-Task-4 behaviour.
   // .eq('user_id', ...) is DISPLAY SCOPING, not the security boundary: the
-  // "Public builds are readable by anyone" RLS policy is a permissive SELECT
-  // policy for role `public`, which includes authenticated users, and
+  // "Public builds are readable by signed-in users" RLS policy is a permissive
+  // SELECT policy for role `authenticated`, which this user has, and
   // Postgres OR's it together with the owner policy. Without this filter, a
   // bare select would return this user's rows PLUS every other user's public
   // builds, rendered here with Rename/Delete controls that would silently

@@ -166,6 +166,34 @@ describe('addCheckpoint', () => {
     expect(refreshMock).toHaveBeenCalledTimes(1);
   });
 
+  it("copies the editor's in-memory state, not the saved row, when given one", async () => {
+    const editor = {
+      passive_state: { set1: [1, 2, 3], set2: [], ascendancyNodes: [] },
+      gear_state: {},
+      gem_state: { loadouts: [], primaryId: null },
+    };
+    const res = await addCheckpoint(BUILD, 'Level 40', 40, CP_A, editor);
+
+    // The saved row is never read: the unsaved edits are what gets copied.
+    expect(calls.some((c) => c.op === 'select' && String(c.arg).includes('passive_state'))).toBe(false);
+    const payload = calls.find((c) => c.op === 'insert')?.arg as Record<string, unknown>;
+    expect(payload.passive_state).toEqual(editor.passive_state);
+    expect(payload.gear_state).toMatchObject({ head: null, jewels: {} });
+    expect(payload.gem_state).toEqual(editor.gem_state);
+    expect(res).toEqual({ ok: true, id: CP_B });
+  });
+
+  it('refuses editor state that fails the write gate, without inserting', async () => {
+    const hostile = {
+      passive_state: { set1: [], set2: [], ascendancyNodes: [] },
+      gear_state: { head: { slug: 'x', name: 'X', category: 'Helmets', isUnique: false, iconUrl: 'https://attacker.example/p.gif' } },
+      gem_state: { loadouts: [], primaryId: null },
+    };
+    const res = await addCheckpoint(BUILD, 'Level 40', 40, CP_A, hostile);
+    expect(res.ok).toBe(false);
+    expect(writes()).toHaveLength(0);
+  });
+
   it('answers not-found when the copy source is not in this build, without inserting', async () => {
     results['build_checkpoints:select:passive_state, gear_state, gem_state'] = { data: null, error: null };
     expect(await addCheckpoint(BUILD, 'Level 40', 40, CP_A)).toEqual(NOT_FOUND);

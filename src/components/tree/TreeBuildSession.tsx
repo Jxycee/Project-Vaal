@@ -50,6 +50,7 @@ import {
   setSets,
   setSkill,
 } from '@/lib/build/gemState';
+import { fetchMaxGemLevel } from '@/lib/wiki/fetchGemScaling';
 import type { GearItem, GearSlot } from '@/lib/build/gearSlots';
 import type { WeaponSet } from '@poe2-toolkit/tree-core';
 import type { BuildEditorState, PassiveTreeInitialState, SavedBuild } from '@/lib/build/types';
@@ -210,10 +211,26 @@ export default function TreeBuildSession({
   // only route events.
   const handleAddLoadout = useCallback(() => setGemState((prev) => addLoadout(prev)), []);
   const handleRemoveLoadout = useCallback((id: string) => setGemState((prev) => removeLoadout(prev, id)), []);
-  const handleSetSkill = useCallback(
-    (id: string, item: GearItem | null) => setGemState((prev) => setSkill(prev, id, item)),
-    [],
-  );
+  const handleSetSkill = useCallback((id: string, item: GearItem | null) => {
+    setGemState((prev) => setSkill(prev, id, item));
+    if (!item) return;
+    // GemsSheet clamps the level only on a manual edit, so a swap to a gem
+    // with a lower cap (a level-40 active replaced by a Spirit gem capped at
+    // 8) would keep, and save, the old level. Clamp once the new gem's cap is
+    // known. Done here, on the swap itself, not as an effect on the card:
+    // fetchMaxGemLevel answers 1 when the data is unavailable (see its doc
+    // comment), and an effect would apply that to every existing loadout the
+    // moment the sheet opened on a bad connection.
+    void fetchMaxGemLevel(item.slug).then((max) =>
+      setGemState((prev) => {
+        const loadout = prev.loadouts.find((l) => l.id === id);
+        // Only if this skill is still the one in the slot.
+        return loadout && loadout.skill?.slug === item.slug && loadout.level > max
+          ? setGemLevel(prev, id, max)
+          : prev;
+      }),
+    );
+  }, []);
   const handleAddSupport = useCallback(
     (id: string, item: GearItem) => setGemState((prev) => addSupport(prev, id, item)),
     [],
@@ -524,6 +541,15 @@ export default function TreeBuildSession({
         checkpoints={checkpoints}
         activeId={checkpointId}
         currentLevel={level}
+        currentState={
+          editorState
+            ? {
+                passive_state: toPassiveState(editorState.main, editorState.ascendancyNodes),
+                gear_state: gearState,
+                gem_state: gemState,
+              }
+            : null
+        }
         onClose={() => setCheckpointsSheetOpen(false)}
       />
     </>

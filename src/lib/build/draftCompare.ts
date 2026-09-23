@@ -72,7 +72,11 @@ function loadoutEqual(a: GemLoadout, b: GemLoadout): boolean {
     gearItemEqual(a.skill, b.skill) &&
     gearItemListEqual(a.supports, b.supports) &&
     a.sets.length === b.sets.length &&
-    a.sets.every((n, i) => n === b.sets[i])
+    a.sets.every((n, i) => n === b.sets[i]) &&
+    // Level and quality are edits in their own right: a draft that changed
+    // only these must still prompt, or the edit is lost on refresh.
+    a.level === b.level &&
+    a.quality === b.quality
   );
 }
 

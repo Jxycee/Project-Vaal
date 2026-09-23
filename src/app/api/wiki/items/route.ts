@@ -24,6 +24,7 @@
 // before any slot/kind resolution.
 // =============================================================================
 
+import type Fuse from 'fuse.js';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCachedUser } from '@/lib/supabase/server';
 import { loadIndex, WikiIndexLoadError } from '@/lib/wiki/loadIndex';
@@ -33,10 +34,10 @@ import { loadIndex, WikiIndexLoadError } from '@/lib/wiki/loadIndex';
 // throws at request time even though type-check/build stay silent about it.
 // See that file's header comment; WikiSearch.tsx re-exports the same
 // function for its own (client-side) callers.
-import { filterEntries } from '@/lib/wiki/filterEntries';
+import { createEntrySearch, filterEntries } from '@/lib/wiki/filterEntries';
 import { isGearSlot, categoriesForSlot, JEWEL_PSEUDO_SLOT, JEWEL_CATEGORIES } from '@/lib/build/gearSlots';
 import { categoriesForGemSlot, isGemPseudoSlot } from '@/lib/build/gemSlots';
-import type { WikiEntryKind } from '@/lib/wiki/types';
+import type { WikiEntryKind, WikiSearchEntry } from '@/lib/wiki/types';
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
@@ -53,6 +54,30 @@ function filterForParam(slot: string): { kind: WikiEntryKind; categories: readon
   if (slot === JEWEL_PSEUDO_SLOT) return { kind: 'item', categories: JEWEL_CATEGORIES };
   if (isGearSlot(slot)) return { kind: 'item', categories: categoriesForSlot(slot) };
   return null;
+}
+
+/**
+ * One slot's entries and their Fuse index, built once per slot rather than
+ * on every keystroke. Keyed by the loaded index array itself (WeakMap), so if
+ * loadIndex ever produces a fresh array the stale per-slot entries go with the
+ * old one instead of outliving it.
+ */
+type SlotSearch = { inSlot: WikiSearchEntry[]; fuse: Fuse<WikiSearchEntry> };
+const slotSearchCache = new WeakMap<WikiSearchEntry[], Map<string, SlotSearch>>();
+
+function slotSearchFor(index: WikiSearchEntry[], slot: string, categories: readonly string[]): SlotSearch {
+  let bySlot = slotSearchCache.get(index);
+  if (!bySlot) {
+    bySlot = new Map();
+    slotSearchCache.set(index, bySlot);
+  }
+  let cached = bySlot.get(slot);
+  if (!cached) {
+    const inSlot = index.filter((entry) => categories.includes(entry.category));
+    cached = { inSlot, fuse: createEntrySearch(inSlot) };
+    bySlot.set(slot, cached);
+  }
+  return cached;
 }
 
 export async function GET(request: NextRequest) {
@@ -99,11 +124,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 
-  const inSlot = index.filter((entry) => categories.includes(entry.category));
+  const { inSlot, fuse } = slotSearchFor(index, slotParam, categories);
   // Reuse the wiki's own search, not a second implementation — divergent
   // ranking between the wiki and the gear picker is a bug users would feel
   // without being able to name it.
-  const matched = filterEntries(inSlot, q);
+  const matched = filterEntries(inSlot, q, fuse);
 
   return NextResponse.json({ entries: matched.slice(0, limit), total: matched.length });
 }

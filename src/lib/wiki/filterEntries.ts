@@ -20,15 +20,20 @@ import Fuse from 'fuse.js';
 import { FUZZY_SEARCH_TUNING } from '@/lib/fuseOptions';
 import type { WikiSearchEntry } from './types';
 
+/** The wiki's search index over `entries`. Build once and pass to filterEntries when searching the same entries repeatedly. */
+export function createEntrySearch(entries: WikiSearchEntry[]): Fuse<WikiSearchEntry> {
+  return new Fuse(entries, {
+    keys: ['name', 'category', 'tags'],
+    ...FUZZY_SEARCH_TUNING,
+  });
+}
+
 export function filterEntries(
   entries: WikiSearchEntry[],
   query: string,
   fuse?: Fuse<WikiSearchEntry>,
 ): WikiSearchEntry[] {
   if (query.trim() === '') return entries;
-  const searchEngine = fuse ?? new Fuse(entries, {
-    keys: ['name', 'category', 'tags'],
-    ...FUZZY_SEARCH_TUNING,
-  });
+  const searchEngine = fuse ?? createEntrySearch(entries);
   return searchEngine.search(query).map((r) => r.item);
 }

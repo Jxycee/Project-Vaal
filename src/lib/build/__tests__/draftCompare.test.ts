@@ -121,6 +121,22 @@ describe('draftDiffersFrom — saved build', () => {
     expect(draftDiffersFrom(draft, savedBuild)).toBe(true);
   });
 
+  it('returns true when only a gem level changes', () => {
+    const draft: BuildDraftState = {
+      ...matchingDraft,
+      gem: { ...savedGem, loadouts: savedGem.loadouts.map((l) => ({ ...l, level: 20 })) },
+    };
+    expect(draftDiffersFrom(draft, savedBuild)).toBe(true);
+  });
+
+  it('returns true when only a gem quality changes', () => {
+    const draft: BuildDraftState = {
+      ...matchingDraft,
+      gem: { ...savedGem, loadouts: savedGem.loadouts.map((l) => ({ ...l, quality: 20 })) },
+    };
+    expect(draftDiffersFrom(draft, savedBuild)).toBe(true);
+  });
+
   it('returns true when a jewel is added with no other change', () => {
     const draft: BuildDraftState = {
       ...matchingDraft,

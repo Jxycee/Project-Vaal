@@ -16,6 +16,7 @@ import { nanoid } from 'nanoid';
 import { createClient } from '@/lib/supabase/server';
 import { GAME_VERSION, MAX_NOTES_LENGTH, UUID_RE } from '@/lib/build/constants';
 import type { PassiveState } from '@/lib/build/types';
+import { cleanGearStateInput, cleanGemStateInput, cleanPassiveStateInput } from '@/lib/build/stateInput';
 import type { Database, Json } from '@/types/database';
 
 interface SaveBuildBody {
@@ -39,18 +40,6 @@ interface SaveBuildBody {
 }
 
 type BuildUpdate = Database['public']['Tables']['builds']['Update'];
-
-function isFiniteNumberArray(value: unknown): value is number[] {
-  return Array.isArray(value) && value.every((n) => typeof n === 'number' && Number.isFinite(n));
-}
-
-function isPassiveState(value: unknown): value is PassiveState {
-  if (typeof value !== 'object' || value === null) return false;
-  const v = value as Record<string, unknown>;
-  return (
-    isFiniteNumberArray(v.set1) && isFiniteNumberArray(v.set2) && isFiniteNumberArray(v.ascendancyNodes)
-  );
-}
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -117,8 +106,26 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Level must be between 1 and 100' }, { status: 400 });
   }
 
-  if (body.passive_state !== undefined && !isPassiveState(body.passive_state)) {
-    return NextResponse.json({ error: 'Malformed passive_state' }, { status: 400 });
+  // Tree, gear and gems are stored as sent and later rendered for other
+  // viewers, so they go through the shared write gate (lib/build/stateInput.ts):
+  // bounded size, known fields only, same-origin icon URLs only.
+  let cleanPassive: PassiveState | undefined;
+  if (body.passive_state !== undefined) {
+    const result = cleanPassiveStateInput(body.passive_state);
+    if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
+    cleanPassive = result.value;
+  }
+  let cleanGear: Json | undefined;
+  if ('gear_state' in body) {
+    const result = cleanGearStateInput(body.gear_state);
+    if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
+    cleanGear = result.value as unknown as Json;
+  }
+  let cleanGem: Json | undefined;
+  if ('gem_state' in body) {
+    const result = cleanGemStateInput(body.gem_state);
+    if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
+    cleanGem = result.value as unknown as Json;
   }
 
   // Free-text build notes -> builds.notes. Trimmed, capped at
@@ -139,7 +146,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Always written in full – the column default omits ascendancyNodes.
-  const passive_state: PassiveState = body.passive_state ?? {
+  const passive_state: PassiveState = cleanPassive ?? {
     set1: [],
     set2: [],
     ascendancyNodes: [],
@@ -209,8 +216,8 @@ export async function POST(request: NextRequest) {
     const checkpointPayload = {
       passive_state: passive_state as unknown as Json,
       level,
-      ...('gear_state' in body ? { gear_state: body.gear_state as unknown as Json } : {}),
-      ...('gem_state' in body ? { gem_state: body.gem_state as unknown as Json } : {}),
+      ...(cleanGear !== undefined ? { gear_state: cleanGear } : {}),
+      ...(cleanGem !== undefined ? { gem_state: cleanGem } : {}),
     };
 
     const { data: checkpoint, error: checkpointError } = await supabase
@@ -240,8 +247,8 @@ export async function POST(request: NextRequest) {
     // genuinely starts empty.
     const updatePayload: BuildUpdate = {
       ...shared,
-      ...('gear_state' in body ? { gear_state: body.gear_state as unknown as Json } : {}),
-      ...('gem_state' in body ? { gem_state: body.gem_state as unknown as Json } : {}),
+      ...(cleanGear !== undefined ? { gear_state: cleanGear } : {}),
+      ...(cleanGem !== undefined ? { gem_state: cleanGem } : {}),
       ...('main_skill' in body
         ? { main_skill: typeof body.main_skill === 'string' ? body.main_skill : null }
         : {}),
@@ -275,8 +282,8 @@ export async function POST(request: NextRequest) {
     .insert({
       ...shared,
       main_skill: typeof body.main_skill === 'string' ? body.main_skill : null,
-      gear_state: (body.gear_state ?? {}) as unknown as Json,
-      gem_state: (body.gem_state ?? {}) as unknown as Json,
+      gear_state: cleanGear ?? {},
+      gem_state: cleanGem ?? {},
       notes,
       user_id: user.id,
       share_token: nanoid(),

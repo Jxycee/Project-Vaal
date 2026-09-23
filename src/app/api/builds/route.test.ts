@@ -273,14 +273,33 @@ describe('POST /api/builds — updating a row', () => {
   });
 
   it('writes gear_state and gem_state when the body does carry them', async () => {
-    const gear = { boots: { name: 'Some Boots' } };
+    const gear = {
+      boots: {
+        slug: 'some-boots',
+        name: 'Some Boots',
+        category: 'Boots',
+        isUnique: false,
+        iconUrl: '/data/wiki/2026-08-25/icons/items/some-boots.png',
+      },
+    };
     const gem = { loadouts: [], primaryId: null };
 
     await POST(req(validBody({ id: BUILD_ID, gear_state: gear, gem_state: gem })));
 
     const payload = updateMock.mock.calls[0][0] as Record<string, unknown>;
-    expect(payload.gear_state).toEqual(gear);
+    expect(payload.gear_state).toMatchObject({ ...gear, head: null, jewels: {} });
     expect(payload.gem_state).toEqual(gem);
+  });
+
+  it('refuses an off-origin icon URL with a 400 and writes nothing', async () => {
+    const gear = {
+      boots: { slug: 'x', name: 'X', category: 'Boots', isUnique: false, iconUrl: 'https://attacker.example/p.gif' },
+    };
+
+    const res = await POST(req(validBody({ id: BUILD_ID, gear_state: gear })));
+
+    expect(res.status).toBe(400);
+    expect(updateMock).not.toHaveBeenCalled();
   });
 
   it('writes main_skill: null when the body sends null, so the main skill can be cleared', async () => {
@@ -386,13 +405,21 @@ describe('POST /api/builds — saving into a checkpoint', () => {
   });
 
   it('writes gear and gems into the checkpoint when the body carries them', async () => {
-    const gear = { boots: { name: 'Some Boots' } };
+    const gear = {
+      boots: {
+        slug: 'some-boots',
+        name: 'Some Boots',
+        category: 'Boots',
+        isUnique: false,
+        iconUrl: '/data/wiki/2026-08-25/icons/items/some-boots.png',
+      },
+    };
     const gem = { loadouts: [], primaryId: null };
 
     await POST(req(validBody({ id: BUILD_ID, checkpoint_id: CP_ID, gear_state: gear, gem_state: gem })));
 
     const cpPayload = cpUpdateMock.mock.calls[0][0] as Record<string, unknown>;
-    expect(cpPayload.gear_state).toEqual(gear);
+    expect(cpPayload.gear_state).toMatchObject({ ...gear, head: null, jewels: {} });
     expect(cpPayload.gem_state).toEqual(gem);
   });
 

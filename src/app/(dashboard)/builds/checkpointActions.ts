@@ -28,6 +28,7 @@ import { refresh } from 'next/cache';
 import { createClient, getCachedUser } from '@/lib/supabase/server';
 import { UUID_RE } from '@/lib/build/constants';
 import type { Json } from '@/types/database';
+import { cleanGearStateInput, cleanGemStateInput, cleanPassiveStateInput } from '@/lib/build/stateInput';
 import type { ActionResult } from './actions';
 
 // Identical to actions.ts's copy, deliberately: one "not found" for every
@@ -54,22 +55,49 @@ function validateName(name: unknown): { ok: true; name: string } | { ok: false; 
   return { ok: true, name: trimmed };
 }
 
+/** The editor's in-memory tree, gear and gems — unsaved edits included. */
+export interface CheckpointStateInput {
+  passive_state: unknown;
+  gear_state: unknown;
+  gem_state: unknown;
+}
+
 /**
  * Appends a checkpoint to a build.
  *
- * With `copyFrom`, the new checkpoint starts as a copy of that one's tree,
- * gear and gems — the usual case, since the next stage of a build grows out of
- * the previous one. Without it, the tree starts empty and gear and gems take
- * the column defaults.
+ * With `state`, the new checkpoint starts as a copy of the editor as it is
+ * right now, unsaved edits included — the usual case, since the next stage of
+ * a build grows out of the one being edited. Copying the active checkpoint's
+ * saved row instead (`copyFrom`) would silently leave those edits behind.
+ * The state goes through the same write gate as POST /api/builds.
+ *
+ * With `copyFrom` (and no `state`), it copies that checkpoint's saved row.
+ * With neither, the tree starts empty and gear and gems take the column
+ * defaults.
  */
 export async function addCheckpoint(
   buildId: string,
   name: string,
   level: number,
   copyFrom?: string,
+  state?: CheckpointStateInput,
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   if (!isUuid(buildId)) return NOT_FOUND;
   if (copyFrom !== undefined && !isUuid(copyFrom)) return NOT_FOUND;
+
+  let fromEditor: { passive_state: Json; gear_state: Json; gem_state: Json } | null = null;
+  if (state !== undefined) {
+    if (typeof state !== 'object' || state === null) return { ok: false, error: "Couldn't add that checkpoint." };
+    const passive = cleanPassiveStateInput(state.passive_state);
+    const gear = cleanGearStateInput(state.gear_state);
+    const gem = cleanGemStateInput(state.gem_state);
+    if (!passive.ok || !gear.ok || !gem.ok) return { ok: false, error: "Couldn't add that checkpoint." };
+    fromEditor = {
+      passive_state: passive.value as unknown as Json,
+      gear_state: gear.value as unknown as Json,
+      gem_state: gem.value as unknown as Json,
+    };
+  }
 
   const validName = validateName(name);
   if (!validName.ok) return validName;
@@ -83,7 +111,7 @@ export async function addCheckpoint(
 
   const supabase = await createClient();
 
-  // The permissive "Public builds are readable by anyone" policy means a bare
+  // The "Public builds are readable by signed-in users" policy means a bare
   // .eq('id') could find someone else's public build; the user_id filter is
   // what makes this an ownership check rather than an existence check.
   const { data: owned, error: ownedError } = await supabase
@@ -100,8 +128,8 @@ export async function addCheckpoint(
 
   // Scoped to this build: a checkpoint of another build is not a copy source,
   // even one of your own.
-  let copied: { passive_state: Json; gear_state: Json; gem_state: Json } | null = null;
-  if (copyFrom !== undefined) {
+  let copied: { passive_state: Json; gear_state: Json; gem_state: Json } | null = fromEditor;
+  if (copied === null && copyFrom !== undefined) {
     const { data: source, error: sourceError } = await supabase
       .from('build_checkpoints')
       .select('passive_state, gear_state, gem_state')

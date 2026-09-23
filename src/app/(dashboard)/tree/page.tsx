@@ -55,8 +55,8 @@ export default async function TreePage({
         loadError = 'That build could not be found.';
       } else if (!data || data.user_id !== userData.user?.id) {
         // A row can come back that is NOT ours: the "Public builds are
-        // readable by anyone" RLS policy is permissive and applies to role
-        // `public`, which includes authenticated users. Postgres ORs it with
+        // readable by signed-in users" RLS policy is permissive and applies to
+        // role `authenticated`, which this user has. Postgres ORs it with
         // the owner policy. So ownership is checked here, on the server.
         //
         // This is a RELOCATION of the old in-component check, not a deletion

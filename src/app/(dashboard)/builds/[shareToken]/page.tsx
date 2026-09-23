@@ -56,12 +56,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function SharedBuildPage({ params }: PageProps) {
   const { shareToken } = await params;
-  const row = await loadSharedBuild(shareToken);
-  // notFound() for a bad token, an RPC error, and an `unlisted` build alike —
-  // the RPC's own `visibility IN ('public','private')` filter is what turns
-  // "unlisted" into "not found" server-side, with no client cooperation. Same
-  // deliberate indistinguishability builds/actions.ts and /tree already use.
-  if (!row) notFound();
 
   const { data: userData } = await getCachedUser(); // memoised per request — AppShell already calls this
   const user = userData.user;
@@ -73,10 +67,19 @@ export default async function SharedBuildPage({ params }: PageProps) {
   // and cites a percent-encoding bypass this repo actually shipped. Every
   // sibling surface added alongside this one (builds/page.tsx, both API
   // routes, all five Server Functions) re-verifies the session itself; this
-  // route was the one that did not. The RPCs it calls have EXECUTE granted to
-  // `anon`, so a request that reaches here without a session would otherwise
-  // render the whole build.
+  // route was the one that did not.
+  //
+  // Checked BEFORE the build is loaded, so every RPC below runs as a signed-in
+  // user and none of them needs EXECUTE granted to `anon` (revoked in
+  // 20260923234918_builds_reads_require_sign_in).
   if (!user) redirect('/login');
+
+  const row = await loadSharedBuild(shareToken);
+  // notFound() for a bad token, an RPC error, and an `unlisted` build alike —
+  // the RPC's own `visibility IN ('public','private')` filter is what turns
+  // "unlisted" into "not found" server-side, with no client cooperation. Same
+  // deliberate indistinguishability builds/actions.ts and /tree already use.
+  if (!row) notFound();
 
   const isOwner = user.id === row.user_id;
 

@@ -25,6 +25,7 @@ import {
   deleteCheckpoint,
   renameCheckpoint,
   reorderCheckpoints,
+  type CheckpointStateInput,
 } from '@/app/(dashboard)/builds/checkpointActions';
 import type { BuildCheckpoint } from '@/lib/build/checkpointState';
 
@@ -37,6 +38,7 @@ export default function CheckpointsSheet({
   checkpoints,
   activeId,
   currentLevel,
+  currentState,
   onClose,
 }: {
   open: boolean;
@@ -48,6 +50,11 @@ export default function CheckpointsSheet({
   activeId: string | undefined;
   /** The level in the save panel right now — the default for a new checkpoint. */
   currentLevel: number;
+  /**
+   * The editor's tree, gear and gems right now, unsaved edits included — what
+   * a new checkpoint copies. Null before the tree has reported its state.
+   */
+  currentState: CheckpointStateInput | null;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -58,6 +65,17 @@ export default function CheckpointsSheet({
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [armedDeleteId, setArmedDeleteId] = useState<string | null>(null);
+
+  // This component stays mounted while closed (it renders null), so the
+  // useState seed above only ever sees the level from the first render.
+  // Re-seed on each open so a new checkpoint defaults to the level in the
+  // save panel NOW. Adjusting state during render on a prop change is React's
+  // documented alternative to an effect here.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setNewLevel(currentLevel);
+  }
 
   // Also gates the SSR pass, same reasoning as JewelsSheet.
   if (!open || typeof document === 'undefined') return null;
@@ -247,7 +265,7 @@ export default function CheckpointsSheet({
                   const name = newName.trim() || `Level ${newLevel}`;
                   setError(null);
                   startTransition(async () => {
-                    const result = await addCheckpoint(buildId, name, newLevel, activeId);
+                    const result = await addCheckpoint(buildId, name, newLevel, activeId, currentState ?? undefined);
                     if (!result.ok) {
                       setError(result.error);
                       return;
