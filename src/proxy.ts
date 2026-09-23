@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { DEFAULT_REDIRECT, safeRedirect } from '@/lib/safeRedirect'
 
 // ---------------------------------------------------------------------------
 // Protected path prefixes.
@@ -114,6 +115,10 @@ function withAuthTimeout<U>(
   })
 }
 
+function isAuthPage(pathname: string): boolean {
+  return pathname === '/login' || pathname === '/signup'
+}
+
 export async function proxy(request: NextRequest) {
   // We must return a response and keep cookies in sync.
   // Follow the pattern from @supabase/ssr docs exactly — do not reorder.
@@ -191,9 +196,20 @@ export async function proxy(request: NextRequest) {
   }
 
   // Redirect authenticated users away from auth pages
-  // (prevents flicker on /login when already signed in)
-  if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup')) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+  // (prevents flicker on /login when already signed in).
+  //
+  // Honour the `?redirect=` the unauthenticated branch above preserved: if
+  // one request transiently sees no user and bounces to /login, and the next
+  // hop sees the user again, sending them to /dashboard would strand them
+  // there and silently drop the page they asked for (observed in e2e,
+  // 2026-09-23). The target is attacker-controllable, so it goes through the
+  // shared validator — never `new URL()` a raw param here, or `/\evil.com`
+  // resolves off-origin. A target that is itself /login or /signup falls
+  // back to the default rather than bouncing back into this branch.
+  if (user && isAuthPage(request.nextUrl.pathname)) {
+    let target = safeRedirect(request.nextUrl.searchParams.get('redirect'))
+    if (isAuthPage(new URL(target, request.url).pathname)) target = DEFAULT_REDIRECT
+    return NextResponse.redirect(new URL(target, request.url))
   }
 
   return supabaseResponse
