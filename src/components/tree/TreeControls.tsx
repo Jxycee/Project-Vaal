@@ -37,6 +37,14 @@ interface TreeControlsProps {
   onMode: (mode: AllocMode) => void;
   onSearchChange: (query: string) => void;
   onReset: () => void;
+  /**
+   * Shared build page: hides the class picker, ascendancy picker, paint-mode
+   * toggle and ResetButton — all editing affordances. The point counters and
+   * search field stay: they're read affordances (see PassiveTree's readOnly
+   * doc comment), and the collapsed-chip behaviour is a mobile space
+   * decision, not an editing one, so it's unaffected.
+   */
+  readOnly?: boolean;
 }
 
 const MODE_LABEL: Record<AllocMode, string> = { 0: 'Main', 1: 'Set I', 2: 'Set II' };
@@ -64,6 +72,7 @@ export default function TreeControls({
   onMode,
   onSearchChange,
   onReset,
+  readOnly,
 }: TreeControlsProps) {
   // Collapsed by default. On a phone the canvas IS the interface and drag
   // surface is scarce: expanded, this panel covers roughly half a 375px screen
@@ -98,24 +107,26 @@ export default function TreeControls({
             />
           </div>
 
-          <div className="flex flex-wrap gap-1.5 border-t border-border pt-2.5">
-            {classes.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => onClass(c.id)}
-                className={
-                  c.id === classId
-                    ? 'rounded-full px-2.5 py-1 text-xs font-medium bg-primary text-primary-foreground shadow-[0_6px_16px_-8px_var(--primary)] transition-colors'
-                    : 'rounded-full px-2.5 py-1 text-xs font-medium bg-background/60 text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground'
-                }
-              >
-                {c.name}
-              </button>
-            ))}
-          </div>
+          {!readOnly && (
+            <div className="flex flex-wrap gap-1.5 border-t border-border pt-2.5">
+              {classes.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => onClass(c.id)}
+                  className={
+                    c.id === classId
+                      ? 'rounded-full px-2.5 py-1 text-xs font-medium bg-primary text-primary-foreground shadow-[0_6px_16px_-8px_var(--primary)] transition-colors'
+                      : 'rounded-full px-2.5 py-1 text-xs font-medium bg-background/60 text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground'
+                  }
+                >
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          )}
 
-          {active && active.ascendancies.length > 0 && (
+          {!readOnly && active && active.ascendancies.length > 0 && (
             <div className="flex flex-wrap gap-1.5 border-t border-border pt-2.5">
               {active.ascendancies.map((a) => (
                 <button
@@ -134,6 +145,10 @@ export default function TreeControls({
             </div>
           )}
 
+          {/* Point counters — a read affordance, kept in readOnly mode. Only
+              the paint-mode SWITCH is an editing action; the counts
+              themselves are informational, so readOnly renders them as
+              plain (non-interactive) chips rather than buttons. */}
           <div className="flex flex-wrap gap-1.5 border-t border-border pt-2.5">
             {([0, 1, 2] as const).map((m) => {
               const [spent, max] =
@@ -142,6 +157,29 @@ export default function TreeControls({
                   : m === 1
                     ? [pointCounts.setI, MAX_SET_POINTS]
                     : [pointCounts.setII, MAX_SET_POINTS];
+              const content = (
+                <>
+                  <span className={`h-2 w-2 rounded-full ${MODE_DOT[m]}`} />
+                  {MODE_LABEL[m]}
+                  <span className="tabular-nums opacity-80">
+                    {spent}/{max}
+                  </span>
+                </>
+              );
+              if (readOnly) {
+                return (
+                  <div
+                    key={m}
+                    className={
+                      m === mode
+                        ? 'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-primary text-primary-foreground'
+                        : 'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-background/60 text-muted-foreground'
+                    }
+                  >
+                    {content}
+                  </div>
+                );
+              }
               return (
                 <button
                   key={m}
@@ -153,11 +191,7 @@ export default function TreeControls({
                       : 'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-background/60 text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground'
                   }
                 >
-                  <span className={`h-2 w-2 rounded-full ${MODE_DOT[m]}`} />
-                  {MODE_LABEL[m]}
-                  <span className="tabular-nums opacity-80">
-                    {spent}/{max}
-                  </span>
+                  {content}
                 </button>
               );
             })}
@@ -175,9 +209,11 @@ export default function TreeControls({
             </div>
           </div>
 
-          <div className="flex justify-end border-t border-border pt-2.5">
-            <ResetButton disabled={!hasAllocations} onReset={onReset} />
-          </div>
+          {!readOnly && (
+            <div className="flex justify-end border-t border-border pt-2.5">
+              <ResetButton disabled={!hasAllocations} onReset={onReset} />
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -1,4 +1,5 @@
 import type { WeaponSetAllocation } from '@poe2-toolkit/tree-core';
+import type { Database } from '@/types/database';
 
 /** Matches the CHECK constraint on public.builds.visibility. */
 export type BuildVisibility = 'private' | 'unlisted' | 'public';
@@ -73,5 +74,31 @@ export interface SavedBuild {
   gem_state: unknown;
   /** The primary loadout's skill name (see `deriveMainSkill`), or null if no loadout has a skill yet. */
   main_skill: string | null;
+  updated_at: string;
+}
+
+/**
+ * A row exactly as `get_build_by_share_token` returns it — the SETOF shape
+ * the generated types carry, not `SavedBuild`. Wider than `SavedBuild`
+ * (carries `view_count`, `visibility` as `string` rather than
+ * `BuildVisibility`, plus columns `SavedBuild` never needed — `description`,
+ * `notes`, `forked_from*`, `character_id`) because this is the live `builds`
+ * row shape, and `SavedBuild` was hand-narrowed for the editor's needs before
+ * those columns existed. Never construct one by hand — it only ever comes
+ * from the RPC's own result.
+ */
+export type SharedBuildRow = Database['public']['Functions']['get_build_by_share_token']['Returns'][number];
+
+/** One row of the Public tab's finder — named columns only, never `passive_state`/`gear_state`/`gem_state` (see finder query comment in builds/page.tsx). */
+export interface PublicBuildRow {
+  id: string;
+  name: string;
+  class: string;
+  ascendancy: string | null;
+  level: number;
+  league: string;
+  main_skill: string | null;
+  share_token: string | null;
+  view_count: number;
   updated_at: string;
 }

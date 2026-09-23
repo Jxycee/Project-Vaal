@@ -66,10 +66,18 @@ export default function PassiveTree({
   raw,
   initialState,
   onStateChange,
+  readOnly,
 }: {
   raw: GggTreeJson;
   initialState?: PassiveTreeInitialState;
   onStateChange?: (state: BuildEditorState) => void;
+  /**
+   * A shared build page has no allocation to save — this suppresses the two
+   * real commit paths (see `commitNode` and the `NodeInfoPanel` `onConfirm`
+   * wiring below) while leaving hover, tap-to-inspect, pan and zoom alone. A
+   * reader inspecting what a node grants is the entire point of the page.
+   */
+  readOnly?: boolean;
 }) {
   const data: TreeData = useMemo(() => normalizeGggTree(raw, TREE_VERSION), [raw]);
   const mainGraph = useMemo(() => buildTreeGraph(data), [data]);
@@ -109,6 +117,12 @@ export default function PassiveTree({
   // through this — capping only one of them would leave the other unbounded.
   const commitAscendancy = useCallback(
     (next: number[]) => {
+      // Belt-and-braces alongside commitNode's readOnly guard above: this is
+      // also reachable from `preview.commit` (the touch confirm path), which
+      // is only wired when NOT readOnly (see the NodeInfoPanel onConfirm
+      // prop below) — but a function that must never run on one code path is
+      // worth guarding at its own top, not just at its one current caller.
+      if (readOnly) return;
       const mainSet = new Set(main.allocated);
       const nextAscendancy = next.filter((id) => !mainSet.has(id));
       // Refuse growth past the cap; always allow a click that shrinks the
@@ -121,7 +135,7 @@ export default function PassiveTree({
       }
       setAscendancyNodes(nextAscendancy);
     },
-    [main.allocated, ascendancyNodes.length],
+    [main.allocated, ascendancyNodes.length, readOnly],
   );
 
   // Tooltips: real pointer hover only fires for a mouse (touch always starts
@@ -355,6 +369,7 @@ export default function PassiveTree({
   // Returns false when the node is not something this call can toggle.
   const commitNode = useCallback(
     (skill: number): boolean => {
+      if (readOnly) return false;
       const node = data.nodes[skill];
       if (!node) return false;
 
@@ -367,7 +382,7 @@ export default function PassiveTree({
       setMain((cur) => toggleAllocationInMode(data, startNode, cur, skill, mode, pathingGraph));
       return true;
     },
-    [data, allocated, commitAscendancy, ascGraph, startNode, mode, pathingGraph],
+    [data, allocated, commitAscendancy, ascGraph, startNode, mode, pathingGraph, readOnly],
   );
 
   const handleNodeClick = useCallback(
@@ -524,6 +539,7 @@ export default function PassiveTree({
         onMode={setMode}
         onSearchChange={setSearchQuery}
         onReset={handleReset}
+        readOnly={readOnly}
       />
       <TreeView
         scene={scene}
@@ -544,7 +560,13 @@ export default function PassiveTree({
       <NodeInfoPanel
         node={selectedNode}
         pendingKind={isTouch ? preview?.kind : undefined}
-        onConfirm={isTouch && preview ? handleConfirmPending : undefined}
+        // readOnly: never wire the confirm handler — this is the touch
+        // counterpart to commitNode's readOnly guard above. The panel still
+        // shows the pending add/remove preview text (that's `pendingKind`,
+        // untouched), but the button that would actually commit it never
+        // renders (NodeInfoPanel only renders it when BOTH pendingKind AND
+        // onConfirm are set).
+        onConfirm={isTouch && preview && !readOnly ? handleConfirmPending : undefined}
         onDismiss={() => setSelectedNode(null)}
       />
     </div>

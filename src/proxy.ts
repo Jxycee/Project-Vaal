@@ -7,7 +7,10 @@ import { NextResponse, type NextRequest } from 'next/server'
 // authenticated dashboard shell layout (sidebar, bottom nav).
 //
 // NOTE on route structure:
-//   /builds          → PUBLIC   (build finder, anonymous planner, shared viewer)
+//   /builds          → PROTECTED (build finder, own builds, shared build viewer — Task 4:
+//                      "no user that is signed out should even be able to see a public
+//                      build" is a product decision, not an oversight. See the 2026-09-22
+//                      Task 4 plan's AMENDMENT section.)
 //   /league          → PUBLIC
 //   /login /signup   → PUBLIC
 //   /dashboard       → PROTECTED
@@ -40,7 +43,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 // does not depend solely on this regex being correct. That is a bigger
 // change, deliberately deferred — do not assume this matcher is airtight.
 // ---------------------------------------------------------------------------
-const PROTECTED_PREFIXES = ['/dashboard', '/characters', '/settings', '/tree', '/campaign', '/wiki', '/data/wiki/']
+const PROTECTED_PREFIXES = ['/dashboard', '/characters', '/settings', '/tree', '/campaign', '/wiki', '/data/wiki/', '/builds']
 
 // `request.nextUrl.pathname` is WHATWG-parsed and NOT percent-decoded, so a
 // request to e.g. `/data/%77iki/...` (percent-encoded "wiki") does not

@@ -19,3 +19,13 @@ export const MAX_ASCENDANCY_POINTS = 8;
  * type uuid) round-trip. Shared here so it is declared exactly once.
  */
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Shape-check for a `builds.share_token` value — `/builds/[shareToken]`'s
+ * counterpart to `UUID_RE`. `share_token` is minted exactly once, in the
+ * insert path of `POST /api/builds`, as `nanoid()` (nanoid@5.1.11): default
+ * size 21, alphabet `A-Za-z0-9_-`. Same reasoning as UUID_RE — reject junk
+ * before it reaches a query so it becomes our own "not found" copy instead of
+ * a pointless round-trip.
+ */
+export const SHARE_TOKEN_RE = /^[A-Za-z0-9_-]{21}$/;

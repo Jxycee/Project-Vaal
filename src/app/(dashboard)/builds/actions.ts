@@ -17,6 +17,9 @@
 import { revalidatePath } from 'next/cache';
 import { createClient, getCachedUser } from '@/lib/supabase/server';
 import { UUID_RE } from '@/lib/build/constants';
+import { isBuildVisibility } from '@/lib/build/visibility';
+import { normalizeTag, MAX_TAGS_PER_BUILD } from '@/lib/build/tags';
+import type { BuildVisibility } from '@/lib/build/types';
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -94,6 +97,198 @@ export async function deleteBuild(id: string): Promise<ActionResult> {
   }
   if (!data || data.length === 0) {
     return NOT_FOUND;
+  }
+
+  revalidatePath('/builds');
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Task 4 — sharing. Same shape as renameBuild/deleteBuild above: re-verify
+// the session, keep the .eq('user_id', ...) defence-in-depth filter, return
+// the same NOT_FOUND copy for "doesn't exist" and "exists but isn't ours".
+// ---------------------------------------------------------------------------
+
+export async function setBuildVisibility(id: string, visibility: string): Promise<ActionResult> {
+  if (typeof id !== 'string' || !UUID_RE.test(id)) {
+    return NOT_FOUND;
+  }
+  // Validate even though the CHECK constraint would reject a bad value too —
+  // a raw constraint-violation 500 is a worse experience than our own
+  // message, and this action is reachable by direct POST.
+  if (typeof visibility !== 'string' || !isBuildVisibility(visibility)) {
+    return { ok: false, error: 'Not a valid visibility.' };
+  }
+  const nextVisibility: BuildVisibility = visibility;
+
+  const { data: userData } = await getCachedUser();
+  if (!userData.user) {
+    return NOT_FOUND;
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('builds')
+    .update({ visibility: nextVisibility })
+    .eq('id', id)
+    .eq('user_id', userData.user.id)
+    .select('id');
+
+  if (error) {
+    console.error('Failed to set build visibility:', error);
+    return { ok: false, error: "Couldn't update that build's visibility." };
+  }
+  if (!data || data.length === 0) {
+    return NOT_FOUND;
+  }
+
+  revalidatePath('/builds');
+  return { ok: true };
+}
+
+export async function addBuildTag(buildId: string, raw: string): Promise<ActionResult> {
+  if (typeof buildId !== 'string' || !UUID_RE.test(buildId)) {
+    return NOT_FOUND;
+  }
+  const tag = typeof raw === 'string' ? normalizeTag(raw) : null;
+  if (tag === null) {
+    return { ok: false, error: 'Tags must be 1-32 characters.' };
+  }
+
+  const { data: userData } = await getCachedUser();
+  if (!userData.user) {
+    return NOT_FOUND;
+  }
+
+  const supabase = await createClient();
+
+  // Confirmed ownership up front so a build that isn't ours (or doesn't
+  // exist) gets the same NOT_FOUND copy every other action here uses,
+  // instead of surfacing build_tags' INSERT policy's RLS violation as a raw
+  // error. The policy itself (EXISTS ... b.user_id = auth.uid()) is still
+  // what actually enforces this — this check only shapes the error message.
+  const { data: buildRow, error: buildError } = await supabase
+    .from('builds')
+    .select('id')
+    .eq('id', buildId)
+    .eq('user_id', userData.user.id)
+    .maybeSingle();
+  if (buildError) {
+    console.error('Failed to look up build for addBuildTag:', buildError);
+    return NOT_FOUND;
+  }
+  if (!buildRow) {
+    return NOT_FOUND;
+  }
+
+  // MAX_TAGS_PER_BUILD is ours, not the database's — build_tags has no
+  // row-count constraint, so this count-then-refuse is the only thing
+  // enforcing the cap. Not perfectly race-free against a second concurrent
+  // add, but that only risks one tag over the cap, never an unbounded list.
+  const { count, error: countError } = await supabase
+    .from('build_tags')
+    .select('tag', { count: 'exact', head: true })
+    .eq('build_id', buildId);
+  if (countError) {
+    console.error('Failed to count build tags:', countError);
+    return { ok: false, error: "Couldn't add that tag." };
+  }
+  if ((count ?? 0) >= MAX_TAGS_PER_BUILD) {
+    return { ok: false, error: `A build can carry at most ${MAX_TAGS_PER_BUILD} tags.` };
+  }
+
+  const { error } = await supabase.from('build_tags').insert({ build_id: buildId, tag });
+  if (error) {
+    // 23505 = unique_violation: a duplicate insert hits the PK (build_id,
+    // tag). Treat it as success — idempotent, not an error — the tag the
+    // caller wanted is already there.
+    if (error.code === '23505') {
+      revalidatePath('/builds');
+      return { ok: true };
+    }
+    console.error('Failed to add build tag:', error);
+    return { ok: false, error: "Couldn't add that tag." };
+  }
+
+  revalidatePath('/builds');
+  return { ok: true };
+}
+
+export async function removeBuildTag(buildId: string, tag: string): Promise<ActionResult> {
+  if (typeof buildId !== 'string' || !UUID_RE.test(buildId)) {
+    return NOT_FOUND;
+  }
+  if (typeof tag !== 'string' || tag.length === 0) {
+    return { ok: false, error: 'Not a valid tag.' };
+  }
+
+  const { data: userData } = await getCachedUser();
+  if (!userData.user) {
+    return NOT_FOUND;
+  }
+
+  const supabase = await createClient();
+  // There is NO UPDATE policy on build_tags (verified against pg_policies) —
+  // editing a tag is delete + insert, never an update. This function only
+  // ever deletes. Ownership is enforced by build_tags' own DELETE policy: a
+  // delete against a tag/build that isn't ours affects zero rows under RLS
+  // rather than erroring, which is why this doesn't need its own NOT_FOUND
+  // branch — "already gone" and "was never yours" look identical, and that's
+  // fine for a delete.
+  const { error } = await supabase.from('build_tags').delete().eq('build_id', buildId).eq('tag', tag);
+
+  if (error) {
+    console.error('Failed to remove build tag:', error);
+    return { ok: false, error: "Couldn't remove that tag." };
+  }
+
+  revalidatePath('/builds');
+  return { ok: true };
+}
+
+export async function toggleBuildBookmark(buildId: string): Promise<ActionResult> {
+  if (typeof buildId !== 'string' || !UUID_RE.test(buildId)) {
+    return NOT_FOUND;
+  }
+
+  const { data: userData } = await getCachedUser();
+  if (!userData.user) {
+    return { ok: false, error: 'Sign in to bookmark builds.' };
+  }
+
+  const supabase = await createClient();
+  // build_bookmarks' RLS is a single ALL policy, auth.uid() = user_id, with
+  // NO visibility check on the build itself (verified) — a caller could
+  // bookmark any build id they guess, private ones included. Low severity
+  // (they still cannot read it back through this), but worth the toggle
+  // being reachable only for a build id this session actually resolved.
+  const { data: existing, error: selectError } = await supabase
+    .from('build_bookmarks')
+    .select('build_id')
+    .eq('build_id', buildId)
+    .eq('user_id', userData.user.id)
+    .maybeSingle();
+  if (selectError) {
+    console.error('Failed to look up bookmark:', selectError);
+    return { ok: false, error: "Couldn't update that bookmark." };
+  }
+
+  if (existing) {
+    const { error } = await supabase
+      .from('build_bookmarks')
+      .delete()
+      .eq('build_id', buildId)
+      .eq('user_id', userData.user.id);
+    if (error) {
+      console.error('Failed to remove bookmark:', error);
+      return { ok: false, error: "Couldn't remove that bookmark." };
+    }
+  } else {
+    const { error } = await supabase.from('build_bookmarks').insert({ build_id: buildId, user_id: userData.user.id });
+    if (error) {
+      console.error('Failed to add bookmark:', error);
+      return { ok: false, error: "Couldn't add that bookmark." };
+    }
   }
 
   revalidatePath('/builds');

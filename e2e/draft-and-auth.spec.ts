@@ -76,16 +76,24 @@ test.describe('auth gating', () => {
   // Signed-out: start from a context with no stored session.
   test.use({ storageState: { cookies: [], origins: [] } });
 
-  test('/builds is public and invites sign-in rather than redirecting', async ({ page }) => {
-    // /builds is deliberately NOT in PROTECTED_PREFIXES — the public build
-    // finder lands there later. A signed-out visitor must get a real page.
-    const response = await page.goto('/builds');
-    expect(response?.status()).toBeLessThan(400);
-    expect(new URL(page.url()).pathname).toBe('/builds');
-    await expect(page.getByText('Sign in to see your saved builds.')).toBeVisible();
-    // Scoped to <main>: the signed-out header carries its own "Sign in" link,
-    // so an unscoped role query matches two elements and fails strict mode.
-    await expect(page.getByRole('main').getByRole('link', { name: 'Sign in' })).toBeVisible();
+  test('/builds redirects to /login when signed out', async ({ page }) => {
+    // Task 4 AMENDMENT (2026-09-22): the product decision reversed — "No user
+    // that is signed out should even be able to see a public build" — so
+    // /builds moved INTO PROTECTED_PREFIXES (src/proxy.ts). This test used to
+    // assert the opposite (a real page inviting sign-in); it now asserts the
+    // redirect, because the requirement changed, not because the old
+    // behaviour was wrong at the time.
+    await page.goto('/builds');
+    await expect.poll(() => new URL(page.url()).pathname).toBe('/login');
+  });
+
+  test('/builds/<any-token> redirects to /login when signed out', async ({ page }) => {
+    // Same product decision, applied to the shared-build viewer specifically:
+    // a signed-out visitor must never reach the read-only page for ANY
+    // build, public or unlisted — the redirect happens at the proxy, before
+    // the route ever checks whether the token resolves to anything.
+    await page.goto('/builds/nonexistent-token-000000');
+    await expect.poll(() => new URL(page.url()).pathname).toBe('/login');
   });
 
   test('/tree redirects to login', async ({ page }) => {

@@ -15,7 +15,10 @@ import type { SavedBuild } from '@/lib/build/types';
 import TreeBuildSession from '@/components/tree/TreeBuildSession';
 
 // Vendored tree export version (see public/data/tree/<version>/SOURCE.md).
-const TREE_VERSION = '0.5.2';
+// Exported so SharedTreePanel.tsx (the read-only shared-build view's deferred
+// tree fetch) can reuse the exact same value rather than typing '0.5.2' a
+// second time — Task 4 plan, "Keep TREE_VERSION in exactly one place."
+export const TREE_VERSION = '0.5.2';
 
 // PassiveTree wraps @poe2-toolkit/tree-react (a pixi.js/WebGL renderer for a
 // 1500+ node graph) — genuinely heavy and browser-only, so it's deferred to

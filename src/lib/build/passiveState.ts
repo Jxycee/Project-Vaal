@@ -57,3 +57,29 @@ export function fromPassiveState(state: PassiveState): {
     ascendancyNodes: [...(state.ascendancyNodes ?? [])],
   };
 }
+
+function isFiniteNumberArray(value: unknown): value is number[] {
+  return Array.isArray(value) && value.every((n) => typeof n === 'number' && Number.isFinite(n));
+}
+
+/**
+ * `builds.passive_state` (raw jsonb, as `get_build_by_share_token` returns it
+ * — untyped `Json`, same reasoning `parseGearState`/`parseGemState` document)
+ * -> validated `PassiveState`. Falls back to all-empty rather than throwing,
+ * same "one bad column must not crash the page" rule the other two parsers
+ * follow. `POST /api/builds` validates the same shape inline as a private
+ * `isPassiveState` (it only ever needs the boolean, never a fallback value,
+ * since a malformed body there is a 400) — this is the read-side, defensive
+ * counterpart for a row already in the database.
+ */
+export function parsePassiveState(raw: unknown): PassiveState {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    return { set1: [], set2: [], ascendancyNodes: [] };
+  }
+  const v = raw as Record<string, unknown>;
+  return {
+    set1: isFiniteNumberArray(v.set1) ? v.set1 : [],
+    set2: isFiniteNumberArray(v.set2) ? v.set2 : [],
+    ascendancyNodes: isFiniteNumberArray(v.ascendancyNodes) ? v.ascendancyNodes : [],
+  };
+}
