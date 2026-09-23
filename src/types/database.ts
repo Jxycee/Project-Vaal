@@ -507,6 +507,27 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_build_checkpoints_by_share_token: {
+        Args: { p_token: string }
+        Returns: {
+          build_id: string
+          created_at: string
+          gear_state: Json
+          gem_state: Json
+          id: string
+          level: number
+          name: string
+          passive_state: Json
+          position: number
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "build_checkpoints"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       increment_build_view_count: {
         Args: { p_build_id: string }
         Returns: undefined
