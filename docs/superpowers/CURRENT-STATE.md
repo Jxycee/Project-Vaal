@@ -95,6 +95,16 @@ The competitor gap analysis — what a build can express here versus elsewhere �
 2. **Two-handed occupancy is implementable today.** Each item detail carries `twoHanded`, spot-checked as **100% accurate**: Two Hand Sword (14/14), Two Hand Mace (40/40), Bow (45/45), Crossbow (39/39), Staff (27/27), Warstaff (43/43) all `true`; One Hand Sword (15/15) and Quiver (19/19) all `false`. It was previously recorded as undeterminable — that was true of the slim search *index*, not of the item detail, and the limitation was mis-stated as a data one.
 3. **Gem quality is genuinely absent.** Nothing in the skill dataset carries it (checked 200 files). Quality is stored on a build for fidelity and future import/export, but cannot be validated or applied from our data, and its 0–20 bound is an assumption.
 
+### PoB2's data is mostly worse than ours — with one real exception
+
+Compared 2026-09-23 (`docs/research/poe2/pob2-data-comparison.md`). The short version: **do not replace our datasets.** PoB2 embeds roll ranges inside display strings (`"+(5-8) to Strength"`) that require its `ModParser.lua` at runtime; ours are already typed as `{stat, min, max}`. Its uniques are raw in-game-paste text, its bases carry no icons or flavour text, and its tree export is the same class of GGG file we already vendor.
+
+**The one genuine total gap it fills is gem quality.** `src/Data/Skills/act_str.lua` (and the five sibling `act_*`/`sup_*` files) carry per-skill `qualityStats` and `altQualityStats`, typed as `{stat_id, effect_per_quality_point, base_values}` — verified by reading `AncestralCryPlayer` directly. Our dataset has none of this.
+
+**Licence, verified by reading the file header — this matters and the first report got it half right.** PoB2's *code* is MIT (`LICENSE.md`, "Copyright (c) 2018 Xavier Wang"). Its *data* is not: every generated data file carries `-- Skill data (c) Grinding Gear Games`. MIT does not cover it.
+
+That is not a blocker, but it changes the right route. **Our own dataset is already GGG-derived** — extracted from official patch data via `@poe2-toolkit`, which `AGENTS.md` explicitly sanctions. So the correct fix is to pull gem quality through **our existing extraction pipeline**, the same way we get everything else, using PoB2's files as a cross-check rather than as the source. Copying their extraction would take the same GGG-owned data by a worse-provenanced route for no benefit.
+
 ### Unresolved discrepancy — do not build on either side of it yet
 
 All **37 Talisman items carry `twoHanded: false`**, which contradicts `docs/research/poe2/classes-and-ascendancies.md:121`, where two-handed "Animal Talismans" are described as unlocking Druid shapeshift forms. Either they are absent from this patch's extract, categorised elsewhere, or the research note describes something unreleased. **Unverified either way** — resolve against the game or patch notes before anything depends on it.
