@@ -75,9 +75,37 @@ Two things worth knowing before you paste it in:
   * Nothing in the running app reads it. It is only ever used by this
     script, which runs locally and never prints it.
 
-If you would rather not keep it on disk, run it for one command instead:
+To use it for a single command without storing it, set it in your shell
+first and then run ${'`'}npm run db:schema${'`'} as a separate command. Do not paste an
+assignment and the command onto one line into ${ENV_FILE} — the whole line
+becomes the value.
+`);
+  process.exit(1);
+}
 
-  SUPABASE_DB_URL='...' npm run db:schema
+// Validate the shape before spending a spawn on it. This exists because the
+// first value ever put in .env.local was a documentation placeholder pasted
+// verbatim — "postgresql://...' npm run db:schema" — and the failure surfaced
+// three layers down as the Supabase CLI rejecting "npm", "run", "db:schema"
+// as positional arguments. That cost far more than this check does.
+const looksLikeUri = /^postgres(ql)?:\/\/[^\s/@]+:[^\s@]+@[^\s:/]+:\d+\/\S+$/.test(dbUrl);
+if (!looksLikeUri) {
+  const redacted = dbUrl.replace(/:\/\/([^:]+):[^@]*@/, '://$1:<REDACTED>@');
+  console.error(`
+${VAR} is set but is not a Postgres connection URI.
+
+  got: ${redacted}
+
+Expected: postgresql://USER:PASSWORD@HOST:PORT/DATABASE
+
+Common causes:
+  * A placeholder such as "postgresql://..." was copied from documentation
+    rather than a real value.
+  * A whole example line was pasted, so the command ended up inside the value.
+  * The value spans more than one line. It must be a single line.
+
+If the password contains @ : / # or ?, percent-encode it (@ -> %40), and if
+it contains # wrap the whole value in quotes so it is not read as a comment.
 `);
   process.exit(1);
 }
@@ -93,15 +121,39 @@ try {
 console.log(`Dumping the public schema to ${OUT} ...`);
 
 try {
-  // execFileSync, not a shell string: the URL carries a password and must not
-  // pass through a shell where it could land in history or a process listing
-  // built by string concatenation.
+  // execFileSync with shell: false. Two reasons, both load-bearing:
+  //
+  // 1. The URL carries a password. A shell string would expose it to shell
+  //    history and to anything reading the command line, and would need
+  //    quoting rules that differ per platform.
+  // 2. Under `npm run`, npm exports its own lifecycle variables (npm_config_*,
+  //    npm_lifecycle_script). With a shell, npx re-reads those and appends the
+  //    parent's argv to the child, so the supabase CLI received
+  //    `npm run db:schema` as positional arguments and rejected them. Stripping
+  //    npm_config_argv and spawning npx.cmd directly avoids both the shell and
+  //    the inheritance.
+  // shell: true is required on Windows and is not a free choice. Since the
+  // CVE-2024-27980 hardening, Node refuses to spawn a .cmd — which is all npx
+  // is on Windows — without a shell, failing EINVAL. Verified here, not
+  // assumed.
+  //
+  // The honest consequence: the connection string appears on the child
+  // process's command line while the dump runs, so another process on this
+  // machine could read it. That is true of any spawn, shell or not; the shell
+  // only widens it to cmd.exe as well. Acceptable for a local-only script,
+  // and the reason this file never writes the URL anywhere persistent.
   execFileSync(
     'npx',
     ['--yes', 'supabase@2.117.0', 'db', 'dump', '--db-url', dbUrl, '--schema', 'public', '-f', OUT],
-    { stdio: ['ignore', 'inherit', 'inherit'], shell: process.platform === 'win32' },
+    { stdio: ['ignore', 'inherit', 'inherit'], shell: true },
   );
-} catch {
+} catch (err) {
+  // The CLI's own stderr is inherited above, so its message has already been
+  // printed. Report only the spawn-level failure code — never the error
+  // object, whose message can echo the full command line including the
+  // password.
+  const code = (err as NodeJS.ErrnoException)?.code;
+  if (code) console.error(`\nspawn failed: ${code}`);
   // The CLI has already printed its own error. Do not re-throw it: its message
   // can contain the connection string.
   console.error(`\nDump failed. ${VAR} may be wrong, or the database unreachable.`);
