@@ -45,7 +45,9 @@ Live database, verified by `pg_get_functiondef` and `information_schema.columns`
 
 **A plain `select` still cannot read a `private` build**, even for a signed-in caller: the `builds` SELECT policy exposes `visibility = 'public'` only. The share-token RPC is the only path. Any personal-scope query needs `.eq('user_id', …)` and any public-scope query needs `.eq('visibility','public')`, because the owner policy is permissive and ORs in.
 
-**Known gap, undecided:** `share_token` is minted once and never regenerated. A build that was `public` had its token readable from the finder by every signed-in user, so downgrading `public → private` does **not** revoke those people's access. Only `unlisted` revokes. Flagged to the human 2026-09-23; no decision yet.
+**Decided 2026-09-23, accepted as-is:** `share_token` is minted once and never regenerated, so downgrading `public → private` does **not** revoke access for anyone who already read the token off the public finder. Only `unlisted` revokes. The user's reasoning: `private` is not a privacy control, it is "I don't want this publicised" — a work in progress, or a mess-around build to show friends. Someone who wants a build genuinely unseen uses `unlisted`, which revokes immediately and server-side.
+
+Expected usage, per the user: **`unlisted` and `public` will be the two common choices**; `private` is the niche middle. Worth remembering when weighing UI prominence — do not build the visibility control around `private` as the default mental model.
 
 ---
 
