@@ -43,7 +43,11 @@ The ordering is dependency and risk, not preference. Numbers refer to the rankin
 
 **#6 — Import/export.** Highest leverage per unit of effort. `docs/research/poe2/build-sharing-ecosystem.md` already documents PoB2's share-code format, read from its own Lua source, and PoB2 is MIT-licensed. This is how builds actually move in the PoE community; today nothing can get in or out of Project Vaal. Start with **import**, since it populates the app with real builds to test everything else against.
 
-**#3 — Item affixes, rolls and tiers.** The largest expressive gap. **Do not assume this needs a text parser.** Verified 2026-09-23: `public/data/wiki/2026-08-25/mods/` holds **5,267 mod files already typed** as `rolls: [{stat, min, max}]` with `tier`, `level`, `generationType`, `families` and `spawnWeights`. PoB's hard problem — its 677KB `ModParser.lua` turning display text into typed mods — is one we simply do not have. This is a mapping job against data we own.
+**#3 — Item affixes, rolls and tiers.** The largest expressive gap, and **smaller than it looks**. Two things were verified on disk 2026-09-23, both of which the earlier planning got wrong:
+- `public/data/wiki/2026-08-25/mods/` holds **5,267 mod files already typed** as `rolls: [{stat, min, max}]` with `tier`, `level`, `generationType`, `families` and `spawnWeights`. PoB's hard problem — its 677KB `ModParser.lua` turning display text into typed mods — is one we simply do not have.
+- Our **4,994 item detail files already carry base defences, requirements, weapon damage, `spirit`, `dropLevel` and `implicitMods`**. Our gear being "base-item-only" describes what a build *stores*, not what we *hold*. See "The data we already hold" in CURRENT-STATE.md before scoping.
+
+This is a mapping job against data we own, not an extraction or parsing project.
 
 **#5 — Leveling checkpoints.** Turns a build from a snapshot into a journey; a real pobb.in build carried 8 named checkpoints from level 31 to 94. This changes the stored build shape more deeply than anything else on the list, so **do it while the table is still nearly empty**. Every existing build becomes "one checkpoint".
 
@@ -73,6 +77,8 @@ Also relevant to UI weighting: the user expects **`unlisted` and `public` to be 
 - `toggleBuildBookmark` is a Server Function with **no caller** — either wire a bookmarks UI or delete it. It is reachable by direct POST today.
 - `POST /api/builds` returns a 500 rather than a 404 for a malformed build id, unlike every other entry point.
 - `supabase/schema.sql` was regenerated 2026-09-18 and hand-patched 2026-09-23; **regenerating it properly is still an open task.**
+- **Two-handed weapon occupancy is now cheap.** Every item detail carries a `twoHanded` flag, verified 100% accurate across every two-hander and one-hander category sampled. Enforcing "a two-hander occupies the off-hand slot" needs no new data — only a decision about whether to block the pick or warn. It was previously recorded as blocked on data; that was wrong.
+- **Unresolved:** all 37 Talismans carry `twoHanded: false`, contradicting `docs/research/poe2/classes-and-ascendancies.md:121` on two-handed "Animal Talismans". Resolve against the game or patch notes before any occupancy rule depends on talismans specifically.
 
 ---
 

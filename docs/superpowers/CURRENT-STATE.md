@@ -69,11 +69,35 @@ All on the branch above. Verified by reading the routes and running the suites o
 
 ## What is not built
 
-Deliberate deferrals, each recorded with its reason in the relevant spec: two-handed weapon occupancy (enforced for no weapon), rune sockets, item mods/affixes/rolls, a stat engine of any kind, import/export, leveling stages, and structured stat priorities. The campaign resistance penalty is explicitly **not** implemented — it needs formulas we have not confirmed and belongs with the stat-engine work. `toggleBuildBookmark` exists as a Server Function with no caller.
+Deliberate deferrals, each recorded with its reason in the relevant spec: two-handed weapon occupancy (**not enforced for any weapon — but the data for it exists, see "The data we already hold"**), rune sockets, item mods/affixes/rolls, a stat engine of any kind, import/export, leveling stages, and structured stat priorities. The campaign resistance penalty is explicitly **not** implemented — it needs formulas we have not confirmed and belongs with the stat-engine work. `toggleBuildBookmark` exists as a Server Function with no caller.
 
 **Formulas are not a blocker.** `docs/research/poe2/stat-formula-feasibility.md` establishes that PoB2 is MIT-licensed and implements the defensive calculations in `CalcDefence.lua`, separate from the far larger offence/DPS modules. Crucially, our affix data is **already typed** — 5,267 files under `public/data/wiki/2026-08-25/mods/` carrying `rolls: [{stat, min, max}]` with tiers and spawn weights — so PoB's hardest problem, its 677KB text-parsing `ModParser.lua`, is one we do not have.
 
 The competitor gap analysis — what a build can express here versus elsewhere — is in `specs/2026-09-23-competitor-build-flow-gaps.md`. Recorded, not acted on.
+
+---
+
+## The data we already hold
+
+**Verified on disk 2026-09-23.** This section exists because the controller twice described our own data as thinner than it is, and planned work around that mistake. Check here before concluding we are missing something.
+
+| Dataset | Location | Size | What each record carries |
+|---|---|---|---|
+| Item details | `public/data/wiki/2026-08-25/items/<slug>.json` | **4,994** | `rarity, itemClass, twoHanded, requirements{str,dex,int}, armour{armour,evasion,energyShield,ward,block}, weapon{damageMin,damageMax,critical,attackTime,rangeMax,reloadTime}, spirit, dropLevel, tags[], implicitMods[], uniqueMods, soulCoreEffects, iconUrl` |
+| Mods / affixes | `.../mods/<slug>.json` | **5,267** | `category (Prefix/Suffix), domain, generationType, group, tier, level, stats[] (display), rolls[{stat,min,max}] (TYPED, GGG-style ids), families[], spawnWeights[{tag,weight}]` |
+| Skills / gems | `.../skills/<slug>.json` + index | **1,118** | `category, gemType, color, tags[], requirement{str,dex,int,level}, scaling[] per level `{level, cost, castTime, cooldown, reservation, stats[{text,min,max}]}`, iconUrl` |
+| Passive tree | `public/data/tree/0.5.2/data.json` | 5.1MB | `classes, groups, nodes, edges, jewelSlots`; nodes carry `stats[], connections[], isJewelSocket, ascendancyName, orbit/x/y` |
+| Icons | `.../icons/` | — | item and skill PNGs, served locally under the auth-gated `/data/wiki/` prefix |
+
+### Three consequences that were previously got wrong
+
+1. **Our gear is NOT "base-item-only" as a data limitation.** That is true of what a *build stores* today, not of what we *have*. Base defences, requirements, weapon damage and implicit mods are all present per item. The affix work (competitor gap #3) is therefore a mapping job, and a defensive stat engine already has its item-side inputs.
+2. **Two-handed occupancy is implementable today.** Each item detail carries `twoHanded`, spot-checked as **100% accurate**: Two Hand Sword (14/14), Two Hand Mace (40/40), Bow (45/45), Crossbow (39/39), Staff (27/27), Warstaff (43/43) all `true`; One Hand Sword (15/15) and Quiver (19/19) all `false`. It was previously recorded as undeterminable — that was true of the slim search *index*, not of the item detail, and the limitation was mis-stated as a data one.
+3. **Gem quality is genuinely absent.** Nothing in the skill dataset carries it (checked 200 files). Quality is stored on a build for fidelity and future import/export, but cannot be validated or applied from our data, and its 0–20 bound is an assumption.
+
+### Unresolved discrepancy — do not build on either side of it yet
+
+All **37 Talisman items carry `twoHanded: false`**, which contradicts `docs/research/poe2/classes-and-ascendancies.md:121`, where two-handed "Animal Talismans" are described as unlocking Druid shapeshift forms. Either they are absent from this patch's extract, categorised elsewhere, or the research note describes something unreleased. **Unverified either way** — resolve against the game or patch notes before anything depends on it.
 
 ---
 
