@@ -23,7 +23,7 @@
 All on this branch, none of it merged to `main`.
 
 - The server-side migration (`/tree` and `/builds` as Server Components), build persistence, gear, jewels, gems, and sharing.
-- A Playwright harness with a dev-only tree automation hook, plus 449 unit tests.
+- A Playwright harness with a dev-only tree automation hook. Current counts live in CURRENT-STATE.md rather than here, so there is one copy to keep true.
 - Competitor gaps **#4 (gem level/quality)**, **#7 (build notes)** and **#8 (character level as a modeled input)** — **complete** (commit `8b607e4675`). Verified on 2026-09-23: type-check and lint clean, 476 unit tests across 35 files, full e2e 20/20.
 
 Three findings from that work are worth carrying forward, because each contradicts an intuition carried over from PoE1:
