@@ -518,6 +518,28 @@ describe('normalizeSkill', () => {
     expect(result.scaling).toEqual([]);
   });
 
+  // Regression cover for a silent drop: the extractor has always produced
+  // GemScaling.qualityStats — this very fixture carries two entries — but
+  // normalizeSkill never read them, so no synced skill file has ever contained
+  // gem quality data. Competitor planners treat gem level and quality as
+  // load-bearing numbers, so it was a real gap rather than a cosmetic one.
+  it('carries gem quality bonus lines through from the extractor', () => {
+    const result = normalizeSkill(raw.key, raw.gem, raw.requirement, raw.scaling, null, SYNCED_AT);
+    expect(raw.scaling.qualityStats.length).toBeGreaterThan(0);
+    expect(result.qualityStats).toEqual(
+      raw.scaling.qualityStats.map((s: { text: string; min: number; max: number }) => ({
+        text: s.text,
+        min: s.min,
+        max: s.max,
+      })),
+    );
+  });
+
+  it('defaults gem quality bonus lines to an empty array when absent', () => {
+    const result = normalizeSkill(raw.key, raw.gem, null, null, null, SYNCED_AT);
+    expect(result.qualityStats).toEqual([]);
+  });
+
   it('falls back to the gem-level requirement when no per-level requirement curve exists', () => {
     const result = normalizeSkill(raw.key, raw.gem, null, null, null, SYNCED_AT);
     expect(result.requirement.level).toBe(raw.gem.req.level);

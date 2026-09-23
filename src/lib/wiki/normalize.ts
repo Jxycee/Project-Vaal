@@ -408,6 +408,16 @@ export function normalizeSkill(
       reservation: l.reservation,
       stats: l.stats.map((s) => ({ text: s.text, min: s.min, max: s.max })),
     })),
+    // Gem quality. The extractor has always produced this (see
+    // @poe2-toolkit/gem-extractor's GemScaling.qualityStats, resolved at
+    // quality 20); this normalizer just never read it, which is why no synced
+    // skill file carries quality data. Competitor planners treat gem quality as
+    // load-bearing, so dropping it here was a real gap, not a cosmetic one.
+    qualityStats: (scaling?.qualityStats ?? []).map((s) => ({
+      text: s.text,
+      min: s.min,
+      max: s.max,
+    })),
     iconUrl,
     iconWidth: null,
     iconHeight: null,

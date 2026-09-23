@@ -223,6 +223,18 @@ export interface WikiSkillDetail extends WikiDetailBase {
   description: string | null;
   requirement: { strength: number; dexterity: number; intelligence: number; level: number };
   scaling: WikiSkillLevelScaling[];
+  /**
+   * Bonus lines granted by gem quality, already resolved at quality 20 by the
+   * extractor (`min` is the value at quality 0, i.e. always 0). Empty for a gem
+   * with no quality bonus — which is most support gems.
+   *
+   * Absent from every file synced before 2026-09-23: `normalizeSkill` simply
+   * did not read `GemScaling.qualityStats`, even though @poe2-toolkit has
+   * produced it all along. Existing records therefore lack the key entirely,
+   * so every reader must treat it as optional until a full `npm run sync:wiki`
+   * has regenerated the dataset.
+   */
+  qualityStats?: WikiSkillStatLine[];
   iconUrl: string | null;
   /** See {@link WikiItemDetail.iconWidth}. */
   iconWidth: number | null;
