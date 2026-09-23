@@ -113,6 +113,43 @@ export async function saveBuild(
   await expect(page.getByText(/^Saved /)).toBeVisible({ timeout: 30_000 });
 }
 
+/** iOS/Android guidance both land on ~44px as the minimum comfortable target. */
+export const MIN_TAP_PX = 44;
+
+/**
+ * Measures every rendered control under `rootSelector` and returns the ones
+ * too small in EITHER dimension, plus how many were scanned.
+ *
+ * `scanned` matters: `expect(tooSmall).toEqual([])` over a querySelectorAll is
+ * green whenever the selector matches nothing, so a caller must assert it
+ * actually measured something. Injected per call rather than via an init
+ * script so specs that did not opt into one can still use it.
+ */
+export async function measureTapTargets(
+  page: Page,
+  rootSelector: string,
+): Promise<{ scanned: number; tooSmall: { text: string; width: number; height: number }[] }> {
+  return page.evaluate(
+    ({ sel, min }) => {
+      const root = document.querySelector(sel) ?? document.body;
+      const els = [...root.querySelectorAll<HTMLElement>('button, a[href]')]
+        .map((el) => ({ el, r: el.getBoundingClientRect() }))
+        .filter(({ r }) => r.width > 0 && r.height > 0);
+      return {
+        scanned: els.length,
+        tooSmall: els
+          .filter(({ r }) => r.height < min || r.width < min)
+          .map(({ el, r }) => ({
+            text: (el.innerText || el.getAttribute('aria-label') || '').trim().slice(0, 40),
+            width: Math.round(r.width),
+            height: Math.round(r.height),
+          })),
+      };
+    },
+    { sel: rootSelector, min: MIN_TAP_PX },
+  );
+}
+
 /**
  * Opens /builds and waits for it to have rendered its answer.
  *

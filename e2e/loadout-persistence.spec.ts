@@ -1,7 +1,10 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
 import {
+  MIN_TAP_PX,
   cleanupWithFreshPage,
+  gotoBuilds,
   listedBuildNames,
+  measureTapTargets,
   openTree,
   saveBuild,
   softNavigate,
@@ -75,7 +78,7 @@ test.describe('loadout persistence', () => {
 
   test('gear, a socketed jewel and a gem loadout all survive one save and reload', async ({
     page,
-  }) => {
+  }, testInfo) => {
     await openTree(page);
 
     const gearChip = page.getByRole('button', { name: 'Gear' });
@@ -204,5 +207,17 @@ test.describe('loadout persistence', () => {
       'aria-pressed',
       'true',
     );
+
+    // Tap targets on a POPULATED /builds. mobile-layout.spec.ts scans that
+    // page too, but cleanup leaves the account empty, so there it only ever
+    // measures the empty state — which is how a 24px-tall build-name link,
+    // the primary action on the page, survived every previous green run. This
+    // spec already has a saved build, so the scan costs nothing extra here.
+    if (testInfo.project.name === 'mobile') {
+      await gotoBuilds(page);
+      const result = await measureTapTargets(page, 'main');
+      expect(result.scanned, 'nothing was measured on /builds').toBeGreaterThan(0);
+      expect(result.tooSmall, `controls under ${MIN_TAP_PX}px on a populated /builds`).toEqual([]);
+    }
   });
 });

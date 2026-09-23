@@ -196,7 +196,16 @@ export default function MyBuildsList({
                       className="h-11"
                     />
                   ) : (
-                    <Link href={`/tree?build=${b.id}`} className="block truncate font-medium">
+                    // flex + min-h-11 rather than a bare `block`: this is the
+                    // primary action on the page — the thing you tap to open a
+                    // build — and it was a 24px-tall target on a phone. The
+                    // tap-target check never caught it because the test
+                    // account had no builds, so /builds only ever rendered its
+                    // empty state under assertion.
+                    <Link
+                      href={`/tree?build=${b.id}`}
+                      className="flex min-h-11 items-center truncate font-medium"
+                    >
                       {b.name}
                     </Link>
                   )}
