@@ -93,7 +93,7 @@ The competitor gap analysis — what a build can express here versus elsewhere �
 
 1. **Our gear is NOT "base-item-only" as a data limitation.** That is true of what a *build stores* today, not of what we *have*. Base defences, requirements, weapon damage and implicit mods are all present per item. The affix work (competitor gap #3) is therefore a mapping job, and a defensive stat engine already has its item-side inputs.
 2. **Two-handed occupancy is implementable today.** Each item detail carries `twoHanded`, spot-checked as **100% accurate**: Two Hand Sword (14/14), Two Hand Mace (40/40), Bow (45/45), Crossbow (39/39), Staff (27/27), Warstaff (43/43) all `true`; One Hand Sword (15/15) and Quiver (19/19) all `false`. It was previously recorded as undeterminable — that was true of the slim search *index*, not of the item detail, and the limitation was mis-stated as a data one.
-3. **Gem quality is absent from the synced files, but the pipeline now produces it.** Nothing in the skill dataset carries it (checked 200 files) because `normalizeSkill` dropped the extractor's `qualityStats` — fixed 2026-09-23, but **the data has not been re-synced**, so it stays absent on disk until someone runs `npm run sync:wiki`. Quality is stored on a build for fidelity and future import/export; its 0–20 bound remains an assumption.
+3. **Gem quality is now on disk.** `normalizeSkill` had dropped the extractor's `qualityStats`; fixed 2026-09-23 and **`npm run sync:wiki` was run the same day**, so all 1,118 skill records now carry it (verified: `ice-nova.json` has 2 entries). Quality is stored on a build for fidelity and import/export; its 0–20 bound remains an assumption, not data-backed.
 
 ### PoB2's data is mostly worse than ours — with one real exception
 
@@ -114,7 +114,7 @@ Compared 2026-09-23 (`docs/research/poe2/pob2-data-comparison.md`). The short ve
 
 All four were fixed the same day. Crit chance is a number a planner displays and a stat engine needs; `hoverImage` is the gem's larger in-game art. Note `hoverImage` is the **raw GGPK `.dds` path**, not a served URL like `iconUrl` — storing it identifies the art but does not make it renderable without the extraction step `buildIcons` performs for icons.
 
-**Consequence: every skill file on disk still lacks all four fields, because the data has not been re-synced.** `WikiSkillDetail.qualityStats` is therefore declared optional, and every reader must treat it as possibly absent until a full `npm run sync:wiki` regenerates the 1,118 skill records. That sync pulls from the GGPK/patch server and is a deliberate, heavier operation — it has not been run.
+**The sync has now been run (2026-09-23).** All 1,118 skill records carry `gemId`, `qualityStats` and `hoverImage`, and `scaling[]` carries `spellCritChance`/`attackCritChance`. The fields stay declared optional so that records written before the sync — and any future field caught by the same silent-drop pattern — still type-check. Items and mods were untouched apart from `lastSynced`, as the audit predicted.
 
 **Licence, verified by reading the file header — this matters and the first report got it half right.** PoB2's *code* is MIT (`LICENSE.md`, "Copyright (c) 2018 Xavier Wang"). Its *data* is not: every generated data file carries `-- Skill data (c) Grinding Gear Games`. MIT does not cover it.
 
