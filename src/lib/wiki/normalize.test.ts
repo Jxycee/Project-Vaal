@@ -518,6 +518,27 @@ describe('normalizeSkill', () => {
     expect(result.scaling).toEqual([]);
   });
 
+  // Regression cover for the same silent drop that hid qualityStats, on the
+  // field that matters most for import. `key` is the gem's GGG identity - the
+  // last segment of its BaseItemTypes.Id metadata path - and normalizeSkill
+  // took it as an argument and never wrote it out. Display names do not
+  // survive a patch boundary: matching a real PoB2 build's gems by name
+  // resolved 60% (docs/superpowers/specs/2026-09-23-pob2-decode-findings.md),
+  // because our support gems are tiered by name (Vitality I, Vitality II)
+  // where PoB uses the untiered base, and several were renamed between
+  // patches. This is the key that makes the join exact.
+  it('carries the gem id through from the extractor key', () => {
+    const result = normalizeSkill(raw.key, raw.gem, raw.requirement, raw.scaling, null, SYNCED_AT);
+    expect(raw.key).toBe('SkillGemIceNova');
+    expect(result.gemId).toBe(raw.key);
+  });
+
+  it('keeps gemId distinct from the name-derived slug', () => {
+    const result = normalizeSkill(raw.key, raw.gem, raw.requirement, raw.scaling, null, SYNCED_AT);
+    expect(result.slug).toBe('ice-nova');
+    expect(result.gemId).not.toBe(result.slug);
+  });
+
   // Regression cover for a silent drop: the extractor has always produced
   // GemScaling.qualityStats — this very fixture carries two entries — but
   // normalizeSkill never read them, so no synced skill file has ever contained

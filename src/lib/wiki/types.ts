@@ -224,6 +224,31 @@ export interface WikiSkillLevelScaling {
 
 export interface WikiSkillDetail extends WikiDetailBase {
   kind: 'skill';
+  /**
+   * The gem's stable GGG identity — the last segment of its `BaseItemTypes.Id`
+   * metadata path, e.g. `SkillGemIceNova` for `Metadata/Items/Gems/SkillGemIceNova`.
+   * This is `GemData.gems`' own key, and PoB2 calls the same thing
+   * `normalizeGemId`.
+   *
+   * It exists because `name` is not a usable join key across patches. A PoB2
+   * share code carries `gemId="Metadata/Items/Gems/SupportGemMartialTempo"` on
+   * every `<Gem>`, and matching those by display name against our index
+   * resolved only 60% of a real build (see
+   * `docs/superpowers/specs/2026-09-23-pob2-decode-findings.md`): our support
+   * gems are tiered by name (`Vitality I`, `Vitality II`) where PoB uses the
+   * untiered base, and several gems were renamed between patches
+   * (`Projectile Acceleration` became `Acceleration`). Matching on this field
+   * instead is exact.
+   *
+   * Absent from every file synced before 2026-09-23, for the same reason
+   * {@link WikiSkillDetail.qualityStats} was: `normalizeSkill` already received
+   * it as its `key` argument and simply never wrote it out. Treat as optional
+   * until a full `npm run sync:wiki` has regenerated the dataset.
+   *
+   * Not to be confused with `slug`, which is derived from the display name and
+   * is what our own URLs and stored builds use.
+   */
+  gemId?: string;
   gemType: 'active' | 'support' | 'spirit';
   color: 'r' | 'g' | 'b' | 'w';
   tags: string[];

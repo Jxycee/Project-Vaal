@@ -370,9 +370,12 @@ const GEM_CATEGORY: Record<Gem['kind'], string> = {
  * Normalizes one gem-extractor {@link Gem} (plus its optional per-level
  * {@link GemRequirement} curve and {@link GemScaling} tooltip data) into a
  * {@link WikiSkillDetail}. `key` is the gem's `GemData.gems` key (PoB's
- * `normalizeGemId`) - currently unused for display since `Gem.name` already
- * carries the display name, but accepted so callers can pass it through
- * without a lookup. `requirement`/`scaling` are `null` when the source data
+ * `normalizeGemId`) and is written out as {@link WikiSkillDetail.gemId} - it
+ * is not a display value, it is the stable GGG identity a PoB2 share code
+ * carries on every `<Gem>`, and matching on it is the difference between an
+ * exact import and a 60% name guess. This function accepted `key` and
+ * discarded it until 2026-09-23, the same silent drop that hid `qualityStats`.
+ * `requirement`/`scaling` are `null` when the source data
  * has none for this gem (e.g. many supports have no per-level curve).
  * `lastSynced` is the caller's single per-run timestamp (see normalizeItem).
  */
@@ -388,6 +391,7 @@ export function normalizeSkill(
   return {
     kind: 'skill',
     slug: slugify(gem.name),
+    gemId: key,
     name: gem.name,
     category: GEM_CATEGORY[gem.kind],
     gemType: gem.kind,

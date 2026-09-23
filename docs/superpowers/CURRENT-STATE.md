@@ -110,7 +110,7 @@ Compared 2026-09-23 (`docs/research/poe2/pob2-data-comparison.md`). The short ve
 | `Item` (13 fields + `ItemReq`/`ItemArmour`/`ItemWeapon`) | **nothing dropped** |
 | `Mod` (10 fields + `ModRoll`/`ModSpawnWeight`) | **nothing dropped** |
 | `Map` | nothing dropped |
-| `Gem` / `GemScaling` / `GemLevelScaling` | **four fields dropped** — `qualityStats`, `spellCritChance`, `attackCritChance`, `hoverImage` |
+| `Gem` / `GemScaling` / `GemLevelScaling` | **five fields dropped** — `qualityStats`, `spellCritChance`, `attackCritChance`, `hoverImage`, and (found 2026-09-23 by the PoB decode spike) the gem's own GGG id |
 
 All four were fixed the same day. Crit chance is a number a planner displays and a stat engine needs; `hoverImage` is the gem's larger in-game art. Note `hoverImage` is the **raw GGPK `.dds` path**, not a served URL like `iconUrl` — storing it identifies the art but does not make it renderable without the extraction step `buildIcons` performs for icons.
 
@@ -130,11 +130,11 @@ All **37 Talisman items carry `twoHanded: false`**, which contradicts `docs/rese
 
 | | |
 |---|---|
-| Unit (vitest, `node` env, no DOM harness) | **480 tests / 35 files** |
+| Unit (vitest, `node` env, no DOM harness) | **482 tests / 35 files** |
 | E2E (Playwright, mobile + desktop) | **20 / 20** |
 | type-check, lint, build | clean |
 
-*Verified: `npm test`, `npm run type-check`, `npm run lint`, `npm run build` on 2026-09-23, after the migration-backfill commit. The unit count read 476 when this table was first written, before the two `normalizeSkill` fixes added their regression tests; `npx playwright test` was last run at the gem-level / notes / level-budget commit and has not been re-run since.*
+*Verified: `npm test`, `npm run type-check`, `npm run lint`, `npm run build` on 2026-09-23, after the gemId normalizer fix. The unit count read 476 when this table was first written, before the two `normalizeSkill` fixes added their regression tests; `npx playwright test` was last run at the gem-level / notes / level-budget commit and has not been re-run since.*
 
 **One deliberate gap in automated coverage:** the gem level and quality inputs are `<input type="number">`, which puts them outside `mobile-layout.spec.ts`'s `button, a[href]` tap-target selector. They are sized `h-11` by hand. If that selector is ever widened, expect them to be scanned.
 
