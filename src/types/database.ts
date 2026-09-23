@@ -532,6 +532,10 @@ export type Database = {
         Args: { p_build_id: string }
         Returns: undefined
       }
+      reorder_build_checkpoints: {
+        Args: { p_build_id: string; p_ids: string[] }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
