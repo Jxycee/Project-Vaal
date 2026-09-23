@@ -1,6 +1,6 @@
 # Project Vaal — Build Planner: Current State
 
-**Last verified: 2026-09-23.** Every claim below was checked against the live database or real source on that date; the method is stated next to each. **Nothing here is repeated from another document.**
+**Last verified: 2026-09-23 (updated same day after the gem-level / notes / level-budget work).** Every claim below was checked against the live database or real source on that date; the method is stated next to each. **Nothing here is repeated from another document.**
 
 Read this before any other build-planner doc. The specs, plans and handoffs in `specs/`, `plans/` and `handoffs/` are **dated records of what was believed when they were written**, and several of them are now wrong in ways that matter. Each one that is carries a banner at its top saying so.
 
@@ -18,10 +18,9 @@ Two of them were genuinely dangerous — a slot→category table that would have
 
 ## Where the work lives
 
-Branch `worktree-server-migration`, worktree `C:/Dev/project-vaal-wt/server-migration`. **31 commits ahead of `main`. Not merged, not pushed.**
-*Verified: `git rev-parse --abbrev-ref HEAD`, `git rev-list --count main..HEAD`.*
+Branch `worktree-server-migration`, worktree `C:/Dev/project-vaal-wt/server-migration`. **Pushed to GitHub** at https://github.com/Jxycee/Project-Vaal/tree/worktree-server-migration — `main` is untouched, so production is unaffected. A Vercel *preview* deployment may exist for the branch.
 
-Finish per the repo convention in memory: merge locally into `main` and push; do not open a PR.
+Finish per the repo convention in memory: merge locally into `main` and push; do not open a PR. Every push to `main` deploys straight to production, so confirm with the user first.
 
 ---
 
@@ -61,13 +60,18 @@ All on the branch above. Verified by reading the routes and running the suites o
 - **Gems (Task 3).** Skill + up to 5 supports per loadout, weapon-set tags, `main_skill`. The same picker and the same route serve gear, jewels and gems via a kind dimension.
 - **Sharing (Task 4).** `/builds/[shareToken]`, three-way visibility, tags, a public finder. **All of `/builds` is auth-protected** — a signed-out visitor is redirected to `/login`, never shown a build.
 - **Drafts** carry tree + gear + gems, keyed `vaal:tree-draft:<buildId ?? 'scratch'>`, read in a lazy `useState` initialiser.
+- **Gem level and quality** (competitor gap #4) — on **skills only**. Supports get neither field, deliberately: every sampled Support Gem caps at level 1 in our data, and nothing in our dataset carries gem quality at all. The level cap is **per gem**, read live from that gem's own `scaling[]` via `src/lib/wiki/fetchGemScaling.ts`, not hardcoded — active skills reach 40, some Spirit gems cap lower. The 0–20 quality bound is an **assumption, not data-backed**, and is marked as such in the code. Old gem states migrate silently to `level: 1, quality: 0`.
+- **Build notes** (competitor gap #7) — persisted to the pre-existing `builds.notes` column (no migration was needed), edited in `BuildSavePanel`, shown on the shared build page.
+- **Level-derived passive budget** (competitor gap #8) — `derivePassiveBudget(level)` = `(level - 1) + QUEST_PASSIVE_POINTS`, which reconciles with the previously hardcoded 123 at level 100. Over-budget is **signalled, never blocked**: planning a level-90 build while at level 1 is a normal workflow. The shared-page tree defaults `level` to 100 when absent so a reader never sees a spurious "Over" flag.
 
 `PROTECTED_PREFIXES` is `['/dashboard', '/characters', '/settings', '/tree', '/campaign', '/wiki', '/data/wiki/', '/builds']`.
 *Verified: `src/proxy.ts:46`.*
 
 ## What is not built
 
-Deliberate deferrals, each recorded with its reason in the relevant spec: two-handed weapon occupancy (enforced for no weapon), rune sockets, item mods/affixes/rolls, gem level and quality, a stat engine of any kind, import/export, leveling stages, and authored guidance. `toggleBuildBookmark` exists as a Server Function with no caller.
+Deliberate deferrals, each recorded with its reason in the relevant spec: two-handed weapon occupancy (enforced for no weapon), rune sockets, item mods/affixes/rolls, a stat engine of any kind, import/export, leveling stages, and structured stat priorities. The campaign resistance penalty is explicitly **not** implemented — it needs formulas we have not confirmed and belongs with the stat-engine work. `toggleBuildBookmark` exists as a Server Function with no caller.
+
+**Formulas are not a blocker.** `docs/research/poe2/stat-formula-feasibility.md` establishes that PoB2 is MIT-licensed and implements the defensive calculations in `CalcDefence.lua`, separate from the far larger offence/DPS modules. Crucially, our affix data is **already typed** — 5,267 files under `public/data/wiki/2026-08-25/mods/` carrying `rolls: [{stat, min, max}]` with tiers and spawn weights — so PoB's hardest problem, its 677KB text-parsing `ModParser.lua`, is one we do not have.
 
 The competitor gap analysis — what a build can express here versus elsewhere — is in `specs/2026-09-23-competitor-build-flow-gaps.md`. Recorded, not acted on.
 
@@ -77,11 +81,13 @@ The competitor gap analysis — what a build can express here versus elsewhere �
 
 | | |
 |---|---|
-| Unit (vitest, `node` env, no DOM harness) | **449 tests / 33 files** |
+| Unit (vitest, `node` env, no DOM harness) | **476 tests / 35 files** |
 | E2E (Playwright, mobile + desktop) | **20 / 20** |
 | type-check, lint, build | clean |
 
-*Verified: `npm test`, `npx playwright test`, `npm run type-check`, `npm run lint` on 2026-09-23.*
+*Verified: `npm test`, `npx playwright test`, `npm run type-check`, `npm run lint` on 2026-09-23, after the gem-level / notes / level-budget commit.*
+
+**One deliberate gap in automated coverage:** the gem level and quality inputs are `<input type="number">`, which puts them outside `mobile-layout.spec.ts`'s `button, a[href]` tap-target selector. They are sized `h-11` by hand. If that selector is ever widened, expect them to be scanned.
 
 Specs: `build-persistence` (the protected data-loss scenarios), `draft-and-auth`, `loadout-persistence`, `sharing`, `mobile-layout`, `desktop-layout`. The desktop project is scoped to `desktop-layout` alone.
 
