@@ -4,11 +4,14 @@ import {
   addSupport,
   deriveMainSkill,
   emptyGemState,
+  MAX_GEM_QUALITY,
   newLoadout,
   parseGemState,
   removeLoadout,
   removeSupport,
+  setLevel,
   setPrimary,
+  setQuality,
   setSets,
   setSkill,
 } from '../gemState';
@@ -45,6 +48,8 @@ describe('newLoadout', () => {
     expect(loadout.skill).toBeNull();
     expect(loadout.supports).toEqual([]);
     expect(loadout.sets).toEqual([1, 2]);
+    expect(loadout.level).toBe(1);
+    expect(loadout.quality).toBe(0);
   });
 
   it('generates distinct ids across calls', () => {
@@ -65,17 +70,49 @@ describe('parseGemState', () => {
     expect(parseGemState({ loadouts: 'nope' })).toEqual({ loadouts: [], primaryId: null });
   });
 
-  it('round-trips a well-formed loadout', () => {
-    const loadout = { id: 'a', skill: heraldOfAsh, supports: [support(1)], sets: [1] };
+  it('round-trips a well-formed loadout, including level and quality', () => {
+    const loadout = { id: 'a', skill: heraldOfAsh, supports: [support(1)], sets: [1], level: 20, quality: 15 };
     const state = parseGemState({ loadouts: [loadout], primaryId: 'a' });
     expect(state.loadouts).toEqual([loadout]);
     expect(state.primaryId).toBe('a');
   });
 
   it('drops a loadout with no id (or a non-string/empty id) entirely, without blanking the others', () => {
-    const good = { id: 'a', skill: heraldOfAsh, supports: [], sets: [1, 2] };
+    const good = { id: 'a', skill: heraldOfAsh, supports: [], sets: [1, 2], level: 1, quality: 0 };
     const state = parseGemState({ loadouts: [good, { id: '', skill: null, supports: [], sets: [1, 2] }, { skill: null }] });
     expect(state.loadouts).toEqual([good]);
+  });
+
+  it('migrates an old loadout with no level/quality keys to the defaults (1, 0) without rejecting it', () => {
+    const state = parseGemState({ loadouts: [{ id: 'a', skill: heraldOfAsh, supports: [], sets: [1, 2] }] });
+    expect(state.loadouts[0].level).toBe(1);
+    expect(state.loadouts[0].quality).toBe(0);
+  });
+
+  it('clamps a stored level below 1 up to 1, and truncates a fractional level', () => {
+    expect(
+      parseGemState({ loadouts: [{ id: 'a', skill: null, supports: [], sets: [1, 2], level: -5 }] }).loadouts[0]
+        .level,
+    ).toBe(1);
+    expect(
+      parseGemState({ loadouts: [{ id: 'a', skill: null, supports: [], sets: [1, 2], level: 12.7 }] }).loadouts[0]
+        .level,
+    ).toBe(12);
+  });
+
+  it('clamps a stored quality to 0..MAX_GEM_QUALITY and falls back malformed values to 0', () => {
+    expect(
+      parseGemState({ loadouts: [{ id: 'a', skill: null, supports: [], sets: [1, 2], quality: 999 }] }).loadouts[0]
+        .quality,
+    ).toBe(MAX_GEM_QUALITY);
+    expect(
+      parseGemState({ loadouts: [{ id: 'a', skill: null, supports: [], sets: [1, 2], quality: -3 }] }).loadouts[0]
+        .quality,
+    ).toBe(0);
+    expect(
+      parseGemState({ loadouts: [{ id: 'a', skill: null, supports: [], sets: [1, 2], quality: 'nope' }] })
+        .loadouts[0].quality,
+    ).toBe(0);
   });
 
   it('falls back skill to null when malformed', () => {
@@ -211,6 +248,55 @@ describe('setSets', () => {
   });
 });
 
+describe('setLevel', () => {
+  it('sets the loadout level without touching other loadouts', () => {
+    let state = addLoadout(emptyGemState());
+    state = addLoadout(state);
+    const [first, second] = state.loadouts;
+    state = setLevel(state, first.id, 20);
+    expect(state.loadouts[0].level).toBe(20);
+    expect(state.loadouts[1].level).toBe(1);
+    void second;
+  });
+
+  it('clamps below 1 up to 1 and truncates fractions', () => {
+    let state = addLoadout(emptyGemState());
+    const id = state.loadouts[0].id;
+    state = setLevel(state, id, -10);
+    expect(state.loadouts[0].level).toBe(1);
+    state = setLevel(state, id, 7.9);
+    expect(state.loadouts[0].level).toBe(7);
+  });
+
+  it('falls back to 1 for a non-finite value', () => {
+    let state = addLoadout(emptyGemState());
+    const id = state.loadouts[0].id;
+    state = setLevel(state, id, NaN);
+    expect(state.loadouts[0].level).toBe(1);
+  });
+});
+
+describe('setQuality', () => {
+  it('sets the loadout quality without touching other loadouts', () => {
+    let state = addLoadout(emptyGemState());
+    state = addLoadout(state);
+    const [first, second] = state.loadouts;
+    state = setQuality(state, first.id, 15);
+    expect(state.loadouts[0].quality).toBe(15);
+    expect(state.loadouts[1].quality).toBe(0);
+    void second;
+  });
+
+  it('clamps to 0..MAX_GEM_QUALITY', () => {
+    let state = addLoadout(emptyGemState());
+    const id = state.loadouts[0].id;
+    state = setQuality(state, id, 999);
+    expect(state.loadouts[0].quality).toBe(MAX_GEM_QUALITY);
+    state = setQuality(state, id, -1);
+    expect(state.loadouts[0].quality).toBe(0);
+  });
+});
+
 describe('setPrimary', () => {
   it('sets primaryId to the given loadout, clearing any previous one', () => {
     let state = addLoadout(emptyGemState());
@@ -233,15 +319,15 @@ describe('deriveMainSkill', () => {
   });
 
   it('returns null when no loadout has a skill', () => {
-    const state = stateWith([{ id: 'a', skill: null, supports: [], sets: [1, 2] }]);
+    const state = stateWith([{ id: 'a', skill: null, supports: [], sets: [1, 2], level: 1, quality: 0 }]);
     expect(deriveMainSkill(state)).toBeNull();
   });
 
   it('uses the primary loadout skill name when set and populated', () => {
     const state = stateWith(
       [
-        { id: 'a', skill: spark, supports: [], sets: [1, 2] },
-        { id: 'b', skill: heraldOfAsh, supports: [], sets: [1, 2] },
+        { id: 'a', skill: spark, supports: [], sets: [1, 2], level: 1, quality: 0 },
+        { id: 'b', skill: heraldOfAsh, supports: [], sets: [1, 2], level: 1, quality: 0 },
       ],
       'b',
     );
@@ -250,8 +336,8 @@ describe('deriveMainSkill', () => {
 
   it('falls back to the first loadout with a skill when primaryId is null', () => {
     const state = stateWith([
-      { id: 'a', skill: null, supports: [], sets: [1, 2] },
-      { id: 'b', skill: heraldOfAsh, supports: [], sets: [1, 2] },
+      { id: 'a', skill: null, supports: [], sets: [1, 2], level: 1, quality: 0 },
+      { id: 'b', skill: heraldOfAsh, supports: [], sets: [1, 2], level: 1, quality: 0 },
     ]);
     expect(deriveMainSkill(state)).toBe('Herald of Ash');
   });
@@ -259,8 +345,8 @@ describe('deriveMainSkill', () => {
   it('falls back to the first loadout with a skill when the primary loadout has none', () => {
     const state = stateWith(
       [
-        { id: 'a', skill: spark, supports: [], sets: [1, 2] },
-        { id: 'b', skill: null, supports: [], sets: [1, 2] },
+        { id: 'a', skill: spark, supports: [], sets: [1, 2], level: 1, quality: 0 },
+        { id: 'b', skill: null, supports: [], sets: [1, 2], level: 1, quality: 0 },
       ],
       'b',
     );

@@ -100,7 +100,7 @@ export async function softNavigate(page: Page, href: string): Promise<void> {
 /** Saves the current editor state through the save panel. */
 export async function saveBuild(
   page: Page,
-  opts: { name?: string; level?: number; league?: string } = {},
+  opts: { name?: string; level?: number; league?: string; notes?: string } = {},
 ): Promise<void> {
   const panel = page.getByRole('button', { name: /^(Save build|Saved build)$/ });
   if (await panel.isVisible().catch(() => false)) await panel.click();
@@ -108,6 +108,7 @@ export async function saveBuild(
   if (opts.name !== undefined) await page.locator('#build-name').fill(opts.name);
   if (opts.level !== undefined) await page.locator('#build-level').fill(String(opts.level));
   if (opts.league !== undefined) await page.locator('#build-league').fill(opts.league);
+  if (opts.notes !== undefined) await page.locator('#build-notes').fill(opts.notes);
 
   await page.getByRole('button', { name: /^(Save|Update)$/ }).click();
   await expect(page.getByText(/^Saved /)).toBeVisible({ timeout: 30_000 });

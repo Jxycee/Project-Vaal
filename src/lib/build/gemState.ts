@@ -29,6 +29,32 @@ export interface GemLoadout {
    * set1 and set2) — one vocabulary, not two.
    */
   sets: WeaponSet[];
+  /**
+   * The SKILL's gem level. Default 1. Its upper bound is per-gem — read from
+   * that gem's `scaling[]` max `level` in its wiki detail JSON (see
+   * `fetchMaxGemLevel`, `src/lib/wiki/fetchGemScaling.ts`) — 40 for most
+   * Active Skill Gems, lower for some Spirit gems, capped at 1 when that
+   * data is unavailable. This module has no fetch access and does not know
+   * that cap; it only guarantees an integer >= 1 (see `setLevel`). The UI
+   * layer is responsible for clamping to the fetched per-gem max before
+   * calling `setLevel`.
+   *
+   * Deliberately NOT present on individual support items: every sampled
+   * Support Gem in our data caps at level 1 (see CURRENT-STATE.md), so a
+   * per-support level field would have nothing to represent. Do not add one.
+   */
+  level: number;
+  /**
+   * The SKILL's gem quality, 0–20. Default 0. **The 0–20 bound is an
+   * assumption, not data-backed** — no file under public/data/wiki carries a
+   * `quality` field on any skill (200 files checked, see CURRENT-STATE.md),
+   * so this exists purely for storage fidelity and future import/export; it
+   * is never validated against real gem data and has no gameplay effect
+   * applied anywhere in this codebase.
+   *
+   * Also NOT present on supports — same reasoning as `level` above.
+   */
+  quality: number;
 }
 
 export interface GemState {
@@ -51,8 +77,11 @@ function newLoadoutId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+/** Upper bound for `GemLoadout.quality` — an assumption, not data-backed. See that field's doc comment. */
+export const MAX_GEM_QUALITY = 20;
+
 export function newLoadout(): GemLoadout {
-  return { id: newLoadoutId(), skill: null, supports: [], sets: [1, 2] };
+  return { id: newLoadoutId(), skill: null, supports: [], sets: [1, 2], level: 1, quality: 0 };
 }
 
 /** Normalises a `sets` value: keeps only 1/2, dedupes, sorts, falls back to `[1, 2]` when empty. */
@@ -72,7 +101,17 @@ function parseLoadout(raw: unknown): GemLoadout | null {
     .slice(0, MAX_SUPPORTS_PER_SKILL);
   const sets = normalizeSets(Array.isArray(v.sets) ? (v.sets as unknown[]).filter((n): n is number => typeof n === 'number') : []);
 
-  return { id: v.id, skill, supports, sets };
+  // Old gem states (pre-level/quality) never carried these keys — migrate
+  // silently to the defaults rather than rejecting the stored loadout.
+  // Malformed/out-of-range values fall back the same way, via the same
+  // clamps `setLevel`/`setQuality` apply on write.
+  const level = typeof v.level === 'number' && Number.isFinite(v.level) ? Math.max(1, Math.trunc(v.level)) : 1;
+  const quality =
+    typeof v.quality === 'number' && Number.isFinite(v.quality)
+      ? Math.min(MAX_GEM_QUALITY, Math.max(0, Math.trunc(v.quality)))
+      : 0;
+
+  return { id: v.id, skill, supports, sets, level, quality };
 }
 
 /**
@@ -131,6 +170,23 @@ export function removeSupport(state: GemState, id: string, index: number): GemSt
 
 export function setSets(state: GemState, id: string, sets: readonly WeaponSet[]): GemState {
   return updateLoadout(state, id, (l) => ({ ...l, sets: normalizeSets(sets) }));
+}
+
+/**
+ * Sets the loadout's gem level. Only guarantees an integer >= 1 — this
+ * module doesn't know any individual gem's per-gem max (that lives in wiki
+ * scaling data this module never fetches), so clamping to that upper bound
+ * is the caller's job (see GemLoadout.level's doc comment).
+ */
+export function setLevel(state: GemState, id: string, level: number): GemState {
+  const clamped = Number.isFinite(level) ? Math.max(1, Math.trunc(level)) : 1;
+  return updateLoadout(state, id, (l) => ({ ...l, level: clamped }));
+}
+
+/** Sets the loadout's gem quality, clamped to 0–MAX_GEM_QUALITY. See that constant's doc comment — the bound is an assumption, not data-backed. */
+export function setQuality(state: GemState, id: string, quality: number): GemState {
+  const clamped = Number.isFinite(quality) ? Math.min(MAX_GEM_QUALITY, Math.max(0, Math.trunc(quality))) : 0;
+  return updateLoadout(state, id, (l) => ({ ...l, quality: clamped }));
 }
 
 export function setPrimary(state: GemState, id: string): GemState {

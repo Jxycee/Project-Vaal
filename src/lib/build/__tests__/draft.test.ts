@@ -31,6 +31,8 @@ const gemWithLoadout: GemState = {
       skill: { slug: 'fireball', name: 'Fireball', category: 'Active Skill Gem', isUnique: false, iconUrl: null },
       supports: [],
       sets: [1, 2],
+      level: 1,
+      quality: 0,
     },
   ],
   primaryId: 'loadout-1',

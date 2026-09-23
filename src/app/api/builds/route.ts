@@ -14,7 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { nanoid } from 'nanoid';
 import { createClient } from '@/lib/supabase/server';
-import { GAME_VERSION } from '@/lib/build/constants';
+import { GAME_VERSION, MAX_NOTES_LENGTH } from '@/lib/build/constants';
 import type { PassiveState } from '@/lib/build/types';
 import type { Database, Json } from '@/types/database';
 
@@ -29,6 +29,7 @@ interface SaveBuildBody {
   passive_state?: PassiveState;
   gear_state?: Record<string, unknown>;
   gem_state?: Record<string, unknown>;
+  notes?: unknown;
 }
 
 type BuildUpdate = Database['public']['Tables']['builds']['Update'];
@@ -94,6 +95,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Malformed passive_state' }, { status: 400 });
   }
 
+  // Free-text build notes -> builds.notes. Trimmed, capped at
+  // MAX_NOTES_LENGTH (the column itself has no CHECK constraint — see that
+  // constant's doc comment). An empty/whitespace-only string is stored as
+  // null, not '', so "no notes" reads the same way whether the column was
+  // never touched or was explicitly cleared.
+  let notes: string | null = null;
+  if (body.notes !== undefined) {
+    if (typeof body.notes !== 'string') {
+      return NextResponse.json({ error: 'Invalid notes' }, { status: 400 });
+    }
+    const trimmed = body.notes.trim();
+    if (trimmed.length > MAX_NOTES_LENGTH) {
+      return NextResponse.json({ error: `Notes must be ${MAX_NOTES_LENGTH} characters or fewer` }, { status: 400 });
+    }
+    notes = trimmed.length > 0 ? trimmed : null;
+  }
+
   // Always written in full – the column default omits ascendancyNodes.
   const passive_state: PassiveState = body.passive_state ?? {
     set1: [],
@@ -129,6 +147,10 @@ export async function POST(request: NextRequest) {
       ...('main_skill' in body
         ? { main_skill: typeof body.main_skill === 'string' ? body.main_skill : null }
         : {}),
+      // Same conditional-write discipline: a save that never sent `notes`
+      // (an older client, or a future save path that only touches the tree)
+      // must not wipe whatever notes are already on the row.
+      ...('notes' in body ? { notes } : {}),
     };
 
     const { data, error } = await supabase
@@ -157,6 +179,7 @@ export async function POST(request: NextRequest) {
       main_skill: typeof body.main_skill === 'string' ? body.main_skill : null,
       gear_state: (body.gear_state ?? {}) as unknown as Json,
       gem_state: (body.gem_state ?? {}) as unknown as Json,
+      notes,
       user_id: user.id,
       share_token: nanoid(),
     })

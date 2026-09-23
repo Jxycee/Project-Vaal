@@ -16,15 +16,47 @@
 // is `position: fixed`, which always creates its own stacking context, so a
 // plain `fixed inset-0 z-*` here would sit under the shell's `sticky z-20`
 // mobile header no matter its z-index.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import type { WeaponSet } from '@poe2-toolkit/tree-core';
 import ItemPickerSheet from '@/components/build/ItemPickerSheet';
 import { GEM_SKILL_PSEUDO_SLOT, GEM_SUPPORT_PSEUDO_SLOT, MAX_SUPPORTS_PER_SKILL } from '@/lib/build/gemSlots';
 import { WEAPON_SET_DOT } from '@/lib/build/weaponSetColors';
+import { MAX_GEM_QUALITY } from '@/lib/build/gemState';
+import { fetchMaxGemLevel } from '@/lib/wiki/fetchGemScaling';
 import type { GearItem } from '@/lib/build/gearSlots';
 import type { GemLoadout, GemState } from '@/lib/build/gemState';
+
+/**
+ * Fetches the currently-picked skill's per-gem level cap (see
+ * fetchGemScaling.ts) and keeps it in sync as the skill changes. `null`
+ * while loading or when no skill is picked — LoadoutCard treats that as
+ * "don't clamp yet" rather than "cap is 1", so a level typed just after
+ * picking a new skill isn't clobbered by a cap that hasn't arrived yet.
+ */
+function useMaxGemLevel(slug: string | undefined): number | null {
+  // Keyed by the slug the result is FOR, not just the number — so a result
+  // that resolves after the user has already switched to a different skill
+  // (or cleared it) is recognised as stale and ignored below, rather than
+  // requiring a synchronous setState(null) inside the effect body itself
+  // (which react-hooks/set-state-in-effect flags) to reset it up front.
+  const [result, setResult] = useState<{ slug: string; max: number } | null>(null);
+
+  useEffect(() => {
+    if (!slug) return;
+    let cancelled = false;
+    fetchMaxGemLevel(slug).then((max) => {
+      if (!cancelled) setResult({ slug, max });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [slug]);
+
+  if (!slug || result?.slug !== slug) return null;
+  return result.max;
+}
 
 function GemIcon({ item }: { item: GearItem | null }) {
   return (
@@ -58,6 +90,8 @@ function LoadoutCard({
   onRemove,
   onToggleSet,
   onSetPrimary,
+  onSetLevel,
+  onSetQuality,
 }: {
   loadout: GemLoadout;
   index: number;
@@ -68,8 +102,14 @@ function LoadoutCard({
   onRemove: () => void;
   onToggleSet: (set: WeaponSet) => void;
   onSetPrimary: () => void;
+  onSetLevel: (level: number) => void;
+  onSetQuality: (quality: number) => void;
 }) {
   const atCap = loadout.supports.length >= MAX_SUPPORTS_PER_SKILL;
+  // Per-gem cap (see gemState.ts's GemLoadout.level doc comment) — not
+  // hardcoded 40, since Support Gems have no level field at all (see below)
+  // and some Spirit Gems cap lower than 40.
+  const maxLevel = useMaxGemLevel(loadout.skill?.slug);
 
   return (
     <li className="border-b border-border/60 px-3 py-3">
@@ -92,6 +132,54 @@ function LoadoutCard({
           <span className="truncate text-sm text-foreground">{loadout.skill ? loadout.skill.name : 'Empty'}</span>
         </span>
       </button>
+
+      {/*
+        Level/quality: SKILL-only fields (see GemLoadout's doc comments in
+        gemState.ts) — supports never get inputs here, deliberately, since
+        every sampled Support Gem caps at level 1 and no gem carries a
+        quality field in our data at all. Plain number inputs, not buttons,
+        so e2e/mobile-layout.spec.ts's `button, a[href]` tap-target scan
+        doesn't need to cover them; h-11 keeps them visually consistent with
+        everything else on this card regardless.
+      */}
+      {loadout.skill ? (
+        <div className="flex items-center gap-3 pt-2">
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            Level
+            <input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={maxLevel ?? undefined}
+              value={loadout.level}
+              onChange={(e) => {
+                const parsed = Number.parseInt(e.target.value, 10);
+                if (!Number.isFinite(parsed)) return;
+                onSetLevel(maxLevel !== null ? Math.min(parsed, maxLevel) : parsed);
+              }}
+              className="h-11 w-16 rounded-md border border-input bg-background/60 px-2 text-sm text-foreground focus:outline-none focus:ring-3 focus:ring-ring/50"
+            />
+            {maxLevel !== null ? <span className="text-muted-foreground/70">/ {maxLevel}</span> : null}
+          </label>
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            Quality
+            <input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={MAX_GEM_QUALITY}
+              value={loadout.quality}
+              onChange={(e) => {
+                const parsed = Number.parseInt(e.target.value, 10);
+                if (!Number.isFinite(parsed)) return;
+                onSetQuality(Math.min(parsed, MAX_GEM_QUALITY));
+              }}
+              className="h-11 w-16 rounded-md border border-input bg-background/60 px-2 text-sm text-foreground focus:outline-none focus:ring-3 focus:ring-ring/50"
+            />
+            <span className="text-muted-foreground/70">%</span>
+          </label>
+        </div>
+      ) : null}
 
       <div className="flex flex-wrap items-center gap-1.5 pt-1">
         {loadout.supports.map((support, supportIndex) => (
@@ -183,6 +271,8 @@ export default function GemsSheet({
   onRemoveSupport,
   onSetSets,
   onSetPrimary,
+  onSetLevel,
+  onSetQuality,
   onClose,
 }: {
   open: boolean;
@@ -194,6 +284,8 @@ export default function GemsSheet({
   onRemoveSupport: (id: string, supportIndex: number) => void;
   onSetSets: (id: string, sets: readonly WeaponSet[]) => void;
   onSetPrimary: (id: string) => void;
+  onSetLevel: (id: string, level: number) => void;
+  onSetQuality: (id: string, quality: number) => void;
   onClose: () => void;
 }) {
   // Which loadout's skill-or-support picker is open, if any. Only one picker
@@ -241,6 +333,8 @@ export default function GemsSheet({
                 onRemove={() => onRemoveLoadout(loadout.id)}
                 onToggleSet={(set) => onSetSets(loadout.id, toggleSet(loadout.sets, set))}
                 onSetPrimary={() => onSetPrimary(loadout.id)}
+                onSetLevel={(level) => onSetLevel(loadout.id, level)}
+                onSetQuality={(quality) => onSetQuality(loadout.id, quality)}
               />
             ))}
           </ul>

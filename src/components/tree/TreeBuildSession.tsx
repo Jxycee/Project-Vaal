@@ -41,7 +41,9 @@ import {
   parseGemState,
   removeLoadout,
   removeSupport,
+  setLevel as setGemLevel,
   setPrimary,
+  setQuality as setGemQuality,
   setSets,
   setSkill,
 } from '@/lib/build/gemState';
@@ -73,6 +75,15 @@ export default function TreeBuildSession({
   // `activeBuild` guard existed to defend against a component that survived
   // soft navigation; deleting the guard is safe specifically BECAUSE of the
   // key, not despite it.
+  // ---- Level ---------------------------------------------------------
+  // Lifted out of BuildSavePanel (which used to own it as purely-local form
+  // state) because the tree's passive-point budget now derives from it (see
+  // TreeControls / derivePassiveBudget) — PassiveTree needs to read the same
+  // value BuildSavePanel is editing, live, not just at submit time. Same
+  // lazy-seeded-once reasoning as gearState/gemState above: this component
+  // remounts per build, so `build` can't change out from under it.
+  const [level, setLevel] = useState(() => build?.level ?? 1);
+
   const initialState = useMemo<PassiveTreeInitialState | undefined>(() => {
     if (!build) return undefined;
     const { main, ascendancyNodes } = fromPassiveState(build.passive_state);
@@ -201,6 +212,14 @@ export default function TreeBuildSession({
     [],
   );
   const handleSetPrimary = useCallback((id: string) => setGemState((prev) => setPrimary(prev, id)), []);
+  const handleSetGemLevel = useCallback(
+    (id: string, level: number) => setGemState((prev) => setGemLevel(prev, id, level)),
+    [],
+  );
+  const handleSetGemQuality = useCallback(
+    (id: string, quality: number) => setGemState((prev) => setGemQuality(prev, id, quality)),
+    [],
+  );
 
   // ---- Draft restore, continued ----------------------------------------
   // Deferred to here (rather than living beside the other draft-restore
@@ -258,7 +277,7 @@ export default function TreeBuildSession({
   const visibleLoadError = createdBuild || loadErrorDismissed ? null : loadError;
 
   const handleSave = useCallback(
-    async (meta: { name: string; level: number; league: string }) => {
+    async (meta: { name: string; level: number; league: string; notes: string }) => {
       if (!editorState) return;
       setSaving(true);
       setSaveError(null);
@@ -273,6 +292,13 @@ export default function TreeBuildSession({
             ascendancy: editorState.ascendancyId ?? null,
             level: meta.level,
             league: meta.league,
+            // Always sent (possibly ''), same reasoning as gear_state below:
+            // BuildSavePanel always has notes in memory (seeded from
+            // build?.notes on mount), so omitting it here would never be
+            // meaningful — POST /api/builds's "only write when the key is
+            // present" discipline exists to protect a save path that
+            // legitimately doesn't touch notes, which this one isn't.
+            notes: meta.notes,
             passive_state: toPassiveState(editorState.main, editorState.ascendancyNodes),
             // Sent on every save (not conditionally) now that gear exists —
             // POST /api/builds only writes gear_state when the key is
@@ -325,6 +351,7 @@ export default function TreeBuildSession({
         raw={raw}
         initialState={passiveInitialState}
         onStateChange={setEditorState}
+        level={level}
       />
       {/*
         Notices stack below the top row rather than sitting at either top
@@ -405,6 +432,8 @@ export default function TreeBuildSession({
         initialName={build?.name ?? ''}
         initialLevel={build?.level ?? 1}
         initialLeague={build?.league ?? 'Standard'}
+        initialNotes={build?.notes ?? ''}
+        onLevelChange={setLevel}
         saving={saving}
         // Only the save's own error. A ?build= load error is surfaced as a
         // canvas notice above instead: BuildSavePanel renders `error` only
@@ -440,6 +469,8 @@ export default function TreeBuildSession({
         onRemoveSupport={handleRemoveSupport}
         onSetSets={handleSetSets}
         onSetPrimary={handleSetPrimary}
+        onSetLevel={handleSetGemLevel}
+        onSetQuality={handleSetGemQuality}
         onClose={() => setGemsSheetOpen(false)}
       />
     </>

@@ -37,10 +37,13 @@ export default function SharedTreePanel({
   className,
   ascendancyId,
   passiveState,
+  level,
 }: {
   className: string;
   ascendancyId: string | null;
   passiveState: PassiveState;
+  /** Forwarded to PassiveTree for the level-derived passive-point budget readout. */
+  level: number;
 }) {
   const [open, setOpen] = useState(false);
   const [raw, setRaw] = useState<GggTreeJson | null>(null);
@@ -93,7 +96,7 @@ export default function SharedTreePanel({
           Loading passive tree…
         </div>
       ) : (
-        <PassiveTree raw={raw} initialState={initialState} readOnly />
+        <PassiveTree raw={raw} initialState={initialState} readOnly level={level} />
       )}
     </div>
   );

@@ -28,6 +28,7 @@ import NodeTooltip, { type HoveredNode } from '@/components/tree/NodeTooltip';
 import NodeInfoPanel, { type SelectedNode } from '@/components/tree/NodeInfoPanel';
 import { useTreeResources, useClassCentreSprites } from '@/lib/tree/resources';
 import { MAX_ASCENDANCY_POINTS } from '@/lib/build/constants';
+import { derivePassiveBudget } from '@/lib/build/passiveBudget';
 import type { BuildEditorState, PassiveTreeInitialState } from '@/lib/build/types';
 import type { TreeTestApi } from '@/lib/tree/testApi';
 
@@ -67,6 +68,7 @@ export default function PassiveTree({
   initialState,
   onStateChange,
   readOnly,
+  level,
 }: {
   raw: GggTreeJson;
   initialState?: PassiveTreeInitialState;
@@ -78,6 +80,15 @@ export default function PassiveTree({
    * reader inspecting what a node grants is the entire point of the page.
    */
   readOnly?: boolean;
+  /**
+   * The build's character level, for the level-derived basic/shared point
+   * budget (see `derivePassiveBudget`). Defaults to 100 (the maximum) when
+   * omitted — SharedTreePanel is the only caller that could omit it, and
+   * defaulting to the max means a reader who came here just to look at a
+   * tree never sees a spurious "over budget" flag for a level the caller
+   * simply didn't pass.
+   */
+  level?: number;
 }) {
   const data: TreeData = useMemo(() => normalizeGggTree(raw, TREE_VERSION), [raw]);
   const mainGraph = useMemo(() => buildTreeGraph(data), [data]);
@@ -228,6 +239,8 @@ export default function PassiveTree({
     }
     return { basic: main.allocated.length - setI - setII, setI, setII, ascendancy: ascendancyNodes.length };
   }, [main, ascendancyNodes]);
+
+  const maxBasicPoints = useMemo(() => derivePassiveBudget(level ?? 100), [level]);
 
   const scene = useMemo(
     () =>
@@ -532,6 +545,7 @@ export default function PassiveTree({
         ascendancyId={ascendancyId}
         mode={mode}
         pointCounts={pointCounts}
+        maxBasicPoints={maxBasicPoints}
         searchQuery={searchQuery}
         hasAllocations={allocated.length > 0}
         onClass={handleClass}

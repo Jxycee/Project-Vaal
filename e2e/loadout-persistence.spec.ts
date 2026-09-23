@@ -158,13 +158,21 @@ test.describe('loadout persistence', () => {
     await mainSkillButton.click();
     await expect(mainSkillButton).toHaveAttribute('aria-pressed', 'true');
 
+    // Gem level: default is 1 (see gemState.ts) — set it to something else so
+    // the reload assertion below actually proves persistence rather than
+    // just re-observing the default.
+    const levelInput = card.getByRole('spinbutton').first();
+    await levelInput.fill('5');
+    await expect(levelInput).toHaveValue('5');
+
     await gemsSheet.getByRole('button', { name: 'Close gems sheet' }).click();
     await expect(gemsSheet).toBeHidden();
     await expect(gemsChip).toContainText('Gems 1');
 
-    // ---- Save once ---------------------------------------------------------
+    // ---- Save once, with notes ----------------------------------------------
     const name = testBuildName('loadout');
-    await saveBuild(page, { name, level: 15, league: 'Standard' });
+    const notes = 'e2e loadout-persistence notes check';
+    await saveBuild(page, { name, level: 15, league: 'Standard', notes });
     expect(await listedBuildNames(page)).toContain(name);
 
     // Real navigation into the saved row rather than a poll of in-memory
@@ -207,6 +215,17 @@ test.describe('loadout persistence', () => {
       'aria-pressed',
       'true',
     );
+    // Gem level, set to 5 before the save above (default is 1 — see
+    // gemState.ts — so this proves the round trip, not just the default).
+    await expect(reopenedCard.getByRole('spinbutton').first()).toHaveValue('5');
+
+    await reopenedGems.getByRole('button', { name: 'Close gems sheet' }).click();
+    await expect(reopenedGems).toBeHidden();
+
+    // Notes, saved above — the save panel is the metadata surface (name,
+    // level, league) and is collapsed to a chip by default; open it back up.
+    await page.getByRole('button', { name: 'Saved build' }).click();
+    await expect(page.locator('#build-notes')).toHaveValue(notes);
 
     // Tap targets on a POPULATED /builds. mobile-layout.spec.ts scans that
     // page too, but cleanup leaves the account empty, so there it only ever

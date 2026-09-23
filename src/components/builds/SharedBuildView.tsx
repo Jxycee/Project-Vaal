@@ -117,6 +117,18 @@ export default function SharedBuildView({
         </div>
       ) : null}
 
+      {/* Notes — only when the owner wrote something. "why does this build
+          work" is the thing readers of a shared build want and could not
+          get anywhere else before this field existed. */}
+      {row.notes ? (
+        <section>
+          <h2 className="mb-2 text-sm font-semibold text-foreground">Notes</h2>
+          <p className="whitespace-pre-line rounded-lg border border-border bg-card/40 p-3 text-sm text-foreground">
+            {row.notes}
+          </p>
+        </section>
+      ) : null}
+
       {/* Gems */}
       <section>
         <h2 className="mb-2 text-sm font-semibold text-foreground">Gems</h2>
@@ -159,7 +171,12 @@ export default function SharedBuildView({
       {/* Passive tree — below everything else, and behind a tap (SharedTreePanel). */}
       <section>
         <h2 className="mb-2 text-sm font-semibold text-foreground">Passive tree</h2>
-        <SharedTreePanel className={row.class} ascendancyId={row.ascendancy} passiveState={passiveState} />
+        <SharedTreePanel
+          className={row.class}
+          ascendancyId={row.ascendancy}
+          passiveState={passiveState}
+          level={row.level}
+        />
       </section>
     </div>
   );

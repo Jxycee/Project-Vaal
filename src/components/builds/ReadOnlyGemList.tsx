@@ -39,7 +39,15 @@ function LoadoutCard({ loadout, index, isPrimary }: { loadout: GemLoadout; index
 
       <div className="flex items-center gap-3">
         <GemIcon item={loadout.skill} />
-        <span className="min-w-0 truncate text-sm text-foreground">{loadout.skill ? loadout.skill.name : 'Empty'}</span>
+        <span className="min-w-0 truncate text-sm text-foreground">
+          {loadout.skill ? loadout.skill.name : 'Empty'}
+          {loadout.skill ? (
+            <span className="ml-1.5 text-xs text-muted-foreground">
+              Lv {loadout.level}
+              {loadout.quality > 0 ? ` · ${loadout.quality}% quality` : ''}
+            </span>
+          ) : null}
+        </span>
       </div>
 
       {loadout.supports.length > 0 ? (

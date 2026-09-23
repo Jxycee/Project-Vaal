@@ -30,6 +30,13 @@ interface TreeControlsProps {
   ascendancyId: string | undefined;
   mode: AllocMode;
   pointCounts: PointCounts;
+  /**
+   * The basic/shared-pool budget, derived from the build's level (see
+   * `derivePassiveBudget`, `src/lib/build/passiveBudget.ts`) — replaces the
+   * old hardcoded MAX_BASIC_POINTS=123. Passed in rather than computed here
+   * so this component stays free of the level itself.
+   */
+  maxBasicPoints: number;
   searchQuery: string;
   hasAllocations: boolean;
   onClass: (id: number) => void;
@@ -52,11 +59,9 @@ const MODE_LABEL: Record<AllocMode, string> = { 0: 'Main', 1: 'Set I', 2: 'Set I
 // rather than one of the two set colours from weaponSetColors.ts.
 const MODE_DOT: Record<AllocMode, string> = { 0: 'bg-primary', 1: WEAPON_SET_DOT[1], 2: WEAPON_SET_DOT[2] };
 
-// Max points obtainable in one build: 99 from levelling (2-100) + 24 from
-// quest rewards = 123 shared/basic points; each weapon set draws from its own,
-// separate 24-point pool. Matches the reference tree's budget readout — fixed
-// game constants, not derived from any save data we have.
-const MAX_BASIC_POINTS = 123;
+// Each weapon set draws from its own, separate 24-point pool — a fixed game
+// constant, not derived from level the way the basic/shared pool now is (see
+// `maxBasicPoints` prop / `derivePassiveBudget`).
 const MAX_SET_POINTS = 24;
 
 export default function TreeControls({
@@ -65,6 +70,7 @@ export default function TreeControls({
   ascendancyId,
   mode,
   pointCounts,
+  maxBasicPoints,
   searchQuery,
   hasAllocations,
   onClass,
@@ -153,10 +159,18 @@ export default function TreeControls({
             {([0, 1, 2] as const).map((m) => {
               const [spent, max] =
                 m === 0
-                  ? [pointCounts.basic, MAX_BASIC_POINTS]
+                  ? [pointCounts.basic, maxBasicPoints]
                   : m === 1
                     ? [pointCounts.setI, MAX_SET_POINTS]
                     : [pointCounts.setII, MAX_SET_POINTS];
+              // Only the basic/shared pool is level-derived, so only it can
+              // be "over budget" in the sense this feature means — a weapon
+              // set's 24-point pool is a fixed game constant the tree-core
+              // toggle functions already refuse to exceed. SIGNAL only, per
+              // brief: this never disables the button or blocks a click —
+              // planning a level-90 build while the build row still says
+              // level 1 is a normal workflow, not an error state.
+              const overBudget = m === 0 && spent > max;
               const content = (
                 <>
                   <span className={`h-2 w-2 rounded-full ${MODE_DOT[m]}`} />
@@ -164,6 +178,14 @@ export default function TreeControls({
                   <span className="tabular-nums opacity-80">
                     {spent}/{max}
                   </span>
+                  {overBudget ? (
+                    <span
+                      className="rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-semibold text-destructive-foreground"
+                      title={`${spent} points allocated, but this build's level only grants ${max}.`}
+                    >
+                      Over
+                    </span>
+                  ) : null}
                 </>
               );
               if (readOnly) {
@@ -171,9 +193,11 @@ export default function TreeControls({
                   <div
                     key={m}
                     className={
-                      m === mode
-                        ? 'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-primary text-primary-foreground'
-                        : 'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-background/60 text-muted-foreground'
+                      overBudget
+                        ? 'flex items-center gap-1.5 rounded-full border border-destructive/60 px-2.5 py-1 text-xs font-medium bg-background/60 text-muted-foreground'
+                        : m === mode
+                          ? 'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-primary text-primary-foreground'
+                          : 'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-background/60 text-muted-foreground'
                     }
                   >
                     {content}
@@ -186,9 +210,11 @@ export default function TreeControls({
                   type="button"
                   onClick={() => onMode(m)}
                   className={
-                    m === mode
-                      ? 'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-primary text-primary-foreground shadow-[0_6px_16px_-8px_var(--primary)] transition-colors'
-                      : 'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-background/60 text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground'
+                    overBudget
+                      ? 'flex items-center gap-1.5 rounded-full border border-destructive/60 px-2.5 py-1 text-xs font-medium bg-background/60 text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground'
+                      : m === mode
+                        ? 'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-primary text-primary-foreground shadow-[0_6px_16px_-8px_var(--primary)] transition-colors'
+                        : 'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-background/60 text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground'
                   }
                 >
                   {content}

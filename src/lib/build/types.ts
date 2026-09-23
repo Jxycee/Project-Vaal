@@ -74,6 +74,8 @@ export interface SavedBuild {
   gem_state: unknown;
   /** The primary loadout's skill name (see `deriveMainSkill`), or null if no loadout has a skill yet. */
   main_skill: string | null;
+  /** Free-text, owner-editable. Persisted straight to the `builds.notes` column — see POST /api/builds' validation (trim, MAX_NOTES_LENGTH cap). */
+  notes: string | null;
   updated_at: string;
 }
 

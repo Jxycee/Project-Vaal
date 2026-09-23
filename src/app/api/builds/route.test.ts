@@ -128,6 +128,20 @@ describe('POST /api/builds — rejecting a request before it can write', () => {
     expect(insertMock).not.toHaveBeenCalled();
   });
 
+  it('rejects a non-string notes value', async () => {
+    const res = await POST(req(validBody({ notes: 42 })));
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'Invalid notes' });
+    expect(insertMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects notes over MAX_NOTES_LENGTH characters', async () => {
+    const res = await POST(req(validBody({ notes: 'x'.repeat(4001) })));
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'Notes must be 4000 characters or fewer' });
+    expect(insertMock).not.toHaveBeenCalled();
+  });
+
   it('rejects a passive_state whose node arrays are not all numbers', async () => {
     // A malformed allocation stored here comes back as a tree that cannot be
     // rendered, on a route with no way to recover it — so it is refused at the
@@ -146,6 +160,7 @@ describe('POST /api/builds — creating a row', () => {
     expect(payload.gear_state).toEqual({});
     expect(payload.gem_state).toEqual({});
     expect(payload.main_skill).toBeNull();
+    expect(payload.notes).toBeNull();
     expect(payload.user_id).toBe('user-1');
     // Minted server-side; that is the whole reason saves go through a route.
     expect(typeof payload.share_token).toBe('string');
@@ -157,6 +172,15 @@ describe('POST /api/builds — creating a row', () => {
     const payload = insertMock.mock.calls[0][0] as Record<string, unknown>;
     expect(payload.league).toBe('Standard');
     expect(payload.passive_state).toEqual({ set1: [], set2: [], ascendancyNodes: [] });
+  });
+
+  it('trims notes and stores a whitespace-only value as null', async () => {
+    await POST(req(validBody({ notes: '  Good against tanky bosses.  ' })));
+    expect((insertMock.mock.calls[0][0] as Record<string, unknown>).notes).toBe('Good against tanky bosses.');
+
+    insertMock.mockReset();
+    await POST(req(validBody({ notes: '   ' })));
+    expect((insertMock.mock.calls[0][0] as Record<string, unknown>).notes).toBeNull();
   });
 });
 
@@ -172,8 +196,21 @@ describe('POST /api/builds — updating a row', () => {
     expect('gear_state' in payload).toBe(false);
     expect('gem_state' in payload).toBe(false);
     expect('main_skill' in payload).toBe(false);
+    expect('notes' in payload).toBe(false);
     expect(payload.name).toBe('Test build');
     expect(insertMock).not.toHaveBeenCalled();
+  });
+
+  it('writes notes when the body carries them, and clears them with an explicit empty string', async () => {
+    await POST(req(validBody({ id: 'build-1', notes: 'Great vs tanky bosses.' })));
+    let payload = updateMock.mock.calls[0][0] as Record<string, unknown>;
+    expect(payload.notes).toBe('Great vs tanky bosses.');
+
+    updateMock.mockReset();
+    await POST(req(validBody({ id: 'build-1', notes: '' })));
+    payload = updateMock.mock.calls[0][0] as Record<string, unknown>;
+    expect('notes' in payload).toBe(true);
+    expect(payload.notes).toBeNull();
   });
 
   it('writes gear_state and gem_state when the body does carry them', async () => {

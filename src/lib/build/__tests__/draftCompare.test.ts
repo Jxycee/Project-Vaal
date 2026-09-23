@@ -27,7 +27,7 @@ const fireball: GearItem = {
 
 const savedGear = { ...emptyGearState(), boots };
 const savedGem: GemState = {
-  loadouts: [{ id: 'loadout-1', skill: fireball, supports: [], sets: [1, 2] }],
+  loadouts: [{ id: 'loadout-1', skill: fireball, supports: [], sets: [1, 2], level: 1, quality: 0 }],
   primaryId: 'loadout-1',
 };
 
@@ -116,7 +116,7 @@ describe('draftDiffersFrom — saved build', () => {
   it('returns true for a gem-only change (tree and gear unchanged)', () => {
     const draft: BuildDraftState = {
       ...matchingDraft,
-      gem: { loadouts: [...savedGem.loadouts, { id: 'loadout-2', skill: null, supports: [], sets: [1, 2] }], primaryId: 'loadout-1' },
+      gem: { loadouts: [...savedGem.loadouts, { id: 'loadout-2', skill: null, supports: [], sets: [1, 2], level: 1, quality: 0 }], primaryId: 'loadout-1' },
     };
     expect(draftDiffersFrom(draft, savedBuild)).toBe(true);
   });
@@ -201,7 +201,7 @@ describe('draftDiffersFrom — scratch mode (build === null)', () => {
         ascendancyNodes: [],
       },
       gear: emptyGearState(),
-      gem: { loadouts: [{ id: 'loadout-1', skill: null, supports: [], sets: [1, 2] }], primaryId: null },
+      gem: { loadouts: [{ id: 'loadout-1', skill: null, supports: [], sets: [1, 2], level: 1, quality: 0 }], primaryId: null },
     };
     expect(draftDiffersFrom(draft, null)).toBe(true);
   });

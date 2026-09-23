@@ -11,6 +11,17 @@ export const GAME_VERSION = '0.5.5';
 export const MAX_ASCENDANCY_POINTS = 8;
 
 /**
+ * Cap on `builds.notes` length. The column itself has no CHECK constraint
+ * (verified via information_schema.columns, see CURRENT-STATE.md) — this is
+ * an application-level sanity bound, not a data-backed one, picked as
+ * "several paragraphs of build reasoning" without being large enough to make
+ * a build row unreasonably big. Shared between POST /api/builds (server
+ * validation) and BuildSavePanel (client-side counter/truncation) so the two
+ * never disagree about the limit.
+ */
+export const MAX_NOTES_LENGTH = 4000;
+
+/**
  * Shape-check for a `builds.id` value. `?build=` on /tree and the `id`
  * argument to the Server Functions in `builds/actions.ts` are both UUIDs;
  * /builds/[shareToken] is a separate, 21-char nanoid and does not use this.
