@@ -119,17 +119,9 @@ export default function TreeBuildSession({
     };
   }, [restoredDraft, initialState]);
 
-  const handleRestoreDraft = useCallback(() => {
-    if (!storedDraft) return;
-    setRestoredDraft(storedDraft);
-    setSeedKey((k) => k + 1);
-    setDraftPromptOpen(false);
-  }, [storedDraft]);
-
-  const handleDiscardDraft = useCallback(() => {
-    clearDraft(buildId);
-    setDraftPromptOpen(false);
-  }, [buildId]);
+  // handleRestoreDraft/handleDiscardDraft are defined further down, once
+  // gearState/gemState's setters exist too — restoring a draft re-seeds all
+  // three (tree, gear, gems), not just the tree.
 
   // ---- Live editor state + draft persistence ------------------------------
   const [editorState, setEditorState] = useState<BuildEditorState | null>(null);
@@ -210,12 +202,36 @@ export default function TreeBuildSession({
   );
   const handleSetPrimary = useCallback((id: string) => setGemState((prev) => setPrimary(prev, id)), []);
 
+  // ---- Draft restore, continued ----------------------------------------
+  // Deferred to here (rather than living beside the other draft-restore
+  // state above) because restoring re-seeds all three pieces of the
+  // session, and gearState/gemState's setters don't exist until now.
+  const handleRestoreDraft = useCallback(() => {
+    if (!storedDraft) return;
+    setRestoredDraft(storedDraft.tree);
+    // Gear/gems aren't read by PassiveTree, so they don't need the
+    // seedKey-bump/remount trick `restoredDraft` uses — a plain setState
+    // here (triggered by this click handler, not an effect) is enough to
+    // re-seed them.
+    setGearState(storedDraft.gear);
+    setGemState(storedDraft.gem);
+    setSeedKey((k) => k + 1);
+    setDraftPromptOpen(false);
+  }, [storedDraft]);
+
+  const handleDiscardDraft = useCallback(() => {
+    clearDraft(buildId);
+    setDraftPromptOpen(false);
+  }, [buildId]);
+
   // Writes to localStorage only, never calls a setState — so this does not
   // trip react-hooks/set-state-in-effect the way updating component state
-  // here would.
+  // here would. Depends on gearState/gemState too (not just editorState), or
+  // a gear/gem-only edit would never mark the session dirty and that work
+  // would vanish silently on refresh with no restore prompt at all.
   useEffect(() => {
-    if (editorState) saveDraft(buildId, editorState);
-  }, [editorState, buildId]);
+    if (editorState) saveDraft(buildId, { tree: editorState, gear: gearState, gem: gemState });
+  }, [editorState, gearState, gemState, buildId]);
 
   // ---- Save ------------------------------------------------------------
   const [saving, setSaving] = useState(false);
