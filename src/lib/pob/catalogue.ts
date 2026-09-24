@@ -43,6 +43,12 @@ export interface Catalogue {
     ascendancyOf(id: number): string | null;
     /** Exact class and ascendancy display names -> our ascendancy id, or null. */
     ascendancyIdFor(className: string, ascendancyName: string): string | null;
+    /**
+     * A class start or ascendancy start node. Our editor never stores these —
+     * tree-core's pathToNode excludes the start it paths from — while PoB's
+     * spec lists both, so the importer must omit them.
+     */
+    isStartNode(id: number): boolean;
   };
   /** Keyed by the gem's GGG id — the last segment of its metadata path, e.g. 'SkillGemIceNova'. */
   gems: Map<string, CatalogueGem>;
@@ -60,6 +66,9 @@ export interface Catalogue {
 
 interface RawTreeNode {
   ascendancyId?: string;
+  isAscendancyStart?: boolean;
+  classStartIndex?: unknown;
+  classesStart?: unknown;
 }
 interface RawTree {
   classes: Array<{ name: string; ascendancies?: Array<{ id: string; name: string }> }>;
@@ -76,9 +85,15 @@ async function buildTree(): Promise<Catalogue['tree']> {
   // Node keys are GGG skill ids as strings; the tree also carries a 'root'
   // key, which is not a node anyone allocates.
   const ascendancyByNode = new Map<number, string | null>();
+  const startNodes = new Set<number>();
   for (const [key, node] of Object.entries(raw.nodes)) {
     if (!/^\d+$/.test(key)) continue;
     ascendancyByNode.set(Number(key), node.ascendancyId ?? null);
+    // Class starts carry classesStart (e.g. [3, 9]: DUELIST is shared by
+    // Duelist and Mercenary); ascendancy starts carry isAscendancyStart.
+    if (node.isAscendancyStart || node.classStartIndex !== undefined || node.classesStart !== undefined) {
+      startNodes.add(Number(key));
+    }
   }
 
   const ascendancyIds = new Map<string, string>();
@@ -90,6 +105,7 @@ async function buildTree(): Promise<Catalogue['tree']> {
     hasNode: (id) => ascendancyByNode.has(id),
     ascendancyOf: (id) => ascendancyByNode.get(id) ?? null,
     ascendancyIdFor: (className, ascendancyName) => ascendancyIds.get(`${className}\u0000${ascendancyName}`) ?? null,
+    isStartNode: (id) => startNodes.has(id),
   };
 }
 

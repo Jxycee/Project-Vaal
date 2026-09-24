@@ -60,6 +60,15 @@ describe('catalogue — lookups', () => {
     expect(gems.get('SupportGemVitalityTwo')).toMatchObject({ slug: 'vitality-ii' });
   });
 
+  it('knows the start nodes our editor never stores', async () => {
+    const { tree } = await getCatalogue();
+    // Both appear in the real build's PoB spec (verified 2026-09-24).
+    expect(tree.isStartNode(50986)).toBe(true); // class start "DUELIST", shared by Duelist and Mercenary
+    expect(tree.isStartNode(7120)).toBe(true); // Mercenary2's ascendancy start
+    expect(tree.isStartNode(45969)).toBe(false); // an ordinary allocated node
+    expect(tree.isStartNode(15671)).toBe(false); // unknown to this tree
+  });
+
   it('knows which ascendancy a node belongs to', async () => {
     const { tree } = await getCatalogue();
     expect(tree.ascendancyOf(42761)).toBe('Druid1');
