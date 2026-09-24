@@ -60,6 +60,18 @@ describe('catalogue — lookups', () => {
     expect(gems.get('SupportGemVitalityTwo')).toMatchObject({ slug: 'vitality-ii' });
   });
 
+  it("joins on the GGG id even where it differs from the display name", async () => {
+    const { gems } = await getCatalogue();
+    // Artillery Ballista's internal id is RipwireBallista — a name join could never find it.
+    expect(gems.get('SkillGemRipwireBallista')).toMatchObject({ slug: 'artillery-ballista', name: 'Artillery Ballista' });
+  });
+
+  it('carries the category the picker stores and each gem\'s own level cap', async () => {
+    const { gems } = await getCatalogue();
+    expect(gems.get('SkillGemIceNova')).toMatchObject({ category: 'Active Skill Gem', maxLevel: 40 });
+    expect(gems.get('SupportGemVitality')).toMatchObject({ category: 'Support Gem', maxLevel: 1 });
+  });
+
   it('knows the start nodes our editor never stores', async () => {
     const { tree } = await getCatalogue();
     // Both appear in the real build's PoB spec (verified 2026-09-24).

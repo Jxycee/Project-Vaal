@@ -25,7 +25,15 @@ import type { WikiItemDetail, WikiSkillDetail } from '@/lib/wiki/types';
 export interface CatalogueGem {
   slug: string;
   name: string;
+  /** e.g. 'Active Skill Gem' — what the gem picker stores, and what the write gate requires to be non-empty. */
+  category: string;
   gemType: 'active' | 'support' | 'spirit';
+  /**
+   * The highest level in this gem's own scaling data — 40 for most actives,
+   * 1 for supports, lower for some Spirit gems. The editor clamps to the same
+   * per-gem cap (fetchGemScaling.ts); 1 when the gem has no scaling data.
+   */
+  maxLevel: number;
   iconUrl: string | null;
 }
 
@@ -120,10 +128,13 @@ async function buildGems(): Promise<Map<string, CatalogueGem>> {
     );
     for (const detail of details) {
       if (!detail?.gemId || gems.has(detail.gemId)) continue;
+      const levels = detail.scaling.map((s) => s.level).filter((l) => Number.isInteger(l) && l >= 1);
       gems.set(detail.gemId, {
         slug: detail.slug,
         name: detail.name,
+        category: detail.category,
         gemType: detail.gemType,
+        maxLevel: levels.length > 0 ? Math.max(...levels) : 1,
         iconUrl: detail.iconUrl ?? null,
       });
     }
