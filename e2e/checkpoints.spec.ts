@@ -130,7 +130,43 @@ test.describe('leveling checkpoints', () => {
       await expect.poll(async () => (await treeState(page)).allocated.length).toBe(secondAlloc);
     });
 
+    await test.step('a link-shared build shows each checkpoint as its own stage', async () => {
+      // Private is this app's link-shareable state (src/lib/build/visibility.ts
+      // — the vocabulary inverts the usual web meaning on purpose). A private
+      // build is neither the viewer's nor public, so its checkpoints can only
+      // arrive through get_build_checkpoints_by_share_token, never a plain
+      // select: this is the path that step proves.
+      await page.goto('/builds');
+      const listRow = page.locator('ul > li').filter({ has: page.locator(`a:has-text("${name}")`) }).first();
+      await expect(listRow).toBeVisible();
+      await listRow.getByRole('combobox').click();
+      await page.getByRole('option', { name: 'Private' }).click();
+      const shareLink = listRow.locator('a[href^="/builds/"]');
+      await expect(shareLink).toBeVisible({ timeout: 30_000 });
+      const shareHref = (await shareLink.getAttribute('href'))!;
+
+      await page.goto(shareHref);
+      const picker = page.getByTestId('shared-checkpoints');
+      await expect(picker).toBeVisible({ timeout: 30_000 });
+      await expect(picker.getByRole('link')).toHaveCount(2);
+
+      // Position 0 after the reorder is Level 94, so that is the default stage.
+      const header = page.locator('h1').locator('xpath=following-sibling::p[1]');
+      await expect(header).toContainText('Level 94');
+
+      await picker.getByRole('link', { name: /^Level 31/ }).click();
+      await page.waitForURL(/[?&]checkpoint=/, { timeout: 30_000 });
+      // The pair: the same share link now renders a DIFFERENT, populated
+      // stage — not merely "not the first one".
+      await expect(header).toContainText('Level 31');
+
+      const { scanned, tooSmall } = await measureTapTargets(page, '[data-testid="shared-checkpoints"]');
+      expect(scanned, 'no checkpoint links found on the shared page').toBe(2);
+      expect(tooSmall, `checkpoint links under ${MIN_TAP_PX}px`).toEqual([]);
+    });
+
     await test.step('deleting down to one works; deleting the last is refused', async () => {
+      await openTree(page, buildId);
       await openSheet();
       const levelThirtyOne = rows.filter({ hasText: 'Level 31' });
       await levelThirtyOne.getByRole('button', { name: 'Delete' }).click();

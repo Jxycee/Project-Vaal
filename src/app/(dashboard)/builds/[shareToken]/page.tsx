@@ -16,6 +16,8 @@ import { notFound, redirect } from 'next/navigation';
 import { createClient, getCachedUser } from '@/lib/supabase/server';
 import { SHARE_TOKEN_RE } from '@/lib/build/constants';
 import type { SharedBuildRow } from '@/lib/build/types';
+import { activeCheckpoint, parseCheckpoints } from '@/lib/build/checkpointState';
+import type { Json } from '@/types/database';
 import SharedBuildView from '@/components/builds/SharedBuildView';
 
 export const dynamicParams = true;
@@ -27,6 +29,7 @@ export async function generateStaticParams() {
 
 interface PageProps {
   params: Promise<{ shareToken: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 /**
@@ -54,8 +57,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return { title: `${row.name} — Project Vaal` };
 }
 
-export default async function SharedBuildPage({ params }: PageProps) {
+export default async function SharedBuildPage({ params, searchParams }: PageProps) {
   const { shareToken } = await params;
+  const checkpointParam = (await searchParams).checkpoint;
 
   const { data: userData } = await getCachedUser(); // memoised per request — AppShell already calls this
   const user = userData.user;
@@ -98,7 +102,7 @@ export default async function SharedBuildPage({ params }: PageProps) {
   // header, so running the counter in parallel with it adds no extra latency
   // of its own. Promise.allSettled means a failure in either never fails the
   // page — the counter especially must never do that.
-  const [authorResult, tagsResult, viewCountResult] = await Promise.allSettled([
+  const [authorResult, tagsResult, viewCountResult, checkpointsResult] = await Promise.allSettled([
     supabase.rpc('get_build_author_name', { p_build_id: row.id }),
     tagsQuery ?? Promise.resolve(null),
     // Public builds only, by product decision (2026-09-23): a build shared
@@ -108,6 +112,12 @@ export default async function SharedBuildPage({ params }: PageProps) {
     isOwner || row.visibility !== 'public'
       ? Promise.resolve(null)
       : supabase.rpc('increment_build_view_count', { p_build_id: row.id }),
+    // The build's checkpoints. Through the definer function, not a plain
+    // select: a link-shared ('private') build is neither the viewer's nor
+    // public, so build_checkpoints' own read policy would return nothing.
+    // Called here, after the sign-in check above, which is why anon holds no
+    // EXECUTE on it (20260923223254).
+    supabase.rpc('get_build_checkpoints_by_share_token', { p_token: shareToken }),
   ]);
 
   // display_name is nullable with no write path in the app (see Task 4
@@ -144,5 +154,45 @@ export default async function SharedBuildPage({ params }: PageProps) {
     console.error('Failed to increment build view count:', viewCountResult.value.error);
   }
 
-  return <SharedBuildView row={row} authorName={authorName} isOwner={isOwner} tags={tags} />;
+  // Degrade rather than fail: without checkpoints the page still renders the
+  // builds row, which mirrors the last-saved checkpoint.
+  let checkpoints = parseCheckpoints([]);
+  if (checkpointsResult.status === 'fulfilled' && !checkpointsResult.value.error) {
+    checkpoints = parseCheckpoints(checkpointsResult.value.data);
+  } else {
+    console.error(
+      'Failed to load build checkpoints:',
+      checkpointsResult.status === 'rejected' ? checkpointsResult.reason : checkpointsResult.value.error,
+    );
+  }
+
+  // ?checkpoint= only chooses among the rows the token already returned; an
+  // unknown or absent id falls back to the first (checkpointState.ts).
+  const active = activeCheckpoint(checkpoints, typeof checkpointParam === 'string' ? checkpointParam : null);
+  const viewRow: SharedBuildRow = active
+    ? {
+        ...row,
+        level: active.level,
+        passive_state: active.passive_state as unknown as Json,
+        gear_state: active.gear_state as Json,
+        gem_state: active.gem_state as Json,
+      }
+    : row;
+
+  return (
+    <SharedBuildView
+      // Keyed by checkpoint: SharedTreePanel loads its tree lazily behind a
+      // tap and would otherwise keep showing the previous stage's tree across
+      // a soft navigation between checkpoints — the same stale-state class the
+      // /tree editor's keyed remount exists to prevent.
+      key={active?.id ?? 'none'}
+      row={viewRow}
+      authorName={authorName}
+      isOwner={isOwner}
+      tags={tags}
+      shareToken={shareToken}
+      checkpoints={checkpoints.map(({ id, name, level }) => ({ id, name, level }))}
+      activeCheckpointId={active?.id}
+    />
+  );
 }

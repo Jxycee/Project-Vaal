@@ -5,8 +5,11 @@
 // task4-sharing.md, "Read-only rendering").
 //
 // Every prop here comes from `get_build_by_share_token`'s own result — see
-// SharedBuildRow's doc comment in lib/build/types.ts. Nothing on this page
-// makes a second query keyed off a client-supplied id.
+// SharedBuildRow's doc comment in lib/build/types.ts — or from
+// `get_build_checkpoints_by_share_token`, keyed by the same token. Nothing on
+// this page makes a second query keyed off a client-supplied id: ?checkpoint=
+// only CHOOSES among the rows already returned for the token, and an id that
+// is not among them simply falls back to the first.
 import Link from 'next/link';
 import { parseGearState } from '@/lib/build/gearState';
 import { parseGemState } from '@/lib/build/gemState';
@@ -39,7 +42,15 @@ export default function SharedBuildView({
   authorName,
   isOwner,
   tags,
+  shareToken,
+  checkpoints,
+  activeCheckpointId,
 }: {
+  /**
+   * The build as the CHOSEN checkpoint sees it — the page substitutes that
+   * checkpoint's tree, gear, gems and level — so everything below renders the
+   * selected stage without knowing checkpoints exist.
+   */
   row: SharedBuildRow;
   authorName: string;
   isOwner: boolean;
@@ -56,6 +67,10 @@ export default function SharedBuildView({
    * render a lying empty one.
    */
   tags: string[] | null;
+  shareToken: string;
+  /** The build's checkpoints in position order; empty if they failed to load. */
+  checkpoints: Array<{ id: string; name: string; level: number }>;
+  activeCheckpointId: string | undefined;
 }) {
   const gear = parseGearState(row.gear_state);
   const gemState = parseGemState(row.gem_state);
@@ -75,7 +90,11 @@ export default function SharedBuildView({
           </div>
           {isOwner ? (
             <Link
-              href={`/tree?build=${row.id}`}
+              href={
+                activeCheckpointId
+                  ? `/tree?build=${row.id}&checkpoint=${activeCheckpointId}`
+                  : `/tree?build=${row.id}`
+              }
               className="flex h-11 shrink-0 items-center rounded-lg border border-border px-3 text-sm font-medium text-foreground"
             >
               Edit
@@ -101,6 +120,31 @@ export default function SharedBuildView({
           </div>
         </dl>
       </div>
+
+      {/* TEST-GRADE: a plain checkpoint picker, pending the UI session. Shown
+          only when there is more than one stage to choose between. Each link
+          is a navigation the server answers, so the page re-reads fresh rows. */}
+      {checkpoints.length > 1 ? (
+        <nav aria-label="Checkpoints" data-testid="shared-checkpoints" className="flex flex-wrap gap-2">
+          {checkpoints.map((checkpoint) => {
+            const isActive = checkpoint.id === activeCheckpointId;
+            return (
+              <Link
+                key={checkpoint.id}
+                href={`/builds/${shareToken}?checkpoint=${checkpoint.id}`}
+                aria-current={isActive ? 'page' : undefined}
+                className={
+                  isActive
+                    ? 'flex h-11 min-w-11 items-center rounded-lg border border-foreground px-3 text-sm font-medium text-foreground'
+                    : 'flex h-11 min-w-11 items-center rounded-lg border border-border px-3 text-sm text-muted-foreground'
+                }
+              >
+                {checkpoint.name} · {checkpoint.level}
+              </Link>
+            );
+          })}
+        </nav>
+      ) : null}
 
       {/* Tags — see the `tags` prop's doc comment above for why this omits
           the section entirely (not an empty one) for a non-public build. */}
