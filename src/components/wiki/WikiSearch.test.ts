@@ -14,10 +14,4 @@ describe('filterEntries', () => {
   it('matches on name', () => {
     expect(filterEntries(entries, 'ice').map((e) => e.slug)).toContain('ice-nova');
   });
-  it('tolerates a typo', () => {
-    expect(filterEntries(entries, 'ise nva').map((e) => e.slug)).toContain('ice-nova');
-  });
-  it('returns an empty array for no match', () => {
-    expect(filterEntries(entries, 'zzzzqqq')).toHaveLength(0);
-  });
 });

@@ -43,10 +43,24 @@ test.describe('wiki search', () => {
   test('finds a skill despite a typo, and links to it', async ({ page }) => {
     await page.goto('/wiki');
     await page.getByLabel('Search the wiki').fill('ise nva');
+
+    // Wait for the FILTERED results before looking for the link. WikiSearch
+    // renders from useDeferredValue, so it paints once with the previous
+    // (empty) query first — the unfiltered list, whose very first entry is the
+    // Ice Nova skill. Waiting on that link alone was satisfied by the
+    // unfiltered list before any search had run, which made this test pass or
+    // fail depending on timing (2026-09-24: failed, then passed unchanged).
+    // "Disengage" is this typo's top match and is not near the top of the
+    // unfiltered list, so seeing it proves the search result is on screen.
+    await expect(page.locator('a[href="/wiki/skills/disengage"]')).toBeVisible({ timeout: 30_000 });
+
     const result = page.locator('a[href="/wiki/skills/ice-nova"]');
-    await expect(result).toBeVisible({ timeout: 30_000 });
+    await expect(result).toBeVisible();
     await result.click();
-    await expect.poll(() => new URL(page.url()).pathname).toBe('/wiki/skills/ice-nova');
+    // 30s, not expect.poll's 5s default: the first visit to a route compiles it
+    // on the dev server, and a soft navigation only updates the URL once that
+    // route's payload arrives. The other navigation helpers allow 30s too.
+    await page.waitForURL('**/wiki/skills/ice-nova', { timeout: 30_000 });
   });
 
   test('shows nothing for a query that matches nothing', async ({ page }) => {

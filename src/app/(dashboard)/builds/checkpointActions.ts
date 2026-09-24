@@ -111,7 +111,9 @@ export async function addCheckpoint(
 
   const supabase = await createClient();
 
-  // The "Public builds are readable by signed-in users" policy means a bare
+  // The permissive public-read policy on builds ("Public builds are readable
+  // by anyone" live today; renamed "…by signed-in users" by the pending
+  // migration in docs/superpowers/pending-migrations/) means a bare
   // .eq('id') could find someone else's public build; the user_id filter is
   // what makes this an ownership check rather than an existence check.
   const { data: owned, error: ownedError } = await supabase

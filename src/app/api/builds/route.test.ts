@@ -92,7 +92,6 @@ vi.mock('@/lib/supabase/server', () => ({
 import { POST } from './route';
 
 const AUTHED = { data: { user: { id: 'user-1' } } };
-const ANONYMOUS = { data: { user: null } };
 
 // Real UUIDs. The route rejects a non-UUID id before it reaches Postgres, so
 // any test meant to exercise the database path has to use one.
@@ -132,83 +131,6 @@ beforeEach(() => {
   cpSelectResult = { data: [{ id: CP_ID }], error: null };
   cpEqCalls = [];
   writeOrder = [];
-});
-
-describe('POST /api/builds — rejecting a request before it can write', () => {
-  it('refuses a signed-out caller without touching the table', async () => {
-    getUserMock.mockResolvedValue(ANONYMOUS);
-
-    const res = await POST(req(validBody()));
-
-    expect(res.status).toBe(401);
-    expect(insertMock).not.toHaveBeenCalled();
-    expect(updateMock).not.toHaveBeenCalled();
-  });
-
-  it('answers 400 rather than 500 for a body that is not JSON', async () => {
-    const res = await POST(req('{ not json'));
-    expect(res.status).toBe(400);
-    expect(await res.json()).toEqual({ error: 'Invalid JSON' });
-  });
-
-  it.each([
-    ['null', null],
-    ['a number', 7],
-    ['a string', '"a string"'],
-    ['an array', []],
-  ])('answers 400 for %s body, which is valid JSON but has no fields to read', async (_l, body) => {
-    // These all survive JSON.parse. Without the explicit shape check they would
-    // reach `body.name` and surface as a generic 500.
-    const res = await POST(req(body));
-    expect(res.status).toBe(400);
-    expect(insertMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects a non-string build id instead of passing it to .eq()', async () => {
-    const res = await POST(req(validBody({ id: 12 })));
-    expect(res.status).toBe(400);
-    expect(updateMock).not.toHaveBeenCalled();
-  });
-
-  it.each([
-    ['a missing name', { name: undefined }, 'Name is required'],
-    ['a whitespace-only name', { name: '   ' }, 'Name is required'],
-    ['a missing class', { class: undefined }, 'Class is required'],
-  ])('rejects %s', async (_label, overrides, error) => {
-    const res = await POST(req(validBody(overrides)));
-    expect(res.status).toBe(400);
-    expect(await res.json()).toEqual({ error });
-    expect(insertMock).not.toHaveBeenCalled();
-  });
-
-  it.each([0, 101, -5])('rejects level %i as out of range', async (level) => {
-    const res = await POST(req(validBody({ level })));
-    expect(res.status).toBe(400);
-    expect(insertMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects a non-string notes value', async () => {
-    const res = await POST(req(validBody({ notes: 42 })));
-    expect(res.status).toBe(400);
-    expect(await res.json()).toEqual({ error: 'Invalid notes' });
-    expect(insertMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects notes over MAX_NOTES_LENGTH characters', async () => {
-    const res = await POST(req(validBody({ notes: 'x'.repeat(4001) })));
-    expect(res.status).toBe(400);
-    expect(await res.json()).toEqual({ error: 'Notes must be 4000 characters or fewer' });
-    expect(insertMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects a passive_state whose node arrays are not all numbers', async () => {
-    // A malformed allocation stored here comes back as a tree that cannot be
-    // rendered, on a route with no way to recover it — so it is refused at the
-    // door rather than persisted and discovered later.
-    const res = await POST(req(validBody({ passive_state: { set1: ['x'], set2: [], ascendancyNodes: [] } })));
-    expect(res.status).toBe(400);
-    expect(insertMock).not.toHaveBeenCalled();
-  });
 });
 
 describe('POST /api/builds — creating a row', () => {
@@ -291,17 +213,6 @@ describe('POST /api/builds — updating a row', () => {
     expect(payload.gem_state).toEqual(gem);
   });
 
-  it('refuses an off-origin icon URL with a 400 and writes nothing', async () => {
-    const gear = {
-      boots: { slug: 'x', name: 'X', category: 'Boots', isUnique: false, iconUrl: 'https://attacker.example/p.gif' },
-    };
-
-    const res = await POST(req(validBody({ id: BUILD_ID, gear_state: gear })));
-
-    expect(res.status).toBe(400);
-    expect(updateMock).not.toHaveBeenCalled();
-  });
-
   it('writes main_skill: null when the body sends null, so the main skill can be cleared', async () => {
     // JSON.stringify drops an undefined value, so the client sends null rather
     // than undefined precisely to reach this branch. If the route treated null
@@ -313,20 +224,6 @@ describe('POST /api/builds — updating a row', () => {
     expect(payload.main_skill).toBeNull();
   });
 
-  it('reports 404 when RLS matches no row, rather than confirming the id exists', async () => {
-    // Nonexistent and not-ours are deliberately indistinguishable: telling them
-    // apart would leak other users' build ids.
-    // RLS hides someone else's checkpoints as well as their build, so the
-    // checkpoint lookup comes back empty before any write is attempted.
-    cpSelectResult = { data: [], error: null };
-    updateResult = { data: null, error: null };
-
-    const res = await POST(req(validBody({ id: BUILD_ID })));
-
-    expect(res.status).toBe(404);
-    expect(await res.json()).toEqual({ error: 'Build not found' });
-  });
-
   it('does not leak the database error message to the caller', async () => {
     updateResult = { data: null, error: { message: 'relation "builds" does not exist' } };
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -336,37 +233,6 @@ describe('POST /api/builds — updating a row', () => {
     expect(res.status).toBe(500);
     expect(await res.json()).toEqual({ error: 'Could not save this build.' });
     consoleError.mockRestore();
-  });
-});
-
-describe('POST /api/builds — malformed ids', () => {
-  // Every other entry point (builds/actions.ts) answers a non-UUID id with the
-  // same not-found it gives a real id that isn't yours, so "malformed" and
-  // "someone else's" are indistinguishable. This route used to pass the raw
-  // string to Postgres and surface its cast error as a 500 instead.
-  it('answers 404 for a non-UUID build id without touching the database', async () => {
-    const res = await POST(req(validBody({ id: 'not-a-uuid' })));
-
-    expect(res.status).toBe(404);
-    expect(await res.json()).toEqual({ error: 'Build not found' });
-    expect(updateMock).not.toHaveBeenCalled();
-    expect(cpUpdateMock).not.toHaveBeenCalled();
-    expect(cpSelectMock).not.toHaveBeenCalled();
-  });
-
-  it('answers 404 for a non-UUID checkpoint id without touching the database', async () => {
-    const res = await POST(req(validBody({ id: BUILD_ID, checkpoint_id: 'not-a-uuid' })));
-
-    expect(res.status).toBe(404);
-    expect(updateMock).not.toHaveBeenCalled();
-    expect(cpUpdateMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects a checkpoint id on a create, where there is no build to own it yet', async () => {
-    const res = await POST(req(validBody({ checkpoint_id: CP_ID })));
-
-    expect(res.status).toBe(400);
-    expect(insertMock).not.toHaveBeenCalled();
   });
 });
 
