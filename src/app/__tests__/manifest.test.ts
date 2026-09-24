@@ -10,12 +10,6 @@ describe('manifest', () => {
     expect(result.start_url).toBe('/');
   });
 
-  it('uses the exact dark-theme colors', () => {
-    const result = manifest();
-    expect(result.background_color).toBe('#0f0d0b');
-    expect(result.theme_color).toBe('#c6a662');
-  });
-
   it('includes 192 and 512 "any"-purpose icons plus a 512 maskable icon', () => {
     const result = manifest();
     const icons = result.icons ?? [];

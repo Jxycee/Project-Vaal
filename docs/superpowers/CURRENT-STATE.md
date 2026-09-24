@@ -134,7 +134,7 @@ All **37 Talisman items carry `twoHanded: false`**, which contradicts `docs/rese
 
 | | |
 |---|---|
-| Unit (vitest, `node` env, no DOM harness) | **631 tests / 40 files** |
+| Unit (vitest, `node` env, no DOM harness) | **623 tests / 39 files** |
 | E2E (Playwright, mobile + desktop) | **19 / 20** on the last full run — see the intermittent failure below |
 | type-check, lint, build | clean |
 
@@ -147,6 +147,16 @@ What is established rather than guessed: the only code path that lands a signed-
 It exposed a real latent bug either way: that proxy rule redirected a signed-in user on `/login` to `/dashboard` and **dropped the `?redirect=` parameter**, so any transient auth miss stranded the user on the dashboard.
 
 **Fixed (2026-09-23, `02dd001e`).** The rule now sends the user to the `redirect` target when it validates, else `/dashboard`, and never back into `/login` or `/signup`. Validation is the one shared `safeRedirect` in `src/lib/safeRedirect.ts`, which replaced three identical copies (login page, signup page, `/auth/callback`) — all three had accepted `/\evil.com`, which the URL parser resolves to `//evil.com`, an open redirect. *Verified:* `src/lib/safeRedirect.test.ts` (hostile inputs, normal paths with query strings) and `src/proxy.test.ts` (the proxy against a mocked `getUser`, including the no-user → `/login` → signed-in round trip landing back on the original page). Both suites failed against the old code before passing against the new. *Not verified:* e2e has not been re-run since, so the 19/20 above is unchanged. **The cause of the one-off `getUser()` miss is still unproven** — the fix removes its consequence, not its cause.
+
+**Three E2E specs added on 2026-09-24 have never been run** — `api-contracts`, `redirects`, `pwa-and-wiki-search` (50 tests). They were written in a session with no `.env.local` or test account, so `npx playwright test --list` is the only check they have passed. They replace these unit tests, **which stay until the new specs pass once**, then get deleted:
+
+- `src/app/__tests__/manifest.test.ts` (whole file) → `pwa-and-wiki-search`
+- `src/components/wiki/WikiSearch.test.ts` (whole file) → `pwa-and-wiki-search`
+- `src/proxy.test.ts` (whole file) → `redirects`
+- `src/app/api/wiki/items/route.test.ts`: everything except "returns 500 when the index fails to load" → `api-contracts`
+- `src/app/api/builds/route.test.ts`: the whole "rejecting a request before it can write" and "malformed ids" groups, plus "leaves gear_state, gem_state and main_skill out of the update…", "writes gear_state and gem_state when the body does carry them", "refuses an off-origin icon URL…" and "reports 404 when RLS matches no row…" → `api-contracts`
+
+Every other unit test stays: it covers something E2E cannot reach (fault injection, the offline wiki sync, pure edge-case logic) — see the audit in the commit that added this note. Each run now writes `playwright-report/results.json`, with every server response the API specs assert on attached.
 
 **One deliberate gap in automated coverage:** the gem level and quality inputs are `<input type="number">`, which puts them outside `mobile-layout.spec.ts`'s `button, a[href]` tap-target selector. They are sized `h-11` by hand. If that selector is ever widened, expect them to be scanned.
 

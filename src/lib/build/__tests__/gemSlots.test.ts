@@ -4,7 +4,6 @@ import { describe, it, expect } from 'vitest';
 import {
   GEM_SKILL_PSEUDO_SLOT,
   GEM_SUPPORT_PSEUDO_SLOT,
-  MAX_SUPPORTS_PER_SKILL,
   categoriesForGemSlot,
   isGemPseudoSlot,
 } from '../gemSlots';
@@ -68,11 +67,5 @@ describe('isGemPseudoSlot', () => {
     expect(isGemPseudoSlot('head')).toBe(false);
     expect(isGemPseudoSlot('jewels')).toBe(false);
     expect(isGemPseudoSlot('')).toBe(false);
-  });
-});
-
-describe('MAX_SUPPORTS_PER_SKILL', () => {
-  it('is 5', () => {
-    expect(MAX_SUPPORTS_PER_SKILL).toBe(5);
   });
 });

@@ -39,7 +39,12 @@ export default defineConfig({
   workers: 1,
   forbidOnly: !!process.env.CI,
   retries: 0,
-  reporter: [['list']],
+  // `list` for the terminal; `json` is the artifact every run leaves behind
+  // (AGENTS.md: E2E runs end in a verifiable, repeatable artifact). It records
+  // each test's outcome plus its attachments — the API specs attach every
+  // server response they assert on — so a run can be checked after the fact
+  // without re-running it. Gitignored, like the rest of playwright-report/.
+  reporter: [['list'], ['json', { outputFile: 'playwright-report/results.json' }]],
 
   // Well above Playwright's 30s default, deliberately. Mounting the tree means
   // fetching a 5.1MB GGG export and running normalizeGggTree over it, against a

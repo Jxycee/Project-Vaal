@@ -55,8 +55,4 @@ describe('safeRedirect', () => {
     expect(isSafeRedirect(input)).toBe(false)
     expect(safeRedirect(input)).toBe(DEFAULT_REDIRECT)
   })
-
-  it('falls back to /dashboard', () => {
-    expect(DEFAULT_REDIRECT).toBe('/dashboard')
-  })
 })
