@@ -1,10 +1,11 @@
-import { test, expect, type Locator, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import {
   MIN_TAP_PX,
   cleanupWithFreshPage,
   listedBuildNames,
   measureTapTargets,
   openTree,
+  pickByName,
   saveBuild,
   testBuildName,
 } from './helpers';
@@ -17,21 +18,6 @@ import {
 //
 // Every "no warning" assertion is paired with a positive one that proves the
 // thing being looked at is really there (trap 1 and 2 in CURRENT-STATE.md).
-
-/** Opens the picker from `opener`, searches for `name`, and picks the row whose name is exactly `name`. */
-async function pickByName(page: Page, opener: Locator, name: string): Promise<void> {
-  await opener.click();
-  const picker = page.locator('.z-50');
-  const search = picker.getByPlaceholder('Search items…');
-  await expect(search).toBeVisible();
-  await search.fill(name);
-  const exact = picker
-    .locator('ul li button')
-    .filter({ has: page.locator('span.truncate', { hasText: new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) }) });
-  await expect(exact).toHaveCount(1, { timeout: 15_000 });
-  await exact.click();
-  await expect(search).toBeHidden();
-}
 
 test.describe('structural validation', () => {
   test.setTimeout(420_000);

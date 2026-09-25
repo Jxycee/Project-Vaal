@@ -98,6 +98,23 @@ test.describe('Path of Building 2 import', () => {
       await expect.poll(async () => (await treeState(page)).allocated.length, { timeout: 30_000 }).toBe(116);
     });
 
+    // Slice 4: items arrive with their craft, not as bases only. Values are
+    // pinned in src/lib/pob/__tests__/mapItems.test.ts; this proves they
+    // survive the import write, the gate and a full reload into the editor.
+    await test.step('imported items keep their crafts through the save and a reload', async () => {
+      await page.getByRole('button', { name: 'Gear' }).click();
+      const gear = page.locator('.fixed.inset-0.z-40');
+      await expect(gear.getByTestId('gear-craft-weapon1_main')).toHaveText('rare · 6 affixes · 2 runes');
+      await expect(gear.getByTestId('gear-craft-body')).toHaveText('unique · 0 affixes · 2 runes');
+
+      await gear.getByRole('button', { name: 'Edit Weapon' }).first().click();
+      const editor = page.getByTestId('item-editor');
+      await expect(editor.getByTestId('affix-row')).toHaveCount(6);
+      await expect(editor.locator('[data-testid="affix-row"][data-slug="localaddedphysicaldamagetwohand7"]')).toBeVisible();
+      await editor.getByRole('button', { name: 'Close item editor' }).click();
+      await gear.getByRole('button', { name: 'Close gear sheet' }).click();
+    });
+
     await test.step('the build lists under its name', async () => {
       await gotoBuilds(page);
       await expect(page.locator(`a:has-text("${name}")`)).toBeVisible();
