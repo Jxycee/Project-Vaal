@@ -96,6 +96,15 @@ const nextConfig: NextConfig = {
   // under the limit — the icon downscale in scripts/sync-wiki.ts is what
   // actually does that (211MB -> ~47MB, under the cap on either platform).
   // These trim it further, to ~10MB, on the platform that deploys.
+  //
+  // Icons no longer depend on these excludes at all (2026-09-25). They were
+  // traced only because src/lib/wiki/{loadIndex,load,mentions}.ts built a
+  // directory-valued `ROOT` path, which the tracer expands to the whole
+  // wiki directory. Each read now spells its path out to the file name, so
+  // no function traces icons on either platform — verified with the excludes
+  // below removed: 0 icon entries in every .nft.json. A server module that
+  // reads wiki data must follow the same rule (see loadIndex.ts); an exclude
+  // added here instead will not help a Windows build.
   // -------------------------------------------------------------------------
   // The PoB2 import Server Functions (src/app/(dashboard)/builds/
   // importActions.ts) run inside the /builds function and build their
