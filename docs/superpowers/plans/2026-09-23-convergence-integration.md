@@ -1027,4 +1027,6 @@ Sections that go stale the moment this slice lands: **What is built** (checkpoin
 
 ## Unresolved, do not build on either side of it
 
+> **Resolved 2026-09-24 in Slice 3:** Talismans are two-handed. The `twoHanded: false` flag comes from a stale extractor class list. See `CURRENT-STATE.md` and `plans/2026-09-24-slice3-structural-validation.md`. Open decision #2 was settled the same day: **warn**.
+
 All **37 Talismans carry `twoHanded: false`**, contradicting `docs/research/poe2/classes-and-ascendancies.md:121` on two-handed "Animal Talismans". Resolve against the game or patch notes before any occupancy rule depends on talismans specifically. Slice 3 either resolves this or excludes talismans from the rule and says so.
