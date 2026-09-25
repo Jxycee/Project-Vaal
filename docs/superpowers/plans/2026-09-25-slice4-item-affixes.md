@@ -130,3 +130,12 @@ export interface GearItem { slug; name; category; isUnique; iconUrl; craft?: Ite
 
 1. **Implicit and unique lines are text.** The engine needs `stat → value` from them. That can come from matching their templates against typed `Unique`/`Item` mod files (983 `Unique` mods exist) rather than parsing prose. Measure the match rate in Slice 5 before promising numbers.
 2. **Rune effects are text per equipment category** (`"All Equipment"`, …). Which category applies to which slot is needed for Slice 5, and for Task 3's rune filter. Tabulate the categories first.
+
+---
+
+## Rune applicability — researched 2026-09-25, deferred to Slice 5
+
+- **PoB2's rule** (`src/Classes/Item.lua:2378`, `ItemClass:GetSocketedAugmentTypes`): a rune's effect applies when its slot key equals the item's **broad** type or its **specific** type. Broad is `weapon` (the base has weapon stats), `armour` (it has armour stats), or `caster` (tagged wand, staff or sceptre). Specific is the item type lowercased, with `warstaff` → `quarterstaff` and evasion shields → `buckler`. PoB2's `Data/ModRunes.lua` uses 21 keys (`armour` 79, `weapon` 113, `caster` 40, `helmet` 47, …).
+- **Our data labels the same effects differently.** 29 display categories: `Martial Weapon` 77, `Armour` 63, `Wand or Staff` 51, `All Equipment` 16, `Caster Weapon` 4, …, each on `soulCoreEffects[].category`. A label→key mapping would be inference, not data.
+- **Conflict:** PoB2 sets no `socketLimit` on amulets, rings or belts, yet marks 544 rune effects `canSocketInJewellery = true`.
+- **So Slice 4:** the rune picker (a `runes` pseudo-slot on `/api/wiki/items`, category `SoulCore`) lists every rune and soul core. The count warning fires only for bases with a PoB2 `socketLimit`, and jewellery gets no count rule. **Which effect line applies to which slot is Slice 5's question**, since that is where it changes a number. It should start by building the label→key table and checking it against every rune that exists in both datasets.
