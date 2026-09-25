@@ -96,6 +96,28 @@ const nextConfig: NextConfig = {
   // under the limit — the icon downscale in scripts/sync-wiki.ts is what
   // actually does that (211MB -> ~47MB, under the cap on either platform).
   // These trim it further, to ~10MB, on the platform that deploys.
+  // -------------------------------------------------------------------------
+  // The PoB2 import Server Functions (src/app/(dashboard)/builds/
+  // importActions.ts) run inside the /builds function and build their
+  // catalogue from files under public/data at request time
+  // (src/lib/pob/catalogue.ts): the tree export, every skill detail file
+  // (for gemId), the item index, and item detail files (for icons). The
+  // tracer follows none of them from /builds — verified 2026-09-24: its
+  // page.js.nft.json listed 0 public/data files — so without this every
+  // import in production would fail with ENOENT, as the wiki once did.
+  // Roughly 36MB, well under Vercel's 250MB function cap. Gate for any change
+  // here: count public/data entries in
+  // .next/server/app/(dashboard)/builds/page.js.nft.json after a build.
+  // -------------------------------------------------------------------------
+  outputFileTracingIncludes: {
+    '/builds': [
+      './public/data/tree/*/data.json',
+      './public/data/wiki/*/item-index.json',
+      './public/data/wiki/*/skills/*.json',
+      './public/data/wiki/*/items/*.json',
+    ],
+  },
+
   outputFileTracingExcludes: {
     '/wiki/**': [
       './public/data/wiki/**/icons/**',

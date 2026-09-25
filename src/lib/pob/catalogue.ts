@@ -131,6 +131,11 @@ async function buildGems(): Promise<Map<string, CatalogueGem>> {
   // gemId lives only in the detail files, not in skill-index.json, so they
   // are read once here.
   const slugs = await loadAllSlugs('skill');
+  // loadAllSlugs answers [] for a missing directory. Here that can only mean
+  // the data is not on disk (in production, a file-tracing miss — see
+  // outputFileTracingIncludes in next.config.ts), and carrying on would
+  // report every gem of every import as unknown. Fail loudly instead.
+  if (slugs.length === 0) throw new Error('PoB catalogue: no skill detail files found on disk');
   const gems = new Map<string, CatalogueGem>();
   for (let i = 0; i < slugs.length; i += READ_BATCH) {
     const details = await Promise.all(
@@ -158,6 +163,7 @@ function isWordChar(char: string | undefined): boolean {
 
 async function buildItems(): Promise<Catalogue['items']> {
   const entries = await loadIndex('item');
+  if (entries.length === 0) throw new Error('PoB catalogue: the item index is empty or missing');
   const byName = new Map<string, CatalogueItem>();
   for (const entry of entries) {
     if (byName.has(entry.name)) continue;
