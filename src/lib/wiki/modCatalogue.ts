@@ -20,6 +20,7 @@
 
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { canSpawn } from './spawn';
 import { WIKI_DATA_VERSION } from './types';
 
 const ROOT = path.join(process.cwd(), 'public', 'data', 'wiki', WIKI_DATA_VERSION);
@@ -106,14 +107,6 @@ export function getModCatalogue(): Promise<ModCatalogue> {
   return cached;
 }
 
-/** PoB2's rule: the first spawn tag the base carries decides; weight 0 excludes. */
-function canSpawn(mod: CatalogueMod, tags: ReadonlySet<string>): boolean {
-  for (const { tag, weight } of mod.spawnWeights) {
-    if (tags.has(tag)) return weight > 0;
-  }
-  return false;
-}
-
 /**
  * The prefixes or suffixes that can spawn on one base, grouped (one mod per
  * group is the game's rule), tiers ordered by required level. `null` for a
@@ -135,7 +128,7 @@ export async function eligibleMods(itemSlug: string, kind: AffixKind): Promise<M
   const { mods } = await getModCatalogue();
   const byGroup = new Map<string, ModTier[]>();
   for (const mod of mods) {
-    if (mod.kind !== kind || mod.domain !== domain || !canSpawn(mod, tags)) continue;
+    if (mod.kind !== kind || mod.domain !== domain || !canSpawn(mod.spawnWeights, tags)) continue;
     const tiers = byGroup.get(mod.group) ?? [];
     tiers.push({ slug: mod.slug, tier: mod.tier, level: mod.level, stats: mod.stats, rolls: mod.rolls });
     byGroup.set(mod.group, tiers);
