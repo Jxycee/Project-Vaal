@@ -64,6 +64,8 @@ export interface Catalogue {
      * spec lists both, so the importer must omit them.
      */
     isStartNode(id: number): boolean;
+    /** A generic "+5 to any Attribute" node (GGG: isGenericAttribute) — Slice 5 attribute choices. */
+    isAttributeNode(id: number): boolean;
   };
   /** Keyed by the gem's GGG id — the last segment of its metadata path, e.g. 'SkillGemIceNova'. */
   gems: Map<string, CatalogueGem>;
@@ -88,6 +90,7 @@ export interface Catalogue {
 
 interface RawTreeNode {
   ascendancyId?: string;
+  isGenericAttribute?: boolean;
   isAscendancyStart?: boolean;
   isJewelSocket?: boolean;
   classStartIndex?: unknown;
@@ -110,10 +113,12 @@ async function buildTree(): Promise<Catalogue['tree']> {
   const ascendancyByNode = new Map<number, string | null>();
   const startNodes = new Set<number>();
   const jewelSockets = new Set<number>();
+  const attributeNodes = new Set<number>();
   for (const [key, node] of Object.entries(raw.nodes)) {
     if (!/^\d+$/.test(key)) continue;
     ascendancyByNode.set(Number(key), node.ascendancyId ?? null);
     if (node.isJewelSocket) jewelSockets.add(Number(key));
+    if (node.isGenericAttribute) attributeNodes.add(Number(key));
     // Class starts carry classesStart (e.g. [3, 9]: DUELIST is shared by
     // Duelist and Mercenary); ascendancy starts carry isAscendancyStart.
     if (node.isAscendancyStart || node.classStartIndex !== undefined || node.classesStart !== undefined) {
@@ -134,6 +139,7 @@ async function buildTree(): Promise<Catalogue['tree']> {
     isJewelSocket: (id) => jewelSockets.has(id),
     ascendancyIdFor: (className, ascendancyName) => ascendancyIds.get(`${className}\u0000${ascendancyName}`) ?? null,
     isStartNode: (id) => startNodes.has(id),
+    isAttributeNode: (id) => attributeNodes.has(id),
   };
 }
 

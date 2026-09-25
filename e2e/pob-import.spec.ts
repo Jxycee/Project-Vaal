@@ -58,7 +58,10 @@ test.describe('Path of Building 2 import', () => {
 
       const dropped = sheet.getByTestId('import-report-dropped');
       await expect(dropped).toContainText('15671');
-      await expect(dropped).toContainText('attribute choice');
+      // Slice 5 keeps attribute choices; the one still reported is spec 8's
+      // choice for 15671, the node this patch's tree does not have.
+      await expect(dropped).toContainText('attribute choice(s) were not kept');
+      await expect(dropped).toContainText('15671');
       // Ring 3 is empty in this build, so nothing may be said about it.
       await expect(sheet).not.toContainText('Ring 3');
     });
@@ -83,6 +86,8 @@ test.describe('Path of Building 2 import', () => {
     await test.step('first and last checkpoints come back after a full reload, different and non-zero', async () => {
       await openTree(page, buildId);
       await expect.poll(async () => (await treeState(page)).allocated.length, { timeout: 30_000 }).toBe(35);
+      // Slice 5: spec 1's eleven "+attribute" choices came across and saved.
+      expect(Object.keys((await treeState(page)).attributeChoices)).toHaveLength(11);
 
       await page.getByRole('button', { name: /^Checkpoints/ }).click();
       const cpSheet = page.getByTestId('checkpoints-sheet');
@@ -96,6 +101,7 @@ test.describe('Path of Building 2 import', () => {
       await page.goto(`/tree?build=${buildId}&checkpoint=${lastId}`);
       await waitForTreeApi(page);
       await expect.poll(async () => (await treeState(page)).allocated.length, { timeout: 30_000 }).toBe(116);
+      expect(Object.keys((await treeState(page)).attributeChoices)).toHaveLength(27);
     });
 
     // Slice 4: items arrive with their craft, not as bases only. Values are
