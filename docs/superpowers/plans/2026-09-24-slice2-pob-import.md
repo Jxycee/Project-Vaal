@@ -218,11 +218,13 @@ Each returns `{ value, report: ReportEntry[] }` and never throws.
 
 ## Task 6: the migration — `import_build`
 
-- [ ] Write `supabase/migrations/<ts>_import_build.sql`: `import_build(p_build jsonb, p_checkpoints jsonb) returns uuid`, **SECURITY INVOKER**, `set search_path to 'public'`. Inserts the build (`user_id = auth.uid()`, a share token passed in — minted in the Server Function with `nanoid`, same as `POST /api/builds`); the `create_initial_build_checkpoint` trigger then makes checkpoint 0, so the function **updates** checkpoint 0 with the first entry and inserts the rest at positions 1..n-1. Revoke EXECUTE from `public, anon`; grant to `authenticated`.
-- [ ] **Load the `supabase-postgres-best-practices` skill before writing it.**
-- [ ] Apply it; verify in a DO block **as the `authenticated` role with RLS in force**, rolled back by raising the result: 3 checkpoints in → 1 build and exactly 3 checkpoints out in order; a malformed checkpoint (level 0) aborts the whole call with nothing persisted; `auth.uid()` null → refused. Confirm the table is clean afterwards. Run the security advisors.
-- [ ] **Reconcile with the pending mirror-sync migration** (`docs/superpowers/pending-migrations/20260923235500_…`): once applied, its triggers point the build at the most recently saved checkpoint. State in this migration's comment which checkpoint the build row mirrors after an import, and re-verify after the pending migrations land at merge.
-- [ ] `npm run db:types`; commit the migration and types together.
+- [x] Write `supabase/migrations/<ts>_import_build.sql`: `import_build(p_build jsonb, p_checkpoints jsonb) returns uuid`, **SECURITY INVOKER**, `set search_path to 'public'`. Inserts the build (`user_id = auth.uid()`, a share token passed in — minted in the Server Function with `nanoid`, same as `POST /api/builds`); the `create_initial_build_checkpoint` trigger then makes checkpoint 0, so the function **updates** checkpoint 0 with the first entry and inserts the rest at positions 1..n-1. Revoke EXECUTE from `public, anon`; grant to `authenticated`.
+- [x] **Load the `supabase-postgres-best-practices` skill before writing it.**
+- [x] Apply it; verify in a DO block **as the `authenticated` role with RLS in force**, rolled back by raising the result: 3 checkpoints in → 1 build and exactly 3 checkpoints out in order; a malformed checkpoint (level 0) aborts the whole call with nothing persisted; `auth.uid()` null → refused. Confirm the table is clean afterwards. Run the security advisors.
+- [x] **Reconcile with the pending mirror-sync migration** (`docs/superpowers/pending-migrations/20260923235500_…`): once applied, its triggers point the build at the most recently saved checkpoint. State in this migration's comment which checkpoint the build row mirrors after an import, and re-verify after the pending migrations land at merge.
+- [x] `npm run db:types`; commit the migration and types together.
+
+- [x] **Done 2026-09-24 as `20260925010117_import_build.sql`.** `search_path` is empty (every name qualified), not `'public'`. The build row mirrors the **last** checkpoint — the furthest stage, whose level is PoB's build level — the same choice the delete re-point trigger makes; `/tree` still opens on position 0. Verified as `authenticated` with RLS, rolled back: 3 checkpoints in, 3 out in order (31/60/94), build level 94, `active_checkpoint_id` = the last; a level-0 checkpoint aborts the call with 0 rows left; no `sub` refused. `anon` has no EXECUTE; advisors show nothing new. The two pending migrations were applied at the Slice 1 merge before this was written, so no re-verification is outstanding.
 
 ## Task 7: `source.ts` — failure modes first
 
