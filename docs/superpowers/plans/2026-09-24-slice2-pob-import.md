@@ -230,8 +230,10 @@ Each returns `{ value, report: ReportEntry[] }` and never throws.
 
 **Produces:** `resolvePobInput(input: string): Promise<{ ok: true; code: string; sourceUrl: string | null } | { ok: false; error: string }>`
 
-- [ ] Failure modes first, with the network stubbed: `http://pobb.in/...` refused (HTTPS only); `https://evil.example/pob/x`, `https://pobb.in.evil.example/x`, `https://user@pobb.in/x`, an IP literal and `file:///x` all refused **without a request being made**; a redirect to a host off the allowlist refused; a response over 1 MB refused; a timeout reported as a timeout; a non-200 reported with its status; a raw code (no `://`) passed through untouched.
-- [ ] Per-site raw endpoints come from PoB2's own `src/Modules/BuildSiteTools.lua` (see `docs/research/poe2/build-sharing-ecosystem.md` §2.3). **Verify each against a live request once before relying on it** and record the result; do not assume the research table is current.
+- [x] Failure modes first, with the network stubbed: `http://pobb.in/...` refused (HTTPS only); `https://evil.example/pob/x`, `https://pobb.in.evil.example/x`, `https://user@pobb.in/x`, an IP literal and `file:///x` all refused **without a request being made**; a redirect to a host off the allowlist refused; a response over 1 MB refused; a timeout reported as a timeout; a non-200 reported with its status; a raw code (no `://`) passed through untouched.
+- [x] Per-site raw endpoints come from PoB2's own `src/Modules/BuildSiteTools.lua` (see `docs/research/poe2/build-sharing-ecosystem.md` §2.3). **Verify each against a live request once before relying on it** and record the result; do not assume the research table is current.
+
+- [x] **Live verification, 2026-09-24.** PoB2's `BuildSiteTools.lua` on `dev` still lists the download URLs in the research table. Share id `eQVFNoqVZrza`, linked from poe2db.tw's /pob page, was fetched through `resolvePobInput` from both pobb.in (`/pob/<id>`, 12,368 B `text/plain`) and poe2db.tw (`/pob/<id>/raw`, 12,524 B). Both are **PoE1** builds (`<PathOfBuilding>` root), and `decodePobCode` refuses them as `not-pob2` — a useful real-world check that the refusal fires. Maxroll (`/poe2/api/pob/<id>` → 400 "Failed to fetch profile") and poe.ninja (`/poe2/pob/raw/<id>` → 404 problem+json) answered at their paths for a made-up id. **No real PoE2 id was found for those two, so their success path is unverified.** Redirects are refused outright rather than followed and re-checked.
 
 ## Task 8: the Server Functions
 
