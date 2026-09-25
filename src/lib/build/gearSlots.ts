@@ -100,7 +100,34 @@ const WEAPON_MAIN_CATEGORIES = [
 // every unique focus in the game. Same base/unique split trap as the flask
 // categories below; filtering on 'Focus' alone silently hides every unique
 // focus. See corrections doc §2.
-const WEAPON_OFF_CATEGORIES = ['Shield', 'Buckler', 'Focus', 'Focii', 'Quiver'] as const;
+//
+// The rest follows PoB2's off-hand rule (src/Classes/ItemsTab.lua,
+// IsItemValidForSlot, "Weapon 2"): a Sceptre; any `one_hand_weapon`, for dual
+// wielding ('Mace' is the unique-stash category and may hold two-handers —
+// see validate/handedness.ts); and, with Giant's Blood, a two-handed axe,
+// mace or sword. Wand (tagged `onehand`, not `one_hand_weapon`) and Spear
+// (excluded by name) are never an off-hand. Which pairing is legal depends on
+// the main hand and the tree, so the picker offers the union and
+// src/lib/build/validate warns about the rest — a slot list cannot express a
+// pairing rule. Added in Slice 3, plans/2026-09-24-slice3-structural-validation.md.
+const WEAPON_OFF_CATEGORIES = [
+  'Shield',
+  'Buckler',
+  'Focus',
+  'Focii',
+  'Quiver',
+  'Sceptre',
+  'One Hand Sword',
+  'One Hand Axe',
+  'One Hand Mace',
+  'Mace',
+  'Claw',
+  'Dagger',
+  'Flail',
+  'Two Hand Sword',
+  'Two Hand Axe',
+  'Two Hand Mace',
+] as const;
 
 const LIFE_FLASK_CATEGORIES = ['LifeFlask', 'Life Flask'] as const;
 const MANA_FLASK_CATEGORIES = ['ManaFlask', 'Mana Flask'] as const;

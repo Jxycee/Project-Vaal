@@ -199,6 +199,27 @@ describe('mapItems — output', () => {
     expect(value.weapon2_off?.name).toBe('Plain Shield');
   });
 
+  it('keeps a dual-wielded off-hand weapon now that the off-hand accepts one, but still drops a Wand there', async () => {
+    const extra = [entry('Plain Dagger', 'Dagger'), entry('Plain Wand', 'Wand')];
+    const lookup: ItemLookup = {
+      ...fake,
+      byName: new Map([...fake.byName, ...extra.map((i) => [i.name, i] as const)]),
+      findBaseIn: () => null,
+    };
+    const { value, report } = await mapItems(
+      [rare(1, 'Plain Dagger'), rare(2, 'Plain Wand')],
+      [slot('Weapon 1', 1), slot('Weapon 2', 1), slot('Weapon 1 Swap', 2), slot('Weapon 2 Swap', 2)],
+      lookup,
+    );
+    expect(value.weapon1_main?.name).toBe('Plain Dagger');
+    expect(value.weapon1_off?.name).toBe('Plain Dagger');
+    expect(value.weapon2_main?.name).toBe('Plain Wand');
+    expect(value.weapon2_off).toBeNull();
+    expect(report.filter((r) => r.kind === 'dropped').map((r) => r.message)).toEqual([
+      expect.stringContaining('Plain Wand'),
+    ]);
+  });
+
   it('carries the icon the catalogue resolves, and state the write gate accepts unchanged', async () => {
     const { value } = await mapItems([rare(1, 'Plain Ring'), rare(2, 'Plain Charm')], [slot('Ring 1', 1), slot('Charm 2', 2)], fake);
     expect(value.ring1?.iconUrl).toBe('/data/wiki/2026-08-25/icons/items/plain-ring.png');
