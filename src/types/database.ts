@@ -152,6 +152,7 @@ export type Database = {
       }
       builds: {
         Row: {
+          active_checkpoint_id: string | null
           ascendancy: string | null
           character_id: string | null
           class: string
@@ -177,6 +178,7 @@ export type Database = {
           visibility: string
         }
         Insert: {
+          active_checkpoint_id?: string | null
           ascendancy?: string | null
           character_id?: string | null
           class: string
@@ -202,6 +204,7 @@ export type Database = {
           visibility?: string
         }
         Update: {
+          active_checkpoint_id?: string | null
           ascendancy?: string | null
           character_id?: string | null
           class?: string
@@ -476,6 +479,7 @@ export type Database = {
       get_build_by_share_token: {
         Args: { p_token: string }
         Returns: {
+          active_checkpoint_id: string | null
           ascendancy: string | null
           character_id: string | null
           class: string
