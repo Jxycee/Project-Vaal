@@ -23,8 +23,6 @@ import path from 'node:path';
 import { canSpawn } from './spawn';
 import { WIKI_DATA_VERSION } from './types';
 
-const ROOT = path.join(process.cwd(), 'public', 'data', 'wiki', WIKI_DATA_VERSION);
-
 /** Item slugs as the sync writes them. Checked BEFORE a path is built, so no input can leave items/. */
 const ITEM_SLUG_RE = /^[a-z0-9-]{1,120}$/;
 
@@ -64,12 +62,27 @@ export interface ModCatalogue {
 
 const READ_BATCH = 256; // bounded, so thousands of small files never exhaust file handles
 
-async function readJsonFiles(dir: string): Promise<unknown[]> {
-  const names = (await readdir(dir)).filter((n) => n.endsWith('.json'));
+// Every path below is one path.join spelled out to the file, with 'mods' and
+// 'items' as literals: no shared ROOT or `dir` parameter. A directory-valued
+// path makes the file tracer ship the whole wiki directory, icons included —
+// see the comment in loadIndex.ts's readIndex.
+async function readModFiles(): Promise<unknown[]> {
+  const names = (await readdir(path.join(process.cwd(), 'public', 'data', 'wiki', WIKI_DATA_VERSION, 'mods'))).filter((n) =>
+    n.endsWith('.json'),
+  );
   const out: unknown[] = [];
   for (let i = 0; i < names.length; i += READ_BATCH) {
     const batch = names.slice(i, i + READ_BATCH);
-    out.push(...(await Promise.all(batch.map(async (n) => JSON.parse(await readFile(path.join(dir, n), 'utf8')) as unknown))));
+    out.push(
+      ...(await Promise.all(
+        batch.map(
+          async (n) =>
+            JSON.parse(
+              await readFile(path.join(process.cwd(), 'public', 'data', 'wiki', WIKI_DATA_VERSION, 'mods', n), 'utf8'),
+            ) as unknown,
+        ),
+      )),
+    );
   }
   return out;
 }
@@ -97,7 +110,7 @@ let cached: Promise<ModCatalogue> | null = null;
 /** Built on first use and shared thereafter. A failed build is not cached, so a transient fs error can recover. */
 export function getModCatalogue(): Promise<ModCatalogue> {
   if (!cached) {
-    cached = readJsonFiles(path.join(ROOT, 'mods'))
+    cached = readModFiles()
       .then((all) => ({ mods: all.map(toCatalogueMod).filter((m): m is CatalogueMod => m !== null) }))
       .catch((err: unknown) => {
         cached = null;
@@ -117,7 +130,9 @@ export async function eligibleMods(itemSlug: string, kind: AffixKind): Promise<M
   if (!ITEM_SLUG_RE.test(itemSlug)) return null;
   let item: { rarity?: unknown; modDomain?: unknown; tags?: unknown };
   try {
-    item = JSON.parse(await readFile(path.join(ROOT, 'items', `${itemSlug}.json`), 'utf8'));
+    item = JSON.parse(
+      await readFile(path.join(process.cwd(), 'public', 'data', 'wiki', WIKI_DATA_VERSION, 'items', `${itemSlug}.json`), 'utf8'),
+    );
   } catch {
     return null;
   }
