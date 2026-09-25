@@ -20,6 +20,8 @@ import { MAX_ITEM_QUALITY, type CraftedMod, type ItemCraft, type ItemRarity } fr
 import { GEAR_SLOTS, type GearItem } from './gearSlots';
 import { parseGearState, type GearState } from './gearState';
 import { parseGemState, type GemState } from './gemState';
+import type { AttributeChoice } from '@poe2-toolkit/tree-core';
+import { isAttributeChoice } from './passiveState';
 import type { PassiveState } from './types';
 
 /** Serialised size cap per state column. A full build is a few KB; this is headroom, not a target. */
@@ -178,9 +180,25 @@ export function isPassiveState(value: unknown): value is PassiveState {
   return isFiniteNumberArray(value.set1) && isFiniteNumberArray(value.set2) && isFiniteNumberArray(value.ascendancyNodes);
 }
 
+/** 293 generic attribute nodes exist on the 0.5.2 tree; this is headroom, not a target. */
+const MAX_ATTRIBUTE_CHOICES = 300;
+const NODE_ID_RE = /^\d{1,10}$/;
+
 export function cleanPassiveStateInput(raw: unknown): InputResult<PassiveState> {
   if (tooLarge(raw) || !isPassiveState(raw)) return fail('Malformed passive_state');
-  return { ok: true, value: { set1: raw.set1, set2: raw.set2, ascendancyNodes: raw.ascendancyNodes } };
+  const value: PassiveState = { set1: raw.set1, set2: raw.set2, ascendancyNodes: raw.ascendancyNodes };
+  // Slice 5: kept, not projected away — refused, not repaired, when malformed.
+  const choices = (raw as unknown as Record<string, unknown>).attributeChoices;
+  if (choices !== undefined) {
+    if (!isPlainObject(choices)) return fail('Malformed passive_state');
+    const entries = Object.entries(choices);
+    if (entries.length > MAX_ATTRIBUTE_CHOICES) return fail('Malformed passive_state');
+    for (const [id, choice] of entries) {
+      if (!NODE_ID_RE.test(id) || !isAttributeChoice(choice)) return fail('Malformed passive_state');
+    }
+    if (entries.length > 0) value.attributeChoices = { ...(choices as Record<string, AttributeChoice>) };
+  }
+  return { ok: true, value };
 }
 
 export function cleanGearStateInput(raw: unknown): InputResult<GearState> {

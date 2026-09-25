@@ -20,6 +20,8 @@
 // A match means the hook is shipping to users and the guard has stopped
 // working. Verified absent on 2026-09-20.
 
+import type { AttributeChoice } from '@poe2-toolkit/tree-core';
+
 export interface TreeTestState {
   classId: number;
   className: string;
@@ -27,6 +29,8 @@ export interface TreeTestState {
   /** Main-tree allocation, including nodes auto-pathed to reach a requested one. */
   allocated: number[];
   ascendancyNodes: number[];
+  /** Slice 5: node id -> chosen attribute for allocated generic attribute nodes. */
+  attributeChoices: Record<number, AttributeChoice>;
 }
 
 export interface TreeTestApi {
@@ -59,4 +63,8 @@ export interface TreeTestApi {
    * since the canvas has no DOM for it to click directly.
    */
   jewelSockets: () => number[];
+  /** Slice 5: whether a node is a generic "+5 to any Attribute" node. */
+  isAttributeNode: (skill: number) => boolean;
+  /** Slice 5: the same commit path the node panel's buttons use; false when refused. */
+  setAttributeChoice: (skill: number, choice: AttributeChoice) => boolean;
 }

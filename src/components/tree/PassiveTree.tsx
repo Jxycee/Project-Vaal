@@ -20,7 +20,7 @@ import {
   toggleAllocationInMode,
   toggleAscendancyAllocation,
 } from '@poe2-toolkit/tree-core';
-import type { AllocMode, TreeData, WeaponSetAllocation } from '@poe2-toolkit/tree-core';
+import type { AllocMode, AttributeChoice, TreeData, WeaponSetAllocation } from '@poe2-toolkit/tree-core';
 import { normalizeGggTree, type GggTreeJson } from '@poe2-toolkit/tree-core/ggg';
 import { TreeView, type AllocationPreview } from '@poe2-toolkit/tree-react';
 import TreeControls, { type PickerClass } from '@/components/tree/TreeControls';
@@ -110,6 +110,12 @@ export default function PassiveTree({
   const [ascendancyNodes, setAscendancyNodes] = useState<number[]>(
     initialState?.ascendancyNodes ?? [],
   );
+  // Slice 5: which attribute each allocated generic "+5 to any Attribute"
+  // node was set to. tree-core draws the chosen one (BuildAllocation
+  // .attributeChoices); the stat engine counts it.
+  const [attributeChoices, setAttributeChoices] = useState<Record<number, AttributeChoice>>(
+    () => ({ ...(initialState?.attributeChoices ?? {}) }),
+  );
 
   // Report the allocation upward so the page can save it. Deliberately not
   // debounced: it is a cheap object build, and the page only stores it.
@@ -120,8 +126,9 @@ export default function PassiveTree({
       ascendancyId,
       main,
       ascendancyNodes,
+      attributeChoices,
     });
-  }, [onStateChange, data, classId, ascendancyId, main, ascendancyNodes]);
+  }, [onStateChange, data, classId, ascendancyId, main, ascendancyNodes, attributeChoices]);
 
   // tree-core's toggleAscendancyAllocation does no point counting, so the cap
   // lives here. Both commit paths (touch confirm and desktop click) route
@@ -245,9 +252,9 @@ export default function PassiveTree({
   const scene = useMemo(
     () =>
       buildScene(data, {
-        allocation: { classId, ascendId: ascendancyId, allocated, weaponSets: main.weaponSets },
+        allocation: { classId, ascendId: ascendancyId, allocated, weaponSets: main.weaponSets, attributeChoices },
       }),
-    [data, classId, ascendancyId, allocated, main.weaponSets],
+    [data, classId, ascendancyId, allocated, main.weaponSets, attributeChoices],
   );
 
   // Dry-run of what toggling `previewTarget` would do — the pending tap on
@@ -407,7 +414,7 @@ export default function PassiveTree({
       // Lich) shows its own name/stats over the shared nodes it swaps —
       // everything else about the node (geometry, pathing) stays the base's.
       const override = activeAscendancyDef?.nodeOverrides?.[skill];
-      setSelectedNode({ name: override?.name ?? node.name, stats: override?.stats ?? node.stats });
+      setSelectedNode({ skill, name: override?.name ?? node.name, stats: override?.stats ?? node.stats });
 
       // Touch has no hover, so it previews via `preview` above (driven by
       // pendingSkill) and commits only on the panel's explicit Allocate/Remove
@@ -463,9 +470,24 @@ export default function PassiveTree({
     setPendingSkill(null);
   }, []);
 
+  /**
+   * Sets a generic attribute node's choice. The one path both the panel's
+   * buttons and the test hook use; refuses a node that is not an allocated
+   * generic attribute node, and anything in read-only mode.
+   */
+  const commitAttributeChoice = useCallback(
+    (skill: number, choice: AttributeChoice): boolean => {
+      if (readOnly || !data.nodes[skill]?.isAttribute || !main.allocated.includes(skill)) return false;
+      setAttributeChoices((prev) => ({ ...prev, [skill]: choice }));
+      return true;
+    },
+    [readOnly, data, main.allocated],
+  );
+
   const handleReset = useCallback(() => {
     setMain(EMPTY_MAIN);
     setAscendancyNodes([]);
+    setAttributeChoices({});
     setSelectedNode(null);
     setHoveredNode(null);
     setHoveredSkill(null);
@@ -494,6 +516,7 @@ export default function PassiveTree({
         ascendancyId,
         allocated: [...main.allocated],
         ascendancyNodes: [...ascendancyNodes],
+        attributeChoices: { ...attributeChoices },
       }),
       startNode: () => startNode,
       neighbours: (skill) =>
@@ -512,6 +535,8 @@ export default function PassiveTree({
       // jewelSockets.ts's header comment for the same filter applied to the
       // panel itself.
       jewelSockets: () => data.jewelSlots.filter((id) => Boolean(data.nodes[id])),
+      isAttributeNode: (skill) => Boolean(data.nodes[skill]?.isAttribute),
+      setAttributeChoice: (skill, choice) => commitAttributeChoice(skill, choice),
     };
     return () => {
       delete w.__vaalTree;
@@ -522,6 +547,8 @@ export default function PassiveTree({
     ascendancyId,
     main.allocated,
     ascendancyNodes,
+    attributeChoices,
+    commitAttributeChoice,
     commitNode,
     startNode,
     handleClass,
@@ -581,6 +608,14 @@ export default function PassiveTree({
         // renders (NodeInfoPanel only renders it when BOTH pendingKind AND
         // onConfirm are set).
         onConfirm={isTouch && preview && !readOnly ? handleConfirmPending : undefined}
+        attribute={
+          selectedNode && data.nodes[selectedNode.skill]?.isAttribute && main.allocated.includes(selectedNode.skill)
+            ? {
+                current: attributeChoices[selectedNode.skill],
+                onChoose: readOnly ? undefined : (choice) => commitAttributeChoice(selectedNode.skill, choice),
+              }
+            : undefined
+        }
         onDismiss={() => setSelectedNode(null)}
       />
     </div>

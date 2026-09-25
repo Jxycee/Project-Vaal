@@ -116,6 +116,22 @@ describe('cleanPassiveStateInput', () => {
   it('rejects a missing key', () => {
     expect(cleanPassiveStateInput({ set1: [], set2: [] }).ok).toBe(false);
   });
+
+  // Slice 5: attribute choices must survive the gate — projecting to the three
+  // keys above would drop them silently with a 200, the Slice 4 trap again.
+  it('keeps well-formed attribute choices', () => {
+    const result = cleanPassiveStateInput({ set1: [10], set2: [10], ascendancyNodes: [], attributeChoices: { '10': 'dex' } });
+    expect(result).toEqual({ ok: true, value: { set1: [10], set2: [10], ascendancyNodes: [], attributeChoices: { '10': 'dex' } } });
+  });
+
+  it.each([
+    ['an unknown attribute', { '10': 'luck' }],
+    ['a non-numeric node id', { abc: 'str' }],
+    ['a non-object', ['str']],
+    ['more choices than a tree has attribute nodes', Object.fromEntries(Array.from({ length: 301 }, (_, i) => [String(i), 'str']))],
+  ])('refuses %s', (_label, attributeChoices) => {
+    expect(cleanPassiveStateInput({ set1: [], set2: [], ascendancyNodes: [], attributeChoices }).ok).toBe(false);
+  });
 });
 
 // Slice 4: the gate must KEEP a well-formed craft — cleanItem used to project

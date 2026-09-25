@@ -103,12 +103,13 @@ export default function TreeBuildSession({
 
   const initialState = useMemo<PassiveTreeInitialState | undefined>(() => {
     if (!build) return undefined;
-    const { main, ascendancyNodes } = fromPassiveState(build.passive_state);
+    const { main, ascendancyNodes, attributeChoices } = fromPassiveState(build.passive_state);
     return {
       className: build.class,
       ascendancyId: build.ascendancy ?? undefined,
       main,
       ascendancyNodes,
+      attributeChoices,
     };
   }, [build]);
 
@@ -144,6 +145,7 @@ export default function TreeBuildSession({
       ascendancyId: restoredDraft.ascendancyId,
       main: restoredDraft.main,
       ascendancyNodes: restoredDraft.ascendancyNodes,
+      attributeChoices: restoredDraft.attributeChoices,
     };
   }, [restoredDraft, initialState]);
 
@@ -170,7 +172,7 @@ export default function TreeBuildSession({
   const livePassive = useMemo(
     () =>
       editorState
-        ? toPassiveState(editorState.main, editorState.ascendancyNodes)
+        ? toPassiveState(editorState.main, editorState.ascendancyNodes, editorState.attributeChoices)
         : (build?.passive_state ?? { set1: [], set2: [], ascendancyNodes: [] }),
     [editorState, build],
   );
@@ -364,7 +366,7 @@ export default function TreeBuildSession({
             // present" discipline exists to protect a save path that
             // legitimately doesn't touch notes, which this one isn't.
             notes: meta.notes,
-            passive_state: toPassiveState(editorState.main, editorState.ascendancyNodes),
+            passive_state: toPassiveState(editorState.main, editorState.ascendancyNodes, editorState.attributeChoices),
             // Sent on every save (not conditionally) now that gear exists —
             // POST /api/builds only writes gear_state when the key is
             // present in the body, precisely so a save that omits it can't
@@ -570,7 +572,7 @@ export default function TreeBuildSession({
         currentState={
           editorState
             ? {
-                passive_state: toPassiveState(editorState.main, editorState.ascendancyNodes),
+                passive_state: toPassiveState(editorState.main, editorState.ascendancyNodes, editorState.attributeChoices),
                 gear_state: gearState,
                 gem_state: gemState,
               }

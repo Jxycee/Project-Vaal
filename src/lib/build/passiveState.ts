@@ -1,4 +1,4 @@
-import type { WeaponSetAllocation, WeaponSet } from '@poe2-toolkit/tree-core';
+import type { AttributeChoice, WeaponSetAllocation, WeaponSet } from '@poe2-toolkit/tree-core';
 import type { PassiveState } from '@/lib/build/types';
 
 /**
@@ -11,6 +11,7 @@ import type { PassiveState } from '@/lib/build/types';
 export function toPassiveState(
   main: WeaponSetAllocation,
   ascendancyNodes: number[],
+  attributeChoices: Readonly<Record<number | string, AttributeChoice>> = {},
 ): PassiveState {
   const set1: number[] = [];
   const set2: number[] = [];
@@ -25,13 +26,26 @@ export function toPassiveState(
     }
   }
 
-  return { set1, set2, ascendancyNodes: [...ascendancyNodes] };
+  const state: PassiveState = { set1, set2, ascendancyNodes: [...ascendancyNodes] };
+  // Only choices for nodes still allocated; a deallocated node's choice means nothing.
+  const allocated = new Set(main.allocated);
+  const choices = Object.fromEntries(Object.entries(attributeChoices).filter(([id]) => allocated.has(Number(id))));
+  if (Object.keys(choices).length > 0) state.attributeChoices = choices;
+  return state;
+}
+
+const ATTRIBUTE_CHOICES: readonly AttributeChoice[] = ['str', 'dex', 'int'];
+
+export function isAttributeChoice(value: unknown): value is AttributeChoice {
+  return typeof value === 'string' && (ATTRIBUTE_CHOICES as readonly string[]).includes(value);
 }
 
 /** Stored shape -> editor allocation. Inverse of toPassiveState. */
 export function fromPassiveState(state: PassiveState): {
   main: WeaponSetAllocation;
   ascendancyNodes: number[];
+  /** Keyed by number, as tree-core's BuildAllocation wants; `{}` for a row with none. */
+  attributeChoices: Record<number, AttributeChoice>;
 } {
   const set1 = state.set1 ?? [];
   const set2 = state.set2 ?? [];
@@ -55,6 +69,7 @@ export function fromPassiveState(state: PassiveState): {
   return {
     main: { allocated, weaponSets },
     ascendancyNodes: [...(state.ascendancyNodes ?? [])],
+    attributeChoices: Object.fromEntries(Object.entries(state.attributeChoices ?? {}).map(([id, choice]) => [Number(id), choice])),
   };
 }
 
@@ -77,9 +92,18 @@ export function parsePassiveState(raw: unknown): PassiveState {
     return { set1: [], set2: [], ascendancyNodes: [] };
   }
   const v = raw as Record<string, unknown>;
-  return {
+  const state: PassiveState = {
     set1: isFiniteNumberArray(v.set1) ? v.set1 : [],
     set2: isFiniteNumberArray(v.set2) ? v.set2 : [],
     ascendancyNodes: isFiniteNumberArray(v.ascendancyNodes) ? v.ascendancyNodes : [],
   };
+  if (typeof v.attributeChoices === 'object' && v.attributeChoices !== null && !Array.isArray(v.attributeChoices)) {
+    const choices = Object.fromEntries(
+      Object.entries(v.attributeChoices as Record<string, unknown>).filter(
+        (entry): entry is [string, AttributeChoice] => /^\d{1,10}$/.test(entry[0]) && isAttributeChoice(entry[1]),
+      ),
+    );
+    if (Object.keys(choices).length > 0) state.attributeChoices = choices;
+  }
+  return state;
 }
