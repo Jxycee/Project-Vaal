@@ -370,9 +370,12 @@ const GEM_CATEGORY: Record<Gem['kind'], string> = {
  * Normalizes one gem-extractor {@link Gem} (plus its optional per-level
  * {@link GemRequirement} curve and {@link GemScaling} tooltip data) into a
  * {@link WikiSkillDetail}. `key` is the gem's `GemData.gems` key (PoB's
- * `normalizeGemId`) - currently unused for display since `Gem.name` already
- * carries the display name, but accepted so callers can pass it through
- * without a lookup. `requirement`/`scaling` are `null` when the source data
+ * `normalizeGemId`) and is written out as {@link WikiSkillDetail.gemId} - it
+ * is not a display value, it is the stable GGG identity a PoB2 share code
+ * carries on every `<Gem>`, and matching on it is the difference between an
+ * exact import and a 60% name guess. This function accepted `key` and
+ * discarded it until 2026-09-23, the same silent drop that hid `qualityStats`.
+ * `requirement`/`scaling` are `null` when the source data
  * has none for this gem (e.g. many supports have no per-level curve).
  * `lastSynced` is the caller's single per-run timestamp (see normalizeItem).
  */
@@ -388,6 +391,7 @@ export function normalizeSkill(
   return {
     kind: 'skill',
     slug: slugify(gem.name),
+    gemId: key,
     name: gem.name,
     category: GEM_CATEGORY[gem.kind],
     gemType: gem.kind,
@@ -406,8 +410,27 @@ export function normalizeSkill(
       castTime: l.castTime,
       cooldown: l.cooldown,
       reservation: l.reservation,
+      // Crit chances were dropped alongside qualityStats — same omission, same
+      // cause: the extractor produces them, this mapping just never listed
+      // them. A planner shows crit, and a defensive/offensive stat engine
+      // needs it, so losing it was not cosmetic.
+      spellCritChance: l.spellCritChance,
+      attackCritChance: l.attackCritChance,
       stats: l.stats.map((s) => ({ text: s.text, min: s.min, max: s.max })),
     })),
+    // Gem quality. The extractor has always produced this (see
+    // @poe2-toolkit/gem-extractor's GemScaling.qualityStats, resolved at
+    // quality 20); this normalizer just never read it, which is why no synced
+    // skill file carries quality data. Competitor planners treat gem quality as
+    // load-bearing, so dropping it here was a real gap, not a cosmetic one.
+    qualityStats: (scaling?.qualityStats ?? []).map((s) => ({
+      text: s.text,
+      min: s.min,
+      max: s.max,
+    })),
+    // The gem's larger art, separate from the small icon. Also previously
+    // dropped here despite the extractor providing it.
+    hoverImage: gem.hoverImage,
     iconUrl,
     iconWidth: null,
     iconHeight: null,

@@ -15,13 +15,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import type { EmailOtpType } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
-
-// Same-origin relative paths only — never absolute or protocol-relative
-// ("//host"). Guards against open redirects.
-function safeRedirect(raw: string | null): string {
-  if (raw && raw.startsWith('/') && !raw.startsWith('//')) return raw
-  return '/dashboard'
-}
+import { safeRedirect } from '@/lib/safeRedirect'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)

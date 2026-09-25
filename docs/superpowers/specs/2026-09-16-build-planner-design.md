@@ -1,5 +1,30 @@
 # Build Planner — Design
 
+> ## ⚠️ SUPERSEDED IN PART — read `docs/superpowers/CURRENT-STATE.md` first
+>
+> This is the original design and still the best account of *why* the feature is
+> shaped the way it is. Several of its factual claims are now false. Verified
+> against the live database and real data on 2026-09-23:
+>
+> - **Visibility semantics are inverted here.** This document says `unlisted` =
+>   reachable by share link and `private` = owner only. As of 2026-09-23 the
+>   product means the opposite, and the database was migrated to match:
+>   `private` = owner + anyone with the link, `unlisted` = owner only, and the
+>   column defaults to `'unlisted'`. Everything this file says about
+>   `get_build_by_share_token` (§"Verified ground truth", §"Task 4") reads
+>   backwards — the live filter is `IN ('public','private')`.
+> - **`increment_build_view_count` is now `= 'public'` only**, not the pair.
+> - **`Focii` does not have 0 entries.** It holds the 8 *unique* focuses;
+>   `Focus` holds 51 bases and 0 uniques. Appendix B's advice to filter on
+>   `Focus` alone would hide every unique focus. `Talisman` (37 entries, the
+>   Druid's weapon class) is missing from the weapon mapping entirely. See
+>   `specs/2026-09-20-gear-data-corrections.md`.
+> - **`'Spirit Gem'` does not identify Spirit-reserving gems.** It is the Meta
+>   gem category: 39 entries, only 20 of which reserve, while 59 reserving gems
+>   are `Active Skill Gem` (Herald of Ash among them). The spirit readout this
+>   file proposes has no index-only implementation, and was cut from v1.
+
+
 **Date:** 2026-09-16
 **Status:** Approved design, pending implementation plan
 **Branch:** `worktree-build-planner`

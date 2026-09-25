@@ -28,7 +28,9 @@ import NodeTooltip, { type HoveredNode } from '@/components/tree/NodeTooltip';
 import NodeInfoPanel, { type SelectedNode } from '@/components/tree/NodeInfoPanel';
 import { useTreeResources, useClassCentreSprites } from '@/lib/tree/resources';
 import { MAX_ASCENDANCY_POINTS } from '@/lib/build/constants';
+import { derivePassiveBudget } from '@/lib/build/passiveBudget';
 import type { BuildEditorState, PassiveTreeInitialState } from '@/lib/build/types';
+import type { TreeTestApi } from '@/lib/tree/testApi';
 
 const TREE_VERSION = '0_5';
 const ASSET_VERSION = '0.5.2';
@@ -65,10 +67,28 @@ export default function PassiveTree({
   raw,
   initialState,
   onStateChange,
+  readOnly,
+  level,
 }: {
   raw: GggTreeJson;
   initialState?: PassiveTreeInitialState;
   onStateChange?: (state: BuildEditorState) => void;
+  /**
+   * A shared build page has no allocation to save — this suppresses the two
+   * real commit paths (see `commitNode` and the `NodeInfoPanel` `onConfirm`
+   * wiring below) while leaving hover, tap-to-inspect, pan and zoom alone. A
+   * reader inspecting what a node grants is the entire point of the page.
+   */
+  readOnly?: boolean;
+  /**
+   * The build's character level, for the level-derived basic/shared point
+   * budget (see `derivePassiveBudget`). Defaults to 100 (the maximum) when
+   * omitted — SharedTreePanel is the only caller that could omit it, and
+   * defaulting to the max means a reader who came here just to look at a
+   * tree never sees a spurious "over budget" flag for a level the caller
+   * simply didn't pass.
+   */
+  level?: number;
 }) {
   const data: TreeData = useMemo(() => normalizeGggTree(raw, TREE_VERSION), [raw]);
   const mainGraph = useMemo(() => buildTreeGraph(data), [data]);
@@ -108,6 +128,12 @@ export default function PassiveTree({
   // through this — capping only one of them would leave the other unbounded.
   const commitAscendancy = useCallback(
     (next: number[]) => {
+      // Belt-and-braces alongside commitNode's readOnly guard above: this is
+      // also reachable from `preview.commit` (the touch confirm path), which
+      // is only wired when NOT readOnly (see the NodeInfoPanel onConfirm
+      // prop below) — but a function that must never run on one code path is
+      // worth guarding at its own top, not just at its one current caller.
+      if (readOnly) return;
       const mainSet = new Set(main.allocated);
       const nextAscendancy = next.filter((id) => !mainSet.has(id));
       // Refuse growth past the cap; always allow a click that shrinks the
@@ -120,7 +146,7 @@ export default function PassiveTree({
       }
       setAscendancyNodes(nextAscendancy);
     },
-    [main.allocated, ascendancyNodes.length],
+    [main.allocated, ascendancyNodes.length, readOnly],
   );
 
   // Tooltips: real pointer hover only fires for a mouse (touch always starts
@@ -213,6 +239,8 @@ export default function PassiveTree({
     }
     return { basic: main.allocated.length - setI - setII, setI, setII, ascendancy: ascendancyNodes.length };
   }, [main, ascendancyNodes]);
+
+  const maxBasicPoints = useMemo(() => derivePassiveBudget(level ?? 100), [level]);
 
   const scene = useMemo(
     () =>
@@ -348,6 +376,28 @@ export default function PassiveTree({
     (activeClass?.ascendancies.length ?? 0) > 0,
   );
 
+  // The actual allocation commit, shared by the desktop click path and the
+  // dev-only automation hook below. Extracted rather than duplicated so a
+  // test can never pass against a code path the app does not itself use.
+  // Returns false when the node is not something this call can toggle.
+  const commitNode = useCallback(
+    (skill: number): boolean => {
+      if (readOnly) return false;
+      const node = data.nodes[skill];
+      if (!node) return false;
+
+      if (node.ascendancyName) {
+        if (!ascGraph) return false; // an ascendancy node with none active — ignore
+        const next = toggleAscendancyAllocation(data, node.ascendancyName, new Set(allocated), skill, ascGraph);
+        commitAscendancy(next);
+        return true;
+      }
+      setMain((cur) => toggleAllocationInMode(data, startNode, cur, skill, mode, pathingGraph));
+      return true;
+    },
+    [data, allocated, commitAscendancy, ascGraph, startNode, mode, pathingGraph, readOnly],
+  );
+
   const handleNodeClick = useCallback(
     (skill: number) => {
       const node = data.nodes[skill];
@@ -368,15 +418,9 @@ export default function PassiveTree({
         return;
       }
 
-      if (node.ascendancyName) {
-        if (!ascGraph) return; // clicked an ascendancy node with none active — ignore
-        const next = toggleAscendancyAllocation(data, node.ascendancyName, new Set(allocated), skill, ascGraph);
-        commitAscendancy(next);
-      } else {
-        setMain((cur) => toggleAllocationInMode(data, startNode, cur, skill, mode, pathingGraph));
-      }
+      commitNode(skill);
     },
-    [data, allocated, commitAscendancy, ascGraph, startNode, mode, pathingGraph, isTouch, activeAscendancyDef],
+    [data, isTouch, activeAscendancyDef, commitNode],
   );
 
   const handleNodeHover = useCallback(
@@ -428,6 +472,63 @@ export default function PassiveTree({
     setPendingSkill(null);
   }, []);
 
+  // ---- Dev-only automation hook -------------------------------------------
+  //
+  // TreeView is a pixi.js/WebGL canvas: it renders 5,151 nodes with no DOM
+  // structure per node, so an end-to-end test has no element to click and can
+  // only guess pixel coordinates. That guessing is slow, flaky, and silently
+  // passes when it misses. This exposes the editor's real commit paths by node
+  // id instead — `commitNode` is the same function handleNodeClick uses, so a
+  // test cannot pass against logic the app does not run.
+  //
+  // `process.env.NODE_ENV` is inlined by the bundler at build time, so the
+  // whole body below is statically unreachable in a production build and is
+  // eliminated. Verified by grepping the built chunks for `__vaalTree`.
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') return;
+    const w = window as typeof window & { __vaalTree?: TreeTestApi };
+    w.__vaalTree = {
+      getState: () => ({
+        classId,
+        className: data.classes[classId]?.name ?? '',
+        ascendancyId,
+        allocated: [...main.allocated],
+        ascendancyNodes: [...ascendancyNodes],
+      }),
+      startNode: () => startNode,
+      neighbours: (skill) =>
+        (data.nodes[skill]?.connections ?? [])
+          .map((c) => c.id)
+          .filter((id) => {
+            const n = data.nodes[id];
+            return Boolean(n) && !n.ascendancyName && !n.isJewelSocket && !n.conditional;
+          }),
+      allocate: (skill) => commitNode(skill),
+      setClass: (id) => handleClass(id),
+      setAscendancy: (id) => handleAscendancy(id),
+      reset: () => handleReset(),
+      // data.jewelSlots (normalizeGggTree) is already `.map(Number)`'d but,
+      // like the raw export, still includes ids with no matching node — see
+      // jewelSockets.ts's header comment for the same filter applied to the
+      // panel itself.
+      jewelSockets: () => data.jewelSlots.filter((id) => Boolean(data.nodes[id])),
+    };
+    return () => {
+      delete w.__vaalTree;
+    };
+  }, [
+    classId,
+    data,
+    ascendancyId,
+    main.allocated,
+    ascendancyNodes,
+    commitNode,
+    startNode,
+    handleClass,
+    handleAscendancy,
+    handleReset,
+  ]);
+
   const pickerClasses: PickerClass[] = useMemo(
     () =>
       data.classes
@@ -444,6 +545,7 @@ export default function PassiveTree({
         ascendancyId={ascendancyId}
         mode={mode}
         pointCounts={pointCounts}
+        maxBasicPoints={maxBasicPoints}
         searchQuery={searchQuery}
         hasAllocations={allocated.length > 0}
         onClass={handleClass}
@@ -451,6 +553,7 @@ export default function PassiveTree({
         onMode={setMode}
         onSearchChange={setSearchQuery}
         onReset={handleReset}
+        readOnly={readOnly}
       />
       <TreeView
         scene={scene}
@@ -471,7 +574,13 @@ export default function PassiveTree({
       <NodeInfoPanel
         node={selectedNode}
         pendingKind={isTouch ? preview?.kind : undefined}
-        onConfirm={isTouch && preview ? handleConfirmPending : undefined}
+        // readOnly: never wire the confirm handler — this is the touch
+        // counterpart to commitNode's readOnly guard above. The panel still
+        // shows the pending add/remove preview text (that's `pendingKind`,
+        // untouched), but the button that would actually commit it never
+        // renders (NodeInfoPanel only renders it when BOTH pendingKind AND
+        // onConfirm are set).
+        onConfirm={isTouch && preview && !readOnly ? handleConfirmPending : undefined}
         onDismiss={() => setSelectedNode(null)}
       />
     </div>

@@ -212,17 +212,73 @@ export interface WikiSkillLevelScaling {
   castTime: number | null;
   cooldown: number | null;
   reservation: number | null;
+  /**
+   * Per-level crit chance, as the extractor reports it. Optional for the same
+   * reason as {@link WikiSkillDetail.qualityStats}: `normalizeSkill` dropped
+   * both until 2026-09-23, so every record synced before then lacks the keys.
+   */
+  spellCritChance?: number;
+  attackCritChance?: number;
   stats: WikiSkillStatLine[];
 }
 
 export interface WikiSkillDetail extends WikiDetailBase {
   kind: 'skill';
+  /**
+   * The gem's stable GGG identity — the last segment of its `BaseItemTypes.Id`
+   * metadata path, e.g. `SkillGemIceNova` for `Metadata/Items/Gems/SkillGemIceNova`.
+   * This is `GemData.gems`' own key, and PoB2 calls the same thing
+   * `normalizeGemId`.
+   *
+   * It exists because `name` is not a usable join key across patches. A PoB2
+   * share code carries `gemId="Metadata/Items/Gems/SupportGemMartialTempo"` on
+   * every `<Gem>`, and matching those by display name against our index
+   * resolved only 60% of a real build (see
+   * `docs/superpowers/specs/2026-09-23-pob2-decode-findings.md`): our support
+   * gems are tiered by name (`Vitality I`, `Vitality II`) where PoB uses the
+   * untiered base, and several gems were renamed between patches
+   * (`Projectile Acceleration` became `Acceleration`). Matching on this field
+   * instead is exact.
+   *
+   * Absent from every file synced before 2026-09-23, for the same reason
+   * {@link WikiSkillDetail.qualityStats} was: `normalizeSkill` already received
+   * it as its `key` argument and simply never wrote it out. Treat as optional
+   * until a full `npm run sync:wiki` has regenerated the dataset.
+   *
+   * Not to be confused with `slug`, which is derived from the display name and
+   * is what our own URLs and stored builds use.
+   */
+  gemId?: string;
   gemType: 'active' | 'support' | 'spirit';
   color: 'r' | 'g' | 'b' | 'w';
   tags: string[];
   description: string | null;
   requirement: { strength: number; dexterity: number; intelligence: number; level: number };
   scaling: WikiSkillLevelScaling[];
+  /**
+   * Bonus lines granted by gem quality, already resolved at quality 20 by the
+   * extractor (`min` is the value at quality 0, i.e. always 0). Empty for a gem
+   * with no quality bonus — which is most support gems.
+   *
+   * Absent from every file synced before 2026-09-23: `normalizeSkill` simply
+   * did not read `GemScaling.qualityStats`, even though @poe2-toolkit has
+   * produced it all along. Existing records therefore lack the key entirely,
+   * so every reader must treat it as optional until a full `npm run sync:wiki`
+   * has regenerated the dataset.
+   */
+  qualityStats?: WikiSkillStatLine[];
+  /**
+   * The gem's larger in-game art, distinct from the small `iconUrl`. Dropped by
+   * `normalizeSkill` until 2026-09-23, so absent from every record synced
+   * before then. GGG art depicting real in-game content, which `AGENTS.md`
+   * permits.
+   *
+   * NOTE: unlike `iconUrl`, this is the RAW GGPK path the extractor reports
+   * (e.g. `Art/Textures/.../GemHoverImageIceNova.dds`), not a served URL.
+   * Rendering it would need the same extraction step `buildIcons` performs for
+   * icons. Storing it identifies the art; it does not make it displayable.
+   */
+  hoverImage?: string | null;
   iconUrl: string | null;
   /** See {@link WikiItemDetail.iconWidth}. */
   iconWidth: number | null;

@@ -64,3 +64,15 @@ next-env.d.ts
 # .claude/skills/ holds generated symlinks (core.symlinks=false on Windows
 # would commit them as duplicated content). Regenerate with `npx skills add`.
 /.claude/skills/
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/e2e/.auth/
+
+# Supabase CLI scratch (version probe, linked-project cache)
+supabase/.temp/
+
+# Generated on demand by `npm run db:schema`; never committed (see scripts/dump-schema.ts)
+supabase/schema.generated.sql

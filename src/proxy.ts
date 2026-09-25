@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { DEFAULT_REDIRECT, safeRedirect } from '@/lib/safeRedirect'
 
 // ---------------------------------------------------------------------------
 // Protected path prefixes.
@@ -7,7 +8,10 @@ import { NextResponse, type NextRequest } from 'next/server'
 // authenticated dashboard shell layout (sidebar, bottom nav).
 //
 // NOTE on route structure:
-//   /builds          → PUBLIC   (build finder, anonymous planner, shared viewer)
+//   /builds          → PROTECTED (build finder, own builds, shared build viewer — Task 4:
+//                      "no user that is signed out should even be able to see a public
+//                      build" is a product decision, not an oversight. See the 2026-09-22
+//                      Task 4 plan's AMENDMENT section.)
 //   /league          → PUBLIC
 //   /login /signup   → PUBLIC
 //   /dashboard       → PROTECTED
@@ -40,7 +44,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 // does not depend solely on this regex being correct. That is a bigger
 // change, deliberately deferred — do not assume this matcher is airtight.
 // ---------------------------------------------------------------------------
-const PROTECTED_PREFIXES = ['/dashboard', '/characters', '/settings', '/tree', '/campaign', '/wiki', '/data/wiki/']
+const PROTECTED_PREFIXES = ['/dashboard', '/characters', '/settings', '/tree', '/campaign', '/wiki', '/data/wiki/', '/builds']
 
 // `request.nextUrl.pathname` is WHATWG-parsed and NOT percent-decoded, so a
 // request to e.g. `/data/%77iki/...` (percent-encoded "wiki") does not
@@ -109,6 +113,10 @@ function withAuthTimeout<U>(
       }
     )
   })
+}
+
+function isAuthPage(pathname: string): boolean {
+  return pathname === '/login' || pathname === '/signup'
 }
 
 export async function proxy(request: NextRequest) {
@@ -188,9 +196,20 @@ export async function proxy(request: NextRequest) {
   }
 
   // Redirect authenticated users away from auth pages
-  // (prevents flicker on /login when already signed in)
-  if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup')) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+  // (prevents flicker on /login when already signed in).
+  //
+  // Honour the `?redirect=` the unauthenticated branch above preserved: if
+  // one request transiently sees no user and bounces to /login, and the next
+  // hop sees the user again, sending them to /dashboard would strand them
+  // there and silently drop the page they asked for (observed in e2e,
+  // 2026-09-23). The target is attacker-controllable, so it goes through the
+  // shared validator — never `new URL()` a raw param here, or `/\evil.com`
+  // resolves off-origin. A target that is itself /login or /signup falls
+  // back to the default rather than bouncing back into this branch.
+  if (user && isAuthPage(request.nextUrl.pathname)) {
+    let target = safeRedirect(request.nextUrl.searchParams.get('redirect'))
+    if (isAuthPage(new URL(target, request.url).pathname)) target = DEFAULT_REDIRECT
+    return NextResponse.redirect(new URL(target, request.url))
   }
 
   return supabaseResponse

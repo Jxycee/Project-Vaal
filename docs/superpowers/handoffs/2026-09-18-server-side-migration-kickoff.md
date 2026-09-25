@@ -1,5 +1,18 @@
 # Server-Side Migration + Gear — Handoff
 
+> ## ✅ COMPLETE — HISTORICAL RECORD. Read `docs/superpowers/CURRENT-STATE.md` for what is true now.
+>
+> The work this handoff briefs (D1, D5, D2) shipped on branch
+> `worktree-server-migration`, along with Tasks 2, 3 and 4. Its verification
+> guidance is still sound and still worth reading.
+>
+> Two of its database facts are now false, verified live on 2026-09-23:
+> `get_build_by_share_token` resolves `visibility IN ('public','private')`, not
+> `('public','unlisted')`, and `builds.visibility` defaults to `'unlisted'`, not
+> `'private'`. The meanings of those two words were deliberately swapped on
+> 2026-09-23 — see CURRENT-STATE.md.
+
+
 **Date:** 2026-09-18
 **Status:** No code written for this work yet. This hands off a decided direction, not a session recap.
 **Read this whole file before writing code.** It exists because the previous round's bugs were almost all caused by acting on a document that was confidently wrong. Several claims below contradict older docs in this repo — where they do, this file is newer and was verified against the live database and the running app.

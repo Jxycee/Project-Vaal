@@ -18,6 +18,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
+import { safeRedirect } from '@/lib/safeRedirect'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -80,13 +81,6 @@ function EmblemWithGlow({
       />
     </div>
   )
-}
-
-// Only allow same-origin relative redirects — never an absolute or
-// protocol-relative ("//host") URL. Guards against open-redirect attacks.
-function safeRedirect(raw: string | null): string {
-  if (raw && raw.startsWith('/') && !raw.startsWith('//')) return raw
-  return '/dashboard'
 }
 
 function LoginForm() {

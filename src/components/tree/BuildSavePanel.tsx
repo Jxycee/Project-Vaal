@@ -7,30 +7,51 @@
 import { useState, type FormEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { MAX_NOTES_LENGTH } from '@/lib/build/constants';
 
 export default function BuildSavePanel({
   buildId,
   initialName = '',
   initialLevel = 1,
   initialLeague = 'Standard',
+  initialNotes = '',
   saving,
   error,
   savedAt,
   onSave,
+  onLevelChange,
 }: {
   buildId?: string;
   initialName?: string;
   initialLevel?: number;
   initialLeague?: string;
+  initialNotes?: string;
   saving: boolean;
   error: string | null;
   savedAt: string | null;
-  onSave: (meta: { name: string; level: number; league: string }) => void;
+  onSave: (meta: { name: string; level: number; league: string; notes: string }) => void;
+  /**
+   * Fired with every well-formed edit to the level field (not debounced,
+   * not gated on submit) so the tree's level-derived passive budget (see
+   * TreeControls / derivePassiveBudget) stays live while the user types,
+   * the same way the rest of this editor is already live. An in-progress
+   * edit that doesn't yet parse (empty field, a bare "-") simply doesn't
+   * fire — the budget keeps showing the last well-formed value rather than
+   * flapping to a default.
+   */
+  onLevelChange: (level: number) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(initialName);
   const [level, setLevel] = useState(String(initialLevel));
   const [league, setLeague] = useState(initialLeague);
+  const [notes, setNotes] = useState(initialNotes);
+
+  function handleLevelChange(value: string) {
+    setLevel(value);
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isFinite(parsed)) onLevelChange(Math.min(100, Math.max(1, parsed)));
+  }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -39,6 +60,7 @@ export default function BuildSavePanel({
       name: name.trim(),
       level: Number.isFinite(parsed) ? Math.min(100, Math.max(1, parsed)) : 1,
       league: league.trim() || 'Standard',
+      notes,
     });
   }
 
@@ -88,7 +110,7 @@ export default function BuildSavePanel({
               id="build-level"
               inputMode="numeric"
               value={level}
-              onChange={(e) => setLevel(e.target.value)}
+              onChange={(e) => handleLevelChange(e.target.value)}
               disabled={saving}
               className="h-11"
             />
@@ -103,6 +125,35 @@ export default function BuildSavePanel({
               className="h-11"
             />
           </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-baseline justify-between">
+            <Label htmlFor="build-notes">Notes</Label>
+            <span className="text-xs text-muted-foreground">
+              {notes.length}/{MAX_NOTES_LENGTH}
+            </span>
+          </div>
+          {/*
+            A plain textarea, not the ui/input Input component (that's a
+            single-line <input>). resize-y (not resize/resize-none) lets the
+            user grow it for longer reasoning without the canvas swallowing
+            drags the way a resize-x or default `resize` (both axes) would —
+            this panel's own width is fixed by its container. maxLength is a
+            client-side convenience only; the server (POST /api/builds) is
+            the real cap, same reasoning as everywhere else user input hits
+            this route.
+          */}
+          <textarea
+            id="build-notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            maxLength={MAX_NOTES_LENGTH}
+            disabled={saving}
+            placeholder="Why this build works, leveling notes, anything a reader would want…"
+            rows={4}
+            className="w-full resize-y rounded-md border border-input bg-background/60 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-3 focus:ring-ring/50 disabled:opacity-50"
+          />
         </div>
 
         {error ? (

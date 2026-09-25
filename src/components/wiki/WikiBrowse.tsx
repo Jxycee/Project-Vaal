@@ -138,7 +138,7 @@ export function WikiBrowse({
           // only happen if the session lapsed after /wiki itself already
           // loaded (the user got past middleware once to be here at all).
           // Same ?redirect= convention as src/proxy.ts and the /login page
-          // (src/app/(auth)/login/page.tsx's `safeRedirect`).
+          // (validated by `safeRedirect` in src/lib/safeRedirect.ts).
           router.replace(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
           return;
         }

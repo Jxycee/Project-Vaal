@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Icon } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { FUZZY_SEARCH_TUNING } from '@/lib/fuseOptions';
+import { filterEntries } from '@/lib/wiki/filterEntries';
 import { humanizeCategory } from '@/lib/wiki/humanizeCategory';
 import { attributeTagColor } from '@/lib/wiki/attributeTagColor';
 import { WIKI_BASE_PATH } from '@/lib/wiki/types';
@@ -21,18 +22,13 @@ function attributeTagStyle(tag: string): CSSProperties | null {
   return color ? { color, borderColor: color } : null;
 }
 
-export function filterEntries(
-  entries: WikiSearchEntry[],
-  query: string,
-  fuse?: Fuse<WikiSearchEntry>,
-): WikiSearchEntry[] {
-  if (query.trim() === '') return entries;
-  const searchEngine = fuse ?? new Fuse(entries, {
-    keys: ['name', 'category', 'tags'],
-    ...FUZZY_SEARCH_TUNING,
-  });
-  return searchEngine.search(query).map((r) => r.item);
-}
+// Re-exported so existing `import { filterEntries } from './WikiSearch'`
+// call sites (including this file's own test) keep working — the real
+// implementation now lives in lib/wiki/filterEntries.ts, which is what
+// server code (GET /api/wiki/items) imports directly instead, since this
+// module's 'use client' directive makes its exports uncallable from the
+// server. See that file's header comment.
+export { filterEntries };
 
 export function WikiSearch({
   entries,

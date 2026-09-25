@@ -1,37 +1,58 @@
 'use client';
 
-// The signed-in user's own builds. Both queries below filter on
-// `user_id = <session user>` — that filter only scopes which rows this list
-// displays as "yours". It does not enforce ownership: the "Public builds are
-// readable by anyone" RLS policy is a permissive `SELECT` policy for role
-// `public`, which Postgres OR's together with the owner policy, so without
-// this filter a signed-in user's select would also return every other
-// user's public build, rendered here with Rename/Delete buttons that would
-// silently hit zero rows. RLS is still what enforces ownership on every
-// write (update/delete) — this filter just keeps foreign rows off the page.
+// The signed-in user's own builds — presentational only.
 //
-// Rename and delete go direct through the browser client rather than an API
-// route: neither touches a server-generated value, so RLS is the whole story.
+// All data (the rows, any load error, and each build's tags) comes down as
+// props from the Server Component at builds/page.tsx: there is no client-side
+// fetch here, and no signed-out branch — an unauthenticated visitor never
+// reaches this component (as of Task 4, /builds itself redirects to /login
+// before this ever mounts; see builds/page.tsx).
+//
+// Rename, delete, visibility and tags all go through the Server Functions in
+// builds/actions.ts instead of a direct browser Supabase call. That trades
+// the previous instant client-side update for a server round-trip on every
+// mutation — accepted deliberately, given the bug history behind this
+// migration. `revalidatePath('/builds')` inside each action refreshes the
+// `builds`/`tagsByBuildId` props; there is no local list state to reconcile.
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
-import type { User } from '@supabase/supabase-js';
-import { createClient } from '@/lib/supabase/client';
+import { X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { SavedBuild } from '@/lib/build/types';
+import type { ActionResult } from '@/app/(dashboard)/builds/actions';
+import { BUILD_VISIBILITIES, VISIBILITY_LABEL } from '@/lib/build/visibility';
 
-export default function MyBuildsList() {
-  // undefined = auth state not yet known (initial check in flight);
-  // null = checked and signed out; a User = checked and signed in.
-  // /builds is public (see proxy.ts) so, unlike /tree, there is no
-  // redirect to fall back on — this component is what decides whether
-  // the personal list is safe to render at all.
-  const [user, setUser] = useState<User | null | undefined>(undefined);
-  const [builds, setBuilds] = useState<SavedBuild[] | null>(null);
+interface MyBuildsListProps {
+  builds: SavedBuild[] | null;
+  loadError: string | null;
+  tagsByBuildId: Record<string, string[]>;
+  renameAction: (id: string, name: string) => Promise<ActionResult>;
+  deleteAction: (id: string) => Promise<ActionResult>;
+  setVisibilityAction: (id: string, visibility: string) => Promise<ActionResult>;
+  addTagAction: (buildId: string, tag: string) => Promise<ActionResult>;
+  removeTagAction: (buildId: string, tag: string) => Promise<ActionResult>;
+}
+
+export default function MyBuildsList({
+  builds,
+  loadError,
+  tagsByBuildId,
+  renameAction,
+  deleteAction,
+  setVisibilityAction,
+  addTagAction,
+  removeTagAction,
+}: MyBuildsListProps) {
   const [error, setError] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [addingTagId, setAddingTagId] = useState<string | null>(null);
+  const [tagDraft, setTagDraft] = useState('');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
   // Set true the instant Escape cancels a rename, read at the top of
   // commitRename. Unmounting the focused <Input> (setRenamingId(null)) fires
   // a native blur that React still delivers to onBlur on that fiber, so
@@ -39,60 +60,7 @@ export default function MyBuildsList() {
   // the resulting blur" apart from "the user actually blurred to commit".
   const cancelRenameRef = useRef(false);
 
-  const load = useCallback(async () => {
-    if (!user) return;
-    setError(null);
-    const supabase = createClient();
-    const { data, error: err } = await supabase
-      .from('builds')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('updated_at', { ascending: false });
-    if (err) {
-      console.error('Failed to load builds:', err);
-      setError("Couldn't load your builds.");
-    } else setBuilds((data ?? []) as unknown as SavedBuild[]);
-  }, [user]);
-
-  // Inlined rather than calling `load()` from the effect body: eslint's
-  // react-hooks/set-state-in-effect rule traces a direct call to a
-  // useCallback-defined async helper and flags the setState inside it, even
-  // though it only runs after the await. Chaining `.then()` on the query
-  // directly (as the tree page's build-load effect and WikiBrowse's index
-  // fetch already do) keeps the setState calls inside a plain promise
-  // callback, which the rule does not flag.
-  //
-  // getUser() is checked first, and the builds query only fires once a
-  // session is confirmed. RLS would happily answer an anonymous query too
-  // (via the "public builds" policy), which is exactly the bug this guards
-  // against — a signed-out visitor must never see that data rendered under
-  // "Your builds", so we don't even fetch it for them.
-  useEffect(() => {
-    let cancelled = false;
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: userData }) => {
-      if (cancelled) return;
-      setUser(userData.user);
-      if (!userData.user) return;
-      supabase
-        .from('builds')
-        .select('*')
-        .eq('user_id', userData.user.id)
-        .order('updated_at', { ascending: false })
-        .then(({ data, error: err }) => {
-          if (cancelled) return;
-          if (err) {
-            console.error('Failed to load builds:', err);
-            setError("Couldn't load your builds.");
-          } else setBuilds((data ?? []) as unknown as SavedBuild[]);
-        });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  async function commitRename(id: string) {
+  function commitRename(id: string) {
     // Escape already discarded the rename and flagged this — the blur that
     // unmounting the input triggers must not resurrect it as a save.
     if (cancelRenameRef.current) {
@@ -103,48 +71,68 @@ export default function MyBuildsList() {
     setRenamingId(null);
     if (!name) return;
     setError(null);
-    const supabase = createClient();
-    const { error: err } = await supabase.from('builds').update({ name }).eq('id', id);
-    if (err) {
-      console.error('Failed to rename build:', err);
-      setError("Couldn't rename that build.");
-    } else await load();
+    startTransition(async () => {
+      const result = await renameAction(id, name);
+      if (!result.ok) setError(result.error);
+    });
   }
 
-  async function confirmDelete(id: string) {
+  function confirmDelete(id: string) {
     setPendingDeleteId(null);
     setError(null);
-    const supabase = createClient();
-    const { error: err } = await supabase.from('builds').delete().eq('id', id);
-    if (err) {
-      console.error('Failed to delete build:', err);
-      setError("Couldn't delete that build.");
-    } else await load();
+    startTransition(async () => {
+      const result = await deleteAction(id);
+      if (!result.ok) setError(result.error);
+    });
   }
 
-  if (user === undefined) {
-    return <p className="text-sm text-muted-foreground">Loading your builds…</p>;
+  function handleVisibilityChange(id: string, visibility: string) {
+    setError(null);
+    startTransition(async () => {
+      const result = await setVisibilityAction(id, visibility);
+      if (!result.ok) setError(result.error);
+    });
   }
 
-  if (user === null) {
-    return (
-      <div className="py-10 text-center">
-        <p className="text-sm text-muted-foreground">Sign in to see your saved builds.</p>
-        <Link href="/login" className="mt-2 inline-block text-sm underline">
-          Sign in
-        </Link>
-      </div>
-    );
+  function commitAddTag(buildId: string) {
+    const tag = tagDraft.trim();
+    setAddingTagId(null);
+    setTagDraft('');
+    if (!tag) return;
+    setError(null);
+    startTransition(async () => {
+      const result = await addTagAction(buildId, tag);
+      if (!result.ok) setError(result.error);
+    });
+  }
+
+  function handleRemoveTag(buildId: string, tag: string) {
+    setError(null);
+    startTransition(async () => {
+      const result = await removeTagAction(buildId, tag);
+      if (!result.ok) setError(result.error);
+    });
+  }
+
+  async function handleCopyLink(shareToken: string) {
+    const url = `${window.location.origin}/builds/${shareToken}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedId(shareToken);
+      setTimeout(() => setCopiedId((cur) => (cur === shareToken ? null : cur)), 2000);
+    } catch {
+      setError("Couldn't copy the link — copy it from the address bar instead.");
+    }
   }
 
   // Only bail out to an error-only view when there is genuinely nothing else
   // to show — the initial load itself failed. Once builds is populated, a
   // later failure (a rename or delete hitting a network blip) must not blank
   // out every other build; it renders as a banner above the list instead.
-  if (error && builds === null) {
+  if (loadError && builds === null) {
     return (
       <p className="text-sm text-destructive" role="alert">
-        {error}
+        {loadError}
       </p>
     );
   }
@@ -164,7 +152,12 @@ export default function MyBuildsList() {
       <div className="py-10 text-center">
         {errorBanner}
         <p className="text-sm text-muted-foreground">You have not saved a build yet.</p>
-        <Link href="/tree" className="mt-2 inline-block text-sm underline">
+        {/* h-11: this is the empty state's only call to action, so it needs a
+            real tap target on a phone, not a 20px inline text link. */}
+        <Link
+          href="/tree"
+          className="mt-2 inline-flex h-11 items-center justify-center text-sm underline"
+        >
           Plan one on the passive tree
         </Link>
       </div>
@@ -175,75 +168,188 @@ export default function MyBuildsList() {
     <div className="flex flex-col gap-3">
       {errorBanner}
       <ul className="divide-y divide-border rounded-lg border border-border bg-card/40">
-        {builds.map((b) => (
-          <li key={b.id} className="flex items-center gap-3 px-3 py-2.5">
-            <div className="min-w-0 flex-1">
-              {renamingId === b.id ? (
-                <Input
-                  autoFocus
-                  value={draftName}
-                  onChange={(e) => setDraftName(e.target.value)}
-                  onBlur={() => void commitRename(b.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') void commitRename(b.id);
-                    if (e.key === 'Escape') {
-                      cancelRenameRef.current = true;
-                      setRenamingId(null);
-                    }
-                  }}
-                  className="h-11"
-                />
-              ) : (
-                <Link href={`/tree?build=${b.id}`} className="block truncate font-medium">
-                  {b.name}
-                </Link>
-              )}
-              <p className="truncate text-xs text-muted-foreground">
-                {b.ascendancy ?? b.class} · Level {b.level} · {b.league}
-              </p>
-            </div>
+        {builds.map((b) => {
+          const tags = tagsByBuildId[b.id] ?? [];
+          // 'unlisted' is the owner-only state in this app's vocabulary (see
+          // visibility.ts — it inverts the usual web meaning, deliberately), so
+          // it is the one visibility whose share link resolves to nothing. The
+          // share-token RPC matches on IN ('public','private').
+          const linkActive = b.visibility !== 'unlisted' && b.share_token !== null;
 
-            {pendingDeleteId === b.id ? (
-              <div className="flex shrink-0 gap-2">
-                <button
-                  type="button"
-                  onClick={() => void confirmDelete(b.id)}
-                  className="h-11 rounded-lg px-3 text-sm text-destructive"
-                >
-                  Delete
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPendingDeleteId(null)}
-                  className="h-11 rounded-lg px-3 text-sm text-muted-foreground"
-                >
-                  Cancel
-                </button>
+          return (
+            <li key={b.id} className="flex flex-col gap-2 px-3 py-2.5">
+              <div className="flex items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  {renamingId === b.id ? (
+                    <Input
+                      autoFocus
+                      value={draftName}
+                      onChange={(e) => setDraftName(e.target.value)}
+                      onBlur={() => commitRename(b.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') commitRename(b.id);
+                        if (e.key === 'Escape') {
+                          cancelRenameRef.current = true;
+                          setRenamingId(null);
+                        }
+                      }}
+                      className="h-11"
+                    />
+                  ) : (
+                    // flex + min-h-11 rather than a bare `block`: this is the
+                    // primary action on the page — the thing you tap to open a
+                    // build — and it was a 24px-tall target on a phone. The
+                    // tap-target check never caught it because the test
+                    // account had no builds, so /builds only ever rendered its
+                    // empty state under assertion.
+                    <Link
+                      href={`/tree?build=${b.id}`}
+                      className="flex min-h-11 items-center truncate font-medium"
+                    >
+                      {b.name}
+                    </Link>
+                  )}
+                  <p className="truncate text-xs text-muted-foreground">
+                    {b.ascendancy ?? b.class} · Level {b.level} · {b.league}
+                  </p>
+                </div>
+
+                {pendingDeleteId === b.id ? (
+                  <div className="flex shrink-0 gap-2">
+                    <button
+                      type="button"
+                      disabled={pending}
+                      onClick={() => confirmDelete(b.id)}
+                      className="h-11 rounded-lg px-3 text-sm text-destructive"
+                    >
+                      Delete
+                    </button>
+                    <button
+                      type="button"
+                      disabled={pending}
+                      onClick={() => setPendingDeleteId(null)}
+                      className="h-11 rounded-lg px-3 text-sm text-muted-foreground"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex shrink-0 gap-1">
+                    <button
+                      type="button"
+                      disabled={pending}
+                      onClick={() => {
+                        cancelRenameRef.current = false;
+                        setRenamingId(b.id);
+                        setDraftName(b.name);
+                      }}
+                      className="h-11 rounded-lg px-3 text-sm text-muted-foreground"
+                    >
+                      Rename
+                    </button>
+                    <button
+                      type="button"
+                      disabled={pending}
+                      onClick={() => setPendingDeleteId(b.id)}
+                      className="h-11 rounded-lg px-3 text-sm text-muted-foreground"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="flex shrink-0 gap-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    cancelRenameRef.current = false;
-                    setRenamingId(b.id);
-                    setDraftName(b.name);
-                  }}
-                  className="h-11 rounded-lg px-3 text-sm text-muted-foreground"
-                >
-                  Rename
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPendingDeleteId(b.id)}
-                  className="h-11 rounded-lg px-3 text-sm text-muted-foreground"
-                >
-                  Delete
-                </button>
+
+              {/* Visibility + share link. */}
+              <div className="flex flex-wrap items-center gap-2">
+                <Select value={b.visibility} onValueChange={(v) => handleVisibilityChange(b.id, v)}>
+                  <SelectTrigger className="h-11 w-[130px] shrink-0">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BUILD_VISIBILITIES.map((v) => (
+                      <SelectItem key={v} value={v}>
+                        {VISIBILITY_LABEL[v]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {linkActive && b.share_token ? (
+                  <>
+                    {/* The link itself, not just a copy button — a share link
+                        someone wants to read, long-press-select on mobile, or
+                        paste manually is a real path, not only a clipboard
+                        write. */}
+                    <Link
+                      href={`/builds/${b.share_token}`}
+                      className="flex h-11 min-w-0 flex-1 items-center truncate rounded-lg border border-border px-3 text-xs text-muted-foreground underline"
+                    >
+                      {`/builds/${b.share_token}`}
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyLink(b.share_token!)}
+                      className="flex h-11 shrink-0 items-center rounded-lg border border-border px-3 text-xs text-muted-foreground"
+                    >
+                      {copiedId === b.share_token ? 'Copied!' : 'Copy'}
+                    </button>
+                  </>
+                ) : null}
               </div>
-            )}
-          </li>
-        ))}
+              {linkActive ? (
+                // 'unlisted' is this app's owner-only state (visibility.ts
+                // explains why the vocabulary inverts the usual web meaning).
+                // This line used to name Private, which is the state that
+                // ENABLES the link — it read as a warning about the option the
+                // user had just chosen.
+                <p className="text-[11px] text-muted-foreground/80">
+                  Switching to Unlisted disables this link immediately.
+                </p>
+              ) : null}
+
+              {/* Tags. */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                {tags.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => handleRemoveTag(b.id, tag)}
+                    aria-label={`Remove tag ${tag}`}
+                    className="flex h-11 items-center gap-1 rounded-full border border-border bg-card px-3 text-xs text-muted-foreground"
+                  >
+                    {tag}
+                    <X size={12} />
+                  </button>
+                ))}
+                {addingTagId === b.id ? (
+                  <Input
+                    autoFocus
+                    value={tagDraft}
+                    onChange={(e) => setTagDraft(e.target.value)}
+                    onBlur={() => setAddingTagId(null)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') commitAddTag(b.id);
+                      if (e.key === 'Escape') setAddingTagId(null);
+                    }}
+                    placeholder="tag name"
+                    className="h-11 w-32"
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAddingTagId(b.id);
+                      setTagDraft('');
+                    }}
+                    className="flex h-11 items-center rounded-full border border-dashed border-border px-3 text-xs text-muted-foreground"
+                  >
+                    + Add tag
+                  </button>
+                )}
+              </div>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
   isWikiSearchEntry,
   WIKI_DATA_VERSION,
-  WIKI_PATCH_VERSION,
   ALL_WIKI_KINDS,
   WIKI_BASE_PATH,
   WIKI_KIND_LABEL,
@@ -38,10 +37,6 @@ describe('WikiSearchEntry', () => {
 
   it('exposes a dated data version string', () => {
     expect(WIKI_DATA_VERSION).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-  });
-
-  it('exposes a patch version string', () => {
-    expect(WIKI_PATCH_VERSION).toMatch(/^\d+(\.\d+)+$/);
   });
 });
 
