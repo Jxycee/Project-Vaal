@@ -24,12 +24,22 @@ import path from 'node:path';
 import { WIKI_DATA_VERSION, isWikiSearchEntry } from './types';
 import type { WikiEntryKind, WikiSearchEntry } from './types';
 
-const ROOT = path.join(process.cwd(), 'public', 'data', 'wiki', WIKI_DATA_VERSION);
-
 export class WikiIndexLoadError extends Error {}
 
 async function readIndex(kind: WikiEntryKind): Promise<WikiSearchEntry[]> {
-  const raw = await readFile(path.join(ROOT, `${kind}-index.json`), 'utf8');
+  // One path.join per read, spelled out to the file name, never a shared
+  // `ROOT` directory constant. Next's file tracer (nft) evaluates every
+  // path-like expression it can: a bare `public/data/wiki/<version>`
+  // resolves to a directory, and nft then ships that WHOLE directory with
+  // any function importing this module — 6,083 icons and ~13k detail files
+  // under /api/wiki/items, none of which it reads. Written this way it
+  // traces to `*-index.json` only. outputFileTracingExcludes cannot stand in
+  // for this: it is inert on Windows builds (see next.config.ts).
+  // load.ts and mentions.ts follow the same rule; so must any new reader.
+  const raw = await readFile(
+    path.join(process.cwd(), 'public', 'data', 'wiki', WIKI_DATA_VERSION, `${kind}-index.json`),
+    'utf8',
+  );
   const parsed: unknown = JSON.parse(raw);
   // Same boundary check fetchIndex.ts applies client-side: the file's shape
   // is `{ entries: [...] }`, not a bare array.
