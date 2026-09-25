@@ -125,9 +125,10 @@ test.describe('structural validation', () => {
     await expect(warningsList).toHaveCount(1);
 
     // Tap targets with a warning showing: close, two set toggles, 15 slot rows,
-    // and the clear buttons of set I's two equipped weapons.
+    // and the Edit and clear buttons of set I's two equipped weapons (Edit
+    // arrived with Slice 4's item editor).
     const taps = await measureTapTargets(page, '.fixed.inset-0.z-40');
-    expect(taps.scanned).toBe(20);
+    expect(taps.scanned).toBe(22);
     expect(taps.tooSmall, `controls under ${MIN_TAP_PX}px in the gear sheet`).toEqual([]);
 
     await gear.getByRole('button', { name: 'Set II' }).click();

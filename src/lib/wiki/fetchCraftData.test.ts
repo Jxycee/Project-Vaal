@@ -17,9 +17,11 @@ describe('extractModData', () => {
         domain: 'Item',
         rolls: [{ stat: 'a', min: 1, max: 1 }, { stat: 'b', min: 2, max: 3 }],
         spawnWeights: [{ tag: 'ring', weight: 1 }],
+        stats: ['Adds (1-1) to (2-3) Cold damage to Attacks', 4],
       }),
     ).toEqual({
       kind: 'prefix',
+      stats: ['Adds (1-1) to (2-3) Cold damage to Attacks'],
       group: 'ColdDamage',
       level: 1,
       domain: 'Item',

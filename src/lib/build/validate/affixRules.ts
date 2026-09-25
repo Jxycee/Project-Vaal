@@ -27,6 +27,8 @@ export interface ModData {
   domain: string;
   rolls: ValueRange[];
   spawnWeights: SpawnWeight[];
+  /** Display lines, for the editor. */
+  stats: string[];
 }
 
 export interface BaseData {

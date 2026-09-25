@@ -37,6 +37,7 @@ import { draftDiffersFrom } from '@/lib/build/draftCompare';
 import { emptyGearState, parseGearState } from '@/lib/build/gearState';
 import { summarizeJewels } from '@/lib/build/jewelState';
 import { offHandOccupiedBy, validateCheckpoint } from '@/lib/build/validate';
+import { useCraftData } from '@/components/build/useCraftData';
 import {
   addLoadout,
   addSupport,
@@ -173,7 +174,12 @@ export default function TreeBuildSession({
         : (build?.passive_state ?? { set1: [], set2: [], ascendancyNodes: [] }),
     [editorState, build],
   );
-  const buildWarnings = useMemo(() => validateCheckpoint({ passive: livePassive, gear: gearState }), [livePassive, gearState]);
+  // Slice 4: craft checks read mod/base/rune data, loaded lazily per slug.
+  const craftData = useCraftData(gearState);
+  const buildWarnings = useMemo(
+    () => validateCheckpoint({ passive: livePassive, gear: gearState, craftData }),
+    [livePassive, gearState, craftData],
+  );
   const offHandOccupied = useMemo(
     () => ({ 1: offHandOccupiedBy(gearState, livePassive, 1), 2: offHandOccupiedBy(gearState, livePassive, 2) }),
     [gearState, livePassive],

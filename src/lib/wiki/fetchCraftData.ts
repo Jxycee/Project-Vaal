@@ -24,7 +24,7 @@ export function extractModData(raw: unknown): ModData | null {
   const spawnWeights = (Array.isArray(raw.spawnWeights) ? raw.spawnWeights : [])
     .filter((w): w is { tag: string; weight: number } => isObject(w) && typeof w.tag === 'string' && isFiniteNumber(w.weight))
     .map((w) => ({ tag: w.tag, weight: w.weight }));
-  return { kind, group: raw.group, level: isFiniteNumber(raw.level) ? raw.level : 0, domain: raw.domain, rolls, spawnWeights };
+  return { kind, group: raw.group, level: isFiniteNumber(raw.level) ? raw.level : 0, domain: raw.domain, rolls, spawnWeights, stats: strings(raw.stats) };
 }
 
 export function extractBaseData(raw: unknown): BaseData | null {

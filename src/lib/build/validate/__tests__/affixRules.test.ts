@@ -17,6 +17,7 @@ const mod = (over: Partial<ModData> = {}): ModData => ({
   domain: 'Item',
   rolls: [{ min: 10, max: 20 }],
   spawnWeights: [{ tag: 'ring', weight: 1 }, { tag: 'default', weight: 0 }],
+  stats: [],
   ...over,
 });
 
