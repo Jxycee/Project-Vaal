@@ -69,6 +69,7 @@ All on the branch above. Verified by reading the routes and running the suites o
 *Verified: `src/proxy.ts:46`.*
 
 ## What is not built
+- **Path of Building 2 import** (Slice 2, `plans/2026-09-24-slice2-pob-import.md`; **on this branch only, not on `main`**). `/builds` → "Import from PoB" takes a PoB2 code, or a pobb.in / Maxroll / poe.ninja / poe2db.tw link fetched server-side through an exact-host allowlist (`src/lib/pob/source.ts`). It previews a report of what was kept, dropped and inferred, then creates a new owner-only build with one checkpoint per PoB spec, all written in one `import_build` call (`20260925010117`, **already applied to the live database**; unused by `main`'s code). Gems join on GGG id. Items join on base name, and their mods, runes, quality and variants are reported, not kept. Jewels come from the spec PoB was showing. The build row mirrors the last checkpoint. **The UI is test-grade.** *Verified:* `e2e/pob-import.spec.ts` against the live database (35 and 116 nodes seeded for the first and last checkpoints); full suite 69 passed.
 
 Deliberate deferrals, each recorded with its reason in the relevant spec: two-handed weapon occupancy (**not enforced for any weapon — but the data for it exists, see "The data we already hold"**), rune sockets, item mods/affixes/rolls, a stat engine of any kind, import/export, and structured stat priorities.
 
