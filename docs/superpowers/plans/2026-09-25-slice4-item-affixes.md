@@ -89,7 +89,10 @@ export interface ItemCraft {
 export interface GearItem { slug; name; category; isUnique; iconUrl; craft?: ItemCraft }  // craft only on gear slots + jewels
 ```
 
-A value outside its range is **clamped on write**, not refused: a typo should not lose the item. Unknown mod or rune slugs are **refused** by the write gate, because a slug is an identifier, not a number.
+~~A value outside its range is clamped on write, not refused. Unknown mod or rune slugs are refused by the write gate.~~ **Revised 2026-09-25, before any code.** Both would put mod data inside a gate that is pure and synchronous today. Refusing unknown slugs has a worse failure too: a future `sync:wiki` that renames one mod would make every build carrying it **unsavable**. So:
+- **The write gate checks shape and bounds only**: a slug matches `^[a-z0-9_]{1,120}$`, lengths and counts are capped, and every value is a finite number.
+- **The editor clamps** each value to the chosen tier's `min`–`max` as it is typed. That is the user's "exact number, clamped".
+- **The validator warns** about an unknown mod or rune slug, or a value outside its tier range. Those can only arrive from an import, an old row or a direct POST. Nothing is dropped, per the never-discard rule jewels already follow.
 
 ---
 
@@ -100,7 +103,7 @@ A value outside its range is **clamped on write**, not refused: a typo should no
 | `src/lib/build/craft.ts` | `ItemCraft` types, `emptyCraft(isUnique)`, `parseCraft(raw)` (defensive read), `rangesIn(line)` (the `(a-b)` parser), clamp helpers. Pure. |
 | `src/lib/build/gearState.ts` | parse `craft` on gear and jewel items |
 | `src/lib/build/stateInput.ts` | gate `craft`: shape, bounds, counts, lengths; refuse it on gem items |
-| `src/lib/wiki/modCatalogue.server.ts` | loads and caches the mod files once; `eligibleMods(itemSlug, kind)` → groups → tiers. Server-only. |
+| `src/lib/wiki/modCatalogue.ts` | loads and caches the mod files once; `eligibleMods(itemSlug, kind)` → groups → tiers. Server-only. |
 | `src/app/api/wiki/mods/route.ts` | `GET ?item=<slug>&kind=prefix\|suffix\|rune` (authenticated), ~KB responses |
 | `src/lib/build/validate/affixRules.ts` | Slice 3 validator extension: affix count vs rarity, duplicate group, ineligible mod, tier level above item level, runes above `socketLimit` |
 | `src/components/build/ItemEditorSheet.tsx` | TEST-GRADE editor opened from a filled gear row |
@@ -127,3 +130,12 @@ A value outside its range is **clamped on write**, not refused: a typo should no
 
 1. **Implicit and unique lines are text.** The engine needs `stat → value` from them. That can come from matching their templates against typed `Unique`/`Item` mod files (983 `Unique` mods exist) rather than parsing prose. Measure the match rate in Slice 5 before promising numbers.
 2. **Rune effects are text per equipment category** (`"All Equipment"`, …). Which category applies to which slot is needed for Slice 5, and for Task 3's rune filter. Tabulate the categories first.
+
+---
+
+## Rune applicability — researched 2026-09-25, deferred to Slice 5
+
+- **PoB2's rule** (`src/Classes/Item.lua:2378`, `ItemClass:GetSocketedAugmentTypes`): a rune's effect applies when its slot key equals the item's **broad** type or its **specific** type. Broad is `weapon` (the base has weapon stats), `armour` (it has armour stats), or `caster` (tagged wand, staff or sceptre). Specific is the item type lowercased, with `warstaff` → `quarterstaff` and evasion shields → `buckler`. PoB2's `Data/ModRunes.lua` uses 21 keys (`armour` 79, `weapon` 113, `caster` 40, `helmet` 47, …).
+- **Our data labels the same effects differently.** 29 display categories: `Martial Weapon` 77, `Armour` 63, `Wand or Staff` 51, `All Equipment` 16, `Caster Weapon` 4, …, each on `soulCoreEffects[].category`. A label→key mapping would be inference, not data.
+- **Conflict:** PoB2 sets no `socketLimit` on amulets, rings or belts, yet marks 544 rune effects `canSocketInJewellery = true`.
+- **So Slice 4:** the rune picker (a `runes` pseudo-slot on `/api/wiki/items`, category `SoulCore`) lists every rune and soul core. The count warning fires only for bases with a PoB2 `socketLimit`, and jewellery gets no count rule. **Which effect line applies to which slot is Slice 5's question**, since that is where it changes a number. It should start by building the label→key table and checking it against every rune that exists in both datasets.

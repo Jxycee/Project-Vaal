@@ -11,6 +11,8 @@
 // implements the corrected table, not the original.
 // =============================================================================
 
+import type { ItemCraft } from './craft';
+
 /** The 17 gear slots a character has. `weapon1_*`/`weapon2_*` mirror the tree's set1/set2 vocabulary. */
 export const GEAR_SLOTS = [
   'head',
@@ -71,6 +73,15 @@ export const GEAR_SLOT_LABELS: Record<GearSlot, string> = {
 export const JEWEL_PSEUDO_SLOT = 'jewels';
 
 export const JEWEL_CATEGORIES = ['Jewel'] as const;
+
+/**
+ * Runes and soul cores socketed into an item (Slice 4). Same pseudo-slot
+ * trick as jewels: the picker is shared, the category list lives here. Our
+ * data files all of them under the one `SoulCore` category (305 items).
+ */
+export const RUNE_PSEUDO_SLOT = 'runes';
+
+export const RUNE_CATEGORIES = ['SoulCore'] as const;
 
 // Druid's weapon class, added in patch 0.4.0 — despite the name this is NOT
 // jewellery. Missing from the original spec's Appendix B, which left Druid
@@ -175,4 +186,10 @@ export interface GearItem {
   category: string;
   isUnique: boolean;
   iconUrl: string | null;
+  /**
+   * Everything beyond the base (Slice 4): rarity, rolls, affixes, runes. Only
+   * on gear-slot and jewel items, never on gems; absent on rows saved before
+   * Slice 4. Read with parseCraft (via parseGearState), never trusted directly.
+   */
+  craft?: ItemCraft;
 }

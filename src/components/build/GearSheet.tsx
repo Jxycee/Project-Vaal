@@ -20,9 +20,11 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import ItemEditorSheet from '@/components/build/ItemEditorSheet';
 import ItemPickerSheet from '@/components/build/ItemPickerSheet';
 import { GEAR_SLOT_LABELS, type GearItem, type GearSlot } from '@/lib/build/gearSlots';
 import { WEAPON_SET_DOT } from '@/lib/build/weaponSetColors';
+import { craftSummary } from '@/lib/build/craft';
 import type { GearState } from '@/lib/build/gearState';
 import type { BuildWarning } from '@/lib/build/validate';
 import type { WeaponSet } from '@poe2-toolkit/tree-core';
@@ -54,6 +56,7 @@ function SlotRow({
   warnings,
   occupiedBy,
   onOpenPicker,
+  onEdit,
   onClear,
 }: {
   slot: GearSlot;
@@ -63,8 +66,11 @@ function SlotRow({
   /** The two-hander filling this (empty) off-hand, as the game draws it. */
   occupiedBy: GearItem | null;
   onOpenPicker: () => void;
+  /** Opens the item editor (Slice 4). */
+  onEdit: () => void;
   onClear: () => void;
 }) {
+  const craft = item?.craft;
   const hasWarning = warnings.some((w) => w.severity === 'warning');
   const hasNote = warnings.some((w) => w.severity === 'note');
   return (
@@ -122,6 +128,12 @@ function SlotRow({
                 </span>
               ) : null}
             </span>
+            {craft ? (
+              // TEST-GRADE (Slice 4): a one-line craft summary until the UI pass.
+              <span data-testid={`gear-craft-${slot}`} className="text-xs text-muted-foreground">
+                {craftSummary(craft)}
+              </span>
+            ) : null}
             {warnings.map((w) => (
               <span key={w.code} className="whitespace-normal text-xs text-muted-foreground">
                 {w.message}
@@ -129,6 +141,16 @@ function SlotRow({
             ))}
           </span>
         </button>
+        {item ? (
+          <button
+            type="button"
+            onClick={onEdit}
+            aria-label={`Edit ${GEAR_SLOT_LABELS[slot]}`}
+            className="flex h-11 min-w-11 shrink-0 items-center justify-center px-2 text-xs text-muted-foreground"
+          >
+            Edit
+          </button>
+        ) : null}
         {item ? (
           <button
             type="button"
@@ -167,6 +189,7 @@ export default function GearSheet({
   // which one is being painted.
   const [weaponSet, setWeaponSet] = useState<WeaponSet>(1);
   const [pickerSlot, setPickerSlot] = useState<GearSlot | null>(null);
+  const [editSlot, setEditSlot] = useState<GearSlot | null>(null);
 
   // Also gates the SSR pass, where `document` does not exist — moot in
   // practice since `open` starts `false` and only flips true from a client
@@ -233,6 +256,7 @@ export default function GearSheet({
               warnings={slotWarnings(slot)}
               occupiedBy={slot.endsWith('_off') ? occupiedBy[weaponSet] : null}
               onOpenPicker={() => setPickerSlot(slot)}
+              onEdit={() => setEditSlot(slot)}
               onClear={() => onChange(slot, null)}
             />
           ))}
@@ -244,12 +268,21 @@ export default function GearSheet({
               warnings={slotWarnings(slot)}
               occupiedBy={null}
               onOpenPicker={() => setPickerSlot(slot)}
+              onEdit={() => setEditSlot(slot)}
               onClear={() => onChange(slot, null)}
             />
           ))}
         </ul>
       </div>
 
+      <ItemEditorSheet
+        item={editSlot ? gear[editSlot] : null}
+        warnings={editSlot ? slotWarnings(editSlot) : []}
+        onChange={(item) => {
+          if (editSlot) onChange(editSlot, item);
+        }}
+        onClose={() => setEditSlot(null)}
+      />
       <ItemPickerSheet
         // Keyed by slot: opening the picker for a different slot remounts
         // it, which resets its internal search query for free instead of

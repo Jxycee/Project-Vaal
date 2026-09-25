@@ -5,6 +5,7 @@
 // problem (ItemPickerSheet 401s with no session) that this static page has
 // neither of, so it gets its own small component instead of a `readOnly`
 // prop threaded into GearSheet.
+import { craftSummary } from '@/lib/build/craft';
 import { GEAR_SLOT_LABELS, type GearItem, type GearSlot } from '@/lib/build/gearSlots';
 import { WEAPON_SET_DOT } from '@/lib/build/weaponSetColors';
 import type { GearState } from '@/lib/build/gearState';
@@ -27,7 +28,7 @@ const FIXED_SLOTS: readonly GearSlot[] = [
 
 function SlotRow({ slot, item }: { slot: GearSlot; item: GearItem | null }) {
   return (
-    <li className="flex h-14 w-full items-center gap-3 px-3">
+    <li className="flex min-h-14 w-full items-center gap-3 px-3">
       <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-card/60">
         {item?.iconUrl ? (
           // Plain <img>, not next/image: this icon comes from /data/wiki/
@@ -51,6 +52,12 @@ function SlotRow({ slot, item }: { slot: GearSlot; item: GearItem | null }) {
             </span>
           ) : null}
         </span>
+        {item?.craft ? (
+          // TEST-GRADE (Slice 4): the craft as one line until the UI pass.
+          <span data-testid={`shared-craft-${slot}`} className="truncate text-xs text-muted-foreground">
+            {craftSummary(item.craft)}
+          </span>
+        ) : null}
       </span>
     </li>
   );

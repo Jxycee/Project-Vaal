@@ -14,10 +14,20 @@ export type WarningCode =
   | 'handedness-unknown'
   | 'slot-category-mismatch'
   | 'weapon-set-points-over'
-  | 'ascendancy-points-over';
+  | 'ascendancy-points-over'
+  // Slice 4 — item craft (validate/affixRules.ts)
+  | 'affix-over-limit'
+  | 'affix-duplicate-group'
+  | 'affix-unknown'
+  | 'affix-wrong-kind'
+  | 'affix-not-eligible'
+  | 'affix-above-item-level'
+  | 'roll-out-of-range'
+  | 'runes-over-limit'
+  | 'rune-unknown';
 
 /** Where a warning belongs, so a surface can mark the offending row rather than only list it. */
-export type WarningTarget = { kind: 'gear'; slot: GearSlot } | { kind: 'tree' };
+export type WarningTarget = { kind: 'gear'; slot: GearSlot } | { kind: 'jewel'; nodeId: string } | { kind: 'tree' };
 
 export interface BuildWarning {
   code: WarningCode;

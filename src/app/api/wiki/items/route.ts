@@ -35,7 +35,7 @@ import { loadIndex, WikiIndexLoadError } from '@/lib/wiki/loadIndex';
 // See that file's header comment; WikiSearch.tsx re-exports the same
 // function for its own (client-side) callers.
 import { createEntrySearch, filterEntries } from '@/lib/wiki/filterEntries';
-import { isGearSlot, categoriesForSlot, JEWEL_PSEUDO_SLOT, JEWEL_CATEGORIES } from '@/lib/build/gearSlots';
+import { isGearSlot, categoriesForSlot, JEWEL_PSEUDO_SLOT, JEWEL_CATEGORIES, RUNE_PSEUDO_SLOT, RUNE_CATEGORIES } from '@/lib/build/gearSlots';
 import { categoriesForGemSlot, isGemPseudoSlot } from '@/lib/build/gemSlots';
 import type { WikiEntryKind, WikiSearchEntry } from '@/lib/wiki/types';
 
@@ -43,8 +43,8 @@ const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
 
 /**
- * `slot` covers the 17 gear slots, the `jewels` pseudo-slot, and the two gem
- * pseudo-slots. Gems live in the SKILL index, whose category vocabulary is
+ * `slot` covers the 17 gear slots, the `jewels` and `runes` pseudo-slots, and
+ * the two gem pseudo-slots. Gems live in the SKILL index, whose category vocabulary is
  * disjoint from the item index's — hence a kind alongside the categories.
  * Returns `null` for anything else so the caller can 400 rather than let an
  * arbitrary category string reach the filter.
@@ -52,6 +52,7 @@ const MAX_LIMIT = 100;
 function filterForParam(slot: string): { kind: WikiEntryKind; categories: readonly string[] } | null {
   if (isGemPseudoSlot(slot)) return { kind: 'skill', categories: categoriesForGemSlot(slot) };
   if (slot === JEWEL_PSEUDO_SLOT) return { kind: 'item', categories: JEWEL_CATEGORIES };
+  if (slot === RUNE_PSEUDO_SLOT) return { kind: 'item', categories: RUNE_CATEGORIES };
   if (isGearSlot(slot)) return { kind: 'item', categories: categoriesForSlot(slot) };
   return null;
 }

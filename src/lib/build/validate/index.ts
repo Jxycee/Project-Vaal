@@ -16,11 +16,13 @@ import { GEAR_SLOTS, GEAR_SLOT_LABELS, categoriesForSlot } from '../gearSlots';
 import type { GearState } from '../gearState';
 import type { PassiveState } from '../types';
 import type { BuildWarning } from './types';
+import { validateCrafts, type CraftData } from './affixRules';
 import { validateWeapons } from './weaponRules';
 
 export type { BuildWarning, WarningCode, WarningTarget } from './types';
 export { offHandOccupiedBy } from './weaponRules';
 export { reservedSpirit, type ReservedSpirit, type ScalingEntry } from './reservation';
+export { socketLimitFor, type BaseData, type CraftData, type ModData } from './affixRules';
 
 /**
  * Weapon-set passive points: 2 per campaign quest, 12 quests (PoB2
@@ -73,10 +75,24 @@ function slotMismatches(gear: GearState): BuildWarning[] {
   return warnings;
 }
 
-/** Every structural warning for one checkpoint: tree first, then gear in slot order. */
-export function validateCheckpoint({ passive, gear }: { passive: PassiveState; gear: GearState }): BuildWarning[] {
-  const slotIndex = (w: BuildWarning) => (w.target.kind === 'gear' ? GEAR_SLOTS.indexOf(w.target.slot) : -1);
-  const gearWarnings = [...slotMismatches(gear), ...validateWeapons(gear, passive)];
+/**
+ * Every structural warning for one checkpoint: tree first, then gear in slot
+ * order, then jewels. Craft checks (Slice 4) run only when `craftData` is
+ * passed — the editor loads it lazily, and a caller without it gets exactly
+ * the Slice 3 checks.
+ */
+export function validateCheckpoint({
+  passive,
+  gear,
+  craftData,
+}: {
+  passive: PassiveState;
+  gear: GearState;
+  craftData?: CraftData;
+}): BuildWarning[] {
+  const slotIndex = (w: BuildWarning) =>
+    w.target.kind === 'gear' ? GEAR_SLOTS.indexOf(w.target.slot) : w.target.kind === 'jewel' ? GEAR_SLOTS.length : -1;
+  const gearWarnings = [...slotMismatches(gear), ...validateWeapons(gear, passive), ...(craftData ? validateCrafts(gear, craftData) : [])];
   // Array.prototype.sort is stable, so warnings on one slot keep their order.
   gearWarnings.sort((a, b) => slotIndex(a) - slotIndex(b));
   return [...treeWarnings(passive), ...gearWarnings];

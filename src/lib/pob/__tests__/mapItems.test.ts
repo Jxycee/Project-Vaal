@@ -334,4 +334,47 @@ describe('mapItems — the real build against the real catalogue', async () => {
     expect(gated.ok).toBe(true);
     if (gated.ok) expect(gated.value).toEqual(value);
   });
+
+  // Slice 4: the importer keeps what it can match. Values re-derived from each
+  // mod's own min/max at PoB's range (checked by hand against PoB's displayed
+  // lines, 2026-09-25) — not copied from the display text.
+  it("keeps the crossbow's six crafted mods at PoB's rolled values", () => {
+    expect(value.weapon1_main?.craft).toMatchObject({
+      rarity: 'rare',
+      quality: 20,
+      prefixes: [
+        { slug: 'weaponelementaldamageontwohandweapon5', values: [100] },
+        { slug: 'localincreasedphysicaldamagepercent6', values: [150] },
+        { slug: 'localaddedphysicaldamagetwohand7', values: [34, 58] },
+      ],
+      suffixes: [
+        { slug: 'globalprojectileskillgemleveltwohandweapon4', values: [4] },
+        { slug: 'localincreasedattackspeed3', values: [13] },
+        { slug: 'localcriticalstrikechance4', values: [377] },
+      ],
+      runes: ['soul-core-of-citaqualotl', 'soul-core-of-citaqualotl'],
+    });
+  });
+
+  it("keeps Cloak of Flame's rolls and runes, and names the line this patch changed", () => {
+    expect(value.body?.craft).toMatchObject({ rarity: 'unique', quality: 20, uniqueValues: [[], [40], [40], [], []], runes: ['greater-body-rune', 'greater-body-rune'] });
+    expect(report.some((r) => r.message.includes('40% of Physical Damage taken as Fire Damage'))).toBe(true);
+  });
+
+  it("reads Blueflame Bracers' selected variant only", () => {
+    expect(value.gloves?.craft?.uniqueValues).toEqual([[], [15], [10], [10], []]);
+  });
+
+  it('keeps the Emerald jewel with its three crafted mods', () => {
+    const emerald = jewels.value['26725'].craft;
+    expect(emerald?.prefixes.map((m) => m.slug)).toEqual(['jewelprojectilespeed']);
+    expect(emerald?.suffixes.map((m) => m.slug)).toEqual(['jewelattackspeed', 'jewelcrossbowspeed']);
+  });
+
+  it('no longer reports any imported item as "base item only"', () => {
+    expect([...report, ...jewels.report].some((r) => r.message.includes('base item only'))).toBe(false);
+    for (const [key, item] of Object.entries(value)) {
+      if (key !== 'jewels' && item) expect((item as { craft?: unknown }).craft, key).toBeDefined();
+    }
+  });
 });

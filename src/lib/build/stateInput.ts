@@ -16,6 +16,7 @@
 // Used by POST /api/builds and addCheckpoint. Do not write a second copy.
 // =============================================================================
 
+import { MAX_ITEM_QUALITY, type CraftedMod, type ItemCraft, type ItemRarity } from './craft';
 import { GEAR_SLOTS, type GearItem } from './gearSlots';
 import { parseGearState, type GearState } from './gearState';
 import { parseGemState, type GemState } from './gemState';
@@ -61,19 +62,111 @@ export function isAllowedIconUrl(value: string): boolean {
   return ICON_URL_RE.test(value);
 }
 
-/** Validates one item already accepted by isGearItem, and projects it to exactly the GearItem fields. */
-function cleanItem(item: GearItem): GearItem | null {
+// ---- Item craft (Slice 4) ----------------------------------------------------
+// Shape and bounds only. Whether a mod or rune slug exists is the validator's
+// job (a warning), so a later resync that renames one never makes a saved
+// build unsavable — see plans/2026-09-25-slice4-item-affixes.md. Bounds come
+// from our data (2026-09-25): at most 6 rolls per mod, 2 ranges per line, 7
+// implicit lines, 37 unique lines; mod slugs are [a-z0-9_-] (two carry '-'),
+// item slugs [a-z0-9-].
+
+const RARITIES: readonly ItemRarity[] = ['normal', 'magic', 'rare', 'unique'];
+const CRAFT_KEYS = ['rarity', 'name', 'itemLevel', 'quality', 'corrupted', 'implicitValues', 'uniqueValues', 'prefixes', 'suffixes', 'runes'] as const;
+const MOD_SLUG_RE = /^[a-z0-9_-]{1,120}$/;
+const ITEM_SLUG_RE = /^[a-z0-9-]{1,120}$/;
+const MAX_AFFIXES_PER_KIND = 6;
+const MAX_VALUES_PER_ROW = 8;
+const MAX_IMPLICIT_ROWS = 16;
+const MAX_UNIQUE_ROWS = 64;
+const MAX_RUNES = 6;
+
+function cleanValueRow(raw: unknown): number[] | null {
+  if (!Array.isArray(raw) || raw.length > MAX_VALUES_PER_ROW) return null;
+  return raw.every((n) => typeof n === 'number' && Number.isFinite(n)) ? [...raw] : null;
+}
+
+function cleanValueRows(raw: unknown, maxRows: number): number[][] | null {
+  if (!Array.isArray(raw) || raw.length > maxRows) return null;
+  const rows: number[][] = [];
+  for (const row of raw) {
+    const cleaned = cleanValueRow(row);
+    if (!cleaned) return null;
+    rows.push(cleaned);
+  }
+  return rows;
+}
+
+function cleanAffixes(raw: unknown): CraftedMod[] | null {
+  if (!Array.isArray(raw) || raw.length > MAX_AFFIXES_PER_KIND) return null;
+  const mods: CraftedMod[] = [];
+  for (const entry of raw) {
+    if (!isPlainObject(entry) || Object.keys(entry).some((k) => k !== 'slug' && k !== 'values')) return null;
+    if (typeof entry.slug !== 'string' || !MOD_SLUG_RE.test(entry.slug)) return null;
+    const values = cleanValueRow(entry.values);
+    if (!values) return null;
+    mods.push({ slug: entry.slug, values });
+  }
+  return mods;
+}
+
+/** Validates a raw craft and projects it to exactly the ItemCraft fields; null = refuse. */
+function cleanCraft(raw: unknown): ItemCraft | null {
+  if (!isPlainObject(raw)) return null;
+  if (Object.keys(raw).some((k) => !(CRAFT_KEYS as readonly string[]).includes(k))) return null;
+  const { rarity, name, itemLevel, quality, corrupted } = raw;
+  if (typeof rarity !== 'string' || !(RARITIES as readonly string[]).includes(rarity)) return null;
+  if (name !== null && (typeof name !== 'string' || name.length > MAX_TEXT_LENGTH)) return null;
+  if (itemLevel !== null && (!Number.isInteger(itemLevel) || (itemLevel as number) < 1 || (itemLevel as number) > 100)) return null;
+  if (!Number.isInteger(quality) || (quality as number) < 0 || (quality as number) > MAX_ITEM_QUALITY) return null;
+  if (typeof corrupted !== 'boolean') return null;
+  const implicitValues = cleanValueRows(raw.implicitValues, MAX_IMPLICIT_ROWS);
+  const uniqueValues = cleanValueRows(raw.uniqueValues, MAX_UNIQUE_ROWS);
+  const prefixes = cleanAffixes(raw.prefixes);
+  const suffixes = cleanAffixes(raw.suffixes);
+  const runes = raw.runes;
+  if (!implicitValues || !uniqueValues || !prefixes || !suffixes) return null;
+  if (!Array.isArray(runes) || runes.length > MAX_RUNES || !runes.every((r) => typeof r === 'string' && ITEM_SLUG_RE.test(r))) return null;
+  return {
+    rarity: rarity as ItemRarity,
+    name: name as string | null,
+    itemLevel: itemLevel as number | null,
+    quality: quality as number,
+    corrupted,
+    implicitValues,
+    uniqueValues,
+    prefixes,
+    suffixes,
+    runes: [...(runes as string[])],
+  };
+}
+
+/**
+ * Validates one item already accepted by isGearItem, and projects it to
+ * exactly the GearItem fields. `rawCraft` is the item's `craft` as the client
+ * SENT it — not the reader's defaulted copy — so a malformed craft is
+ * refused rather than silently repaired. Gems pass `allowCraft: false`.
+ */
+function cleanItem(item: GearItem, rawCraft: unknown, allowCraft: boolean): GearItem | null {
   for (const text of [item.slug, item.name, item.category]) {
     if (text.length === 0 || text.length > MAX_TEXT_LENGTH) return null;
   }
   if (item.iconUrl !== null && !isAllowedIconUrl(item.iconUrl)) return null;
-  return {
+  const base: GearItem = {
     slug: item.slug,
     name: item.name,
     category: item.category,
     isUnique: item.isUnique,
     iconUrl: item.iconUrl,
   };
+  if (rawCraft === undefined) return base;
+  if (!allowCraft) return null;
+  const craft = cleanCraft(rawCraft);
+  return craft ? { ...base, craft } : null;
+}
+
+/** The `craft` property as sent, or undefined when the item has none. */
+function rawCraftOf(rawItem: unknown): unknown {
+  return isPlainObject(rawItem) ? rawItem.craft : undefined;
 }
 
 function isFiniteNumberArray(value: unknown): value is number[] {
@@ -110,15 +203,16 @@ export function cleanGearStateInput(raw: unknown): InputResult<GearState> {
   for (const slot of GEAR_SLOTS) {
     const item = parsed[slot];
     if (item === null) continue;
-    const cleaned = cleanItem(item);
+    const cleaned = cleanItem(item, rawCraftOf(raw[slot]), true);
     if (!cleaned) return fail('Malformed gear_state');
     out[slot] = cleaned;
   }
 
   const jewelEntries = Object.entries(parsed.jewels);
   if (jewelEntries.length > MAX_JEWELS) return fail('Malformed gear_state');
+  const rawJewels = (raw.jewels ?? {}) as Record<string, unknown>;
   for (const [key, item] of jewelEntries) {
-    const cleaned = cleanItem(item);
+    const cleaned = cleanItem(item, rawCraftOf(rawJewels[key]), true);
     if (!JEWEL_KEY_RE.test(key) || !cleaned) return fail('Malformed gear_state');
     out.jewels[key] = cleaned;
   }
@@ -148,11 +242,11 @@ export function cleanGemStateInput(raw: unknown): InputResult<GemState> {
   const loadouts = [];
   for (const loadout of parsed.loadouts) {
     if (loadout.id.length > MAX_LOADOUT_ID_LENGTH) return fail('Malformed gem_state');
-    const skill = loadout.skill === null ? null : cleanItem(loadout.skill);
+    const skill = loadout.skill === null ? null : cleanItem(loadout.skill, rawCraftOf(loadout.skill), false);
     if (loadout.skill !== null && !skill) return fail('Malformed gem_state');
     const supports = [];
     for (const support of loadout.supports) {
-      const cleaned = cleanItem(support);
+      const cleaned = cleanItem(support, rawCraftOf(support), false);
       if (!cleaned) return fail('Malformed gem_state');
       supports.push(cleaned);
     }

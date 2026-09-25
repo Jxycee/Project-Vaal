@@ -57,3 +57,30 @@ describe('validateCheckpoint — every way it could be wrong', () => {
     expect(validateCheckpoint({ passive, gear })).toEqual(first);
   });
 });
+
+describe('validateCheckpoint — with craft data (Slice 4)', () => {
+  const ring: GearItem = {
+    slug: 'amethyst-ring',
+    name: 'Amethyst Ring',
+    category: 'Ring',
+    isUnique: false,
+    iconUrl: null,
+    craft: { rarity: 'normal', name: null, itemLevel: null, quality: 0, corrupted: false, implicitValues: [], uniqueValues: [], prefixes: [{ slug: 'x', values: [] }], suffixes: [], runes: [] },
+  };
+  const craftData = { mods: new Map(), bases: new Map(), runes: new Map() };
+
+  it('adds craft warnings in slot order, jewels after every gear slot', () => {
+    const gear: GearState = { ...emptyGearState(), ring1: ring, belt: item('Plain Ring', 'Ring'), jewels: { '26725': { ...ring, category: 'Jewel' } } };
+    const warnings = validateCheckpoint({ passive: EMPTY_TREE, gear, craftData });
+    expect(warnings.map((w) => [w.code, w.target])).toEqual([
+      ['affix-over-limit', { kind: 'gear', slot: 'ring1' }],
+      ['slot-category-mismatch', { kind: 'gear', slot: 'belt' }],
+      ['affix-over-limit', { kind: 'jewel', nodeId: '26725' }],
+    ]);
+  });
+
+  it('skips craft checks entirely when no craft data is passed', () => {
+    const gear: GearState = { ...emptyGearState(), ring1: ring };
+    expect(validateCheckpoint({ passive: EMPTY_TREE, gear })).toEqual([]);
+  });
+});
