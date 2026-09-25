@@ -103,7 +103,7 @@ export interface GearItem { slug; name; category; isUnique; iconUrl; craft?: Ite
 | `src/lib/build/craft.ts` | `ItemCraft` types, `emptyCraft(isUnique)`, `parseCraft(raw)` (defensive read), `rangesIn(line)` (the `(a-b)` parser), clamp helpers. Pure. |
 | `src/lib/build/gearState.ts` | parse `craft` on gear and jewel items |
 | `src/lib/build/stateInput.ts` | gate `craft`: shape, bounds, counts, lengths; refuse it on gem items |
-| `src/lib/wiki/modCatalogue.server.ts` | loads and caches the mod files once; `eligibleMods(itemSlug, kind)` → groups → tiers. Server-only. |
+| `src/lib/wiki/modCatalogue.ts` | loads and caches the mod files once; `eligibleMods(itemSlug, kind)` → groups → tiers. Server-only. |
 | `src/app/api/wiki/mods/route.ts` | `GET ?item=<slug>&kind=prefix\|suffix\|rune` (authenticated), ~KB responses |
 | `src/lib/build/validate/affixRules.ts` | Slice 3 validator extension: affix count vs rarity, duplicate group, ineligible mod, tier level above item level, runes above `socketLimit` |
 | `src/components/build/ItemEditorSheet.tsx` | TEST-GRADE editor opened from a filled gear row |

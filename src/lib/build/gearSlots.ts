@@ -74,6 +74,15 @@ export const JEWEL_PSEUDO_SLOT = 'jewels';
 
 export const JEWEL_CATEGORIES = ['Jewel'] as const;
 
+/**
+ * Runes and soul cores socketed into an item (Slice 4). Same pseudo-slot
+ * trick as jewels: the picker is shared, the category list lives here. Our
+ * data files all of them under the one `SoulCore` category (305 items).
+ */
+export const RUNE_PSEUDO_SLOT = 'runes';
+
+export const RUNE_CATEGORIES = ['SoulCore'] as const;
+
 // Druid's weapon class, added in patch 0.4.0 — despite the name this is NOT
 // jewellery. Missing from the original spec's Appendix B, which left Druid
 // with zero selectable weapons. See corrections doc §3.

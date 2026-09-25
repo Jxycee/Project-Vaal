@@ -116,6 +116,13 @@ const nextConfig: NextConfig = {
       './public/data/wiki/*/skills/*.json',
       './public/data/wiki/*/items/*.json',
     ],
+    // GET /api/wiki/mods reads every mod file and one item file at request
+    // time (src/lib/wiki/modCatalogue.ts). Verified 2026-09-25: the automatic
+    // trace DOES find them today (5,267 mods, 4,994 items without this entry).
+    // It is kept as a guard, because /builds' trace once listed 0 data files
+    // while the build stayed green. Gate: count them in
+    // .next/server/app/api/wiki/mods/route.js.nft.json after a build.
+    '/api/wiki/mods': ['./public/data/wiki/*/mods/*.json', './public/data/wiki/*/items/*.json'],
   },
 
   outputFileTracingExcludes: {

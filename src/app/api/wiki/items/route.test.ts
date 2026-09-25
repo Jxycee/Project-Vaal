@@ -51,6 +51,20 @@ describe('GET /api/wiki/items', () => {
     expect(body.entries).toEqual([expect.objectContaining({ slug: 'a-jewel' })]);
   });
 
+  // Slice 4: the item editor's rune picker reuses this route, like jewels do.
+  it('serves the runes pseudo-slot from SoulCore items only', async () => {
+    loadIndexMock.mockResolvedValue([
+      entry({ slug: 'adept-rune', category: 'SoulCore' }),
+      entry({ slug: 'a-jewel', category: 'Jewel' }),
+    ]);
+
+    const res = await GET(req('?slot=runes'));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.entries).toEqual([expect.objectContaining({ slug: 'adept-rune' })]);
+  });
+
   it('honors a limit below the default when explicitly given', async () => {
     const many = Array.from({ length: 10 }, (_, i) => entry({ slug: `helm-${i}` }));
     loadIndexMock.mockResolvedValue(many);
