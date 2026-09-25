@@ -122,7 +122,7 @@ All four were fixed the same day. Crit chance is a number a planner displays and
 
 **The sync has now been run (2026-09-23).** All 1,118 skill records carry `gemId`, `qualityStats` and `hoverImage`, and `scaling[]` carries `spellCritChance`/`attackCritChance`. The fields stay declared optional so that records written before the sync — and any future field caught by the same silent-drop pattern — still type-check. Items and mods were untouched apart from `lastSynced`, as the audit predicted.
 
-**Licence, verified by reading the file header — this matters and the first report got it half right.** PoB2's *code* is MIT (`LICENSE.md`, "Copyright (c) 2018 Xavier Wang"). Its *data* is not: every generated data file carries `-- Skill data (c) Grinding Gear Games`. MIT does not cover it.
+**Licence, verified by reading the file header — this matters and the first report got it half right.** PoB2's *code* is MIT (`LICENSE.md`, "Copyright (c) 2016 David Gowor" — re-read raw on 2026-09-24; an earlier "2018 Xavier Wang" here was wrong and appears nowhere in the file). Its *data* is not: every generated data file carries `-- Skill data (c) Grinding Gear Games`. MIT does not cover it.
 
 That is not a blocker, but it changes the right route. **Our own dataset is already GGG-derived** — extracted from official patch data via `@poe2-toolkit`, which `AGENTS.md` explicitly sanctions. So the correct fix is to pull gem quality through **our existing extraction pipeline**, the same way we get everything else, using PoB2's files as a cross-check rather than as the source. Copying their extraction would take the same GGG-owned data by a worse-provenanced route for no benefit.
 
