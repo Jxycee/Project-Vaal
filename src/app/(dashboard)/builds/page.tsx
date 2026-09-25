@@ -16,6 +16,7 @@ import { normalizeTag } from '@/lib/build/tags';
 import { parseFinderFilters, type BuildFinderFilters } from '@/lib/build/finderFilters';
 import MyBuildsList from '@/components/builds/MyBuildsList';
 import BuildFinder from '@/components/builds/BuildFinder';
+import ImportSheet from '@/components/builds/ImportSheet';
 import { renameBuild, deleteBuild, setBuildVisibility, addBuildTag, removeBuildTag } from './actions';
 
 export const metadata = { title: 'Builds' };
@@ -220,6 +221,7 @@ export default async function BuildsPage({
     <div className="flex flex-col gap-4">
       <h1 className="text-xl font-semibold">Your builds</h1>
       {tabsNav}
+      <ImportSheet />
       <MyBuildsList
         builds={builds}
         loadError={loadError}
