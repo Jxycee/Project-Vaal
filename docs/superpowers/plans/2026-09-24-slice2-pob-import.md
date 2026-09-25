@@ -211,8 +211,10 @@ Each returns `{ value, report: ReportEntry[] }` and never throws.
 
 ## Task 5: `mapBuild.ts` + `report.ts`
 
-- [ ] Failure modes first: no specs → one checkpoint from the build level with an empty tree, reported; class not in our tree → the whole import refused with a clear message, because a tree cannot be placed on an unknown class; checkpoint levels inferred per design decision 7 and each marked inferred; notes over `MAX_NOTES_LENGTH` truncated and reported; build name defaults to `"<Ascendancy> — imported"` when none is given.
-- [ ] **Fixture:** 8 checkpoints in spec order named by their titles (colour codes like `^5` stripped), levels `31, 37, 44, 49, 56, 63, 70, 94` all inferred from titles, identical gear and gems in all eight, and a report stating gear and gems were shared across checkpoints because PoB stores one set of each.
+- [x] Failure modes first: no specs → one checkpoint from the build level with an empty tree, reported; class not in our tree → the whole import refused with a clear message, because a tree cannot be placed on an unknown class; checkpoint levels inferred per design decision 7 and each marked inferred; notes over `MAX_NOTES_LENGTH` truncated and reported; build name defaults to `"<Ascendancy> — imported"` when none is given.
+- [x] **Fixture:** 8 checkpoints in spec order named by their titles (colour codes like `^5` stripped), levels `31, 37, 44, 49, 56, 63, 70, 94` all inferred from titles, identical gear and gems in all eight, and a report stating gear and gems were shared across checkpoints because PoB stores one set of each.
+
+- [x] **Jewels (decided 2026-09-24, with the user):** PoB sockets jewels per spec, while ours live in `gear_state.jewels`, which every checkpoint shares. Jewels come from the spec PoB was showing (`activeSpec`, else the last), and the report says so. On the fixture that is spec 8's Emerald in sockets `26725` and `2491`. `report.ts` shipped with Task 4, so this task added only `mapBuild.ts`.
 
 ## Task 6: the migration — `import_build`
 
