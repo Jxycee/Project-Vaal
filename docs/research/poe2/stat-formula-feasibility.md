@@ -140,6 +140,13 @@ Do not skip the defensive stat sheet — it's buildable. Concretely:
 
 ---
 
+## Second verification, 2026-09-25 (Slice 5 planning)
+
+- **The armour constant is 10 in PoB2 today, not 12.** `src/Modules/Data.lua` sets `data.misc.ArmourRatio = 10`, and `CalcDefence.lua:62-64` computes `armour / (armour + raw × ArmourRatio)`. The "12" above came from Maxroll. Rows 8 and §3 are wrong on the constant; the formula's shape is right.
+- **Confirmed first-hand** (raw PoB2 files): Life `12 × level + 16` and Mana `4 × level + 30`, from GGG-exported `life_per_level` / `mana_per_level` (`Data/Misc.lua:156-157`, `CalcSetup.lua:955-956`); +2 Life per Str, +2 Mana per Int, +6 Accuracy per Dex (`CalcPerform.lua:494-519`); resistance cap 75, max 90; base Spirit 0.
+- **Spirit from quests** (§3, "UNCERTAIN"): PoB2's `Data/QuestRewards.lua` has +30 (Act 1, King in the Mists), +30 (Act 3, Ignagduk) and +40 (Interlude 3, Lythara), 100 in all, **earned by quest, not flat**.
+- The tree's stats are available typed from GGG's `PassiveSkills` table. See `docs/superpowers/plans/2026-09-25-slice5-defence-engine.md`.
+
 ## Controller verification, 2026-09-23
 
 Two claims in this report were re-checked independently before it was acted on.
