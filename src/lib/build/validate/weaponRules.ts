@@ -39,7 +39,7 @@ function fits(slot: GearSlot, item: GearItem): boolean {
 /** Main hands that count as "one hand free": nothing, a one-hander, a unique mace (unknown), or Giant's Blood's two-handers. */
 function leavesHandFree(main: GearItem | null, keys: Keystones): boolean {
   if (!main) return true;
-  if (handednessOf(main.category) !== 'two') return true;
+  if (handednessOf(main.category, main.slug) !== 'two') return true;
   return keys.giantsBlood && AXE_MACE_SWORD.has(main.category);
 }
 
@@ -82,12 +82,13 @@ function checkPair(main: GearItem | null, off: GearItem, keys: Keystones): Omit<
 
   if (PLAIN_OFF_HANDS.has(off.category)) return null;
   const giantsBlood = keys.giantsBlood && main !== null && AXE_MACE_SWORD.has(main.category);
-  if (GIANTS_BLOOD_OFF_HANDS.has(off.category)) {
+  const offTwoHanded = GIANTS_BLOOD_OFF_HANDS.has(off.category) || handednessOf(off.category, off.slug) === 'two';
+  if (offTwoHanded) {
     return giantsBlood
       ? null
       : { code: 'offhand-not-allowed', severity: 'warning', message: `${off.name} is two-handed; only Giant's Blood with an axe, mace or sword lets it into the off-hand.` };
   }
-  // What remains is a one-handed weapon (or a unique mace): dual wielding.
+  // What remains is a one-handed weapon (or a unique mace of unknown handedness): dual wielding.
   if (main && NO_DUAL_WIELD_MAIN.has(main.category)) {
     return { code: 'offhand-not-allowed', severity: 'warning', message: `A ${main.category} main hand cannot dual wield, so ${off.name} cannot go in the off-hand.` };
   }
@@ -112,15 +113,15 @@ export function validateWeapons(gear: GearState, passive: PassiveState): BuildWa
     const found = checkPair(main, off, keystonesFor(passive, set));
     if (found) warnings.push({ ...found, target });
 
-    const unknownMain = main && handednessOf(main.category) === 'unknown';
-    const unknownOff = handednessOf(off.category) === 'unknown' && off.category === 'Mace';
+    const unknownMain = main && handednessOf(main.category, main.slug) === 'unknown';
+    const unknownOff = off.category === 'Mace' && handednessOf(off.category, off.slug) === 'unknown';
     if (!found && (unknownMain || unknownOff)) {
       const which = unknownMain ? main! : off;
       warnings.push({
         code: 'handedness-unknown',
         severity: 'note',
         target,
-        message: `${which.name} is a unique mace; our data does not say whether it is one- or two-handed, so this pairing was not checked.`,
+        message: `${which.name} is a unique mace whose base our data does not resolve, so this pairing was not checked.`,
       });
     }
   }

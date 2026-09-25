@@ -171,6 +171,6 @@ Plus, independent of pairing:
 
 ## Follow-up task (2026-09-24): resolve unique mace handedness from `uniqueMods.baseType`
 
-- [ ] Real-data test first. For every unique in category `Mace`, strip any `{variant:…}` prefix from `uniqueMods.baseType` and resolve that base by name. Assert every one resolves and that the result equals a committed `UNIQUE_MACE_HANDEDNESS` table keyed by slug. A resync that changes a base fails this test instead of drifting silently.
-- [ ] `handednessOf` takes the item (`category` + `slug`), not just the category. A `Mace` unique in the table returns its real handedness; one not in the table stays `'unknown'`.
-- [ ] Weapon-rule tests: Hrimnor's Hymn (2H) + Shield warns; Frostbreath (1H) + Shield is clean; neither gets a `handedness-unknown` note.
+- [x] Real-data test first. For every unique in category `Mace`, strip any `{variant:…}` prefix from `uniqueMods.baseType` and resolve that base by name. Assert every one resolves and that the result equals a committed `UNIQUE_MACE_HANDEDNESS` table keyed by slug. A resync that changes a base fails this test instead of drifting silently.
+- [x] `handednessOf` takes the item (`category` + `slug`), not just the category. A `Mace` unique in the table returns its real handedness; one not in the table stays `'unknown'`.
+- [x] Weapon-rule tests: Hrimnor's Hymn (2H) + Shield warns; Frostbreath (1H) + Shield is clean; neither gets a `handedness-unknown` note.

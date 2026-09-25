@@ -139,6 +139,28 @@ describe("validateWeapons — keystone and ascendancy exceptions", () => {
   });
 });
 
+describe('validateWeapons — unique maces whose base we know', () => {
+  const HRIMNORS_HYMN: GearItem = { slug: 'hrimnors-hymn', name: "Hrimnor's Hymn", category: 'Mace', isUnique: true, iconUrl: null };
+  const FROSTBREATH: GearItem = { slug: 'frostbreath', name: 'Frostbreath', category: 'Mace', isUnique: true, iconUrl: null };
+
+  it('treats a two-handed unique mace as two-handed, with no "unknown" note', () => {
+    const warnings = validateWeapons(gear({ weapon1_main: HRIMNORS_HYMN, weapon1_off: SHIELD }), EMPTY_TREE);
+    expect(warnings.map((w) => [w.code, w.severity])).toEqual([['two-handed-occupied', 'warning']]);
+    expect(offHandOccupiedBy(gear({ weapon1_main: HRIMNORS_HYMN }), EMPTY_TREE, 1)?.name).toBe("Hrimnor's Hymn");
+  });
+
+  it('treats a one-handed unique mace as one-handed, clean beside a shield and as an off-hand', () => {
+    expect(validateWeapons(gear({ weapon1_main: FROSTBREATH, weapon1_off: SHIELD }), EMPTY_TREE)).toEqual([]);
+    expect(validateWeapons(gear({ weapon1_main: DAGGER, weapon1_off: FROSTBREATH }), EMPTY_TREE)).toEqual([]);
+  });
+
+  it("lets Giant's Blood carry a two-handed unique mace in the off-hand, and warns without it", () => {
+    expect(codes(gear({ weapon1_main: DAGGER, weapon1_off: HRIMNORS_HYMN }))).toEqual(['offhand-not-allowed']);
+    const tree = { set1: [GIANTS_BLOOD], set2: [], ascendancyNodes: [] };
+    expect(codes(gear({ weapon1_main: ONE_HAND_MACE, weapon1_off: HRIMNORS_HYMN }), tree)).toEqual([]);
+  });
+});
+
 describe('validateWeapons — what it cannot know', () => {
   it('only notes a unique Mace main hand beside an off-hand, because its handedness is unknown', () => {
     const warnings = validateWeapons(gear({ weapon1_main: UNIQUE_MACE, weapon1_off: SHIELD }), EMPTY_TREE);
