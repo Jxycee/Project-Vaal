@@ -89,7 +89,10 @@ export interface ItemCraft {
 export interface GearItem { slug; name; category; isUnique; iconUrl; craft?: ItemCraft }  // craft only on gear slots + jewels
 ```
 
-A value outside its range is **clamped on write**, not refused: a typo should not lose the item. Unknown mod or rune slugs are **refused** by the write gate, because a slug is an identifier, not a number.
+~~A value outside its range is clamped on write, not refused. Unknown mod or rune slugs are refused by the write gate.~~ **Revised 2026-09-25, before any code.** Both would put mod data inside a gate that is pure and synchronous today. Refusing unknown slugs has a worse failure too: a future `sync:wiki` that renames one mod would make every build carrying it **unsavable**. So:
+- **The write gate checks shape and bounds only**: a slug matches `^[a-z0-9_]{1,120}$`, lengths and counts are capped, and every value is a finite number.
+- **The editor clamps** each value to the chosen tier's `min`–`max` as it is typed. That is the user's "exact number, clamped".
+- **The validator warns** about an unknown mod or rune slug, or a value outside its tier range. Those can only arrive from an import, an old row or a direct POST. Nothing is dropped, per the never-discard rule jewels already follow.
 
 ---
 
