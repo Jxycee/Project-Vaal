@@ -85,3 +85,29 @@ describe('parseGearState', () => {
     expect(state.jewels).toEqual({ '1': boots });
   });
 });
+
+// Slice 4: `craft` rides on gear-slot and jewel items. Old rows carry none and
+// must read exactly as before; a stored craft is read defensively.
+describe('parseGearState — item craft (Slice 4)', () => {
+  const ring = { slug: 'amethyst-ring', name: 'Amethyst Ring', category: 'Ring', isUnique: false, iconUrl: null };
+
+  it('reads an item with no craft exactly as before — no craft key appears', () => {
+    const state = parseGearState({ ring1: ring });
+    expect(state.ring1).toEqual(ring);
+    expect(state.ring1).not.toHaveProperty('craft');
+  });
+
+  it('reads a stored craft on a gear slot and on a jewel', () => {
+    const craft = { rarity: 'rare', prefixes: [{ slug: 'addedcolddamage1', values: [1, 3] }] };
+    const state = parseGearState({ ring1: { ...ring, craft }, jewels: { '26725': { ...ring, slug: 'emerald', name: 'Emerald', category: 'Jewel', craft } } });
+    expect(state.ring1?.craft?.rarity).toBe('rare');
+    expect(state.ring1?.craft?.prefixes).toEqual([{ slug: 'addedcolddamage1', values: [1, 3] }]);
+    expect(state.jewels['26725'].craft?.rarity).toBe('rare');
+  });
+
+  it('defaults a malformed craft instead of losing the item', () => {
+    const state = parseGearState({ ring1: { ...ring, craft: 'garbage' } });
+    expect(state.ring1?.name).toBe('Amethyst Ring');
+    expect(state.ring1?.craft?.rarity).toBe('normal');
+  });
+});

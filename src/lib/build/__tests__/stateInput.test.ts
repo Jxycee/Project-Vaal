@@ -117,3 +117,92 @@ describe('cleanPassiveStateInput', () => {
     expect(cleanPassiveStateInput({ set1: [], set2: [] }).ok).toBe(false);
   });
 });
+
+// Slice 4: the gate must KEEP a well-formed craft — cleanItem used to project
+// every item to five fields, which would silently drop it with a 200 — and
+// must refuse, not repair, anything malformed. Shape and bounds only: whether
+// a mod slug exists is the validator's job, so a resync never makes a saved
+// build unsavable (plans/2026-09-25-slice4-item-affixes.md).
+describe('cleanGearStateInput — item craft (Slice 4)', () => {
+  const craft = (overrides: Record<string, unknown> = {}) => ({
+    rarity: 'rare',
+    name: 'Grim Hook',
+    itemLevel: 82,
+    quality: 20,
+    corrupted: false,
+    implicitValues: [[9]],
+    uniqueValues: [],
+    prefixes: [{ slug: 'addedcolddamage1', values: [1, 3] }],
+    suffixes: [{ slug: 'flaskbleedingandcorruptedbloodimmunityduringeffect-1', values: [] }],
+    runes: ['adept-rune'],
+    ...overrides,
+  });
+  const withCraft = (c: unknown) => ({ ...emptyGearState(), ring1: item({ slug: 'amethyst-ring', category: 'Ring', isUnique: false, craft: c }) });
+
+  it('keeps a well-formed craft byte-for-byte, on a slot and on a jewel', () => {
+    const result = cleanGearStateInput({ ...withCraft(craft()), jewels: { '26725': item({ craft: craft() }) } });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.ring1?.craft).toEqual(craft());
+      expect(result.value.jewels['26725'].craft).toEqual(craft());
+    }
+  });
+
+  it('still stores an item without a craft with no craft key', () => {
+    const result = cleanGearStateInput({ ...emptyGearState(), ring1: item() });
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.ring1).not.toHaveProperty('craft');
+  });
+
+  it.each([
+    ['an unknown rarity', { rarity: 'legendary' }],
+    ['a non-string name', { name: 5 }],
+    ['an over-long name', { name: 'x'.repeat(201) }],
+    ['item level 0', { itemLevel: 0 }],
+    ['item level 101', { itemLevel: 101 }],
+    ['a fractional item level', { itemLevel: 50.5 }],
+    ['quality 21', { quality: 21 }],
+    ['negative quality', { quality: -1 }],
+    ['a non-boolean corrupted', { corrupted: 1 }],
+    ['a non-finite value', { prefixes: [{ slug: 'addedcolddamage1', values: [Number.POSITIVE_INFINITY] }] }],
+    ['a string value', { implicitValues: [['9']] }],
+    ['a slug with a path in it', { prefixes: [{ slug: '../etc/passwd', values: [] }] }],
+    ['an upper-case slug', { suffixes: [{ slug: 'Strength1', values: [] }] }],
+    ['an extra key on an affix', { prefixes: [{ slug: 'addedcolddamage1', values: [], tier: 1 }] }],
+    ['seven prefixes', { prefixes: Array.from({ length: 7 }, () => ({ slug: 'addedcolddamage1', values: [] })) }],
+    ['nine values on one affix', { prefixes: [{ slug: 'addedcolddamage1', values: Array(9).fill(1) }] }],
+    ['seventeen implicit rows', { implicitValues: Array.from({ length: 17 }, () => [1]) }],
+    ['sixty-five unique rows', { uniqueValues: Array.from({ length: 65 }, () => [1]) }],
+    ['seven runes', { runes: Array(7).fill('adept-rune') }],
+    ['a rune slug with underscores', { runes: ['adept_rune'] }],
+    ['an unknown top-level key', { enchant: 'x' }],
+    ['a missing field', { corrupted: undefined }],
+  ])('refuses a craft with %s', (_label, overrides) => {
+    expect(cleanGearStateInput(withCraft(craft(overrides as Record<string, unknown>))).ok).toBe(false);
+  });
+
+  it('refuses a craft that is not an object', () => {
+    expect(cleanGearStateInput(withCraft('rare')).ok).toBe(false);
+    expect(cleanGearStateInput(withCraft([])).ok).toBe(false);
+  });
+
+  it('fits a fully crafted 17-slot build inside MAX_STATE_JSON_LENGTH', () => {
+    const big = craft({
+      prefixes: Array.from({ length: 6 }, (_, i) => ({ slug: `longmodslugnumber${i}xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`, values: [100, 200, 300] })),
+      suffixes: Array.from({ length: 6 }, (_, i) => ({ slug: `longmodslugnumber${i}xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`, values: [100, 200, 300] })),
+      implicitValues: Array.from({ length: 7 }, () => [10, 20]),
+      runes: Array(6).fill('greater-rune-of-the-long-name'),
+    });
+    const state: Record<string, unknown> = { ...emptyGearState() };
+    for (const slot of Object.keys(emptyGearState()).filter((k) => k !== 'jewels')) state[slot] = item({ craft: big });
+    expect(JSON.stringify(state).length).toBeLessThan(MAX_STATE_JSON_LENGTH);
+    expect(cleanGearStateInput(state).ok).toBe(true);
+  });
+});
+
+describe('cleanGemStateInput — craft is gear-only', () => {
+  it('refuses a gem carrying a craft', () => {
+    const skill = item({ slug: 'fireball', category: 'Active Skill Gems', isUnique: false, craft: { rarity: 'normal' } });
+    expect(cleanGemStateInput({ loadouts: [loadout({ skill })], primaryId: null }).ok).toBe(false);
+  });
+});
