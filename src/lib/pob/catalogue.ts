@@ -19,6 +19,9 @@ import path from 'node:path';
 import { GEAR_SLOTS, JEWEL_CATEGORIES, categoriesForSlot } from '@/lib/build/gearSlots';
 import { TREE_VERSION } from '@/lib/tree/version';
 import { loadAllSlugs, loadDetail } from '@/lib/wiki/load';
+import { getModCatalogue, type ModCatalogue } from '@/lib/wiki/modCatalogue';
+import { canSpawn } from '@/lib/wiki/spawn';
+import type { CraftLookups, CraftMod } from './mapCraft';
 import { loadIndex } from '@/lib/wiki/loadIndex';
 import type { WikiItemDetail, WikiSkillDetail } from '@/lib/wiki/types';
 
@@ -73,6 +76,13 @@ export interface Catalogue {
      */
     findBaseIn(text: string): CatalogueItem | null;
     iconUrlFor(slug: string): Promise<string | null>;
+    /**
+     * What mapCraft needs to read one item's PoB text against our data
+     * (Slice 4): mods by id, the tiers that can roll on this base, the base's
+     * implicit and unique lines, and runes by name. Optional so a test fake
+     * without it keeps Slice 2's "reported, not kept" behaviour.
+     */
+    craftLookupsFor?(slug: string): Promise<CraftLookups>;
   };
 }
 
@@ -202,7 +212,41 @@ async function buildItems(): Promise<Catalogue['items']> {
       const detail = (await loadDetail('item', slug)) as WikiItemDetail | null;
       return detail?.iconUrl ?? null;
     },
+    async craftLookupsFor(slug) {
+      const detail = (await loadDetail('item', slug)) as WikiItemDetail | null;
+      const catalogue = await getModCatalogue();
+      const bySlug = modsBySlug(catalogue);
+      const tags = new Set(detail?.tags ?? []);
+      return {
+        modById: (id) => bySlug.get(id) ?? null,
+        candidates: catalogue.mods
+          .filter((m) => m.domain === detail?.modDomain && canSpawn(m.spawnWeights, tags))
+          .sort((a, b) => a.level - b.level)
+          .map(toCraftMod),
+        base: detail ? { implicitLines: detail.implicitMods ?? [], uniqueLines: detail.uniqueMods?.explicitMods ?? [] } : null,
+        runeSlugByName: (name) => {
+          const entry = byName.get(name);
+          return entry && entry.category === 'SoulCore' ? entry.slug : null;
+        },
+      };
+    },
   };
+}
+
+function toCraftMod(m: ModCatalogue['mods'][number]): CraftMod {
+  return { slug: m.slug, kind: m.kind, rolls: m.rolls.map((r) => ({ min: r.min, max: r.max })), stats: m.stats };
+}
+
+const modIndexes = new WeakMap<ModCatalogue, Map<string, CraftMod>>();
+
+/** The mod catalogue keyed by slug, built once per catalogue. */
+function modsBySlug(catalogue: ModCatalogue): Map<string, CraftMod> {
+  let index = modIndexes.get(catalogue);
+  if (!index) {
+    index = new Map(catalogue.mods.map((m) => [m.slug, toCraftMod(m)]));
+    modIndexes.set(catalogue, index);
+  }
+  return index;
 }
 
 let cached: Promise<Catalogue> | null = null;

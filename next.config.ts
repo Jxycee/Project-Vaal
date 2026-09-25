@@ -115,6 +115,8 @@ const nextConfig: NextConfig = {
       './public/data/wiki/*/item-index.json',
       './public/data/wiki/*/skills/*.json',
       './public/data/wiki/*/items/*.json',
+      // Slice 4: the importer reads crafted mods through the mod catalogue.
+      './public/data/wiki/*/mods/*.json',
     ],
     // GET /api/wiki/mods reads every mod file and one item file at request
     // time (src/lib/wiki/modCatalogue.ts). Verified 2026-09-25: the automatic
