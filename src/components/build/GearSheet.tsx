@@ -24,6 +24,7 @@ import ItemEditorSheet from '@/components/build/ItemEditorSheet';
 import ItemPickerSheet from '@/components/build/ItemPickerSheet';
 import { GEAR_SLOT_LABELS, type GearItem, type GearSlot } from '@/lib/build/gearSlots';
 import { WEAPON_SET_DOT } from '@/lib/build/weaponSetColors';
+import { craftSummary } from '@/lib/build/craft';
 import type { GearState } from '@/lib/build/gearState';
 import type { BuildWarning } from '@/lib/build/validate';
 import type { WeaponSet } from '@poe2-toolkit/tree-core';
@@ -70,7 +71,6 @@ function SlotRow({
   onClear: () => void;
 }) {
   const craft = item?.craft;
-  const affixes = craft ? craft.prefixes.length + craft.suffixes.length : 0;
   const hasWarning = warnings.some((w) => w.severity === 'warning');
   const hasNote = warnings.some((w) => w.severity === 'note');
   return (
@@ -131,9 +131,7 @@ function SlotRow({
             {craft ? (
               // TEST-GRADE (Slice 4): a one-line craft summary until the UI pass.
               <span data-testid={`gear-craft-${slot}`} className="text-xs text-muted-foreground">
-                {craft.rarity} · {affixes} {affixes === 1 ? 'affix' : 'affixes'}
-                {craft.runes.length > 0 ? ` · ${craft.runes.length} ${craft.runes.length === 1 ? 'rune' : 'runes'}` : ''}
-                {craft.corrupted ? ' · corrupted' : ''}
+                {craftSummary(craft)}
               </span>
             ) : null}
             {warnings.map((w) => (

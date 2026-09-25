@@ -134,3 +134,12 @@ export function parseCraft(raw: unknown, isUnique: boolean): ItemCraft | undefin
   if (Array.isArray(v.runes)) craft.runes = v.runes.filter((r): r is string => typeof r === 'string' && r.length > 0);
   return craft;
 }
+
+/** One line describing a craft — "rare · 3 affixes · 2 runes · corrupted" — for the gear lists. */
+export function craftSummary(craft: ItemCraft): string {
+  const affixes = craft.prefixes.length + craft.suffixes.length;
+  const parts = [craft.rarity, `${affixes} ${affixes === 1 ? 'affix' : 'affixes'}`];
+  if (craft.runes.length > 0) parts.push(`${craft.runes.length} ${craft.runes.length === 1 ? 'rune' : 'runes'}`);
+  if (craft.corrupted) parts.push('corrupted');
+  return parts.join(' · ');
+}

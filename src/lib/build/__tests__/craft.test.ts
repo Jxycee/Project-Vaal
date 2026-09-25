@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bestRolls, clampToRange, emptyCraft, MAX_ITEM_QUALITY, parseCraft, rangesIn } from '../craft';
+import { bestRolls, clampToRange, craftSummary, emptyCraft, MAX_ITEM_QUALITY, parseCraft, rangesIn } from '../craft';
 
 // Failure modes first (AGENTS.md). parseCraft READS stored jsonb: it must
 // default every missing field and drop a malformed entry on its own, never
@@ -148,5 +148,19 @@ describe('bestRolls', () => {
 
   it('is empty for a mod with no rolls', () => {
     expect(bestRolls([])).toEqual([]);
+  });
+});
+
+describe('craftSummary — the one-line craft description both gear lists show', () => {
+  it('names rarity and affix count, pluralised', () => {
+    expect(craftSummary({ ...emptyCraft(false), rarity: 'magic', prefixes: [{ slug: 'a', values: [] }] })).toBe('magic · 1 affix');
+    expect(craftSummary({ ...emptyCraft(false), rarity: 'normal' })).toBe('normal · 0 affixes');
+  });
+
+  it('adds runes and corruption only when present', () => {
+    expect(
+      craftSummary({ ...emptyCraft(false), rarity: 'rare', prefixes: [{ slug: 'a', values: [] }], suffixes: [{ slug: 'b', values: [] }, { slug: 'c', values: [] }], runes: ['r', 's'], corrupted: true }),
+    ).toBe('rare · 3 affixes · 2 runes · corrupted');
+    expect(craftSummary({ ...emptyCraft(true), runes: ['r'] })).toBe('unique · 0 affixes · 1 rune');
   });
 });
