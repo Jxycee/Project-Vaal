@@ -12,7 +12,7 @@ import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import type { GggTreeJson } from '@poe2-toolkit/tree-core/ggg';
 import { fromPassiveState } from '@/lib/build/passiveState';
-import { TREE_VERSION } from '@/components/tree/TreeEditor';
+import { TREE_VERSION } from '@/lib/tree/version';
 import type { PassiveState, PassiveTreeInitialState } from '@/lib/build/types';
 
 // Deferred to its own chunk, same reasoning as TreeEditor.tsx's module-level

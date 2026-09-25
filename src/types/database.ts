@@ -532,6 +532,10 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      import_build: {
+        Args: { p_build: Json; p_checkpoints: Json }
+        Returns: string
+      }
       increment_build_view_count: {
         Args: { p_build_id: string }
         Returns: undefined
