@@ -49,6 +49,10 @@ export interface Catalogue {
     hasNode(id: number): boolean;
     /** The ascendancy a node belongs to (e.g. 'Mercenary2'), or null for a main-tree node or an unknown id. */
     ascendancyOf(id: number): string | null;
+    /** Exact class display name, e.g. 'Mercenary'. A tree cannot be placed on a class we do not have. */
+    hasClass(className: string): boolean;
+    /** A passive node that holds a jewel. */
+    isJewelSocket(id: number): boolean;
     /** Exact class and ascendancy display names -> our ascendancy id, or null. */
     ascendancyIdFor(className: string, ascendancyName: string): string | null;
     /**
@@ -75,6 +79,7 @@ export interface Catalogue {
 interface RawTreeNode {
   ascendancyId?: string;
   isAscendancyStart?: boolean;
+  isJewelSocket?: boolean;
   classStartIndex?: unknown;
   classesStart?: unknown;
 }
@@ -94,9 +99,11 @@ async function buildTree(): Promise<Catalogue['tree']> {
   // key, which is not a node anyone allocates.
   const ascendancyByNode = new Map<number, string | null>();
   const startNodes = new Set<number>();
+  const jewelSockets = new Set<number>();
   for (const [key, node] of Object.entries(raw.nodes)) {
     if (!/^\d+$/.test(key)) continue;
     ascendancyByNode.set(Number(key), node.ascendancyId ?? null);
+    if (node.isJewelSocket) jewelSockets.add(Number(key));
     // Class starts carry classesStart (e.g. [3, 9]: DUELIST is shared by
     // Duelist and Mercenary); ascendancy starts carry isAscendancyStart.
     if (node.isAscendancyStart || node.classStartIndex !== undefined || node.classesStart !== undefined) {
@@ -104,6 +111,7 @@ async function buildTree(): Promise<Catalogue['tree']> {
     }
   }
 
+  const classNames = new Set(raw.classes.map((cls) => cls.name));
   const ascendancyIds = new Map<string, string>();
   for (const cls of raw.classes) {
     for (const asc of cls.ascendancies ?? []) ascendancyIds.set(`${cls.name}\u0000${asc.name}`, asc.id);
@@ -112,6 +120,8 @@ async function buildTree(): Promise<Catalogue['tree']> {
   return {
     hasNode: (id) => ascendancyByNode.has(id),
     ascendancyOf: (id) => ascendancyByNode.get(id) ?? null,
+    hasClass: (className) => classNames.has(className),
+    isJewelSocket: (id) => jewelSockets.has(id),
     ascendancyIdFor: (className, ascendancyName) => ascendancyIds.get(`${className}\u0000${ascendancyName}`) ?? null,
     isStartNode: (id) => startNodes.has(id),
   };

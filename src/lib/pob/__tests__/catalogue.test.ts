@@ -81,6 +81,17 @@ describe('catalogue — lookups', () => {
     expect(tree.isStartNode(15671)).toBe(false); // unknown to this tree
   });
 
+  it('knows our classes by exact name, and which nodes hold jewels', async () => {
+    const { tree } = await getCatalogue();
+    expect(tree.hasClass('Mercenary')).toBe(true);
+    expect(tree.hasClass('mercenary')).toBe(false);
+    expect(tree.hasClass('Scion')).toBe(false);
+    // Both sockets the real build's last spec fills (verified 2026-09-24).
+    expect(tree.isJewelSocket(26725)).toBe(true);
+    expect(tree.isJewelSocket(2491)).toBe(true);
+    expect(tree.isJewelSocket(45969)).toBe(false);
+  });
+
   it('knows which ascendancy a node belongs to', async () => {
     const { tree } = await getCatalogue();
     expect(tree.ascendancyOf(42761)).toBe('Druid1');

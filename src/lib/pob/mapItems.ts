@@ -19,15 +19,19 @@
 // - We store the base item only. Rolled mods, runes, quality and a unique's
 //   selected variant are counted per item and reported — reading them is
 //   ModParser's job, and belongs to a later slice.
+// - Jewels (mapJewels) follow the same item rules, keyed by socket node id.
+//   PoB sockets jewels per spec while gear is shared, so mapBuild takes them
+//   from one spec and says so.
 // =============================================================================
 
-import { categoriesForSlot, GEAR_SLOT_LABELS, type GearItem, type GearSlot } from '@/lib/build/gearSlots';
+import { categoriesForSlot, GEAR_SLOT_LABELS, JEWEL_CATEGORIES, type GearItem, type GearSlot } from '@/lib/build/gearSlots';
 import { emptyGearState, type GearState } from '@/lib/build/gearState';
 import type { Catalogue, CatalogueItem } from './catalogue';
 import type { PobItem, PobSlot } from './parse';
 import type { ReportEntry } from './report';
 
 export type ItemLookup = Catalogue['items'];
+export type JewelTreeLookup = Pick<Catalogue['tree'], 'hasNode' | 'isJewelSocket'>;
 
 /** PoB slot name -> ours, in the order PoB lists them; a flask slot is resolved by the item instead. */
 const SLOT_BY_POB_NAME: Record<string, GearSlot | 'flask'> = {
@@ -139,6 +143,23 @@ function resolve(read: ReadItem, items: ItemLookup): Resolved {
   }
 }
 
+async function toGearItem(found: CatalogueItem, items: ItemLookup): Promise<GearItem> {
+  return {
+    slug: found.slug,
+    name: found.name,
+    category: found.category,
+    isUnique: found.isUnique,
+    iconUrl: await items.iconUrlFor(found.slug),
+  };
+}
+
+function reportLostDetails(read: ReadItem, displayName: string, where: string, report: ReportEntry[]): void {
+  const lost = lostDetails(read);
+  if (lost.length > 0) {
+    report.push(dropped(`${displayName} (${where}): ${lost.join(', ')} not kept — Project Vaal stores the base item only for now.`));
+  }
+}
+
 function lostDetails(read: ReadItem): string[] {
   const lost: string[] = [];
   if (read.modLines > 0) lost.push(plural(read.modLines, 'mod line'));
@@ -208,22 +229,55 @@ export async function mapItems(
       continue;
     }
 
-    const gearItem: GearItem = {
-      slug: found.slug,
-      name: found.name,
-      category: found.category,
-      isUnique: found.isUnique,
-      iconUrl: await items.iconUrlFor(found.slug),
-    };
-    value[slot] = gearItem;
+    value[slot] = await toGearItem(found, items);
     if (resolved.note) report.push(resolved.note);
+    reportLostDetails(read, displayName, GEAR_SLOT_LABELS[slot], report);
+  }
 
-    const lost = lostDetails(read);
-    if (lost.length > 0) {
-      report.push(
-        dropped(`${displayName} (${GEAR_SLOT_LABELS[slot]}): ${lost.join(', ')} not kept — Project Vaal stores the base item only for now.`),
-      );
+  return { value, report };
+}
+
+/**
+ * One spec's socketed jewels -> gear_state.jewels, keyed by socket node id as
+ * the editor stores them. The same item rules as gear; a socket our tree does
+ * not know, or holds something that is not a jewel, is reported.
+ */
+export async function mapJewels(
+  sockets: Array<{ nodeId: number; itemId: number }>,
+  pobItems: PobItem[],
+  items: ItemLookup,
+  tree: JewelTreeLookup,
+): Promise<{ value: Record<string, GearItem>; report: ReportEntry[] }> {
+  const value: Record<string, GearItem> = {};
+  const report: ReportEntry[] = [];
+  const itemsById = new Map(pobItems.map((item) => [item.id, item]));
+
+  for (const { nodeId, itemId } of sockets) {
+    const where = `jewel socket ${nodeId}`;
+    const pobItem = itemsById.get(itemId);
+    const read = pobItem ? readItem(pobItem.raw) : null;
+    if (!read) {
+      report.push(dropped(`The jewel in ${where} is missing from the export or could not be read, and was left out.`));
+      continue;
     }
+    const resolved = resolve(read, items);
+    if (!resolved.found) {
+      report.push(dropped(`${resolved.reason}, so ${where} was left empty.`));
+      continue;
+    }
+    const { found, displayName } = resolved;
+    if (!tree.hasNode(nodeId) || !tree.isJewelSocket(nodeId)) {
+      report.push(dropped(`${displayName} was left out — node ${nodeId} is not a jewel socket in this patch's tree.`));
+      continue;
+    }
+    if (!(JEWEL_CATEGORIES as readonly string[]).includes(found.category)) {
+      report.push(dropped(`${displayName} (${found.category}) is not a jewel, so ${where} was left empty.`));
+      continue;
+    }
+
+    value[String(nodeId)] = await toGearItem(found, items);
+    if (resolved.note) report.push(resolved.note);
+    reportLostDetails(read, displayName, where, report);
   }
 
   return { value, report };

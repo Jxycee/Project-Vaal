@@ -4,7 +4,7 @@ import { GEAR_SLOTS } from '@/lib/build/gearSlots';
 import { cleanGearStateInput } from '@/lib/build/stateInput';
 import { getCatalogue, type CatalogueItem } from '../catalogue';
 import { decodePobCode } from '../decode';
-import { mapItems, type ItemLookup } from '../mapItems';
+import { mapItems, mapJewels, type ItemLookup, type JewelTreeLookup } from '../mapItems';
 import { parsePobXml, type PobItem, type PobSlot } from '../parse';
 
 // Failure modes first (AGENTS.md). A small fake item catalogue isolates each
@@ -28,6 +28,7 @@ const known = [
   entry('Plain Charm', 'UtilityFlask'),
   entry('Plain Bow', 'Bow'),
   entry('Plain Shield', 'Shield'),
+  entry('Plain Jewel', 'Jewel'),
 ];
 
 const fake: ItemLookup = {
@@ -208,13 +209,66 @@ describe('mapItems — output', () => {
   });
 });
 
+const sockets: JewelTreeLookup = { hasNode: (id) => id < 1000, isJewelSocket: (id) => id >= 100 && id < 1000 };
+
+describe('mapJewels — every way it can go wrong', () => {
+  it('keys a jewel by its socket node, as the editor stores it', async () => {
+    const { value, report } = await mapJewels([{ nodeId: 101, itemId: 1 }], [rare(1, 'Plain Jewel')], fake, sockets);
+    expect(Object.keys(value)).toEqual(['101']);
+    expect(value['101'].name).toBe('Plain Jewel');
+    expect(report).toEqual([]);
+  });
+
+  it('drops a jewel whose node is unknown or is not a socket, naming it', async () => {
+    const { value, report } = await mapJewels(
+      [
+        { nodeId: 5000, itemId: 1 },
+        { nodeId: 5, itemId: 1 },
+      ],
+      [rare(1, 'Plain Jewel')],
+      fake,
+      sockets,
+    );
+    expect(value).toEqual({});
+    expect(report).toHaveLength(2);
+    expect(report[0].message).toContain('5000');
+    expect(report[1].message).toContain('Plain Jewel');
+  });
+
+  it('drops a socketed item that is not a jewel', async () => {
+    const { value, report } = await mapJewels([{ nodeId: 101, itemId: 1 }], [rare(1, 'Plain Ring')], fake, sockets);
+    expect(value).toEqual({});
+    expect(report[0].message).toContain('Plain Ring');
+  });
+
+  it('reports what the jewel carried that is not kept, like any other item', async () => {
+    const { report } = await mapJewels(
+      [{ nodeId: 101, itemId: 1 }],
+      [rare(1, 'Plain Jewel', ['Implicits: 0', '+8% to Something', '+4% to Else'])],
+      fake,
+      sockets,
+    );
+    expect(report).toHaveLength(1);
+    expect(report[0].message).toContain('2 mod lines');
+  });
+
+  it('passes the write gate as gear_state.jewels', async () => {
+    const { value } = await mapJewels([{ nodeId: 101, itemId: 1 }], [rare(1, 'Plain Jewel')], fake, sockets);
+    const gated = cleanGearStateInput({ jewels: value });
+    expect(gated.ok).toBe(true);
+    if (gated.ok) expect(gated.value.jewels).toEqual(value);
+  });
+});
+
 describe('mapItems — the real build against the real catalogue', async () => {
   const decoded = decodePobCode(readFileSync('src/lib/pob/__fixtures__/sample-pob2-code.txt', 'utf8'));
   if (!decoded.ok) throw new Error('fixture failed to decode');
   const parsed = parsePobXml(decoded.xml);
   if (!parsed.ok) throw new Error('fixture failed to parse');
-  const { items } = await getCatalogue();
+  const { items, tree } = await getCatalogue();
   const { value, report } = await mapItems(parsed.build.items, parsed.build.slots, items);
+  const lastSpec = parsed.build.specs[parsed.build.specs.length - 1];
+  const jewels = await mapJewels(lastSpec.jewelSockets, parsed.build.items, items, tree);
 
   it('fills every occupied slot with the item the decode findings list', () => {
     // Verified 2026-09-24 against the fixture's <ItemSet> and item-index.json.
@@ -245,6 +299,13 @@ describe('mapItems — the real build against the real catalogue', async () => {
     // Every "dropped" entry is about details on an item that WAS imported.
     const dropped = report.filter((r) => r.kind === 'dropped');
     expect(dropped.every((r) => r.message.includes('not kept'))).toBe(true);
+  });
+
+  it("imports the last spec's Emerald into both of its sockets", () => {
+    // Spec 8 sockets PoB item 4 (a rare Emerald) at nodes 26725 and 2491.
+    expect(Object.keys(jewels.value).sort()).toEqual(['2491', '26725']);
+    expect(Object.values(jewels.value).every((j) => j.name === 'Emerald')).toBe(true);
+    expect(jewels.report.every((r) => r.message.includes('not kept'))).toBe(true);
   });
 
   it('passes the write gate unchanged', () => {
