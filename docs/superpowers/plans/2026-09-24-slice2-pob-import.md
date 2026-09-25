@@ -237,9 +237,9 @@ Each returns `{ value, report: ReportEntry[] }` and never throws.
 
 ## Task 8: the Server Functions
 
-- [ ] `previewPobImport(input)` — session check, `resolvePobInput`, decode, parse, `getCatalogue`, map; returns `{ ok: true; summary; report }` and **writes nothing**.
-- [ ] `importPobBuild(input, name?)` — the same pipeline re-run server-side; every checkpoint's state passed through `cleanPassiveStateInput` / `cleanGearStateInput` / `cleanGemStateInput` before the RPC; `import_build` called once; `refresh()`; returns the new build id.
-- [ ] Failure modes first, mocked like `checkpointActions.test.ts`: signed out → not found, nothing fetched; an allowlist refusal surfaces as a user-readable message; a state the write gate refuses aborts the import with nothing written.
+- [x] `previewPobImport(input)` — session check, `resolvePobInput`, decode, parse, `getCatalogue`, map; returns `{ ok: true; summary; report }` and **writes nothing**.
+- [x] `importPobBuild(input, name?)` — the same pipeline re-run server-side; every checkpoint's state passed through `cleanPassiveStateInput` / `cleanGearStateInput` / `cleanGemStateInput` before the RPC; `import_build` called once; `refresh()`; returns the new build id.
+- [x] Failure modes first, mocked like `checkpointActions.test.ts`: signed out → not found, nothing fetched; an allowlist refusal surfaces as a user-readable message; a state the write gate refuses aborts the import with nothing written.
 
 ## Task 9: TEST-GRADE import UI
 
