@@ -24,9 +24,66 @@ import ItemPickerSheet from '@/components/build/ItemPickerSheet';
 import { GEM_SKILL_PSEUDO_SLOT, GEM_SUPPORT_PSEUDO_SLOT, MAX_SUPPORTS_PER_SKILL } from '@/lib/build/gemSlots';
 import { WEAPON_SET_DOT } from '@/lib/build/weaponSetColors';
 import { MAX_GEM_QUALITY } from '@/lib/build/gemState';
-import { fetchMaxGemLevel } from '@/lib/wiki/fetchGemScaling';
+import { reservedSpirit } from '@/lib/build/validate';
+import { fetchMaxGemLevel, fetchReservationScaling, type ReservationScalingEntry } from '@/lib/wiki/fetchGemScaling';
 import type { GearItem } from '@/lib/build/gearSlots';
 import type { GemLoadout, GemState } from '@/lib/build/gemState';
+
+/**
+ * Every loaded gem's reservation scaling, keyed by slug (`null` = no data),
+ * or `null` while a fetch for the current set of gems is still in flight.
+ * Keyed by the slug list the result is FOR, same stale-result reasoning as
+ * useMaxGemLevel below.
+ */
+function useReservationScaling(slugs: readonly string[]): Map<string, ReservationScalingEntry[] | null> | null {
+  const key = [...slugs].sort().join('|');
+  const [result, setResult] = useState<{ key: string; data: Map<string, ReservationScalingEntry[] | null> } | null>(null);
+
+  useEffect(() => {
+    if (key === '') return;
+    let cancelled = false;
+    const wanted = key.split('|');
+    Promise.all(wanted.map((slug) => fetchReservationScaling(slug))).then((scalings) => {
+      if (!cancelled) setResult({ key, data: new Map(wanted.map((slug, i) => [slug, scalings[i]])) });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [key]);
+
+  if (key === '') return new Map();
+  return result?.key === key ? result.data : null;
+}
+
+/**
+ * TEST-GRADE (Slice 3, plans/2026-09-24-slice3-structural-validation.md):
+ * plain text, functional only — the UI pass after Slice 5 replaces it. The
+ * raw reserved total per weapon set; comparing it with the character's
+ * Spirit needs the Slice 5 engine.
+ */
+function ReservedSpiritLine({ gemState }: { gemState: GemState }) {
+  const gems = gemState.loadouts.flatMap((l) => (l.skill ? [l.skill, ...l.supports] : []));
+  const slugs = Array.from(new Set(gems.map((g) => g.slug)));
+  const scaling = useReservationScaling(slugs);
+
+  if (scaling === null) {
+    return <p className="px-3 pt-3 text-xs text-muted-foreground">Spirit reserved: calculating…</p>;
+  }
+  const known = new Map<string, ReservationScalingEntry[]>();
+  for (const [slug, entries] of scaling) if (entries) known.set(slug, entries);
+  const total = reservedSpirit(gemState, known);
+  const missingNames = total.missing.map((slug) => gems.find((g) => g.slug === slug)?.name ?? slug);
+
+  return (
+    <div className="px-3 pt-3 text-xs text-muted-foreground">
+      <p data-testid="spirit-reserved" className="text-sm text-foreground">
+        Spirit reserved — Set I: {total.set1} · Set II: {total.set2}
+      </p>
+      <p>Before reservation modifiers; not yet compared with your Spirit.</p>
+      {missingNames.length > 0 ? <p>Data missing for: {missingNames.join(', ')}</p> : null}
+    </div>
+  );
+}
 
 /**
  * Fetches the currently-picked skill's per-gem level cap (see
@@ -317,6 +374,7 @@ export default function GemsSheet({
       </div>
 
       <div className="flex-1 overflow-y-auto">
+        <ReservedSpiritLine gemState={gemState} />
         {gemState.loadouts.length === 0 ? (
           <p className="px-3 py-6 text-center text-sm text-muted-foreground">No skills yet.</p>
         ) : (

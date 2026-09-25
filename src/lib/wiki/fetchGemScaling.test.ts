@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractMaxGemLevel } from './fetchGemScaling';
+import { extractMaxGemLevel, extractReservationScaling } from './fetchGemScaling';
 
 describe('extractMaxGemLevel', () => {
   it('returns the highest level in scaling', () => {
@@ -37,5 +37,38 @@ describe('extractMaxGemLevel', () => {
 
   it('falls back to 1 when scaling is not an array', () => {
     expect(extractMaxGemLevel({ scaling: 'nope' })).toBe(1);
+  });
+});
+
+// Slice 3: the reservation half of a skill's scaling, for the reserved-Spirit
+// total. Failure modes first — a malformed payload must read as "no data"
+// (null), never as "reserves nothing" (an empty or zero list).
+describe('extractReservationScaling', () => {
+  it('keeps level and reservation from each well-formed entry, null reservation included', () => {
+    expect(
+      extractReservationScaling({ scaling: [{ level: 1, reservation: 30, cost: null }, { level: 2, reservation: null }] }),
+    ).toEqual([
+      { level: 1, reservation: 30 },
+      { level: 2, reservation: null },
+    ]);
+  });
+
+  it('treats a missing or non-numeric reservation as null, not as a number', () => {
+    expect(extractReservationScaling({ scaling: [{ level: 1 }, { level: 2, reservation: '30' }] })).toEqual([
+      { level: 1, reservation: null },
+      { level: 2, reservation: null },
+    ]);
+  });
+
+  it('drops entries without a numeric level', () => {
+    expect(extractReservationScaling({ scaling: [{ reservation: 30 }, null, { level: 3, reservation: 10 }] })).toEqual([
+      { level: 3, reservation: 10 },
+    ]);
+  });
+
+  it('returns null — no data — for a payload with no usable scaling at all', () => {
+    for (const raw of [null, undefined, 'garbage', 42, [], {}, { scaling: 'nope' }, { scaling: [] }, { scaling: [{ nope: 1 }] }]) {
+      expect(extractReservationScaling(raw)).toBeNull();
+    }
   });
 });

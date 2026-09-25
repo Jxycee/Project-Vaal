@@ -36,6 +36,7 @@ import { saveDraft, loadDraft, clearDraft } from '@/lib/build/draft';
 import { draftDiffersFrom } from '@/lib/build/draftCompare';
 import { emptyGearState, parseGearState } from '@/lib/build/gearState';
 import { summarizeJewels } from '@/lib/build/jewelState';
+import { offHandOccupiedBy, validateCheckpoint } from '@/lib/build/validate';
 import {
   addLoadout,
   addSupport,
@@ -160,6 +161,23 @@ export default function TreeBuildSession({
   // from under an already-mounted instance.
   const [gearState, setGearState] = useState(() => (build ? parseGearState(build.gear_state) : emptyGearState()));
   const [gearSheetOpen, setGearSheetOpen] = useState(false);
+
+  // ---- Structural validation (Slice 3) --------------------------------------
+  // Derived on every change, never stored: see src/lib/build/validate. Until
+  // PassiveTree reports its seeded state, the stored tree stands in, so a
+  // keystone that excuses an off-hand does not flash a false warning.
+  const livePassive = useMemo(
+    () =>
+      editorState
+        ? toPassiveState(editorState.main, editorState.ascendancyNodes)
+        : (build?.passive_state ?? { set1: [], set2: [], ascendancyNodes: [] }),
+    [editorState, build],
+  );
+  const buildWarnings = useMemo(() => validateCheckpoint({ passive: livePassive, gear: gearState }), [livePassive, gearState]);
+  const offHandOccupied = useMemo(
+    () => ({ 1: offHandOccupiedBy(gearState, livePassive, 1), 2: offHandOccupiedBy(gearState, livePassive, 2) }),
+    [gearState, livePassive],
+  );
 
   const handleGearChange = useCallback((slot: GearSlot, item: GearItem | null) => {
     setGearState((prev) => ({ ...prev, [slot]: item }));
@@ -505,6 +523,8 @@ export default function TreeBuildSession({
       <GearSheet
         open={gearSheetOpen}
         gear={gearState}
+        warnings={buildWarnings}
+        occupiedBy={offHandOccupied}
         onChange={handleGearChange}
         onClose={() => setGearSheetOpen(false)}
       />

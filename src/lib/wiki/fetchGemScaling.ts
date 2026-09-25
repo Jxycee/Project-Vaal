@@ -45,3 +45,55 @@ export async function fetchMaxGemLevel(slug: string): Promise<number> {
     return 1;
   }
 }
+
+/** One `scaling[]` entry's level and Spirit reservation — the shape `reservedSpirit` (src/lib/build/validate) reads. */
+export interface ReservationScalingEntry {
+  level: number;
+  reservation: number | null;
+}
+
+/**
+ * Pure extraction for the reserved-Spirit total. Returns `null` — "no data" —
+ * when nothing usable is there, never an empty list, so a broken file can
+ * never read as "this gem reserves nothing".
+ */
+export function extractReservationScaling(raw: unknown): ReservationScalingEntry[] | null {
+  const v = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const scaling = Array.isArray(v.scaling) ? v.scaling : [];
+  const entries: ReservationScalingEntry[] = [];
+  for (const entry of scaling) {
+    if (!entry || typeof entry !== 'object') continue;
+    const e = entry as Record<string, unknown>;
+    if (typeof e.level !== 'number' || !Number.isFinite(e.level)) continue;
+    const reservation = typeof e.reservation === 'number' && Number.isFinite(e.reservation) ? e.reservation : null;
+    entries.push({ level: e.level, reservation });
+  }
+  return entries.length > 0 ? entries : null;
+}
+
+// One request per gem per page load: the reserved-Spirit total re-reads every
+// loadout's gems on each edit, and the files never change while the page is open.
+const reservationCache = new Map<string, Promise<ReservationScalingEntry[] | null>>();
+
+/** Fetches one gem's reservation scaling client-side, cached per slug. Never throws; `null` means no data. */
+export function fetchReservationScaling(slug: string): Promise<ReservationScalingEntry[] | null> {
+  let pending = reservationCache.get(slug);
+  if (!pending) {
+    pending = (async () => {
+      try {
+        const res = await fetch(`/data/wiki/${WIKI_DATA_VERSION}/skills/${slug}.json`);
+        if (!res.ok) return null;
+        if (!(res.headers.get('content-type') ?? '').includes('application/json')) return null;
+        return extractReservationScaling(await res.json());
+      } catch {
+        return null;
+      }
+    })();
+    reservationCache.set(slug, pending);
+    // A failure is not remembered, so a transient network error can recover on the next edit.
+    pending.then((result) => {
+      if (result === null) reservationCache.delete(slug);
+    });
+  }
+  return pending;
+}
