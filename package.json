@@ -15,6 +15,7 @@
     "test:e2e:ui": "playwright test --ui",
     "postinstall": "patch-package",
     "sync:wiki": "tsx scripts/sync-wiki.ts",
+    "sync:stats": "tsx scripts/sync-stats.ts",
     "db:types": "npx supabase gen types typescript --project-id mjxadehorflhncendqiy > src/types/database.ts",
     "db:schema": "tsx scripts/dump-schema.ts"
   },
