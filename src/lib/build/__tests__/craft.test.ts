@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { emptyCraft, MAX_ITEM_QUALITY, parseCraft, rangesIn } from '../craft';
+import { bestRolls, clampToRange, emptyCraft, MAX_ITEM_QUALITY, parseCraft, rangesIn } from '../craft';
 
 // Failure modes first (AGENTS.md). parseCraft READS stored jsonb: it must
 // default every missing field and drop a malformed entry on its own, never
@@ -115,5 +115,38 @@ describe('parseCraft — every way stored data can be wrong', () => {
       'adept-rune',
       'soul-core-of-tacati',
     ]);
+  });
+});
+
+// Slice 4 Task 5: the editor clamps every value as it is typed (decision 2:
+// "exact number, clamped") and starts a new affix at its best roll.
+describe('clampToRange', () => {
+  it('keeps a value inside, and pulls one outside to the nearer bound', () => {
+    expect(clampToRange(15, { min: 10, max: 20 })).toBe(15);
+    expect(clampToRange(25, { min: 10, max: 20 })).toBe(20);
+    expect(clampToRange(3, { min: 10, max: 20 })).toBe(10);
+  });
+
+  it('handles a range written high-to-low, as negative ones are', () => {
+    expect(clampToRange(-3, { min: -5, max: -10 })).toBe(-5);
+    expect(clampToRange(-12, { min: -5, max: -10 })).toBe(-10);
+  });
+
+  it('falls back to the lower bound for a non-number', () => {
+    expect(clampToRange(Number.NaN, { min: 10, max: 20 })).toBe(10);
+  });
+});
+
+describe('bestRolls', () => {
+  it("starts each roll at its max — the planner's usual target", () => {
+    expect(bestRolls([{ min: 1, max: 1 }, { min: 2, max: 3 }])).toEqual([1, 3]);
+  });
+
+  it('takes the larger magnitude end of a negative range', () => {
+    expect(bestRolls([{ min: -5, max: -10 }])).toEqual([-10]);
+  });
+
+  it('is empty for a mod with no rolls', () => {
+    expect(bestRolls([])).toEqual([]);
   });
 });

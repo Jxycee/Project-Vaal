@@ -70,6 +70,23 @@ export interface ValueRange {
 // itemLib.applyRange): "(min-max)", either bound optionally negative or decimal.
 const RANGE_RE = /\((-?\d+(?:\.\d+)?)-(-?\d+(?:\.\d+)?)\)/g;
 
+/** Clamps `value` into `range`, whichever way round the bounds are written; a non-number reads as the lower bound. */
+export function clampToRange(value: number, range: ValueRange): number {
+  const lo = Math.min(range.min, range.max);
+  const hi = Math.max(range.min, range.max);
+  if (!Number.isFinite(value)) return lo;
+  return Math.min(hi, Math.max(lo, value));
+}
+
+/**
+ * The values a newly added affix starts at: each roll's `max` as the data
+ * writes it — the best roll, which is what a planner usually targets. For a
+ * negative range the data's `max` is its larger-magnitude end.
+ */
+export function bestRolls(rolls: readonly ValueRange[]): number[] {
+  return rolls.map((r) => r.max);
+}
+
 /** Every "(a-b)" range in a display line, in order. */
 export function rangesIn(line: string): ValueRange[] {
   return Array.from(line.matchAll(RANGE_RE), (m) => ({ min: Number(m[1]), max: Number(m[2]) }));
