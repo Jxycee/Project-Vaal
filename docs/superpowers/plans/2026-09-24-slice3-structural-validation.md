@@ -174,3 +174,14 @@ Plus, independent of pairing:
 - [x] Real-data test first. For every unique in category `Mace`, strip any `{variant:…}` prefix from `uniqueMods.baseType` and resolve that base by name. Assert every one resolves and that the result equals a committed `UNIQUE_MACE_HANDEDNESS` table keyed by slug. A resync that changes a base fails this test instead of drifting silently.
 - [x] `handednessOf` takes the item (`category` + `slug`), not just the category. A `Mace` unique in the table returns its real handedness; one not in the table stays `'unknown'`.
 - [x] Weapon-rule tests: Hrimnor's Hymn (2H) + Shield warns; Frostbreath (1H) + Shield is clean; neither gets a `handedness-unknown` note.
+
+---
+
+### Slice 3 result (2026-09-25)
+
+- **Built:** `src/lib/build/validate/` (handedness, keystones, weapon rules, reservation, `validateCheckpoint`); the widened off-hand; TEST-GRADE markers, an "Occupied by" state and a warnings list in `GearSheet`; a reserved-Spirit line in `GemsSheet`; and the unique-mace follow-up.
+- **E2E:** `e2e/validation.spec.ts` passes against the live database. Crossbow + shield warns on the off-hand only; set II stays free; bow + quiver is clean; dagger + quiver warns; dagger + dagger is clean. Alchemist's Boon + Clarity I reads exactly "Set I: 40 · Set II: 0". Everything comes back after a full reload. The tap scan measured exactly 20 controls, none under 44px. Database back to 1 build / 1 checkpoint / 0 `E2E-` rows.
+- **Full suite:** 69 passed, 1 skipped (opt-in network), 1 failed. `sharing.spec.ts` hit a picker request the dev server never answered; it passed alone right after. Recorded in CURRENT-STATE as **cause unproven**.
+- **Gates:** type-check, lint, 792 unit tests / 53 files, and `npm run build` after `rm -rf .next`, all clean. The new code reads `public/data` only from the client, so there is no tracing concern.
+- **Found on the way, all corrected in place:** Talismans are two-handed (a stale extractor list); PoB2's licence line is "2016 David Gowor" (a bad "correction" had spread to three documents); and uniques carry their base (this plan had said otherwise).
+- **Not done:** Spirit comparison (Slice 5), support uniqueness, skill weapon requirements, and fixing `twoHanded` at the source (it waits for a sync).
