@@ -147,6 +147,7 @@ describe('validateWeapons — what it cannot know', () => {
 
   it('leaves a slot holding a category that slot never takes to the slot-category check, not a pairing warning', () => {
     expect(codes(gear({ weapon1_main: DAGGER, weapon1_off: WAND }))).toEqual([]);
+    expect(codes(gear({ weapon1_main: DAGGER, weapon1_off: SPEAR }))).toEqual([]);
     expect(codes(gear({ weapon1_main: SHIELD, weapon1_off: SHIELD }))).toEqual([]);
   });
 });
