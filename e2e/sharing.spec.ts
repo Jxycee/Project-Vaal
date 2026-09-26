@@ -77,7 +77,10 @@ test.describe('sharing', () => {
     await saveBuild(page, { name, level: 20, league: 'Standard' });
 
     // Slice 5: the owner's own Life for this level-20 build, to compare with
-    // what a share-link reader sees below.
+    // what a share-link reader sees below. The save panel stays expanded after
+    // a save and, at 375px, covers the chip row — collapse it first.
+    await page.getByRole('button', { name: 'Close save panel' }).click();
+    await expect(page.locator('#build-level')).toBeHidden();
     await page.getByRole('button', { name: 'Stats', exact: true }).click();
     const ownerLife = page.getByTestId('stats-sheet').getByTestId('stat-life');
     await expect(ownerLife).toHaveText(/^\d+$/, { timeout: 30_000 });
