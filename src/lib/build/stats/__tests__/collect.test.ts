@@ -21,9 +21,12 @@ const NODES: Record<number, { name: string; stats: [string, number][]; attribute
   30: { name: 'Jewel Socket', stats: [] },
 };
 
-const ITEMS: Record<string, { armour: { armour: number; evasion: number; energyShield: number } | null; spirit: number; implicits?: [string, number, number][][] }> = {
+const ITEMS: Record<
+  string,
+  { armour: { armour: number; evasion: number; energyShield: number } | null; spirit: number; implicits?: [string, number, number][][]; implicitLines?: string[] }
+> = {
   'plate-vest': { armour: { armour: 100, evasion: 0, energyShield: 0 }, spirit: 0 },
-  'amethyst-ring': { armour: null, spirit: 0, implicits: [[['base_chaos_damage_resistance_%', 7, 13]]] },
+  'amethyst-ring': { armour: null, spirit: 0, implicits: [[['base_chaos_damage_resistance_%', 7, 13]]], implicitLines: ['+(7-13)% to Chaos Resistance'] },
   sceptre: { armour: null, spirit: 100 },
   emerald: { armour: null, spirit: 0 },
   'silk-robe': { armour: { armour: 0, evasion: 0, energyShield: 50 }, spirit: 0 },

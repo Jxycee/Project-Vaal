@@ -27,6 +27,7 @@ export interface RawCollectFiles {
 }
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((s): s is string => typeof s === 'string') : []);
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
 
 export function makeCollectData(files: RawCollectFiles): CollectData {
@@ -45,6 +46,7 @@ export function makeCollectData(files: RawCollectFiles): CollectData {
         armour: a ? { armour: num(a.armour), evasion: num(a.evasion), energyShield: num(a.energyShield) } : null,
         spirit: num(detail.spirit),
         implicits: files.implicitStats.bases[detail.name],
+        implicitLines: strings(detail.implicitMods),
       };
     },
     mod(slug) {
@@ -63,6 +65,7 @@ export function makeCollectData(files: RawCollectFiles): CollectData {
       return {
         baseSlug,
         lines: texts.map((text, i) => ({ text: String(text), stats: typed.lines[i] ?? null })),
+        implicitLines: strings(detail.implicitMods),
       };
     },
   };

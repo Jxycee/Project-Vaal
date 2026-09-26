@@ -22,6 +22,7 @@ import { GEAR_SLOTS, type GearItem, type GearSlot } from '../gearSlots';
 import type { GearState } from '../gearState';
 import type { PassiveState } from '../types';
 import { campaignAt } from './campaign';
+import { DEFENCE_WORDS, implicitStats } from './implicits';
 import type { Contribution } from './engine';
 import { GLOBAL_EFFECTS, LOCAL_EFFECTS, NOT_MODELLED, type Pool } from './statTable';
 
@@ -36,17 +37,24 @@ const GENERIC_ATTRIBUTE_AMOUNT = 5;
 
 export interface CollectData {
   node(id: number): { name: string; stats: [string, number][]; attribute?: boolean } | undefined;
-  item(slug: string): { armour: { armour: number; evasion: number; energyShield: number } | null; spirit: number; implicits?: [string, number, number][][] } | undefined;
+  item(slug: string):
+    | {
+        armour: { armour: number; evasion: number; energyShield: number } | null;
+        spirit: number;
+        implicits?: [string, number, number][][];
+        /** The item file's implicit display lines — what `implicits` describes. */
+        implicitLines?: string[];
+      }
+    | undefined;
   mod(slug: string): { stat: string; min: number; max: number }[] | undefined;
   /**
    * A unique by name: the slug of its base (for base defences) and its lines,
-   * each with the stat ids unique-stats.json typed it to (null = untyped).
+   * each with the stat ids unique-stats.json typed it to (null = untyped),
+   * and its own implicit display lines (craft.implicitValues is indexed by them).
    */
-  unique(name: string, slug: string): { baseSlug: string; lines: { text: string; stats: string[] | null }[] } | undefined;
+  unique(name: string, slug: string): { baseSlug: string; lines: { text: string; stats: string[] | null }[]; implicitLines?: string[] } | undefined;
 }
 
-/** Words that mark a line as touching a defence the sheet reports — an untyped one is named. */
-const DEFENCE_WORDS = /Life|Mana|Energy Shield|Armour|Evasion|Resistance|Strength|Dexterity|Intelligence|Attributes|Spirit/;
 /** A number in a line: a "(a-b)" range, or a fixed number. */
 const NUMBER_TOKEN = /\((-?\d+(?:\.\d+)?)-(-?\d+(?:\.\d+)?)\)|(-?\d+(?:\.\d+)?)/g;
 
@@ -134,10 +142,13 @@ function collectItem(
   const craft = item.craft;
   const stats: [string, number][] = [];
   let detail: ReturnType<CollectData['item']>;
+  /** A unique's own implicit lines; undefined for a base (it shows its own). */
+  let wornImplicitLines: string[] | undefined;
 
   if (item.isUnique) {
     const unique = data.unique(item.name, item.slug);
     detail = unique ? data.item(unique.baseSlug) : undefined;
+    wornImplicitLines = unique?.implicitLines ?? [];
     if (!unique || !detail) {
       notCounted.push(`${item.name}: unique — not in our data`);
       return;
@@ -171,17 +182,14 @@ function collectItem(
     }
   }
 
-  // Implicits: typed per implicit mod; a chosen value per range where the
-  // counts line up, otherwise mid-roll — and say so.
-  const implicitRolls = item.isUnique ? [] : (detail.implicits ?? []).flat();
-  if (implicitRolls.length > 0) {
-    const chosen = (craft?.implicitValues ?? []).flat();
-    if (chosen.length === implicitRolls.length) implicitRolls.forEach(([stat], i) => stats.push([stat, chosen[i]]));
-    else {
-      implicitRolls.forEach(([stat, min, max]) => stats.push([stat, (min + max) / 2]));
-      assumed.push(`${item.name}: implicit at mid-roll`);
-    }
-  }
+  // Implicits: a unique carries its base's, read at the unique's own line
+  // index; chosen values where they pair with a typed stat, else mid-roll —
+  // and say so. See implicits.ts.
+  const baseLines = detail.implicitLines ?? [];
+  const implicits = implicitStats(detail.implicits, baseLines, wornImplicitLines ?? baseLines, craft?.implicitValues ?? []);
+  stats.push(...implicits.stats);
+  if (implicits.assumedMidRoll) assumed.push(`${item.name}: implicit at mid-roll`);
+  for (const line of implicits.uncoveredLines) notCounted.push(`${item.name}: implicit "${line}" not counted`);
 
   for (const affix of [...(craft?.prefixes ?? []), ...(craft?.suffixes ?? [])] as CraftedMod[]) {
     const rolls = data.mod(affix.slug);

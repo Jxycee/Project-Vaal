@@ -11,9 +11,9 @@ const raw = () => ({
   implicitStats: { bases: { 'Amethyst Ring': [[['base_chaos_damage_resistance_%', 7, 13]]] as [string, number, number][][] } },
   uniqueStats: { uniques: { 'Cloak of Flame': { baseType: 'Silk Robe', baseSlug: 'silk-robe', lines: [['local_energy_shield'], null] }, 'Baseless': { baseType: 'Gone', baseSlug: null, lines: [] } } },
   items: new Map<string, unknown>([
-    ['amethyst-ring', { name: 'Amethyst Ring', armour: null, spirit: 0 }],
+    ['amethyst-ring', { name: 'Amethyst Ring', armour: null, spirit: 0, implicitMods: ['+(7-13)% to Chaos Resistance'] }],
     ['silk-robe', { name: 'Silk Robe', armour: { armour: 0, evasion: 0, energyShield: 50 }, spirit: 0 }],
-    ['cloak-of-flame', { name: 'Cloak of Flame', uniqueMods: { explicitMods: ['+(30-50) to maximum Energy Shield', 'Fire Thorns'] } }],
+    ['cloak-of-flame', { name: 'Cloak of Flame', implicitMods: [], uniqueMods: { explicitMods: ['+(30-50) to maximum Energy Shield', 'Fire Thorns'] } }],
   ]),
   mods: new Map<string, unknown>([['increasedlife9', { rolls: [{ stat: 'base_maximum_life', min: 120, max: 149 }] }]]),
 });
@@ -27,7 +27,12 @@ describe('makeCollectData', () => {
   });
 
   it('joins a base item to its defences, spirit and typed implicits by name', () => {
-    expect(d().item('amethyst-ring')).toEqual({ armour: null, spirit: 0, implicits: [[['base_chaos_damage_resistance_%', 7, 13]]] });
+    expect(d().item('amethyst-ring')).toEqual({
+      armour: null,
+      spirit: 0,
+      implicits: [[['base_chaos_damage_resistance_%', 7, 13]]],
+      implicitLines: ['+(7-13)% to Chaos Resistance'],
+    });
     expect(d().item('nope')).toBeUndefined();
   });
 
@@ -38,6 +43,7 @@ describe('makeCollectData', () => {
         { text: '+(30-50) to maximum Energy Shield', stats: ['local_energy_shield'] },
         { text: 'Fire Thorns', stats: null },
       ],
+      implicitLines: [],
     });
     expect(d().unique('Unknown Unique', 'unknown-unique')).toBeUndefined();
     expect(d().unique('Baseless', 'baseless')).toBeUndefined();
