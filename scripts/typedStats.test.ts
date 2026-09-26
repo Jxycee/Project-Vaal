@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildImplicitStats, buildNodeStats } from './typedStats';
+import { buildImplicitStats, buildNodeStats, buildUniqueStats } from './typedStats';
 
 // Failure modes first (AGENTS.md). These turn decoded GGPK rows into the typed
 // (stat, value) data the Slice 5 engine reads — the same Stats.Id vocabulary
@@ -88,5 +88,46 @@ describe('buildImplicitStats', () => {
 
   it('refuses an implicit mod index the Mods table lacks, naming the base', () => {
     expect(() => buildImplicitStats([{ _index: 0, Name: 'Broken', Implicit_Mods: [9] }], mods, stats)).toThrow(/Broken/);
+  });
+});
+
+describe('buildUniqueStats', () => {
+  // Our own data only: unique lines are matched by WORDING (numbers ignored)
+  // against single-line item mods, whose rolls give the stat ids.
+  const mod = (stats: string[], rolls: string[], domain = 'Item') => ({ stats, rolls: rolls.map((stat) => ({ stat, min: 0, max: 0 })), domain });
+  const mods = [
+    mod(['+(8-14) to maximum Energy Shield'], ['base_maximum_energy_shield']),
+    mod(['+(20-30) to maximum Energy Shield'], ['local_energy_shield']),
+    mod(['+(6-10)% to Fire Resistance'], ['base_fire_damage_resistance_%']),
+    mod(['Adds (1-2) to (3-5) Fire damage'], ['min', 'max']),
+    mod(['+(10-20) to maximum Life', '+(5-10)% to Fire Resistance'], ['hybrid_a', 'hybrid_b']),
+    mod(['+(1-2) to Monster Level'], ['monster'], 'Monster'),
+  ];
+  const unique = (name: string, category: string, lines: string[], baseType = 'Silk Robe') => ({ name, category, rarity: 'unique', uniqueMods: { baseType, explicitMods: lines } });
+
+  it('maps a line to the stat ids of the one mod that words it the same way', () => {
+    const out = buildUniqueStats([unique('Cloak', 'Body Armour', ['+(30-50)% to Fire Resistance'])], mods);
+    expect(out.Cloak).toEqual({ baseType: 'Silk Robe', lines: [['base_fire_damage_resistance_%']] });
+  });
+
+  it('settles local-vs-global by the item: an armour piece takes local, jewellery takes global', () => {
+    const lines = ['+(30-50) to maximum Energy Shield'];
+    expect(buildUniqueStats([unique('Robe', 'Body Armour', lines)], mods).Robe.lines).toEqual([['local_energy_shield']]);
+    expect(buildUniqueStats([unique('Charm', 'Amulet', lines, 'Stellar Amulet')], mods).Charm.lines).toEqual([['base_maximum_energy_shield']]);
+  });
+
+  it('gives null for a line nothing words the same way, or only a multi-line or non-item mod does', () => {
+    const out = buildUniqueStats([unique('Odd', 'Body Armour', ['Dodge Roll avoids all Hits', '+(10-20) to maximum Life', '+(1-2) to Monster Level'])], mods);
+    expect(out.Odd.lines).toEqual([null, null, null]);
+  });
+
+  it('keeps one stat id per roll, in order', () => {
+    expect(buildUniqueStats([unique('Brand', 'Wand', ['Adds (4-6) to (9-12) Fire damage'])], mods).Brand.lines).toEqual([['min', 'max']]);
+  });
+
+  it('strips a {variant:…} prefix from the base, and skips non-uniques', () => {
+    const out = buildUniqueStats([unique('Stars', 'Mace', [], '{variant:1,2}Plated Mace'), { name: 'Plain', category: 'Ring', rarity: 'normal', uniqueMods: null }], mods);
+    expect(out.Stars.baseType).toBe('Plated Mace');
+    expect(out).not.toHaveProperty('Plain');
   });
 });

@@ -97,3 +97,61 @@ export function buildImplicitStats(bases: BaseRow[], mods: ModRow[], stats: Stat
   }
   return out;
 }
+
+// ---- Uniques (from our own wiki data, no GGPK) --------------------------------
+//
+// A unique's lines are display text (`uniqueMods.explicitMods`), and our
+// typed `Unique` mods do not cover them (14 of 2,068 lines match, 2026-09-25).
+// But a unique line is usually worded exactly like an ordinary item mod, so it
+// is matched by WORDING — numbers and ranges ignored — against single-line
+// Item/Flask mods, whose rolls give the stat ids. Measured 2026-09-25: 641 of
+// 1,048 defence-related unique lines match one stat set; 106 more are only
+// ambiguous between a local_ and a global id, settled by where the item is
+// worn (armour pieces and weapons carry local stats; jewellery does not —
+// the same rule the defence stat table verified on affixes). The rest are null.
+
+type WikiModLike = { stats?: string[]; rolls?: { stat: string }[]; domain?: string };
+type WikiUniqueLike = { name: string; category: string; rarity: string; uniqueMods?: { baseType?: string; explicitMods?: string[] } | null };
+
+/** Categories whose unique's local_ stats apply to the item itself. */
+const LOCAL_CATEGORIES = new Set([
+  'Helmet', 'Body Armour', 'Gloves', 'Boots', 'Shield', 'Buckler', 'Focus', 'Focii',
+  'One Hand Sword', 'Two Hand Sword', 'One Hand Axe', 'Two Hand Axe', 'One Hand Mace', 'Two Hand Mace', 'Mace',
+  'Bow', 'Crossbow', 'Claw', 'Dagger', 'Flail', 'Spear', 'Sceptre', 'Wand', 'Staff', 'Warstaff', 'Talisman',
+]);
+
+const wording = (line: string) => line.replace(/\(-?\d+(\.\d+)?--?\d+(\.\d+)?\)/g, '#').replace(/-?\d+(\.\d+)?/g, '#');
+
+export interface UniqueStats {
+  baseType: string;
+  /** Per explicit line: its stat ids in roll order, or null when no item mod words it the same way. */
+  lines: (string[] | null)[];
+}
+
+export function buildUniqueStats(items: WikiUniqueLike[], mods: WikiModLike[]): Record<string, UniqueStats> {
+  const byWording = new Map<string, string[][]>();
+  for (const m of mods) {
+    if ((m.domain !== 'Item' && m.domain !== 'Flask') || (m.stats ?? []).length !== 1 || (m.rolls ?? []).length === 0) continue;
+    const key = wording(m.stats![0]);
+    const ids = m.rolls!.map((r) => r.stat);
+    const known = byWording.get(key) ?? [];
+    if (!known.some((k) => k.join('+') === ids.join('+'))) known.push(ids);
+    byWording.set(key, known);
+  }
+
+  const out: Record<string, UniqueStats> = {};
+  for (const item of items) {
+    if (item.rarity !== 'unique' || !item.uniqueMods || Object.hasOwn(out, item.name)) continue;
+    const local = LOCAL_CATEGORIES.has(item.category);
+    out[item.name] = {
+      baseType: (item.uniqueMods.baseType ?? '').replace(/^\{[^}]*\}/, ''),
+      lines: (item.uniqueMods.explicitMods ?? []).map((line) => {
+        const candidates = byWording.get(wording(line)) ?? [];
+        if (candidates.length === 1) return candidates[0];
+        const bySide = candidates.filter((ids) => ids.every((id) => id.startsWith('local_') === local));
+        return bySide.length === 1 ? bySide[0] : null;
+      }),
+    };
+  }
+  return out;
+}

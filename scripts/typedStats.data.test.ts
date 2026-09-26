@@ -70,3 +70,30 @@ describe('one stat vocabulary', () => {
     }
   });
 });
+
+describe('unique-stats.json', () => {
+  const uniques = (JSON.parse(readFileSync('public/data/wiki/2026-08-25/unique-stats.json', 'utf8')) as {
+    uniques: Record<string, { baseType: string; lines: (string[] | null)[] }>;
+  }).uniques;
+
+  // Checked by hand against each line's text in items/*.json, 2026-09-25.
+  it('types Cloak of Flame: local ES, fire resistance, ignite duration; two lines it cannot', () => {
+    expect(uniques['Cloak of Flame']).toEqual({
+      baseType: 'Silk Robe',
+      lines: [['local_energy_shield'], ['base_fire_damage_resistance_%'], ['base_self_ignite_duration_-%'], null, null],
+    });
+  });
+
+  it('types Blueflame Bracers, with its flat ES as local because gloves are worn armour', () => {
+    expect(uniques['Blueflame Bracers']).toEqual({
+      baseType: 'Goldcast Cuffs',
+      lines: [['local_energy_shield'], ['additional_intelligence'], ['base_fire_damage_resistance_%'], ['base_cold_damage_resistance_%'], null],
+    });
+  });
+
+  it('gives every unique a base our item data has', () => {
+    const items = new Set(readdirSync('public/data/wiki/2026-08-25/items').map((f) => (JSON.parse(readFileSync(`public/data/wiki/2026-08-25/items/${f}`, 'utf8')) as { name: string }).name));
+    const missing = Object.entries(uniques).filter(([, u]) => u.baseType && !items.has(u.baseType)).map(([n]) => n);
+    expect(missing).toEqual([]);
+  });
+});

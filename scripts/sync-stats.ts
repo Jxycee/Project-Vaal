@@ -8,6 +8,10 @@
  *       { patch, extracted, nodes: { "<nodeId>": [[statId, value], …] } }
  *   public/data/wiki/<WIKI_DATA_VERSION>/implicit-stats.json
  *       { patch, extracted, bases: { "<base name>": [[[statId, min, max], …], …] } }
+ *   public/data/wiki/<WIKI_DATA_VERSION>/unique-stats.json
+ *       { extracted, uniques: { "<unique name>": { baseType, lines: [[statId, …] | null, …] } } }
+ *       — derived from our own wiki item and mod files, no GGPK read (see
+ *       typedStats.ts buildUniqueStats).
  *
  * Kept apart from `sync:wiki`, which rewrites a whole dataset version. The
  * patch is PINNED to the one behind the current wiki data (the last
@@ -17,11 +21,11 @@
  * Run: npm run sync:stats
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { TREE_VERSION } from '../src/lib/tree/version';
 import { WIKI_DATA_VERSION } from '../src/lib/wiki/types';
-import { buildImplicitStats, buildNodeStats } from './typedStats';
+import { buildImplicitStats, buildNodeStats, buildUniqueStats } from './typedStats';
 
 const PINNED_PATCH = '4.5.5.3';
 const EXTRACT_DIR = path.join(process.cwd(), 'scripts', 'wiki', '.extract-stats');
@@ -79,6 +83,14 @@ function main(): void {
     JSON.stringify({ patch, extracted, bases }),
   );
   console.log(`implicit-stats.json: ${Object.keys(bases).length} bases from patch ${patch}`);
+
+  const wikiDir = path.join(process.cwd(), 'public', 'data', 'wiki', WIKI_DATA_VERSION);
+  const readDir = (kind: string) =>
+    readdirSync(path.join(wikiDir, kind)).map((f) => JSON.parse(readFileSync(path.join(wikiDir, kind, f), 'utf8')));
+  const uniques = buildUniqueStats(readDir('items'), readDir('mods'));
+  writeFileSync(path.join(wikiDir, 'unique-stats.json'), JSON.stringify({ extracted, uniques }));
+  const lines = Object.values(uniques).flatMap((u) => u.lines);
+  console.log(`unique-stats.json: ${Object.keys(uniques).length} uniques, ${lines.filter(Boolean).length} of ${lines.length} lines typed`);
 }
 
 main();
