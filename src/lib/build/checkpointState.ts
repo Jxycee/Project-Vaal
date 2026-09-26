@@ -139,3 +139,21 @@ export function reorder(list: BuildCheckpoint[], from: number, to: number): Buil
   next.splice(to, 0, moved);
   return renumber(next);
 }
+
+/**
+ * The checkpoint a /tree session edits: the one the URL chose among the loaded
+ * list — or, when the list failed to load, the checkpoint the build row
+ * mirrors (builds.active_checkpoint_id), because that row's state is what the
+ * editor is then showing. Saving and drafting under it is exact; with no id
+ * at all, a multi-checkpoint build could not be saved and its drafts went
+ * under a key no normal load reads (review 2026-09-26).
+ */
+export function editingCheckpointId(
+  build: { active_checkpoint_id?: string | null } | null,
+  list: BuildCheckpoint[],
+  param: string | null,
+): string | undefined {
+  if (!build) return undefined;
+  if (list.length > 0) return activeCheckpoint(list, param)?.id;
+  return build.active_checkpoint_id ?? undefined;
+}

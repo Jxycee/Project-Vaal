@@ -87,6 +87,8 @@ export interface SavedBuild {
   /** Free-text, owner-editable. Persisted straight to the `builds.notes` column — see POST /api/builds' validation (trim, MAX_NOTES_LENGTH cap). */
   notes: string | null;
   updated_at: string;
+  /** The checkpoint this row mirrors (maintained by triggers since 20260923235500). */
+  active_checkpoint_id?: string | null;
 }
 
 /**

@@ -104,6 +104,8 @@ export default function TreeBuildSession({
   // lazy-seeded-once reasoning as gearState/gemState above: this component
   // remounts per build, so `build` can't change out from under it.
   const [level, setLevel] = useState(() => build?.level ?? 1);
+  // A level brought back by a draft restore, for BuildSavePanel's own field.
+  const [restoredLevel, setRestoredLevel] = useState<number | undefined>(undefined);
 
   const initialState = useMemo<PassiveTreeInitialState | undefined>(() => {
     if (!build) return undefined;
@@ -308,6 +310,11 @@ export default function TreeBuildSession({
     // re-seed them.
     setGearState(storedDraft.gear);
     setGemState(storedDraft.gem);
+    // The planned level too (drafts written before it was kept have none).
+    if (storedDraft.level !== undefined) {
+      setLevel(storedDraft.level);
+      setRestoredLevel(storedDraft.level);
+    }
     setSeedKey((k) => k + 1);
     setDraftPromptOpen(false);
   }, [storedDraft]);
@@ -329,8 +336,8 @@ export default function TreeBuildSession({
   useEffect(() => {
     if (!editorState) return;
     latestSession.current = { tree: editorState, gear: gearState, gem: gemState };
-    saveDraft(buildId, { tree: editorState, gear: gearState, gem: gemState }, checkpointId);
-  }, [editorState, gearState, gemState, buildId, checkpointId]);
+    saveDraft(buildId, { tree: editorState, gear: gearState, gem: gemState, level }, checkpointId);
+  }, [editorState, gearState, gemState, level, buildId, checkpointId]);
 
   // ---- Save ------------------------------------------------------------
   const [saving, setSaving] = useState(false);
@@ -552,6 +559,7 @@ export default function TreeBuildSession({
         buildId={activeBuildId}
         initialName={build?.name ?? ''}
         initialLevel={build?.level ?? 1}
+        restoredLevel={restoredLevel}
         initialLeague={build?.league ?? 'Standard'}
         initialNotes={build?.notes ?? ''}
         onLevelChange={setLevel}

@@ -29,6 +29,11 @@ export interface BuildDraftState {
   tree: BuildEditorState;
   gear: GearState;
   gem: GemState;
+  /**
+   * The level being planned. Optional: drafts written before it was kept
+   * (2026-09-26) have none, and restore at the saved level as they always did.
+   */
+  level?: number;
 }
 
 /**
@@ -109,10 +114,12 @@ export function loadDraft(buildId: string | undefined, checkpointId?: string): B
     // defensively like gear and gems, or a junk entry fails every later save.
     const { attributeChoices, ...tree } = treeCandidate;
     const choices = parseAttributeChoices(attributeChoices);
+    const level = 'level' in parsed ? parsed.level : undefined;
     return {
       tree: Object.keys(choices).length > 0 ? { ...tree, attributeChoices: choices } : tree,
       gear: parseGearState('gear' in parsed ? parsed.gear : undefined),
       gem: parseGemState('gem' in parsed ? parsed.gem : undefined),
+      ...(Number.isInteger(level) && (level as number) >= 1 && (level as number) <= 100 ? { level: level as number } : {}),
     };
   } catch {
     return null;

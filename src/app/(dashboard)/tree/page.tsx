@@ -74,9 +74,9 @@ export default async function TreePage({
         build = data as unknown as SavedBuild;
         if (checkpointError) {
           // Degrade rather than fail: the builds row mirrors the checkpoint
-          // last saved, so the editor still opens on real data, and a save
-          // without a checkpoint_id resolves by POST /api/builds' "exactly one
-          // checkpoint" rule. What is lost is the checkpoint list itself.
+          // last saved, so the editor still opens on real data, and saves and
+          // drafts go to that checkpoint (builds.active_checkpoint_id — see
+          // editingCheckpointId). What is lost is the checkpoint list itself.
           console.error('Failed to load checkpoints:', checkpointError);
         } else {
           checkpoints = parseCheckpoints(checkpointRows);

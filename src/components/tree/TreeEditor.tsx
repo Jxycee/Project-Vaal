@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import type { GggTreeJson } from '@poe2-toolkit/tree-core/ggg';
 import type { SavedBuild } from '@/lib/build/types';
-import { activeCheckpoint, type BuildCheckpoint } from '@/lib/build/checkpointState';
+import { activeCheckpoint, editingCheckpointId, type BuildCheckpoint } from '@/lib/build/checkpointState';
 import TreeBuildSession from '@/components/tree/TreeBuildSession';
 
 // Vendored tree export version — defined in src/lib/tree/version.ts, the one
@@ -65,6 +65,9 @@ export default function TreeEditor({
   // the last-saved checkpoint anyway. With no checkpoints (scratch mode, or a
   // failed load) the build passes through unchanged.
   const active = build ? activeCheckpoint(checkpoints, checkpointParam) : null;
+  // Also defined when the checkpoint list failed to load: then it is the one
+  // the build row mirrors, which is what `build` holds (editingCheckpointId).
+  const checkpointId = editingCheckpointId(build, checkpoints, checkpointParam);
   const sessionBuild: SavedBuild | null =
     build && active
       ? {
@@ -117,11 +120,11 @@ export default function TreeEditor({
           // stale build-scoped state unreachable (see TreeBuildSession's
           // header) — switching checkpoint changes every piece of that state
           // just as switching build does, so it must remount just the same.
-          key={`${buildId ?? 'scratch'}:${active?.id ?? 'none'}`}
+          key={`${buildId ?? 'scratch'}:${checkpointId ?? 'none'}`}
           raw={raw}
           buildId={buildId}
           build={sessionBuild}
-          checkpointId={active?.id}
+          checkpointId={checkpointId}
           checkpoints={checkpoints}
           loadError={loadError}
           PassiveTree={PassiveTree}

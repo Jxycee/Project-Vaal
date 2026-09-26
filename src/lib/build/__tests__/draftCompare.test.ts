@@ -274,3 +274,17 @@ describe('draftDiffersFrom — item crafts', () => {
     expect(draftDiffersFrom(draft({ ...saved, craft: reordered }), build(saved))).toBe(false);
   });
 });
+
+describe('draftDiffersFrom — the level', () => {
+  const base: BuildDraftState = { tree: matchingTree, gear: savedGear, gem: savedGem };
+  const saved = { ...savedBuild, level: 40 };
+
+  it('reports a draft whose only change is the level', () => {
+    expect(draftDiffersFrom({ ...base, level: 55 }, saved)).toBe(true);
+  });
+
+  it('does not prompt for the same level, or for a draft with no level (written before levels were kept)', () => {
+    expect(draftDiffersFrom({ ...base, level: 40 }, saved)).toBe(false);
+    expect(draftDiffersFrom(base, saved)).toBe(false);
+  });
+});

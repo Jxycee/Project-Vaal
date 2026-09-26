@@ -238,3 +238,28 @@ describe('storage unavailable', () => {
     expect(() => clearDraft('build-123')).not.toThrow();
   });
 });
+
+// Level used to live outside the draft, so a level-only edit was lost on
+// refresh with no prompt, and a restore brought back the tree at the saved
+// level instead of the one being planned (review 2026-09-26).
+describe('loadDraft — the level', () => {
+  beforeEach(() => {
+    installMockStorage();
+  });
+  const tree = { classId: 1, className: 'Witch', ascendancyId: undefined, main: { allocated: [1], weaponSets: {} }, ascendancyNodes: [] };
+  const put = (value: unknown) => localStorage.setItem('vaal:tree-draft:b1', JSON.stringify(value));
+
+  it('keeps a whole level from 1 to 100', () => {
+    put({ tree, level: 42 });
+    expect(loadDraft('b1')?.level).toBe(42);
+  });
+
+  it('drops a level that is not a whole number from 1 to 100, and a draft written before levels were kept', () => {
+    for (const level of [0, 101, 4.5, '42', null]) {
+      put({ tree, level });
+      expect(loadDraft('b1')?.level).toBeUndefined();
+    }
+    put({ tree });
+    expect(loadDraft('b1')?.level).toBeUndefined();
+  });
+});

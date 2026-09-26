@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   activeCheckpoint,
+  editingCheckpointId,
   nextPosition,
   parseCheckpoints,
   renumber,
@@ -161,5 +162,28 @@ describe('renumber', () => {
   it('is a no-op on an already contiguous list', () => {
     const list = parseCheckpoints([row({ id: 'a', position: 0 }), row({ id: 'b', position: 1 })]);
     expect(renumber(list).map((c) => c.position)).toEqual([0, 1]);
+  });
+});
+
+// When the checkpoint list fails to load, /tree still opens on the build row,
+// which mirrors ONE checkpoint (builds.active_checkpoint_id). The session used
+// to get no checkpoint id at all: every save of a build with several
+// checkpoints answered 400, and its drafts went under a key no normal load
+// ever reads (review 2026-09-26).
+describe('editingCheckpointId', () => {
+  const list = parseCheckpoints([row({ id: 'cp-0', position: 0 }), row({ id: 'cp-1', position: 1 })]);
+
+  it('is the checkpoint the URL chose, when the list loaded', () => {
+    expect(editingCheckpointId({ active_checkpoint_id: 'cp-0' }, list, 'cp-1')).toBe('cp-1');
+    expect(editingCheckpointId({ active_checkpoint_id: 'cp-0' }, list, null)).toBe('cp-0');
+  });
+
+  it('is the checkpoint the build row mirrors, when the list failed to load — the state on screen', () => {
+    expect(editingCheckpointId({ active_checkpoint_id: 'cp-1' }, [], 'cp-0')).toBe('cp-1');
+  });
+
+  it('is undefined with no build, or a row that names no mirrored checkpoint', () => {
+    expect(editingCheckpointId(null, list, 'cp-1')).toBeUndefined();
+    expect(editingCheckpointId({ active_checkpoint_id: null }, [], null)).toBeUndefined();
   });
 });

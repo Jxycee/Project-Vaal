@@ -105,7 +105,7 @@ function gemStateEqual(a: GemState, b: GemState): boolean {
 
 export function draftDiffersFrom(
   draft: BuildDraftState,
-  build: Pick<SavedBuild, 'class' | 'ascendancy' | 'passive_state' | 'gear_state' | 'gem_state'> | null,
+  build: Pick<SavedBuild, 'class' | 'ascendancy' | 'passive_state' | 'gear_state' | 'gem_state'> & { level?: number } | null,
 ): boolean {
   if (build === null) {
     // Scratch mode: an untouched session (nothing allocated, no gear, no
@@ -118,6 +118,8 @@ export function draftDiffersFrom(
     );
   }
 
+  // A draft written before levels were kept has none, and so no level change.
+  if (draft.level !== undefined && build.level !== undefined && draft.level !== build.level) return true;
   if (draft.tree.className !== build.class) return true;
   if ((draft.tree.ascendancyId ?? null) !== build.ascendancy) return true;
 

@@ -20,6 +20,7 @@ export default function BuildSavePanel({
   savedAt,
   onSave,
   onLevelChange,
+  restoredLevel,
 }: {
   buildId?: string;
   initialName?: string;
@@ -40,10 +41,19 @@ export default function BuildSavePanel({
    * flapping to a default.
    */
   onLevelChange: (level: number) => void;
+  /** A level a draft restore brought back; replaces what the field shows. */
+  restoredLevel?: number;
 }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(initialName);
   const [level, setLevel] = useState(String(initialLevel));
+  // Adjusted during render on a prop change (React's documented alternative
+  // to an effect): a restored draft's level replaces the field's value.
+  const [seenRestored, setSeenRestored] = useState(restoredLevel);
+  if (restoredLevel !== seenRestored) {
+    setSeenRestored(restoredLevel);
+    if (restoredLevel !== undefined) setLevel(String(restoredLevel));
+  }
   const [league, setLeague] = useState(initialLeague);
   const [notes, setNotes] = useState(initialNotes);
 
