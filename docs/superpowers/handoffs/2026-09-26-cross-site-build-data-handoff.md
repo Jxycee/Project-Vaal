@@ -134,7 +134,7 @@ _Written 2026-09-26 by the local session on `feat/cross-site-build-data`. Each e
 - *Fix:* `mapBuild.ts` stores the name, which is the editor's id, and keeps the raw id only for matching nodes in `mapTree`. Two unit tests had pinned the old value and were corrected. The E2E now passes (`Witchhunter`, 2 ascendancy nodes).
 - The live database had no raw-id rows (1 build, ascendancy null), so no data migration is needed. `ascendancyLabel` still reads both vocabularies, for any older import.
 
-**2. The Abyssal Lich import drops its ascendancy nodes. NOT fixed.** No tree node carries `ascendancyId: 'Witch3b'`; it reuses Lich's `Witch3` graph. *Checked by* counting nodes per raw id in `data.json`. `mapTree` compares each node's raw id to the build's (`'Witch3b'`), so every Abyssal Lich node is dropped. The likely fix is to compare against the graph id (`Witch3`) for `Witch3b`.
+**2. The Abyssal Lich import dropped its ascendancy nodes. FIXED 2026-09-26 (`3324de08f9`).** No tree node carries `ascendancyId: 'Witch3b'`; it reuses Lich's `Witch3` graph and re-skins 13 of its nodes through `overridePairs`. PoB2 lists the base `Witch3` ids for it: *checked in* PoB2's `src/Export/Scripts/passivetree_ggg.lua`, which attaches the replacement to the base node as an `option`. `mapTree` compared each node to `'Witch3b'`, so every Abyssal Lich node was dropped. The catalogue now has `graphOf()`, which resolves an ascendancy's graph the way the tree-core patch resolves `graphId`, and `mapBuild` matches nodes by graph. Failure modes were written first in `mapBuild.test.ts`: the new case failed before the fix, and a plain Lich build is pinned unchanged.
 
 **3. Unique prices exist in two leagues only, and not in the default.** *Checked by* querying `price_entries` by category and league. `uniques-*` rows exist only for `Runes of Aldur` and `Forbidden Rites`. Runes and soul cores are in all 5 leagues. `builds.league` defaults to `'Standard'`, so feature A needs a league choice or an honest "uniques unpriced in Standard".
 
@@ -142,7 +142,7 @@ _Written 2026-09-26 by the local session on `feat/cross-site-build-data`. Each e
 
 **5. There is nothing to aggregate yet.** On 2026-09-26 the database held 1 build, 0 of them public, and there is no GIN index on the state columns. Feature C would show 0 everywhere today.
 
-**6. Two unit tests time out under the full `npm test` run, on `main` too.** They are `scripts/typedStats.data.test.ts` and `src/lib/wiki/categoryTaxonomy.test.ts`. Both exceed the 5s default when the suite runs in parallel and pass alone. `main` @ `15fff5a7` fails the same two, so this branch did not cause it.
+**6. Two unit tests timed out under the full `npm test` run, on `main` too. FIXED 2026-09-26.** They were `scripts/typedStats.data.test.ts` and `src/lib/wiki/categoryTaxonomy.test.ts`. Each reads a whole data directory (5,267 mod files or 4,994 item files): about 2s alone, but over the 5s default when the suite runs in parallel. The directory sweeps now have a 30s timeout, and the item sweeps assert they read something. `npm test` then passed 1167/1167 on three runs in a row.
 
 **7. No spec publishes a build, on purpose.** Publishing would briefly list an `E2E-` build to every signed-in user in production. The finder row shares its label helper with the shared page, which the spec does cover.
 
