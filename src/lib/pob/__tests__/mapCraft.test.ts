@@ -232,3 +232,21 @@ describe('mapCraft — item text PoB writes that is not a mod', () => {
     expect(notes.map((n) => n.message).join('\n')).not.toContain('None');
   });
 });
+
+// The wiki sync appends each keyword's definition to a unique line that is
+// only a keyword ("Iron Grip — Gain no inherent bonus from Strength…",
+// normalize.ts enrichKeywordLines). PoB writes the bare "Iron Grip", so 29
+// lines across 15 uniques never matched and every import reported them as
+// "does not match this patch's data" (review 2026-09-26).
+describe('mapCraft — unique lines the wiki sync annotated', () => {
+  it('matches a keyword line on the text before its definition', () => {
+    const base = { implicitLines: [], uniqueLines: ['+(20-30) to Strength', 'Iron Grip — Gain no inherent bonus from Strength\r\n1% increased Projectile Attack damage per 2 Strength'] };
+    const { craft, notes } = mapCraft(
+      text('Rarity: UNIQUE', 'Irongrasp', 'Vagabond Armour', 'Implicits: 0', '+25 to Strength', 'Iron Grip'),
+      true,
+      lookups({ base }),
+    );
+    expect(craft.uniqueValues).toEqual([[25], []]);
+    expect(notes.map((n) => n.message).join('\n')).not.toContain('Iron Grip');
+  });
+});

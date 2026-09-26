@@ -99,8 +99,18 @@ function shownAsMagnitudes(mod: CraftMod): boolean {
   );
 }
 
+/**
+ * The part of a stored line PoB can write. The wiki sync appends a keyword's
+ * definition to a line that is only that keyword ("Iron Grip — Gain no
+ * inherent bonus…", normalize.ts enrichKeywordLines); PoB writes "Iron Grip".
+ */
+function asPobWritesIt(template: string): string {
+  return template.split(' — ')[0];
+}
+
 /** Matches lines to template lines, each template used once; rows sized to the templates. */
-function matchLines(lines: string[], templates: string[], notes: CraftNote[], what: string): number[][] {
+function matchLines(lines: string[], storedTemplates: string[], notes: CraftNote[], what: string): number[][] {
+  const templates = storedTemplates.map(asPobWritesIt);
   const rows: number[][] = templates.map(() => []);
   const used = new Set<number>();
   for (const line of lines) {
