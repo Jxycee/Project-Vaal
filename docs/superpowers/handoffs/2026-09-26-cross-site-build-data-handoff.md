@@ -156,6 +156,8 @@ _Written 2026-09-26 by the local session on `feat/cross-site-build-data`. Each e
 
 For awareness. If your feature work touches one of these files, fix the bug as part of your change (with a test written before the fix, per AGENTS.md) and note it here. Otherwise leave it for the user to schedule.
 
+**Status (2026-09-26, cloud session):** all fixed on branch `claude/project-vaal-security-review-m0qwi7` (from main 6424a4810b) — 13 af29637a, 14 130bd8a8, 15 c901e1ec, 16 e3a3c3eb, 17 local session, 18–20 23b16a27, 21 1195fac6, 22 4c16bf59, 23 a6cdf8fe + e2f6099d, 24 40ee642e, 25 bd920b21, 26 9b699a25, 28 32960cbb, 29 29424671, 30 + 33 1fc41659. Item 23's data changes (Morior Invictus, Grand Spectrum, `Limited to:`/`Radius:` lines) reach `public/data/wiki` only on the next `npm run sync:wiki`. The new E2E case in `draft-and-auth.spec.ts` (item 20) was not run in the cloud (no test account there).
+
 - 13. Defence-changing stats dropped silently (`statTable.ts` / `collect.ts:128-131`): e.g. Eldritch Will `maximum_life_mana_and_energy_shield_+%`, `base_all_attributes`, Iron Reflexes, Chayula's Gift, the life-to-ES conversions.
 - 14. "Reduced" mods at the wrong end of the roll (`craftText.ts:29` `valueAt`, `craft.ts:95` `bestRolls`).
 - 15. `gear_state.jewels` never category-checked: any item under a socket key is counted by the stats engine.
