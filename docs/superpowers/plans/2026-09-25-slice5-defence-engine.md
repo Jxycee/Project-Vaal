@@ -95,3 +95,13 @@
 
 - **Unique mods** are text. If Task 1's measurement shows they cannot be typed reliably, the stat sheet lists each unique as "mods not counted" rather than guessing.
 - **Offence/DPS** stays out of scope (`CalcOffence.lua`, 364KB).
+
+---
+
+## Findings during implementation (2026-09-25)
+
+- **The golden test cannot be "match PoB's saved numbers".** The fixture's `<PlayerStat>` values were computed on an older game version (`targetVersion="0_1"`). Its Cloak of Flame reads 73 ES, which implies a Silk Robe base of about 21, while PoB2's current `Data/Bases/body.lua` and our data both say 64. Its Amethyst Ring lists `Prefix: IncreasedMana13` but shows no Mana line, so that PoB never applied the mod and its Mana 494 excludes 2 × 189. Comparing against another patch's numbers would prove nothing.
+  **So `src/lib/build/stats/__tests__/fixture.test.ts` checks what is exact.** Each armour piece's defences are derived by hand from PoB2's current bases through PoB2's item formula: Paragon Greathelm 428, Vaal Greaves 322, Blueflame Bracers 59 / 42, Cloak of Flame 125. The same test covers what no patch changes: Spirit 100, which PoB saved too, the endgame penalty, and the named runes and choices.
+- **Unique lines are typed by wording** (`unique-stats.json`, 1,144 of 2,068 lines), not left out. The plan had allowed for listing uniques as not counted.
+- **Two defence stats were missing from the stat table** until the fixture found them: `evasion_and_physical_damage_reduction_rating_+%` (Battle-hardened) and `all_attributes_+%` (Polymathy).
+- **The spike missed PassiveSkills' Stat6Value/Stat7Value** (the end of the PoE2 struct). The extraction's refuse-to-guess guard caught it on node 51546.

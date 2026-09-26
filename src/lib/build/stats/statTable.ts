@@ -56,6 +56,7 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   base_evasion_rating: flat('evasion'),
   'evasion_rating_+%': inc('evasion'),
   'global_armour_evasion_energy_shield_+%': inc('armour', 'evasion', 'energyShield'),
+  'evasion_and_physical_damage_reduction_rating_+%': inc('armour', 'evasion'),
 
   base_strength: flat('str'),
   base_dexterity: flat('dex'),
@@ -72,6 +73,7 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   'strength_+%': inc('str'),
   'dexterity_+%': inc('dex'),
   'intelligence_+%': inc('int'),
+  'all_attributes_+%': inc('str', 'dex', 'int'),
 
   'base_fire_damage_resistance_%': flat('fireRes'),
   'base_cold_damage_resistance_%': flat('coldRes'),
@@ -126,4 +128,5 @@ export const NOT_MODELLED: Readonly<Record<string, string>> = {
   'body_armour_evasion_rating_+%': 'increased Evasion from body armour',
   'energy_shield_from_focus_+%': 'increased Energy Shield from a Focus',
   base_physical_damage_reduction_rating_no_display: 'hidden Armour',
+  'maximum_fire_resistance_+%_if_at_least_5_red_supports_socketed': 'Maximum Fire Resistance with 5 red supports socketed',
 };
