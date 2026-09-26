@@ -76,6 +76,14 @@ test.describe('sharing', () => {
     const name = testBuildName('share');
     await saveBuild(page, { name, level: 20, league: 'Standard' });
 
+    // Slice 5: the owner's own Life for this level-20 build, to compare with
+    // what a share-link reader sees below.
+    await page.getByRole('button', { name: 'Stats', exact: true }).click();
+    const ownerLife = page.getByTestId('stats-sheet').getByTestId('stat-life');
+    await expect(ownerLife).toHaveText(/^\d+$/, { timeout: 30_000 });
+    const lifeOnTree = await ownerLife.textContent();
+    await page.getByRole('button', { name: 'Close stats sheet' }).click();
+
     // ---- Set visibility to Private (this app's link-shareable state — see
     // src/lib/build/visibility.ts, the vocabulary inverts the usual web
     // meaning on purpose) and read the real share link off the page.
@@ -105,6 +113,13 @@ test.describe('sharing', () => {
     // "Main skill" field via deriveMainSkill, and the gem loadout card
     // itself) — either is proof enough that gem_state round-tripped.
     await expect(page.getByText(skillName).first()).toBeVisible();
+
+    // Slice 5: the shared page's stats, behind their tap, match the owner's.
+    await page.getByRole('button', { name: 'View stats' }).click();
+    const sharedStats = page.getByTestId('stats-sheet');
+    await expect(sharedStats.getByTestId('stat-life')).toHaveText(lifeOnTree!, { timeout: 60_000 });
+    await expect(sharedStats.getByTestId('stat-act')).toContainText('Act 2');
+    await sharedStats.getByRole('button', { name: 'Close stats sheet' }).click();
 
     // mobile-layout.spec.ts's "no horizontal page scroll" test sweeps only
     // /builds and /tree (predates this route) — folded in here instead of

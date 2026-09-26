@@ -42,7 +42,8 @@ async function loadAll<T>(slugs: string[], fetchOne: (slug: string) => Promise<T
 }
 
 export function useDefenceSheets(input: {
-  tree: GggTreeJson;
+  /** null while the tree export is still loading (the shared page fetches it behind a tap). */
+  tree: GggTreeJson | null;
   className: string | undefined;
   level: number;
   passive: PassiveState;
@@ -73,7 +74,7 @@ export function useDefenceSheets(input: {
   }, [key]);
 
   return useMemo(() => {
-    if (!loaded || loaded.key !== key) return null;
+    if (!loaded || loaded.key !== key || !input.tree) return null;
     if ('error' in loaded) return { error: loaded.error };
     const data = makeCollectData({ tree: input.tree as unknown as Parameters<typeof makeCollectData>[0]['tree'], ...loaded.files, items: loaded.items, mods: loaded.mods });
     const cls = (input.tree.classes as unknown as { name: string; base_str: number; base_dex: number; base_int: number }[]).find(
