@@ -18,7 +18,7 @@
 
 import type { AttributeChoice } from '@poe2-toolkit/tree-core';
 import type { CraftedMod } from '../craft';
-import { GEAR_SLOTS, type GearItem, type GearSlot } from '../gearSlots';
+import { GEAR_SLOTS, JEWEL_CATEGORIES, type GearItem, type GearSlot } from '../gearSlots';
 import type { GearState } from '../gearState';
 import type { PassiveState } from '../types';
 import { campaignAt } from './campaign';
@@ -111,7 +111,15 @@ export function collectContributions(
     if (item && !otherSet.has(slot) && !NOT_ON_CHARACTER.has(slot)) equipped.push(item);
   }
   for (const [socket, jewel] of Object.entries(input.gear.jewels)) {
-    if (nodes.has(Number(socket))) equipped.push(jewel);
+    if (!nodes.has(Number(socket))) continue;
+    // Only a jewel counts from a jewel socket. The write gate checks shape,
+    // not category, so a socket can hold anything a client sent — Kaom's
+    // Heart there once added +1500 Life. The validator warns about it too.
+    if (!(JEWEL_CATEGORIES as readonly string[]).includes(jewel.category)) {
+      notCounted.push(`${jewel.name}: not a jewel, so not counted from a jewel socket`);
+      continue;
+    }
+    equipped.push(jewel);
   }
   for (const item of equipped) collectItem(item, data, flags, contributions, notCounted, assumed);
 

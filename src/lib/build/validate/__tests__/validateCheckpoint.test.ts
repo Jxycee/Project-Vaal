@@ -25,6 +25,16 @@ describe('validateCheckpoint — every way it could be wrong', () => {
     ]);
   });
 
+  it('flags a jewel socket holding something that is not a jewel, targeted at that socket', () => {
+    // The write gate checks shape, not category, and the stat engine counted
+    // whatever sat under an allocated socket: Kaom's Heart there added +1500
+    // Life with no warning (review 2026-09-26).
+    const gear: GearState = { ...emptyGearState(), jewels: { '2491': item("Kaom's Heart", 'Body Armour'), '26725': item('Emerald', 'Jewel') } };
+    const warnings = validateCheckpoint({ passive: EMPTY_TREE, gear });
+    expect(warnings.map((w) => [w.code, w.target])).toEqual([['slot-category-mismatch', { kind: 'jewel', nodeId: '2491' }]]);
+    expect(warnings[0].message).toContain("Kaom's Heart");
+  });
+
   it('counts weapon-set points as the nodes in only one set: 24 is fine, 25 is over', () => {
     const shared = range(1, 50);
     const atCap: PassiveState = { set1: [...shared, ...range(100, MAX_WEAPON_SET_POINTS)], set2: shared, ascendancyNodes: [] };

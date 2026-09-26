@@ -198,6 +198,14 @@ describe('collectContributions — gear', () => {
     );
   });
 
+  it('never counts something that is not a jewel from a jewel socket, and names it', () => {
+    const vest = item('plate-vest', 'Plate Vest', 'Body Armour', { rarity: 'rare', prefixes: [{ slug: 'global-life', values: [60] }] });
+    const r = run(tree({ set1: [30] }), gear({ jewels: { '30': vest } }));
+    expect(total(r, 'life')).toBe(0);
+    expect(total(r, 'armour')).toBe(0);
+    expect(r.notCounted.join('\n')).toContain('Plate Vest');
+  });
+
   it("counts a jewel only while its socket is allocated in the chosen set", () => {
     const emerald = item('emerald', 'Emerald', 'Jewel', { rarity: 'rare', prefixes: [{ slug: 'global-life', values: [60] }] });
     const g = gear({ jewels: { '30': emerald } });

@@ -12,7 +12,7 @@
 // =============================================================================
 
 import { MAX_ASCENDANCY_POINTS, MAX_WEAPON_SET_POINTS } from '../constants';
-import { GEAR_SLOTS, GEAR_SLOT_LABELS, categoriesForSlot } from '../gearSlots';
+import { GEAR_SLOTS, GEAR_SLOT_LABELS, JEWEL_CATEGORIES, categoriesForSlot } from '../gearSlots';
 import type { GearState } from '../gearState';
 import type { PassiveState } from '../types';
 import type { BuildWarning } from './types';
@@ -65,6 +65,18 @@ function slotMismatches(gear: GearState): BuildWarning[] {
         severity: 'warning',
         target: { kind: 'gear', slot },
         message: `${item.name} (${item.category}) cannot be equipped as ${GEAR_SLOT_LABELS[slot]}.`,
+      });
+    }
+  }
+  // Jewel sockets too: the write gate checks shape, not category, and the
+  // stat engine only counts a socket's item when it is a jewel.
+  for (const [nodeId, item] of Object.entries(gear.jewels)) {
+    if (!(JEWEL_CATEGORIES as readonly string[]).includes(item.category)) {
+      warnings.push({
+        code: 'slot-category-mismatch',
+        severity: 'warning',
+        target: { kind: 'jewel', nodeId },
+        message: `${item.name} (${item.category}) is not a jewel, so it cannot sit in a jewel socket.`,
       });
     }
   }
