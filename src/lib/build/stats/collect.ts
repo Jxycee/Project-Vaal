@@ -153,8 +153,26 @@ function collectItem(
       notCounted.push(`${item.name}: unique — not in our data`);
       return;
     }
+    // Lines typed to exactly the same stats are one roll's alternatives, which
+    // our data lists side by side (Sunsplinter's six "+N% to Maximum Fire
+    // Resistance" lines; Guiding Palm; The Unborn Lich — every repeat in the
+    // data, checked 2026-09-26). A real item has one of them and nothing says
+    // which, so none is counted and the sheet names them. Summing them gave
+    // Sunsplinter +87% maximum resistances.
+    const statKey = (stats: string[] | null) => (stats ? stats.join('+') : null);
+    const seen = new Map<string, number>();
+    for (const line of unique.lines) {
+      const key = statKey(line.stats);
+      if (key !== null) seen.set(key, (seen.get(key) ?? 0) + 1);
+    }
+    const alternatives = new Map<string, string[]>();
     let assumedRoll = false;
     unique.lines.forEach((line, i) => {
+      const key = statKey(line.stats);
+      if (key !== null && (seen.get(key) ?? 0) > 1) {
+        alternatives.set(key, [...(alternatives.get(key) ?? []), line.text]);
+        return;
+      }
       const row = craft?.uniqueValues[i] ?? [];
       const values: number[] = [];
       let range = 0;
@@ -173,6 +191,9 @@ function collectItem(
       }
       line.stats.forEach((stat, k) => stats.push([stat, values[k]]));
     });
+    for (const texts of alternatives.values()) {
+      notCounted.push(`${item.name}: rolls one of ${texts.map((t) => `"${t}"`).join(' / ')} — not counted`);
+    }
     if (assumedRoll) assumed.push(`${item.name}: unique rolls at mid-roll`);
   } else {
     detail = data.item(item.slug);
