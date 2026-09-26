@@ -67,4 +67,29 @@ test.describe('defence stats', () => {
     expect((await treeState(page)).attributeChoices[node]).toBe('str');
     expect(await readStat(page, 'stat-life')).toBe(lifeBefore + 10);
   });
+
+  test('a choice does not come back by itself after its node is deallocated or the class changes', async ({ page }) => {
+    await openTree(page);
+    const node = await nearestAttributeNode(page);
+    const choice = () => treeState(page).then((s) => s.attributeChoices[node]);
+
+    // Deallocate, then allocate again: the node is fresh, not pre-chosen.
+    expect(await page.evaluate((id) => window.__vaalTree!.allocate(id), node)).toBe(true);
+    expect(await page.evaluate((id) => window.__vaalTree!.setAttributeChoice(id, 'dex'), node)).toBe(true);
+    expect(await choice()).toBe('dex');
+    await page.evaluate((id) => window.__vaalTree!.allocate(id), node);
+    expect((await treeState(page)).allocated).not.toContain(node);
+    await page.evaluate((id) => window.__vaalTree!.allocate(id), node);
+    expect((await treeState(page)).allocated).toContain(node);
+    expect(await choice()).toBeUndefined();
+
+    // Switch class (to the same one — any switch clears the allocation), then
+    // allocate the node again: the old choice must not reappear.
+    expect(await page.evaluate((id) => window.__vaalTree!.setAttributeChoice(id, 'int'), node)).toBe(true);
+    const classId = (await treeState(page)).classId;
+    await page.evaluate((id) => window.__vaalTree!.setClass(id), classId);
+    expect((await treeState(page)).allocated).toEqual([]);
+    await page.evaluate((id) => window.__vaalTree!.allocate(id), node);
+    expect(await choice()).toBeUndefined();
+  });
 });

@@ -102,6 +102,12 @@ function parseJewelsRecord(value: unknown): Record<string, GearItem> {
  */
 function withParsedCraft(item: GearItem): GearItem {
   const raw = (item as unknown as Record<string, unknown>).craft;
-  if (raw === undefined || raw === null) return item;
+  if (raw === undefined) return item;
+  if (raw === null) {
+    // "No craft" is an absent key; a null one is refused by the write gate.
+    const rest = { ...item };
+    delete rest.craft;
+    return rest;
+  }
   return { ...item, craft: parseCraft(raw, item.isUnique) };
 }

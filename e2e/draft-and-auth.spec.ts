@@ -40,6 +40,36 @@ test.describe('draft restore', () => {
     await expect.poll(async () => (await treeState(page)).allocated.length).toBe(before);
   });
 
+  test('a tampered draft restores to something that still saves', async ({ page }) => {
+    // localStorage is not ours: a draft can hold what the write gate refuses —
+    // a junk attribute choice, or an item whose craft is null. Restoring it
+    // must clean both, or every later save fails with "Malformed ..." until
+    // the user clears site data by hand.
+    await openTree(page);
+    const [a, b] = await twoNodes(page);
+    await allocateNodes(page, [a, b]);
+    await waitForDraft(page);
+    await page.evaluate(
+      ({ node }) => {
+        const key = 'vaal:tree-draft:scratch';
+        const draft = JSON.parse(localStorage.getItem(key)!);
+        draft.tree.attributeChoices = { [node]: 'foo', '12': 7 };
+        draft.gear.ring1 = { slug: 'amethyst-ring', name: 'Amethyst Ring', category: 'Ring', isUnique: false, iconUrl: null, craft: null };
+        localStorage.setItem(key, JSON.stringify(draft));
+      },
+      { node: a },
+    );
+
+    await page.reload();
+    await waitForTreeApi(page);
+    await expect(page.getByText(RESTORE)).toBeVisible({ timeout: 30_000 });
+    await page.getByRole('button', { name: 'Restore' }).click();
+    await expect.poll(async () => (await treeState(page)).allocated).toContain(b);
+    expect((await treeState(page)).attributeChoices).toEqual({});
+
+    await saveBuild(page, { name: testBuildName('tampered-draft') });
+  });
+
   test('discard clears the draft and does not ask again', async ({ page }) => {
     await openTree(page);
     await allocateNodes(page, await twoNodes(page));

@@ -23,6 +23,7 @@
 import type { BuildEditorState } from '@/lib/build/types';
 import { parseGearState, type GearState } from '@/lib/build/gearState';
 import { parseGemState, type GemState } from '@/lib/build/gemState';
+import { parseAttributeChoices } from '@/lib/build/passiveState';
 
 export interface BuildDraftState {
   tree: BuildEditorState;
@@ -104,8 +105,12 @@ export function loadDraft(buildId: string | undefined, checkpointId?: string): B
     const treeCandidate = 'tree' in parsed ? parsed.tree : parsed;
     if (!isValidTree(treeCandidate)) return null;
 
+    // isValidTree checks the fields a restore needs; attributeChoices is read
+    // defensively like gear and gems, or a junk entry fails every later save.
+    const { attributeChoices, ...tree } = treeCandidate;
+    const choices = parseAttributeChoices(attributeChoices);
     return {
-      tree: treeCandidate,
+      tree: Object.keys(choices).length > 0 ? { ...tree, attributeChoices: choices } : tree,
       gear: parseGearState('gear' in parsed ? parsed.gear : undefined),
       gem: parseGemState('gem' in parsed ? parsed.gem : undefined),
     };

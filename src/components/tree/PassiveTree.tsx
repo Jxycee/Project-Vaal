@@ -117,6 +117,23 @@ export default function PassiveTree({
     () => ({ ...(initialState?.attributeChoices ?? {}) }),
   );
 
+  // A node that leaves the allocation takes its choice with it, so
+  // reallocating it later reads "no attribute chosen" instead of resurrecting
+  // the old choice. Adjusted during render when the allocation changes (React's
+  // "storing information from previous renders" pattern), so it covers every
+  // path that changes `main` — clicks, touch confirm, class switch, reset.
+  const [choicesCheckedFor, setChoicesCheckedFor] = useState(main.allocated);
+  if (choicesCheckedFor !== main.allocated) {
+    setChoicesCheckedFor(main.allocated);
+    const kept = new Set(main.allocated);
+    const stale = Object.keys(attributeChoices).filter((id) => !kept.has(Number(id)));
+    if (stale.length > 0) {
+      const pruned = { ...attributeChoices };
+      for (const id of stale) delete pruned[Number(id)];
+      setAttributeChoices(pruned);
+    }
+  }
+
   // Report the allocation upward so the page can save it. Deliberately not
   // debounced: it is a cheap object build, and the page only stores it.
   useEffect(() => {

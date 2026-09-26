@@ -97,13 +97,21 @@ export function parsePassiveState(raw: unknown): PassiveState {
     set2: isFiniteNumberArray(v.set2) ? v.set2 : [],
     ascendancyNodes: isFiniteNumberArray(v.ascendancyNodes) ? v.ascendancyNodes : [],
   };
-  if (typeof v.attributeChoices === 'object' && v.attributeChoices !== null && !Array.isArray(v.attributeChoices)) {
-    const choices = Object.fromEntries(
-      Object.entries(v.attributeChoices as Record<string, unknown>).filter(
-        (entry): entry is [string, AttributeChoice] => /^\d{1,10}$/.test(entry[0]) && isAttributeChoice(entry[1]),
-      ),
-    );
-    if (Object.keys(choices).length > 0) state.attributeChoices = choices;
-  }
+  const choices = parseAttributeChoices(v.attributeChoices);
+  if (Object.keys(choices).length > 0) state.attributeChoices = choices;
   return state;
+}
+
+/**
+ * Defensive read of stored attribute choices: keeps only numeric node ids
+ * mapped to a real attribute, so a drafted or stored junk entry never reaches
+ * the editor — or the write gate, which refuses the whole passive_state.
+ */
+export function parseAttributeChoices(raw: unknown): Record<string, AttributeChoice> {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return {};
+  return Object.fromEntries(
+    Object.entries(raw as Record<string, unknown>).filter(
+      (entry): entry is [string, AttributeChoice] => /^\d{1,10}$/.test(entry[0]) && isAttributeChoice(entry[1]),
+    ),
+  );
 }
