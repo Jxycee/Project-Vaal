@@ -25,8 +25,8 @@ Branch your work from `main`. After the review branch merges, merge `main` into 
 
 **Status (updated 2026-09-26, same day):** items 1–12 are fixed and pushed on the review branch, one commit each (`git log main..origin/claude/project-vaal-security-review-m0qwi7`). Unit tests: 1,156 passing; type-check, lint and `next build --webpack` clean. Still open before it can merge:
 
-- **Migration `20260926141500_build_write_guard.sql` is NOT applied.** It was rehearsed on the live database inside a rolled-back transaction (16/16 checks). It is compatible with the code on `main` today, so it can be applied before or after the merge. Applying it waits on the user's go-ahead. Afterwards: `npm run db:types`.
-- **New E2E cases are written but have not been run** (the cloud session has no test account): `api-contracts` (direct PostgREST writes), `checkpoints` (reorder keeps the open checkpoint), `loadout-persistence` (cancelled pick), `draft-and-auth` (edits made during a save). Run the full suite locally before merging, with the migration applied for the `api-contracts` case.
+- **Migration `20260926141500_build_write_guard.sql` — APPLIED 2026-09-26** by the local session, with the user's go-ahead, after its own rolled-back rehearsal under `set local role authenticated` with a real JWT (11/11 checks, including `import_build` mirroring its last checkpoint). The database records it as version `20260926152432`; the file keeps its name because code comments cite it. `npm run db:types` added `build_state_problem`.
+- **The new E2E cases have now been run** (local session, 2026-09-26). `api-contracts` failed before the migration, as expected. Two failed because of the tests themselves, not the app, and are fixed in `1c1be260bf`: `draft-and-auth`'s in-flight allocation was empty (the class start has two neighbours, both already taken), and `checkpoints` waited for any `?checkpoint=`, which the new `/tree` redirect had already put in the URL. The in-flight test now fails against the pre-fix `TreeBuildSession` and passes with the fix. The full suite with the migration applied: see §5.
 - **After deploy, confirm the redirect header:** `curl -sI https://www.project-vaal.xyz/data/wiki/2026-08-25/item-index.json` must show `cache-control: no-store` on the 307. Vercel preview deployments of this project answer 500 even for untouched code (probably missing Supabase env vars), so it could not be checked before merging.
 
 ---
@@ -145,6 +145,8 @@ _Written 2026-09-26 by the local session on `feat/cross-site-build-data`. Each e
 **6. Two unit tests time out under the full `npm test` run, on `main` too.** They are `scripts/typedStats.data.test.ts` and `src/lib/wiki/categoryTaxonomy.test.ts`. Both exceed the 5s default when the suite runs in parallel and pass alone. `main` @ `15fff5a7` fails the same two, so this branch did not cause it.
 
 **7. No spec publishes a build, on purpose.** Publishing would briefly list an `E2E-` build to every signed-in user in production. The finder row shares its label helper with the shared page, which the spec does cover.
+
+**8. Branch verification, with the migration applied (2026-09-26).** The full E2E suite passed 81, skipped 1 (the opt-in network test) and failed 0 in 18.0 min. Afterwards the database held 1 build, 1 checkpoint and 0 `E2E-` rows. type-check, lint and `npm run build` are clean, and `grep -r __vaalTree .next/static/` finds nothing. `npm test` passes except the two pre-existing timeouts in 6. The security advisors show nothing new: every remaining warning predates this branch, and so does leaked-password protection being off in Supabase Auth.
 
 **Not built, noted:** the dashboard hero's "Open passive tree" could become "Open Build Planner" (a UI-pass call). `/prices` → wiki links (§4) work by the join in 4, reversed, but `/wiki` needs sign-in while `/prices` does not.
 
