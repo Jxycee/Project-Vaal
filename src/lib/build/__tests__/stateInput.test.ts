@@ -78,6 +78,10 @@ describe('cleanGearStateInput', () => {
     ['array', [item()]],
     ['null', null],
     ['oversized', { body: item({ extra: 'x'.repeat(MAX_STATE_JSON_LENGTH) }) }],
+    // The slug becomes part of a fetch path in every viewer's browser.
+    ['path-shaped item slug', { body: item({ slug: '../../api/wiki/items' }) }],
+    ['upper-case item slug', { body: item({ slug: 'Kaoms-Heart' }) }],
+    ['path-shaped jewel slug', { jewels: { '1': item({ slug: '../x' }) } }],
   ])('rejects %s', (_label, raw) => {
     expect(cleanGearStateInput(raw).ok).toBe(false);
   });
@@ -98,6 +102,8 @@ describe('cleanGemStateInput', () => {
     ['off-origin skill icon', { loadouts: [loadout({ skill: item({ iconUrl: 'https://attacker.example/p.gif' }) })] }],
     ['off-origin support icon', { loadouts: [loadout({ supports: [item({ iconUrl: '//attacker.example/p.png' })] })] }],
     ['malformed skill', { loadouts: [loadout({ skill: { name: 'x' } })] }],
+    ['path-shaped skill slug', { loadouts: [loadout({ skill: item({ slug: '../x' }) })] }],
+    ['path-shaped support slug', { loadouts: [loadout({ supports: [item({ slug: '../x' })] })] }],
     ['malformed loadout', { loadouts: [{ skill: null }] }],
     ['dangling primaryId', { loadouts: [loadout()], primaryId: 'nope' }],
     ['over-long loadout id', { loadouts: [loadout({ id: 'x'.repeat(65) })] }],
