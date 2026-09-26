@@ -2,12 +2,14 @@
 
 // Owns the checked-state for the whole tracker: local state updates
 // instantly on tap, persistence to campaign_progress is debounced so rapid
-// checkbox taps collapse into one write instead of one per tap. Progress is
+// checkbox taps collapse into one write instead of one per tap, and each
+// write merges only the changed ticks onto the stored row (ProgressSaver). Progress is
 // per-user (character_id IS NULL) — see campaign_progress's schema comment
 // for why character scoping isn't wired up yet.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { CAMPAIGN, ALL_CHECKPOINT_IDS } from '@/lib/campaign/data';
+import { ProgressSaver, type Progress } from '@/lib/campaign/progressSaver';
 import CampaignActSection from './CampaignActSection';
 import CampaignResetButton from './CampaignResetButton';
 import { cn } from '@/lib/utils';
@@ -15,6 +17,40 @@ import { cn } from '@/lib/utils';
 const SAVE_DEBOUNCE_MS = 900;
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
+
+/**
+ * A ProgressSaver bound to this user's campaign_progress row (character_id
+ * IS NULL). Outside the component: it keeps the signed-in user's id between
+ * its read and its write.
+ */
+function campaignSaver(supabase: ReturnType<typeof createClient>): ProgressSaver {
+  let userId: string | null = null;
+  return new ProgressSaver(
+    async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error('signed out');
+      userId = user.id;
+      const { data, error } = await supabase
+        .from('campaign_progress')
+        .select('progress')
+        .eq('user_id', user.id)
+        .is('character_id', null)
+        .maybeSingle();
+      if (error) throw error;
+      const stored = data?.progress;
+      return stored && typeof stored === 'object' && !Array.isArray(stored) ? (stored as Progress) : {};
+    },
+    async (next) => {
+      if (!userId) throw new Error('signed out');
+      const { error } = await supabase
+        .from('campaign_progress')
+        .upsert({ user_id: userId, character_id: null, progress: next }, { onConflict: 'user_id,character_id' });
+      if (error) throw error;
+    },
+  );
+}
 
 export default function CampaignTracker({
   initialChecked,
@@ -35,47 +71,60 @@ export default function CampaignTracker({
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const persist = useCallback(
-    (next: Record<string, boolean>) => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-      setSaveState('saving');
-      saveTimer.current = setTimeout(async () => {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) {
-          setSaveState('error');
-          return;
-        }
-        const { error } = await supabase
-          .from('campaign_progress')
-          .upsert({ user_id: user.id, character_id: null, progress: next }, { onConflict: 'user_id,character_id' });
-        if (error) {
-          console.error('campaign_progress save failed:', error);
-          setSaveState('error');
-        } else {
-          setSaveState('saved');
-        }
-      }, SAVE_DEBOUNCE_MS);
-    },
-    [supabase],
-  );
+  // Saves changes, not the whole checklist, merged onto the row as it is now,
+  // one save at a time — see src/lib/campaign/progressSaver.ts for why the
+  // old whole-blob upsert reverted ticks.
+  const saver = useMemo(() => campaignSaver(supabase), [supabase]);
 
+  const flush = useCallback(() => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = null;
+    if (!saver.hasPending()) return;
+    saver.flush().then(
+      (row) => {
+        // Show what is stored — it may hold ticks made elsewhere — unless
+        // newer changes are already queued; their own save reports again.
+        if (row && !saver.hasPending()) setChecked(row);
+        setSaveState('saved');
+      },
+      (err: unknown) => {
+        console.error('campaign_progress save failed:', err);
+        setSaveState('error');
+      },
+    );
+  }, [saver]);
+
+  const schedule = useCallback(() => {
+    setSaveState('saving');
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(flush, SAVE_DEBOUNCE_MS);
+  }, [flush]);
+
+  // Leaving the page (a nav link, closing the tab) must SAVE what is pending,
+  // not drop it: clearing the timer here used to lose the last tick.
   useEffect(() => {
-    return () => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
+    const onHide = () => {
+      if (document.visibilityState === 'hidden') flush();
     };
-  }, []);
+    document.addEventListener('visibilitychange', onHide);
+    window.addEventListener('pagehide', flush);
+    return () => {
+      document.removeEventListener('visibilitychange', onHide);
+      window.removeEventListener('pagehide', flush);
+      flush();
+    };
+  }, [flush]);
 
   const toggleArea = useCallback(
     (id: string) => {
       setChecked((cur) => {
         const next = { ...cur, [id]: !cur[id] };
-        persist(next);
+        saver.set(id, next[id]);
         return next;
       });
+      schedule();
     },
-    [persist],
+    [saver, schedule],
   );
 
   const toggleAct = useCallback((actId: string) => {
@@ -83,10 +132,10 @@ export default function CampaignTracker({
   }, []);
 
   const handleReset = useCallback(() => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saver.reset();
     setChecked({});
-    persist({});
-  }, [persist]);
+    schedule();
+  }, [saver, schedule]);
 
   const totalDone = ALL_CHECKPOINT_IDS.filter((id) => checked[id]).length;
   const totalAll = ALL_CHECKPOINT_IDS.length;
