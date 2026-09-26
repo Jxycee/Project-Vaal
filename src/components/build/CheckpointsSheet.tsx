@@ -28,6 +28,7 @@ import {
   type CheckpointStateInput,
 } from '@/app/(dashboard)/builds/checkpointActions';
 import type { BuildCheckpoint } from '@/lib/build/checkpointState';
+import { callAction } from '@/lib/callAction';
 
 const BUTTON = 'flex h-11 min-w-11 items-center justify-center rounded-md border border-border px-3 text-sm text-foreground disabled:opacity-50';
 
@@ -89,7 +90,7 @@ export default function CheckpointsSheet({
   const run = (action: () => Promise<{ ok: boolean; error?: string }>, after?: () => void) => {
     setError(null);
     startTransition(async () => {
-      const result = await action();
+      const result = await callAction(action);
       if (!result.ok) {
         setError(result.error ?? 'Something went wrong.');
         return;
@@ -265,7 +266,7 @@ export default function CheckpointsSheet({
                   const name = newName.trim() || `Level ${newLevel}`;
                   setError(null);
                   startTransition(async () => {
-                    const result = await addCheckpoint(buildId, name, newLevel, activeId, currentState ?? undefined);
+                    const result = await callAction(() => addCheckpoint(buildId, name, newLevel, activeId, currentState ?? undefined));
                     if (!result.ok) {
                       setError(result.error);
                       return;
