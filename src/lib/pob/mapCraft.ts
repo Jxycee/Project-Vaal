@@ -67,6 +67,19 @@ function rangeFractionOf(line: string): number {
   return m ? Number(m[1]) : 0.5;
 }
 
+/**
+ * Lines PoB writes after the mods that describe the item, not a mod
+ * (Item.lua:2120-2128; read back at 682-693).
+ */
+const ITEM_FLAG_LINES: ReadonlySet<string> = new Set([
+  'Corrupted',
+  'Twice Corrupted',
+  'Mirrored',
+  'Sanctified',
+  'Desecrated Prefix',
+  'Desecrated Suffix',
+]);
+
 /** Whether a mod's display ranges are its roll ranges — then a shown number IS the rolled value. */
 function sameUnits(mod: CraftMod): boolean {
   const shown = mod.stats.flatMap(rangesIn);
@@ -114,7 +127,7 @@ export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups):
   const rarityWord = /^Rarity: (\w+)$/.exec(lines[0] ?? '')?.[1] ?? '';
   craft.rarity = isUnique ? 'unique' : (RARITY[rarityWord] ?? 'normal');
   if (craft.rarity === 'rare' || craft.rarity === 'magic') craft.name = lines[1] ?? null;
-  craft.corrupted = lines.includes('Corrupted');
+  craft.corrupted = lines.includes('Corrupted') || lines.includes('Twice Corrupted');
 
   const implicitsAt = lines.findIndex((l) => /^Implicits: \d+$/.test(l));
   const header = implicitsAt === -1 ? lines : lines.slice(0, implicitsAt);
@@ -128,7 +141,7 @@ export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups):
     return !tag || selected === undefined || tag[1].split(',').includes(selected);
   };
   const explicitLines = (implicitsAt === -1 ? [] : lines.slice(implicitsAt + 1 + implicitCount)).filter(
-    (l) => l !== 'Corrupted' && inSelectedVariant(l),
+    (l) => !ITEM_FLAG_LINES.has(l) && inSelectedVariant(l),
   );
 
   const crafted: Record<'prefix' | 'suffix', CraftedMod[]> = { prefix: [], suffix: [] };
@@ -139,22 +152,31 @@ export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups):
     const level = /^Item Level: (\d+)$/.exec(line);
     if (level) craft.itemLevel = Math.min(100, Math.max(1, Number(level[1])));
     const rune = /^Rune: (.+)$/.exec(line);
-    if (rune) {
+    // PoB writes "Rune: None" for every empty socket (Item.lua:2080).
+    if (rune && rune[1] !== 'None') {
       const slug = lookups.runeSlugByName(rune[1]);
       if (slug) craft.runes.push(slug);
       else notes.push({ kind: 'dropped', message: `The rune "${rune[1]}" is not in this patch's data, so it was not kept.` });
     }
-    const affix = /^(Prefix|Suffix): (?:\{range:([\d.]+)\})?(\S+)$/.exec(line);
+    // PoB's own form (Item.lua:1894-1899, read back at 908-932): an optional
+    // {fractured}, then an optional {range:x} or {range:x,y,…}, then the id.
+    const affix = /^(Prefix|Suffix): (\{fractured\})?(?:\{range:([^}]+)\})?(\S+)$/.exec(line);
     if (affix) {
       isCrafted = true;
-      if (affix[3] === 'None') continue;
-      const mod = lookups.modById(affix[3]);
+      const [, side, fractured, rangeText, id] = affix;
+      if (id === 'None') continue;
+      const mod = lookups.modById(id);
       if (!mod) {
-        notes.push({ kind: 'dropped', message: `The mod ${affix[3]} is not in this patch's data, so it was not kept.` });
+        notes.push({ kind: 'dropped', message: `The mod ${id} is not in this patch's data, so it was not kept.` });
         continue;
       }
-      const fraction = affix[2] === undefined ? 0.5 : Number(affix[2]);
-      crafted[affix[1] === 'Prefix' ? 'prefix' : 'suffix'].push({ slug: mod.slug, values: mod.rolls.map((r) => rollAt(r, fraction)) });
+      // One fraction per roll for a list; a lone fraction applies to all.
+      const fractions = (rangeText ?? '0.5').split(',').map(Number).filter(Number.isFinite);
+      const fractionFor = (i: number) => fractions[Math.min(i, fractions.length - 1)] ?? 0.5;
+      crafted[side === 'Prefix' ? 'prefix' : 'suffix'].push({ slug: mod.slug, values: mod.rolls.map((r, i) => rollAt(r, fractionFor(i))) });
+      if (fractured) {
+        notes.push({ kind: 'dropped', message: `${id} is fractured in Path of Building; the mod was kept, but its fractured mark was not — Project Vaal does not mark mods as fractured.` });
+      }
     }
   }
   if (craft.runes.length > MAX_RUNES) craft.runes = craft.runes.slice(0, MAX_RUNES);

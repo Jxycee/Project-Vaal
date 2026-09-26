@@ -185,3 +185,50 @@ describe('mapCraft — "reduced" mods, whose rolls are negative', () => {
     expect(notes.map((n) => n.message).join('\n')).not.toContain('different units');
   });
 });
+
+// PoB2's own writer and reader (src/Classes/Item.lua: 1894-1899, 2080,
+// 2120-2128; parse at 676-695 and 908-932), read 2026-09-26.
+describe('mapCraft — item text PoB writes that is not a mod', () => {
+  it('keeps a fractured crafted affix, and says the fractured mark is not stored', () => {
+    const { craft, notes } = mapCraft(
+      text('Rarity: RARE', 'Grim Hook', 'Stellar Amulet', 'Crafted: true', 'Prefix: {fractured}{range:1}IncreasedLife9', 'Implicits: 0'),
+      false,
+      lookups(),
+    );
+    expect(craft.prefixes).toEqual([{ slug: 'increasedlife9', values: [149] }]);
+    expect(notes.map((n) => n.message).join('\n')).toContain('fractured');
+    expect(notes.map((n) => n.message).join('\n')).not.toContain('not in this patch');
+  });
+
+  it('reads a range list, one fraction per roll', () => {
+    const { craft } = mapCraft(
+      text('Rarity: RARE', 'Grim Hook', 'Stellar Amulet', 'Crafted: true', 'Prefix: {range:0,1}LocalAddedPhysicalDamageTwoHand7', 'Implicits: 0'),
+      false,
+      lookups(),
+    );
+    expect(craft.prefixes).toEqual([{ slug: 'localaddedphysicaldamagetwohand7', values: [23, 59] }]);
+  });
+
+  it('counts "Twice Corrupted" as corrupted, and never reads it or the item flags as mod lines', () => {
+    for (const flag of ['Twice Corrupted', 'Mirrored', 'Sanctified', 'Desecrated Prefix']) {
+      const { craft, notes } = mapCraft(
+        text('Rarity: RARE', 'Grim Hook', 'Stellar Amulet', 'Implicits: 0', '+149 to maximum Life', flag),
+        false,
+        lookups(),
+      );
+      expect(craft.prefixes).toEqual([{ slug: 'increasedlife9', values: [149] }]);
+      expect(notes.map((n) => n.message).join('\n')).not.toContain(flag);
+      if (flag === 'Twice Corrupted') expect(craft.corrupted).toBe(true);
+    }
+  });
+
+  it('reads "Rune: None" as an empty socket, not an unknown rune', () => {
+    const { craft, notes } = mapCraft(
+      text('Rarity: RARE', 'Grim Hook', 'Stellar Amulet', 'Rune: Greater Body Rune', 'Rune: None', 'Implicits: 0'),
+      false,
+      lookups(),
+    );
+    expect(craft.runes).toEqual(['greater-body-rune']);
+    expect(notes.map((n) => n.message).join('\n')).not.toContain('None');
+  });
+});
