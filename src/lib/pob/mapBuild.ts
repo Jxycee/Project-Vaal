@@ -222,7 +222,11 @@ export async function mapBuild(pob: PobBuild, catalogue: Catalogue, options: { n
   return {
     ok: true,
     plan: {
-      build: { name, class: pob.className, ascendancy: ascendancyId, level: buildLevel, notes },
+      // Stored as the editor stores it: tree-core's normalized ascendancy id,
+      // which is the display name ("Witchhunter"). GGG's raw id
+      // ("Mercenary2") is only for matching tree nodes (mapTree above); stored,
+      // the editor found no ascendancy by it and opened the build without one.
+      build: { name, class: pob.className, ascendancy: ascendancyName, level: buildLevel, notes },
       checkpoints,
       report,
     },

@@ -154,7 +154,7 @@ describe('mapBuild — the real build', async () => {
   const { build: row, checkpoints, report } = result.plan;
 
   it('is a Witchhunter build at level 94', () => {
-    expect(row).toMatchObject({ class: 'Mercenary', ascendancy: 'Mercenary2', level: 94, name: 'Witchhunter — imported' });
+    expect(row).toMatchObject({ class: 'Mercenary', ascendancy: 'Witchhunter', level: 94, name: 'Witchhunter — imported' });
     expect(row.notes!.length).toBeGreaterThan(1000);
     expect(row.notes).not.toMatch(/\^(x[0-9A-Fa-f]{6}|\d)/);
   });
