@@ -6,10 +6,10 @@ import { ascendancyLabel } from '../ascendancyNames';
 import { TREE_VERSION } from '../version';
 
 // Written before ascendancyNames.ts, as the list of ways the label can go
-// wrong. builds.ascendancy holds TWO vocabularies today (verified 2026-09-26):
+// wrong. builds.ascendancy can hold TWO vocabularies (verified 2026-09-26):
 // the editor saves tree-core's normalized id, which is the display name
-// ("Infernalist"), while the PoB importer saves GGG's raw id ("Witch1") via
-// catalogue.ascendancyIdFor. A label has to read both.
+// ("Infernalist"), while the PoB importer saved GGG's raw id ("Witch1") until
+// that day. A label has to read both.
 //
 // Failure modes:
 //  1. The static table drifts from the vendored tree export (a patch renames

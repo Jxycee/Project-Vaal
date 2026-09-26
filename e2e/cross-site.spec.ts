@@ -5,10 +5,11 @@ import { cleanupWithFreshPage, measureTapTargets, testBuildName } from './helper
 // §3 D and F): the dashboard lists the Build Planner as a live tool and shows
 // the user's recent builds, and build headers show ascendancy display names.
 //
-// builds.ascendancy holds two vocabularies (verified 2026-09-26): the editor
-// saves the display name ("Infernalist"), the PoB importer saves GGG's raw id
-// ("Mercenary2"). Both are seeded here through POST /api/builds, which stores
-// the value as sent, so each page is checked against both.
+// builds.ascendancy can hold two vocabularies (verified 2026-09-26): the
+// editor saves the display name ("Infernalist"); the PoB importer saved GGG's
+// raw id ("Mercenary2") until the same day, so older imported rows still do.
+// Both are seeded here through POST /api/builds, which stores the value as
+// sent, so each page is checked against both.
 //
 // Mobile project only: every assertion is about content, and 375px is where
 // the dashboard's list rows are tightest.
@@ -117,6 +118,8 @@ test.describe('cross-site build data', () => {
     await page.goto('/builds');
     const listRow = page.locator('ul > li').filter({ has: page.locator(`a:has-text("${importerName}")`) }).first();
     await expect(listRow).toBeVisible({ timeout: 30_000 });
+    await expect(listRow).toContainText('Witchhunter · Level 42');
+    await expect(listRow).not.toContainText('Mercenary2');
     await listRow.getByRole('combobox').click();
     await page.getByRole('option', { name: 'Private' }).click();
     const shareLink = listRow.locator('a[href^="/builds/"]');

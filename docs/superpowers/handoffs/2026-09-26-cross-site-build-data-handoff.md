@@ -120,6 +120,34 @@ Live counts on 2026-09-26: **1 build** (Witch, no ascendancy), 6 user profiles, 
 
 _(append here: what, where, the join, what you verified, whether the user approved it)_
 
+_Written 2026-09-26 by the local session on `feat/cross-site-build-data`. Each entry says how it was checked._
+
+**What the user approved.** Asked which of A, B and C to build, the user chose **"None yet"**. Only the small wins were built:
+
+- **D. Dashboard.** Build Planner is now a live tool linking to `/builds`, and the empty "Coming next" section is gone. A "Recent builds" list (owner-scoped `.eq('user_id', …)`, newest 3) shows name, ascendancy, level and checkpoint count, and each row opens `/tree?build=<id>`.
+- **F / appendix 17. Ascendancy display names.** `src/lib/tree/ascendancyNames.ts` → `ascendancyLabel(class, ascendancy)`, used on the dashboard, `/builds` (Mine rows), the finder rows and the shared page header.
+- *Verified:* `e2e/cross-site.spec.ts` seeds one build in each vocabulary (see 1). Each half was re-run against `main`'s file and failed there. `src/lib/tree/__tests__/ascendancyNames.test.ts` lists six failure modes, was written before the module, and includes a drift guard against the vendored export.
+
+**1. `builds.ascendancy` held two vocabularies. Bug FIXED.** §3 above says the column stores the internal id (`Witch1`). That was true only of PoB imports.
+- The **editor** saves tree-core's *normalized* id, which is the display name (`Infernalist`). *Checked by* dumping `normalizeGggTree(...).classes[].ascendancies[].id`. `PassiveTree.tsx:213` matches on it.
+- The **importer** stored GGG's raw id (`mapBuild.ts` → `catalogue.ascendancyIdFor`). An imported build therefore opened in `/tree` with `ascendancyId: "Mercenary2"`, which matches no ascendancy. *Reproduced* by a new assertion in `e2e/pob-import.spec.ts`, which failed with `Received: "Mercenary2"`.
+- *Fix:* `mapBuild.ts` stores the name, which is the editor's id, and keeps the raw id only for matching nodes in `mapTree`. Two unit tests had pinned the old value and were corrected. The E2E now passes (`Witchhunter`, 2 ascendancy nodes).
+- The live database had no raw-id rows (1 build, ascendancy null), so no data migration is needed. `ascendancyLabel` still reads both vocabularies, for any older import.
+
+**2. The Abyssal Lich import drops its ascendancy nodes. NOT fixed.** No tree node carries `ascendancyId: 'Witch3b'`; it reuses Lich's `Witch3` graph. *Checked by* counting nodes per raw id in `data.json`. `mapTree` compares each node's raw id to the build's (`'Witch3b'`), so every Abyssal Lich node is dropped. The likely fix is to compare against the graph id (`Witch3`) for `Witch3b`.
+
+**3. Unique prices exist in two leagues only, and not in the default.** *Checked by* querying `price_entries` by category and league. `uniques-*` rows exist only for `Runes of Aldur` and `Forbidden Rites`. Runes and soul cores are in all 5 leagues. `builds.league` defaults to `'Standard'`, so feature A needs a league choice or an honest "uniques unpriced in Standard".
+
+**4. The unique price join works at 96%.** *Checked by* a script over every item detail file and every price row (anon-readable). There are 440 uniques on disk (not 425), and 422 have `uniqueMods.baseType`. **404/422** match `name + ' ' + baseType`. 45 priced uniques have no wiki item, mostly content newer than our 2026-08-25 sync. Runes match **142/142** and soul cores **30/30**.
+
+**5. There is nothing to aggregate yet.** On 2026-09-26 the database held 1 build, 0 of them public, and there is no GIN index on the state columns. Feature C would show 0 everywhere today.
+
+**6. Two unit tests time out under the full `npm test` run, on `main` too.** They are `scripts/typedStats.data.test.ts` and `src/lib/wiki/categoryTaxonomy.test.ts`. Both exceed the 5s default when the suite runs in parallel and pass alone. `main` @ `15fff5a7` fails the same two, so this branch did not cause it.
+
+**7. No spec publishes a build, on purpose.** Publishing would briefly list an `E2E-` build to every signed-in user in production. The finder row shares its label helper with the shared page, which the spec does cover.
+
+**Not built, noted:** the dashboard hero's "Open passive tree" could become "Open Build Planner" (a UI-pass call). `/prices` → wiki links (§4) work by the join in 4, reversed, but `/wiki` needs sign-in while `/prices` does not.
+
 ---
 
 ## Appendix — review findings the cloud session is NOT fixing in its first pass

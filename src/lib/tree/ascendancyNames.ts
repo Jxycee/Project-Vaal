@@ -2,11 +2,12 @@
  * The display label for a build's class + ascendancy, for list rows and
  * headers that should read "Infernalist", never "Witch1".
  *
- * `builds.ascendancy` holds two vocabularies (verified 2026-09-26):
+ * `builds.ascendancy` can hold two vocabularies (verified 2026-09-26):
  * - the tree editor saves tree-core's normalized ascendancy id, which IS the
  *   display name ("Infernalist");
- * - the PoB importer saves GGG's raw id ("Witch1"), via
- *   `catalogue.ascendancyIdFor` (src/lib/pob/catalogue.ts).
+ * - the PoB importer saved GGG's raw id ("Witch1") until 2026-09-26. It now
+ *   saves the editor's id (src/lib/pob/mapBuild.ts), but a row imported
+ *   before that, on any database, still carries the raw one.
  * This reads both.
  *
  * A static table rather than a read of the 5.1MB tree export: every caller is

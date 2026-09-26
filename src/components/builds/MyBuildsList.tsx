@@ -24,6 +24,7 @@ import type { SavedBuild } from '@/lib/build/types';
 import type { ActionResult } from '@/app/(dashboard)/builds/actions';
 import { BUILD_VISIBILITIES, VISIBILITY_LABEL } from '@/lib/build/visibility';
 import { callAction } from '@/lib/callAction';
+import { ascendancyLabel } from '@/lib/tree/ascendancyNames';
 
 interface MyBuildsListProps {
   builds: SavedBuild[] | null;
@@ -211,7 +212,7 @@ export default function MyBuildsList({
                     </Link>
                   )}
                   <p className="truncate text-xs text-muted-foreground">
-                    {b.ascendancy ?? b.class} · Level {b.level} · {b.league}
+                    {ascendancyLabel(b.class, b.ascendancy)} · Level {b.level} · {b.league}
                   </p>
                 </div>
 
