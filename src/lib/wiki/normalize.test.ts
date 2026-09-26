@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { Item } from '@poe2-toolkit/item-extractor';
-import { slugify, normalizeItem, normalizeSkill, normalizeMod, normalizeEffect, normalizeMap, toSearchEntry, stripBracketMarkup, stripXboxButtonTokens, extractConsoleButtons, stripPobSourceMarkup, parsePobUniqueBlock, parsePobUniqueFile, enrichKeywordLines } from './normalize';
+import { slugify, normalizeItem, normalizeSkill, normalizeMod, normalizeEffect, normalizeMap, toSearchEntry, stripBracketMarkup, stripXboxButtonTokens, extractConsoleButtons, stripPobSourceMarkup, parsePobUniqueBlock, parsePobUniqueFile, mergePobUniquesByName, enrichKeywordLines } from './normalize';
 
 const fixture = (name: string) =>
   JSON.parse(readFileSync(path.join(__dirname, '__fixtures__', name), 'utf8'));
@@ -480,6 +480,140 @@ Has (1-3) Charm Slot
 `);
     expect(entry?.implicitMods).toEqual(['Has (1-3) Charm Slot']);
     expect(entry?.explicitMods).toEqual(['Legacy of Gold', 'Legacy of Ruby']);
+  });
+
+  // Failure modes (review 2026-09-26, item 23): a unique whose variants are
+  // alternatives AND patch revisions at once lost every alternative but the
+  // Current one (Morior Invictus kept 1 of its 11 current lines); a bare
+  // version label ("0.2.0") must still count as an old revision; an item
+  // whose every variant is old must not lose everything; and PoB's "Limited
+  // to:" / "Radius:" bookkeeping must not become mod text.
+  it('keeps every current alternative of a unique that mixes alternatives with old revisions (Morior Invictus shape)', () => {
+    const entry = parsePobUniqueBlock(`
+Morior Invictus
+Grand Regalia
+Has Alt Variant: true
+Selected Variant: 6
+Selected Alt Variant: 2
+Variant: Spirit (Pre 0.4.0)
+Variant: Spirit
+Variant: Life (Pre 0.4.0)
+Variant: Life
+Variant: Pre 0.4.0
+Variant: Current
+Sockets: S S S S
+{variant:5}(200-300)% increased Armour, Evasion and Energy Shield
+{variant:6}(300-400)% increased Armour, Evasion and Energy Shield
+{variant:3}+(25-40) to maximum Life per Socket filled
+{variant:4}+(45-60) to maximum Life per Socket filled
+{variant:1}+(6-10) to Spirit per Socket filled
+{variant:2}+(10-14) to Spirit per Socket filled
+`);
+    expect(entry?.explicitMods).toEqual([
+      '(300-400)% increased Armour, Evasion and Energy Shield',
+      '+(45-60) to maximum Life per Socket filled',
+      '+(10-14) to Spirit per Socket filled',
+    ]);
+  });
+
+  it('treats a bare version label as an old revision when a Current one exists', () => {
+    const entry = parsePobUniqueBlock(`
+Death's Harp
+Guardian Bow
+Variant: 0.2.0
+Variant: 0.3.0
+Variant: Current
+{variant:1}(100-150)% increased Physical Damage
+{variant:2,3}(150-200)% increased Physical Damage
+{variant:3}Adds (1-2) to (3-4) Physical Damage
+`);
+    expect(entry?.explicitMods).toEqual(['(150-200)% increased Physical Damage', 'Adds (1-2) to (3-4) Physical Damage']);
+  });
+
+  it('keeps every line when every variant is an old revision, rather than none', () => {
+    const entry = parsePobUniqueBlock(`
+Old Relic
+Iron Ring
+Variant: Pre 0.1.1
+Variant: Pre 0.2.0
+{variant:1}+10 to Strength
+{variant:2}+20 to Strength
+`);
+    expect(entry?.explicitMods).toEqual(['+10 to Strength', '+20 to Strength']);
+  });
+
+  it('does not keep "Limited to:" or "Radius:" as mod lines', () => {
+    const entry = parsePobUniqueBlock(`
+Controlled Metamorphosis
+Diamond
+Variant: Pre 0.4.0
+Variant: Current
+Variant: Small Ring
+Variant: Large Ring
+Limited to: 1
+Radius: Variable
+{variant:3}Only affects Passives in Small Ring
+{variant:4}Only affects Passives in Large Ring
+Passives in Radius can be Allocated without being connected to your tree
+{variant:1}-(23-3)% to Chaos Resistance
+`);
+    expect(entry?.explicitMods).toEqual([
+      'Only affects Passives in Small Ring',
+      'Only affects Passives in Large Ring',
+      'Passives in Radius can be Allocated without being connected to your tree',
+    ]);
+  });
+});
+
+// Failure modes: PoB lists one unique name more than once when it drops on
+// several bases (Grand Spectrum: Ruby, Emerald, Sapphire). First-wins kept
+// only the Ruby's line, so an imported Emerald Grand Spectrum matched
+// nothing and the wiki showed a third of the item. Distinct names must stay
+// apart, and a line the entries share must not be listed twice.
+describe('mergePobUniquesByName', () => {
+  const [ruby, emerald, sapphire, other] = parsePobUniqueFile(`
+[[
+Grand Spectrum
+Ruby
+Limited to: 3
+2% increased Maximum Life per socketed Grand Spectrum
+]],
+[[
+Grand Spectrum
+Emerald
+Limited to: 3
+2% increased Spirit per socketed Grand Spectrum
+]],[[
+Grand Spectrum
+Sapphire
+Variant: Pre 0.4.0
+Variant: Current
+Limited to: 3
+{variant:1}+4% to all Elemental Resistances per socketed Grand Spectrum
+{variant:2}+6% to all Elemental Resistances per socketed Grand Spectrum
+]],[[
+Split Personality
+Ruby
+2% increased Maximum Life per socketed Grand Spectrum
+]],
+`);
+
+  it('joins every entry of one name into one, keeping the first base', () => {
+    const merged = mergePobUniquesByName([ruby, emerald, sapphire, other]);
+    expect(merged.get('Grand Spectrum')).toEqual({
+      ...ruby,
+      explicitMods: [
+        '2% increased Maximum Life per socketed Grand Spectrum',
+        '2% increased Spirit per socketed Grand Spectrum',
+        '+6% to all Elemental Resistances per socketed Grand Spectrum',
+      ],
+    });
+  });
+
+  it('keeps other names apart, and does not repeat a line two entries share', () => {
+    const merged = mergePobUniquesByName([ruby, other, ruby]);
+    expect(merged.get('Split Personality')).toEqual(other);
+    expect(merged.get('Grand Spectrum')?.explicitMods).toEqual(['2% increased Maximum Life per socketed Grand Spectrum']);
   });
 });
 

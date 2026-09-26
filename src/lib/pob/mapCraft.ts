@@ -156,11 +156,13 @@ export function mapCraft(
   const implicitCount = implicitsAt === -1 ? 0 : Number(lines[implicitsAt].slice('Implicits: '.length));
   const implicitLines = implicitsAt === -1 ? [] : lines.slice(implicitsAt + 1, implicitsAt + 1 + implicitCount);
   // A line tagged {variant:a,b} belongs only to those variants; keep it only
-  // when the selected one is among them.
-  const selected = /^Selected Variant: (\d+)$/.exec(lines.find((l) => l.startsWith('Selected Variant: ')) ?? '')?.[1];
+  // when a selected one is among them. PoB selects on up to four axes: the
+  // era ("Selected Variant") and, on uniques like Morior Invictus, the chosen
+  // lines ("Selected Alt Variant", "… Two", "… Three").
+  const selected = lines.flatMap((l) => /^Selected (?:Alt )?Variant(?: Two| Three)?: (\d+)$/.exec(l)?.[1] ?? []);
   const inSelectedVariant = (line: string) => {
     const tag = /\{variant:([\d,]+)\}/.exec(line);
-    return !tag || selected === undefined || tag[1].split(',').includes(selected);
+    return !tag || selected.length === 0 || tag[1].split(',').some((v) => selected.includes(v));
   };
   const explicitLines = (implicitsAt === -1 ? [] : lines.slice(implicitsAt + 1 + implicitCount)).filter(
     (l) => !ITEM_FLAG_LINES.has(l) && inSelectedVariant(l),

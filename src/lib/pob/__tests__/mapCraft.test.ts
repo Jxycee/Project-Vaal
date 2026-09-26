@@ -161,6 +161,46 @@ describe('mapCraft — uniques and runes', () => {
     expect(notes).toEqual([]);
   });
 
+  // PoB exports a second variant axis for uniques like Morior Invictus: the
+  // era is "Selected Variant", the chosen stat lines are "Selected Alt
+  // Variant", "… Two", "… Three". Reading only the first axis dropped every
+  // chosen line and reported the item's real mods as lost.
+  it("reads the lines of every selected variant axis, and none of the others", () => {
+    const morior = text(
+      'Rarity: UNIQUE',
+      'Morior Invictus',
+      'Grand Regalia',
+      'Has Alt Variant: true',
+      'Has Alt Variant Two: true',
+      'Variant: Spirit (Pre 0.4.0)',
+      'Variant: Spirit',
+      'Variant: Life',
+      'Variant: Mana',
+      'Variant: Current',
+      'Selected Variant: 5',
+      'Selected Alt Variant: 2',
+      'Selected Alt Variant Two: 3',
+      'Implicits: 0',
+      '{variant:5}{range:0.5}(300-400)% increased Armour, Evasion and Energy Shield',
+      '{variant:1}{range:0.5}+(6-10) to Spirit per Socket filled',
+      '{variant:2}{range:0.5}+(10-14) to Spirit per Socket filled',
+      '{variant:3}{range:0.5}+(45-60) to maximum Life per Socket filled',
+      '{variant:4}{range:0.5}+(50-60) to maximum Mana per Socket filled',
+    );
+    const base = {
+      implicitLines: [],
+      uniqueLines: [
+        '(300-400)% increased Armour, Evasion and Energy Shield',
+        '+(45-60) to maximum Life per Socket filled',
+        '+(50-60) to maximum Mana per Socket filled',
+        '+(10-14) to Spirit per Socket filled',
+      ],
+    };
+    const { craft, notes } = mapCraft(morior, true, lookups({ base }));
+    expect(notes).toEqual([]);
+    expect(craft.uniqueValues).toEqual([[350], [53], [], [12]]);
+  });
+
   it('does not report the rune-granted {rune} line as a lost implicit', () => {
     const { notes } = mapCraft(cloak, true, lookups({ base: uniqueBase }));
     expect(notes.some((n) => n.message.includes('+80 to maximum Life'))).toBe(false);

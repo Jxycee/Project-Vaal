@@ -17,7 +17,7 @@ import type { GgpkSource, StatIndex } from '@poe2-toolkit/ggpk';
 import { extractItems } from '@poe2-toolkit/item-extractor';
 import { extractGems } from '@poe2-toolkit/gem-extractor';
 import { extractMods } from '@poe2-toolkit/mod-extractor';
-import { normalizeItem, normalizeSkill, normalizeMod, normalizeEffect, normalizeMap, toSearchEntry, slugify, parsePobUniqueFile, stripBracketMarkup } from '../src/lib/wiki/normalize';
+import { normalizeItem, normalizeSkill, normalizeMod, normalizeEffect, normalizeMap, toSearchEntry, slugify, parsePobUniqueFile, mergePobUniquesByName, stripBracketMarkup } from '../src/lib/wiki/normalize';
 import type { CurrencyText, PobUniqueEntry, EffectRow, MapRow } from '../src/lib/wiki/normalize';
 import { WIKI_DATA_VERSION, WIKI_PATCH_VERSION } from '../src/lib/wiki/types';
 import { findUnmappedCategories } from '../src/lib/wiki/categoryTaxonomy';
@@ -344,8 +344,8 @@ const POB_UNIQUE_FILES = [
 
 /**
  * Fetches and parses every {@link POB_UNIQUE_FILES} entry, joining into one
- * name-keyed map (first match wins on a name collision, same convention as
- * every other by-name join in this file). Item data (c) Grinding Gear Games,
+ * name-keyed map; a name PoB lists once per base (Grand Spectrum) becomes
+ * one entry with every base's lines (mergePobUniquesByName). Item data (c) Grinding Gear Games,
  * per PoB's own file headers; PoB itself is MIT licensed (its `LICENSE.md`) -
  * see the wiki footer's credit line.
  *
@@ -356,7 +356,6 @@ const POB_UNIQUE_FILES = [
  * `uniqueMods: null`, same as before this join existed.
  */
 async function fetchPobUniquesByName(): Promise<Map<string, PobUniqueEntry>> {
-  const result = new Map<string, PobUniqueEntry>();
   const files = await Promise.all(POB_UNIQUE_FILES.map(async (file) => {
     const url = `https://raw.githubusercontent.com/PathOfBuildingCommunity/PathOfBuilding-PoE2/${POB_COMMIT}/src/Data/Uniques/${file}.lua`;
     try {
@@ -368,13 +367,7 @@ async function fetchPobUniquesByName(): Promise<Map<string, PobUniqueEntry>> {
       return null;
     }
   }));
-  for (const text of files) {
-    if (!text) continue;
-    for (const entry of parsePobUniqueFile(text)) {
-      if (!result.has(entry.name)) result.set(entry.name, entry);
-    }
-  }
-  return result;
+  return mergePobUniquesByName(files.flatMap((text) => (text ? parsePobUniqueFile(text) : [])));
 }
 
 /**

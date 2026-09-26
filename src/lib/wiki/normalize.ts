@@ -126,8 +126,8 @@ export interface CurrencyText {
 /**
  * One unique item's block, parsed from Path of Building Community's
  * `Uniques/*.lua` data (see {@link parsePobUniqueFile}). Keyed by `name` when
- * joined onto a synced unique item, same "first match wins on a name
- * collision" convention as every other by-name join in this file.
+ * joined onto a synced unique item; entries sharing a name are joined into
+ * one by {@link mergePobUniquesByName}.
  */
 export interface PobUniqueEntry {
   name: string;
@@ -159,7 +159,15 @@ export function stripPobSourceMarkup(text: string): string {
  * every unique carrying any of these lines also carries the real mod text
  * separately, tagged with its own `{variant:N}`.
  */
-const POB_METADATA_LINE_RE = /^(Source|Variant|Implicits|League|Sockets|Has Alt Variant( (Two|Three))?|Selected( Alt)? Variant( (Two|Three))?|Allow Duplicate Variants):|^Requires Level \d+/;
+const POB_METADATA_LINE_RE = /^(Source|Variant|Implicits|League|Sockets|Limited to|Radius|Has Alt Variant( (Two|Three))?|Selected( Alt)? Variant( (Two|Three))?|Allow Duplicate Variants):|^Requires Level \d+/;
+
+/**
+ * A variant label naming an earlier patch's revision: "Pre 0.4.0",
+ * "Spirit (Pre 0.4.0)", or a bare "0.2.0" (Death's Harp, Reverie). Every
+ * other label is either "Current" or one of the item's alternatives
+ * (Morior Invictus's "Spirit"/"Life", Atziri's Splendour's "Helmet").
+ */
+const POB_OLD_VARIANT_RE = /\bPre \d|^\d+\.\d+(\.\d+)?$/;
 const POB_LEADING_TAG_RE = /^\{([^}]*)\}/;
 
 /** Strips every leading `{tag}` group off a PoB mod line, returning them alongside the remaining display text. */
@@ -192,11 +200,12 @@ function pobLineVariants(tags: string[]): number[] | null {
  * patch-history revisions of the same item, or - rarely - alternate forms
  * with no single "current" one, e.g. Atziri's Splendour's Helmet/Gloves/
  * Boots/Shield variants). Mod lines tagged `{variant:N}` only apply to that
- * variant; untagged lines apply to all of them. When a `Variant: Current`
- * label exists, only its lines (plus untagged ones) are kept - the normal
- * case. When variants exist but none is labeled "Current" (the alternate-
- * form case), every variant's lines are kept rather than arbitrarily picking
- * one - an honest superset beats a silently wrong guess.
+ * variant; untagged lines apply to all of them. A variant labeled as an
+ * earlier patch's revision ({@link POB_OLD_VARIANT_RE}) is dropped; every
+ * other variant's lines are kept - "Current" and each alternative alike
+ * (Morior Invictus's stat choices, Atziri's Splendour's forms), since
+ * nothing says which one an item has and an honest superset beats a
+ * silently wrong guess. When every variant is an old revision, all are kept.
  */
 export function parsePobUniqueBlock(block: string): PobUniqueEntry | null {
   const lines = block.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
@@ -235,13 +244,15 @@ export function parsePobUniqueBlock(block: string): PobUniqueEntry | null {
     rawModLines.push({ tags, text, isImplicit: rawModLines.length < implicitsCount });
   }
 
-  const currentVariantIndex = variantLabels.indexOf('Current') + 1 || null;
+  // 1-based indices of the variants still in the game. When every label is
+  // an old revision, none is singled out and every line is kept.
+  const liveVariants = new Set(variantLabels.flatMap((label, k) => (POB_OLD_VARIANT_RE.test(label) ? [] : [k + 1])));
 
   function keepLine(l: { tags: string[] }): boolean {
     const variants = pobLineVariants(l.tags);
     if (!variants) return true;
-    if (currentVariantIndex == null) return true;
-    return variants.includes(currentVariantIndex);
+    if (liveVariants.size === 0) return true;
+    return variants.some((v) => liveVariants.has(v));
   }
 
   return {
@@ -263,6 +274,27 @@ export function parsePobUniqueBlock(block: string): PobUniqueEntry | null {
 export function parsePobUniqueFile(fileText: string): PobUniqueEntry[] {
   const blocks = [...fileText.matchAll(/\[\[([\s\S]*?)\]\]/g)].map((m) => m[1]);
   return blocks.map(parsePobUniqueBlock).filter((e): e is PobUniqueEntry => e !== null);
+}
+
+/**
+ * Joins PoB unique entries by name. PoB lists a unique once per base it drops
+ * on (Grand Spectrum: Ruby, Emerald, Sapphire) while our item data has one
+ * item per name, so the entries of one name become one: the first entry's
+ * base, level and source, and every entry's lines, each line once.
+ */
+export function mergePobUniquesByName(entries: PobUniqueEntry[]): Map<string, PobUniqueEntry> {
+  const result = new Map<string, PobUniqueEntry>();
+  const union = (a: string[], b: string[]) => [...a, ...b.filter((line) => !a.includes(line))];
+  for (const entry of entries) {
+    const known = result.get(entry.name);
+    result.set(
+      entry.name,
+      known
+        ? { ...known, implicitMods: union(known.implicitMods, entry.implicitMods), explicitMods: union(known.explicitMods, entry.explicitMods) }
+        : entry,
+    );
+  }
+  return result;
 }
 
 /**
