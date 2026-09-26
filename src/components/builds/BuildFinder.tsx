@@ -6,6 +6,7 @@
 import Link from 'next/link';
 import type { BuildFinderFilters } from '@/lib/build/finderFilters';
 import type { PublicBuildRow } from '@/lib/build/types';
+import { ascendancyLabel } from '@/lib/tree/ascendancyNames';
 
 function hrefFor(base: BuildFinderFilters, overrides: Partial<BuildFinderFilters>): string {
   const merged = { ...base, ...overrides };
@@ -124,7 +125,7 @@ export default function BuildFinder({ filters, classes, leagues, skills, builds,
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium text-foreground">{b.name}</p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {b.ascendancy ?? b.class} · Level {b.level} · {b.league}
+                    {ascendancyLabel(b.class, b.ascendancy)} · Level {b.level} · {b.league}
                     {b.main_skill ? ` · ${b.main_skill}` : ''}
                   </p>
                 </div>

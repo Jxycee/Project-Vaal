@@ -1,4 +1,4 @@
-// /dashboard — authenticated landing. Live tools + upcoming features.
+// /dashboard — authenticated landing. Live tools + the user's recent builds.
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient, getCachedUser } from '@/lib/supabase/server'
@@ -7,6 +7,7 @@ import { Icon } from '@/components/ui/icon'
 import { Card } from '@/components/ui/card'
 import { ALL_CHECKPOINT_IDS } from '@/lib/campaign/data'
 import { relativeTime } from '@/lib/prices/format'
+import { ascendancyLabel } from '@/lib/tree/ascendancyNames'
 
 const LIVE_TOOLS = [
   {
@@ -22,6 +23,12 @@ const LIVE_TOOLS = [
     blurb: 'Interactive skill tree viewer and planner.',
   },
   {
+    href: '/builds',
+    title: 'Build Planner',
+    icon: 'builds',
+    blurb: 'Tree, gear, gems and leveling checkpoints — saved and shareable by link.',
+  },
+  {
     href: '/campaign',
     title: 'Campaign Tracker',
     icon: 'campaign',
@@ -35,9 +42,7 @@ const LIVE_TOOLS = [
   },
 ] as const
 
-const COMING_SOON = [
-  { title: 'Build Planner', icon: 'builds', blurb: 'Create, save, and share builds via link.' },
-] as const
+const RECENT_BUILDS_LIMIT = 3
 
 export default async function DashboardPage() {
   const {
@@ -50,7 +55,7 @@ export default async function DashboardPage() {
   // Three real, already-stored numbers — no fabricated metrics. Each query
   // is scoped to fail soft (null/0) rather than break the whole page if one
   // table has a hiccup.
-  const [campaignResult, buildsResult, syncResult] = await Promise.all([
+  const [campaignResult, buildsResult, syncResult, recentResult] = await Promise.all([
     user
       ? supabase
           .from('campaign_progress')
@@ -68,6 +73,17 @@ export default async function DashboardPage() {
       .order('fetched_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
+    // The user's own most recent builds. .eq('user_id') is load-bearing: the
+    // builds SELECT policies are permissive and OR together, so without it a
+    // signed-in user would also get every public build.
+    user
+      ? supabase
+          .from('builds')
+          .select('id, name, class, ascendancy, level, updated_at, build_checkpoints(count)')
+          .eq('user_id', user.id)
+          .order('updated_at', { ascending: false })
+          .limit(RECENT_BUILDS_LIMIT)
+      : Promise.resolve({ data: null }),
   ])
 
   const campaignProgress =
@@ -82,6 +98,14 @@ export default async function DashboardPage() {
 
   const buildsCount = buildsResult.count ?? 0
   const lastSynced = syncResult.data?.fetched_at ?? null
+  const recentBuilds = (recentResult.data ?? []).map((b) => ({
+    id: b.id,
+    name: b.name,
+    label: ascendancyLabel(b.class, b.ascendancy),
+    level: b.level,
+    updatedAt: b.updated_at,
+    checkpoints: b.build_checkpoints[0]?.count ?? 0,
+  }))
 
   const QUICK_STATS = [
     {
@@ -93,7 +117,7 @@ export default async function DashboardPage() {
     {
       label: 'Builds saved',
       value: String(buildsCount),
-      sub: buildsCount === 0 ? 'Build Planner coming soon' : 'in your library',
+      sub: buildsCount === 0 ? 'Start one in the Build Planner' : 'in your library',
       icon: 'builds',
     },
     {
@@ -209,6 +233,47 @@ export default async function DashboardPage() {
         ))}
       </section>
 
+      {recentBuilds.length > 0 && (
+        <section className="flex flex-col gap-4" aria-labelledby="recent-builds-heading">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[0.68rem] font-medium uppercase tracking-[0.18em] text-primary">
+                Build Planner
+              </p>
+              <h2 id="recent-builds-heading" className="mt-1 font-heading text-xl font-semibold tracking-tight">
+                Recent builds
+              </h2>
+            </div>
+            <Link
+              href="/builds"
+              className="inline-flex min-h-11 items-center text-xs font-medium text-primary hover:underline"
+            >
+              All builds
+            </Link>
+          </div>
+
+          <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card/40">
+            {recentBuilds.map((b) => (
+              <li key={b.id}>
+                <Link
+                  href={`/tree?build=${b.id}`}
+                  className="flex min-h-11 items-center gap-3 px-4 py-3 transition-colors hover:bg-accent/35"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium">{b.name}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {b.label} · Level {b.level} · {b.checkpoints}{' '}
+                      {b.checkpoints === 1 ? 'checkpoint' : 'checkpoints'}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-xs text-muted-foreground">{relativeTime(b.updatedAt)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section className="flex flex-col gap-4">
         <div className="flex items-end justify-between gap-4">
           <div>
@@ -247,36 +312,6 @@ export default async function DashboardPage() {
                 </div>
               </Card>
             </Link>
-          ))}
-        </div>
-      </section>
-
-      <section className="flex flex-col gap-4">
-        <div>
-          <p className="text-[0.68rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            In development
-          </p>
-          <h2 className="mt-1 font-heading text-lg font-semibold tracking-tight">Coming next</h2>
-        </div>
-
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {COMING_SOON.map((item) => (
-            <Card
-              key={item.title}
-              aria-disabled="true"
-              className="border-dashed bg-card/30 p-4 opacity-75"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <Icon name={item.icon} className="size-5 shrink-0 text-muted-foreground" />
-                  <span className="truncate font-medium">{item.title}</span>
-                </div>
-                <span className="rounded-full bg-muted px-2 py-0.5 text-[0.65rem] font-medium text-muted-foreground">
-                  Soon
-                </span>
-              </div>
-              <p className="mt-3 text-sm leading-5 text-muted-foreground">{item.blurb}</p>
-            </Card>
           ))}
         </div>
       </section>

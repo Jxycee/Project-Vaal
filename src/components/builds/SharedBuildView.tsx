@@ -16,6 +16,7 @@ import { parseGemState } from '@/lib/build/gemState';
 import { parsePassiveState } from '@/lib/build/passiveState';
 import type { GearItem } from '@/lib/build/gearSlots';
 import type { SharedBuildRow } from '@/lib/build/types';
+import { ascendancyLabel } from '@/lib/tree/ascendancyNames';
 // A generic display helper that happens to live under lib/prices (it has no
 // prices-specific dependency) — reused rather than duplicated.
 import { relativeTime } from '@/lib/prices/format';
@@ -86,7 +87,7 @@ export default function SharedBuildView({
           <div className="min-w-0">
             <h1 className="truncate font-heading text-xl font-bold text-foreground">{row.name}</h1>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              {row.ascendancy ?? row.class} · Level {row.level} · {row.league}
+              {ascendancyLabel(row.class, row.ascendancy)} · Level {row.level} · {row.league}
             </p>
           </div>
           {isOwner ? (
