@@ -60,6 +60,13 @@ export interface Catalogue {
     /** Exact class and ascendancy display names -> our ascendancy id, or null. */
     ascendancyIdFor(className: string, ascendancyName: string): string | null;
     /**
+     * The ascendancy whose tree nodes `ascendancyId` uses: itself, or, for an
+     * ascendancy with no nodes of its own, the one whose graph it re-skins
+     * through the export's `overridePairs` ("Witch3b" Abyssal Lich -> "Witch3"
+     * Lich). Resolved the way the tree-core patch resolves `graphId`.
+     */
+    graphOf(ascendancyId: string): string;
+    /**
      * A class start or ascendancy start node. Our editor never stores these —
      * tree-core's pathToNode excludes the start it paths from — while PoB's
      * spec lists both, so the importer must omit them.
@@ -98,7 +105,10 @@ interface RawTreeNode {
   classesStart?: unknown;
 }
 interface RawTree {
-  classes: Array<{ name: string; ascendancies?: Array<{ id: string; name: string }> }>;
+  classes: Array<{
+    name: string;
+    ascendancies?: Array<{ id: string; name: string; overridePairs?: Record<string, number> }>;
+  }>;
   nodes: Record<string, RawTreeNode>;
 }
 
@@ -129,8 +139,22 @@ async function buildTree(): Promise<Catalogue['tree']> {
 
   const classNames = new Set(raw.classes.map((cls) => cls.name));
   const ascendancyIds = new Map<string, string>();
+  const ownsNodes = new Set(ascendancyByNode.values());
+  const graphs = new Map<string, string>();
   for (const cls of raw.classes) {
-    for (const asc of cls.ascendancies ?? []) ascendancyIds.set(`${cls.name}\u0000${asc.name}`, asc.id);
+    for (const asc of cls.ascendancies ?? []) {
+      ascendancyIds.set(`${cls.name}\u0000${asc.name}`, asc.id);
+      // An ascendancy with no nodes of its own takes the graph of the nodes
+      // its overridePairs re-skin (the keys are those base node ids).
+      if (ownsNodes.has(asc.id)) continue;
+      for (const baseId of Object.keys(asc.overridePairs ?? {})) {
+        const base = ascendancyByNode.get(Number(baseId));
+        if (base) {
+          graphs.set(asc.id, base);
+          break;
+        }
+      }
+    }
   }
 
   return {
@@ -139,6 +163,7 @@ async function buildTree(): Promise<Catalogue['tree']> {
     hasClass: (className) => classNames.has(className),
     isJewelSocket: (id) => jewelSockets.has(id),
     ascendancyIdFor: (className, ascendancyName) => ascendancyIds.get(`${className}\u0000${ascendancyName}`) ?? null,
+    graphOf: (ascendancyId) => graphs.get(ascendancyId) ?? ascendancyId,
     isStartNode: (id) => startNodes.has(id),
     isAttributeNode: (id) => attributeNodes.has(id),
   };

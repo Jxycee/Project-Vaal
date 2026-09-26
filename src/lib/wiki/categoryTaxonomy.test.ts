@@ -74,6 +74,9 @@ describe('ITEM_CATEGORY_GROUPS', () => {
     const assignedSet = new Set(assigned);
     expect(assigned.length).toBe(assignedSet.size); // no duplicates across groups
 
+    expect(realCategories.size).toBeGreaterThan(20);
     expect(findUnmappedCategories(realCategories)).toEqual([]);
-  });
+    // Reads all 4,994 item files: ~2s alone, over vitest's 5s default under
+    // the full parallel `npm test` (timed out on main, 2026-09-26).
+  }, 30_000);
 });

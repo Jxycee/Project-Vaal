@@ -177,7 +177,8 @@ export async function mapBuild(pob: PobBuild, catalogue: Catalogue, options: { n
           : `"${name}" has no level in its title, so it uses the build's level, ${level}.`,
     });
 
-    const passive = mapTree(spec, ascendancyId, tree, number);
+    // By graph, not id: Abyssal Lich owns no nodes and uses Lich's.
+    const passive = mapTree(spec, ascendancyId && tree.graphOf(ascendancyId), tree, number);
     report.push(...passive.report);
     checkpoints.push({ name, level, passive_state: passive.value, ...copy() });
   });
