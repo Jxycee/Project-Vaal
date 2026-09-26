@@ -12,10 +12,11 @@
 // returns no IsCurrent leagues AND no env override is set.
 //
 // Pulls current prices from that resolved league list, for every category
-// in CATEGORY_PATHS, then upserts into price_entries. Any league already in
-// price_entries that isn't in the resolved list (i.e. a season that just
-// closed) gets its rows deleted, so a league rollover cleans up after itself
-// with no manual step.
+// in CATEGORY_PATHS, then upserts into price_entries. Afterwards, any league
+// already in price_entries that isn't in the resolved list (i.e. a season
+// that just closed) gets its rows deleted — but only when this run proved the
+// list is real (see src/lib/prices/prune.ts), so an upstream glitch can
+// never delete a live league's prices.
 //
 // Security: requires "Authorization: Bearer <CRON_SECRET>" header.
 // Triggered by: .github/workflows/price-sync.yml (hourly schedule)
@@ -30,6 +31,7 @@ import {
   fetchLeagues,
   sleep,
 } from '@/lib/prices/poe2scout'
+import { leaguesToPrune } from '@/lib/prices/prune'
 
 export const maxDuration = 300 // 5 min; sync is deliberately slow/polite
 
@@ -84,38 +86,7 @@ export async function POST(request: NextRequest) {
   )
   if (activeLeagues.length === 0) activeLeagues.push('Runes of Aldur')
 
-  // --- Prune leagues that fell out of the active set -------------------------
-  // A league that closes gets its characters folded into Standard by GGG,
-  // but price_entries only ever upserts — nothing else deletes a closed
-  // league's rows, so last season's prices would otherwise sit here (and in
-  // the /prices switcher, which lists every league that has ever appeared in
-  // price_entries via the price_entry_leagues view) forever. activeLeagues is
-  // recomputed fresh above every run, so diffing it against what's actually
-  // in the table drops a closed league the same cycle poe2scout stops
-  // flagging it current — no manual cleanup needed on a league rollover.
-  const prunedLeagues: string[] = []
-  const { data: existingLeagueRows, error: existingLeaguesError } = await supabase
-    .from('price_entry_leagues')
-    .select('league')
-  if (existingLeaguesError) {
-    errors.push(`prune: failed to list existing leagues: ${existingLeaguesError.message}`)
-  } else {
-    const activeSet = new Set(activeLeagues)
-    const staleLeagues = (existingLeagueRows ?? [])
-      .map((row) => row.league)
-      .filter((l): l is string => l !== null && !activeSet.has(l))
-    if (staleLeagues.length > 0) {
-      const { error: pruneError } = await supabase
-        .from('price_entries')
-        .delete()
-        .in('league', staleLeagues)
-      if (pruneError) {
-        errors.push(`prune stale leagues (${staleLeagues.join(', ')}): ${pruneError.message}`)
-      } else {
-        prunedLeagues.push(...staleLeagues)
-      }
-    }
-  }
+  const syncedRows: Record<string, number> = {}
 
   outer: for (const leagueName of activeLeagues) {
     const leagueInfo = leagues.find((l) => l.Value === leagueName)
@@ -154,12 +125,49 @@ export async function POST(request: NextRequest) {
         }
 
         results[`${leagueName}/${category}`] = lines.length
+        syncedRows[leagueName] = (syncedRows[leagueName] ?? 0) + lines.length
       } catch (err) {
         // Soft-fail: one broken category must not kill the whole sync.
         errors.push(`${leagueName}/${category}: ${String(err)}`)
       }
 
       await sleep(600) // polite gap between categories
+    }
+  }
+
+  // --- Prune leagues that fell out of the active set -------------------------
+  // A league that closes gets its characters folded into Standard by GGG,
+  // but price_entries only ever upserts — nothing else deletes a closed
+  // league's rows, so last season's prices would otherwise sit here (and in
+  // the /prices switcher, which lists every league that has ever appeared in
+  // price_entries via the price_entry_leagues view) forever.
+  //
+  // Runs AFTER the sync, and only on evidence (see leaguesToPrune): until
+  // 2026-09-26 it ran first, so an upstream response with no league flagged
+  // current deleted the live league's prices before anything was fetched.
+  const prunedLeagues: string[] = []
+  const { data: existingLeagueRows, error: existingLeaguesError } = await supabase
+    .from('price_entry_leagues')
+    .select('league')
+  if (existingLeaguesError) {
+    errors.push(`prune: failed to list existing leagues: ${existingLeaguesError.message}`)
+  } else {
+    const staleLeagues = leaguesToPrune({
+      existing: (existingLeagueRows ?? []).map((row) => row.league).filter((l): l is string => l !== null),
+      current: currentLeagues,
+      active: activeLeagues,
+      syncedRows,
+    })
+    if (staleLeagues.length > 0) {
+      const { error: pruneError } = await supabase
+        .from('price_entries')
+        .delete()
+        .in('league', staleLeagues)
+      if (pruneError) {
+        errors.push(`prune stale leagues (${staleLeagues.join(', ')}): ${pruneError.message}`)
+      } else {
+        prunedLeagues.push(...staleLeagues)
+      }
     }
   }
 
