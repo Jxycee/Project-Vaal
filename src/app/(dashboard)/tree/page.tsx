@@ -12,10 +12,11 @@
 // of client state that could outlive a save. (Holding the list client-side
 // would mean: save checkpoint A, switch to B, switch back, and A re-seeds from
 // the stale props it was first given.)
+import { redirect } from 'next/navigation';
 import { createClient, getCachedUser } from '@/lib/supabase/server';
 import type { SavedBuild } from '@/lib/build/types';
 import { UUID_RE } from '@/lib/build/constants';
-import { parseCheckpoints, type BuildCheckpoint } from '@/lib/build/checkpointState';
+import { activeCheckpoint, parseCheckpoints, type BuildCheckpoint } from '@/lib/build/checkpointState';
 import TreeEditor from '@/components/tree/TreeEditor';
 
 export const metadata = { title: 'Passive tree' };
@@ -82,6 +83,18 @@ export default async function TreePage({
         }
       }
     }
+  }
+
+  // Name the checkpoint in the URL whenever it is not already there. Links to
+  // a build (My Builds, Import, Edit) carry no ?checkpoint=, and "the first
+  // by position" is not a stable answer: moving another checkpoint above it
+  // re-rendered this page on a different checkpoint and remounted the editor
+  // there, unsaved level and all (review 2026-09-26). An id in the URL keeps
+  // the editor where it is through reorders, renames and adds. An unknown id
+  // (e.g. the one just deleted) is replaced the same way.
+  if (build && checkpoints.length > 0 && !checkpoints.some((c) => c.id === checkpointParam)) {
+    const target = activeCheckpoint(checkpoints, checkpointParam)!;
+    redirect(`/tree?build=${encodeURIComponent(build.id)}&checkpoint=${encodeURIComponent(target.id)}`);
   }
 
   // Scratch mode (no ?build=) makes zero database calls above — buildId is

@@ -130,6 +130,28 @@ test.describe('leveling checkpoints', () => {
       await expect.poll(async () => (await treeState(page)).allocated.length).toBe(secondAlloc);
     });
 
+    await test.step('the editor stays on its checkpoint when another one moves above it', async () => {
+      // A link with no ?checkpoint= (My Builds, Import, Edit) used to leave the
+      // choice to "whichever is first", so a reorder silently switched the
+      // editor to a different checkpoint. The page now names the checkpoint
+      // in the URL on load, so a reorder changes nothing about what is open.
+      await openTree(page, buildId);
+      await page.waitForURL(/[?&]checkpoint=/, { timeout: 30_000 });
+      const openedOn = new URL(page.url()).searchParams.get('checkpoint');
+      await expect.poll(async () => (await treeState(page)).allocated.length).toBe(secondAlloc);
+
+      await openSheet();
+      await sheet.getByRole('button', { name: 'Move Level 94 down' }).click();
+      await expect(rows.first()).toContainText('Level 31');
+
+      expect(new URL(page.url()).searchParams.get('checkpoint')).toBe(openedOn);
+      await expect.poll(async () => (await treeState(page)).allocated.length).toBe(secondAlloc);
+
+      // Put the order back for the steps below.
+      await sheet.getByRole('button', { name: 'Move Level 94 up' }).click();
+      await expect(rows.first()).toContainText('Level 94');
+    });
+
     await test.step('a link-shared build shows each checkpoint as its own stage', async () => {
       // Private is this app's link-shareable state (src/lib/build/visibility.ts
       // — the vocabulary inverts the usual web meaning on purpose). A private
