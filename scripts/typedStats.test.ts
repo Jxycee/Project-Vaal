@@ -103,11 +103,15 @@ describe('buildUniqueStats', () => {
     mod(['+(10-20) to maximum Life', '+(5-10)% to Fire Resistance'], ['hybrid_a', 'hybrid_b']),
     mod(['+(1-2) to Monster Level'], ['monster'], 'Monster'),
   ];
-  const unique = (name: string, category: string, lines: string[], baseType = 'Silk Robe') => ({ name, category, rarity: 'unique', uniqueMods: { baseType, explicitMods: lines } });
+  const unique = (name: string, category: string, lines: string[], baseType = 'Silk Robe') => ({ name, slug: name.toLowerCase(), category, rarity: 'unique', uniqueMods: { baseType, explicitMods: lines } });
+  const baseItems = [
+    { name: 'Silk Robe', slug: 'silk-robe', category: 'Body Armour', rarity: 'normal', uniqueMods: null },
+    { name: 'Plated Mace', slug: 'plated-mace', category: 'One Hand Mace', rarity: 'normal', uniqueMods: null },
+  ];
 
   it('maps a line to the stat ids of the one mod that words it the same way', () => {
-    const out = buildUniqueStats([unique('Cloak', 'Body Armour', ['+(30-50)% to Fire Resistance'])], mods);
-    expect(out.Cloak).toEqual({ baseType: 'Silk Robe', lines: [['base_fire_damage_resistance_%']] });
+    const out = buildUniqueStats([unique('Cloak', 'Body Armour', ['+(30-50)% to Fire Resistance']), ...baseItems], mods);
+    expect(out.Cloak).toEqual({ baseType: 'Silk Robe', baseSlug: 'silk-robe', lines: [['base_fire_damage_resistance_%']] });
   });
 
   it('settles local-vs-global by the item: an armour piece takes local, jewellery takes global', () => {
@@ -126,8 +130,13 @@ describe('buildUniqueStats', () => {
   });
 
   it('strips a {variant:…} prefix from the base, and skips non-uniques', () => {
-    const out = buildUniqueStats([unique('Stars', 'Mace', [], '{variant:1,2}Plated Mace'), { name: 'Plain', category: 'Ring', rarity: 'normal', uniqueMods: null }], mods);
+    const out = buildUniqueStats([unique('Stars', 'Mace', [], '{variant:1,2}Plated Mace'), ...baseItems], mods);
     expect(out.Stars.baseType).toBe('Plated Mace');
-    expect(out).not.toHaveProperty('Plain');
+    expect(out.Stars.baseSlug).toBe('plated-mace');
+    expect(out).not.toHaveProperty('Silk Robe');
+  });
+
+  it("gives a base our items lack a null slug, rather than a guessed one", () => {
+    expect(buildUniqueStats([unique('Lost', 'Ring', [], 'Missing Base')], mods).Lost.baseSlug).toBeNull();
   });
 });

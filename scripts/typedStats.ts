@@ -111,7 +111,7 @@ export function buildImplicitStats(bases: BaseRow[], mods: ModRow[], stats: Stat
 // the same rule the defence stat table verified on affixes). The rest are null.
 
 type WikiModLike = { stats?: string[]; rolls?: { stat: string }[]; domain?: string };
-type WikiUniqueLike = { name: string; category: string; rarity: string; uniqueMods?: { baseType?: string; explicitMods?: string[] } | null };
+type WikiUniqueLike = { name: string; slug?: string; category: string; rarity: string; uniqueMods?: { baseType?: string; explicitMods?: string[] } | null };
 
 /** Categories whose unique's local_ stats apply to the item itself. */
 const LOCAL_CATEGORIES = new Set([
@@ -124,6 +124,8 @@ const wording = (line: string) => line.replace(/\(-?\d+(\.\d+)?--?\d+(\.\d+)?\)/
 
 export interface UniqueStats {
   baseType: string;
+  /** The base's item slug, so a reader can fetch it without the item index; null when our items lack it. */
+  baseSlug: string | null;
   /** Per explicit line: its stat ids in roll order, or null when no item mod words it the same way. */
   lines: (string[] | null)[];
 }
@@ -139,12 +141,17 @@ export function buildUniqueStats(items: WikiUniqueLike[], mods: WikiModLike[]): 
     byWording.set(key, known);
   }
 
+  const slugByName = new Map<string, string>();
+  for (const item of items) if (item.rarity !== 'unique' && item.slug && !slugByName.has(item.name)) slugByName.set(item.name, item.slug);
+
   const out: Record<string, UniqueStats> = {};
   for (const item of items) {
     if (item.rarity !== 'unique' || !item.uniqueMods || Object.hasOwn(out, item.name)) continue;
     const local = LOCAL_CATEGORIES.has(item.category);
+    const baseType = (item.uniqueMods.baseType ?? '').replace(/^\{[^}]*\}/, '');
     out[item.name] = {
-      baseType: (item.uniqueMods.baseType ?? '').replace(/^\{[^}]*\}/, ''),
+      baseType,
+      baseSlug: slugByName.get(baseType) ?? null,
       lines: (item.uniqueMods.explicitMods ?? []).map((line) => {
         const candidates = byWording.get(wording(line)) ?? [];
         if (candidates.length === 1) return candidates[0];

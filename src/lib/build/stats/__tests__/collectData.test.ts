@@ -9,7 +9,7 @@ const raw = () => ({
   tree: { nodes: { '1': { name: 'Life', stats: ['+10 to maximum Life'] }, '2': { name: 'Attribute', isGenericAttribute: true, stats: ['+5 to any Attribute'] } } },
   nodeStats: { nodes: { '1': [['base_maximum_life', 10]] as [string, number][], '2': [['display_passive_attribute_text', 1]] as [string, number][] } },
   implicitStats: { bases: { 'Amethyst Ring': [[['base_chaos_damage_resistance_%', 7, 13]]] as [string, number, number][][] } },
-  uniqueStats: { uniques: { 'Cloak of Flame': { baseType: 'Silk Robe', lines: [['local_energy_shield'], null] } } },
+  uniqueStats: { uniques: { 'Cloak of Flame': { baseType: 'Silk Robe', baseSlug: 'silk-robe', lines: [['local_energy_shield'], null] }, 'Baseless': { baseType: 'Gone', baseSlug: null, lines: [] } } },
   items: new Map<string, unknown>([
     ['amethyst-ring', { name: 'Amethyst Ring', armour: null, spirit: 0 }],
     ['silk-robe', { name: 'Silk Robe', armour: { armour: 0, evasion: 0, energyShield: 50 }, spirit: 0 }],
@@ -32,14 +32,15 @@ describe('makeCollectData', () => {
   });
 
   it("joins a unique's lines to their typed stats, and its base to a slug", () => {
-    expect(d().unique('Cloak of Flame')).toEqual({
+    expect(d().unique('Cloak of Flame', 'cloak-of-flame')).toEqual({
       baseSlug: 'silk-robe',
       lines: [
         { text: '+(30-50) to maximum Energy Shield', stats: ['local_energy_shield'] },
         { text: 'Fire Thorns', stats: null },
       ],
     });
-    expect(d().unique('Unknown Unique')).toBeUndefined();
+    expect(d().unique('Unknown Unique', 'unknown-unique')).toBeUndefined();
+    expect(d().unique('Baseless', 'baseless')).toBeUndefined();
   });
 
   it("reads a mod's rolls", () => {

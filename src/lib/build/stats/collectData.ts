@@ -19,8 +19,8 @@ export interface RawCollectFiles {
   tree: { nodes: Record<string, { name?: string; isGenericAttribute?: boolean }> };
   nodeStats: { nodes: Record<string, [string, number][]> };
   implicitStats: { bases: Record<string, [string, number, number][][]> };
-  uniqueStats: { uniques: Record<string, { baseType: string; lines: (string[] | null)[] }> };
-  /** Item detail files by slug (base items and uniques in use, and unique bases). */
+  uniqueStats: { uniques: Record<string, { baseType: string; baseSlug: string | null; lines: (string[] | null)[] }> };
+  /** Item detail files by slug: the items in use, and each worn unique's base (unique-stats' baseSlug). */
   items: ReadonlyMap<string, unknown>;
   /** Mod detail files by slug (the affixes in use). */
   mods: ReadonlyMap<string, unknown>;
@@ -28,12 +28,6 @@ export interface RawCollectFiles {
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
-
-/** The slug of the item file whose name is `name`; how a unique reaches its base, which it names. */
-function slugOfName(items: ReadonlyMap<string, unknown>, name: string): string | undefined {
-  for (const [slug, detail] of items) if (isObject(detail) && detail.name === name) return slug;
-  return undefined;
-}
 
 export function makeCollectData(files: RawCollectFiles): CollectData {
   return {
@@ -60,10 +54,10 @@ export function makeCollectData(files: RawCollectFiles): CollectData {
         (r): r is { stat: string; min: number; max: number } => isObject(r) && typeof r.stat === 'string' && typeof r.min === 'number' && typeof r.max === 'number',
       );
     },
-    unique(name) {
+    unique(name, slug) {
       const typed = files.uniqueStats.uniques[name];
-      const detail = files.items.get(slugOfName(files.items, name) ?? '');
-      const baseSlug = typed ? slugOfName(files.items, typed.baseType) : undefined;
+      const detail = files.items.get(slug);
+      const baseSlug = typed?.baseSlug;
       if (!typed || !isObject(detail) || !baseSlug) return undefined;
       const texts = isObject(detail.uniqueMods) && Array.isArray(detail.uniqueMods.explicitMods) ? (detail.uniqueMods.explicitMods as unknown[]) : [];
       return {

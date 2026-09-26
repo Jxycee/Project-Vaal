@@ -42,7 +42,7 @@ export interface CollectData {
    * A unique by name: the slug of its base (for base defences) and its lines,
    * each with the stat ids unique-stats.json typed it to (null = untyped).
    */
-  unique(name: string): { baseSlug: string; lines: { text: string; stats: string[] | null }[] } | undefined;
+  unique(name: string, slug: string): { baseSlug: string; lines: { text: string; stats: string[] | null }[] } | undefined;
 }
 
 /** Words that mark a line as touching a defence the sheet reports — an untyped one is named. */
@@ -136,7 +136,7 @@ function collectItem(
   let detail: ReturnType<CollectData['item']>;
 
   if (item.isUnique) {
-    const unique = data.unique(item.name);
+    const unique = data.unique(item.name, item.slug);
     detail = unique ? data.item(unique.baseSlug) : undefined;
     if (!unique || !detail) {
       notCounted.push(`${item.name}: unique — not in our data`);

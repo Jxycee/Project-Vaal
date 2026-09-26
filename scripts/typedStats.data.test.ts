@@ -80,6 +80,7 @@ describe('unique-stats.json', () => {
   it('types Cloak of Flame: local ES, fire resistance, ignite duration; two lines it cannot', () => {
     expect(uniques['Cloak of Flame']).toEqual({
       baseType: 'Silk Robe',
+      baseSlug: 'silk-robe',
       lines: [['local_energy_shield'], ['base_fire_damage_resistance_%'], ['base_self_ignite_duration_-%'], null, null],
     });
   });
@@ -87,6 +88,7 @@ describe('unique-stats.json', () => {
   it('types Blueflame Bracers, with its flat ES as local because gloves are worn armour', () => {
     expect(uniques['Blueflame Bracers']).toEqual({
       baseType: 'Goldcast Cuffs',
+      baseSlug: 'goldcast-cuffs',
       lines: [['local_energy_shield'], ['additional_intelligence'], ['base_fire_damage_resistance_%'], ['base_cold_damage_resistance_%'], null],
     });
   });
