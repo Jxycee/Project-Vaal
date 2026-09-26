@@ -134,6 +134,16 @@ describe('catalogue — lookups', () => {
     expect(items.findBaseIn("Experimenter's Golden Charm of the Ample")?.name).toBe('Golden Charm');
   });
 
+  it('takes the base where a magic name puts it — last, or right before "of …"', async () => {
+    // "Heavy" is a mace prefix, and "Heavy Crown" is also a helmet. Longest
+    // match anywhere picked the helmet, so the mace was dropped from Weapon 1.
+    const { items } = await getCatalogue();
+    expect(items.findBaseIn('Heavy Crown Mace of the Brute')?.name).toBe('Crown Mace');
+    expect(items.findBaseIn('Heavy Crown Mace')?.name).toBe('Crown Mace');
+    expect(items.findBaseIn('Heavy Crown of the Brute')?.name).toBe('Heavy Crown');
+    expect(items.findBaseIn('Heavy Crown')?.name).toBe('Heavy Crown');
+  });
+
   it("reads an item's icon from its detail file", async () => {
     const { items } = await getCatalogue();
     const amulet = items.byName.get('Stellar Amulet')!;

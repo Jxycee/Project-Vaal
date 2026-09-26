@@ -228,17 +228,27 @@ async function buildItems(): Promise<Catalogue['items']> {
   return {
     byName,
     findBaseIn(text) {
+      // A magic item's name is "[prefix ]Base[ of suffix]", so the base ends
+      // the name or stands right before " of ". That rule is tried first:
+      // longest-anywhere alone read "Heavy Crown Mace of the Brute" as the
+      // Heavy Crown helmet ("Heavy" is a mace prefix) and dropped the mace.
+      // Longest whole-word match anywhere stays as the fallback.
+      let anywhere: CatalogueItem | null = null;
       for (const base of basesLongestFirst) {
         let from = 0;
         for (;;) {
           const at = text.indexOf(base.name, from);
           if (at === -1) break;
+          const end = at + base.name.length;
           // Whole words only: "Ring" must not match inside "Ringmail".
-          if (!isWordChar(text[at - 1]) && !isWordChar(text[at + base.name.length])) return base;
+          if (!isWordChar(text[at - 1]) && !isWordChar(text[end])) {
+            if (end === text.length || text.startsWith(' of ', end)) return base;
+            anywhere ??= base;
+          }
           from = at + 1;
         }
       }
-      return null;
+      return anywhere;
     },
     async iconUrlFor(slug) {
       const detail = (await loadDetail('item', slug)) as WikiItemDetail | null;
