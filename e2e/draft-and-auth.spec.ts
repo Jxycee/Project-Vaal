@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import {
   allocateNodes,
   cleanupWithFreshPage,
+  nodesNearStart,
   openTree,
   saveBuild,
   testBuildName,
@@ -56,14 +57,17 @@ test.describe('draft restore', () => {
     await page.locator('#build-name').fill(testBuildName('in-flight'));
     await page.getByRole('button', { name: /^(Save|Update)$/ }).click();
 
-    // While the save is held back, allocate more.
-    const more = await page.evaluate(() => {
-      const api = window.__vaalTree!;
-      const taken = new Set(api.getState().allocated);
-      return api.neighbours(api.startNode()).filter((id) => !taken.has(id)).slice(0, 2);
-    });
+    // While the save is held back, allocate more. Walk outward rather than
+    // take the start's own neighbours: some class starts have only two, both
+    // already taken above, which made `more` empty and the test vacuous —
+    // nothing changed in flight, so clearing the draft was correct (2026-09-26).
+    const taken = new Set((await treeState(page)).allocated);
+    const more = (await nodesNearStart(page, 6)).filter((id) => !taken.has(id)).slice(0, 2);
+    expect(more.length, 'no unallocated nodes near the start to add in flight').toBe(2);
+    const before = (await treeState(page)).allocated.length;
     await allocateNodes(page, more);
     const after = (await treeState(page)).allocated.length;
+    expect(after, 'the in-flight allocation did not change the tree').toBeGreaterThan(before);
     await expect(page.getByText(/^Saved /)).toBeVisible({ timeout: 30_000 });
     await page.unroute('**/api/builds');
 

@@ -75,9 +75,19 @@ test.describe('leveling checkpoints', () => {
     await test.step('add a second checkpoint as a copy, then make it diverge', async () => {
       await sheet.getByLabel('Checkpoint name').fill('Level 94');
       await sheet.getByLabel('Checkpoint level').fill('94');
+      // /tree now names the open checkpoint in the URL on load, so the URL
+      // already has ?checkpoint= (checkpoint 0's) before the add. Waiting for
+      // "any checkpoint=" resolved at once on the old URL, captured checkpoint
+      // 0's id and allocated before the navigation landed (2026-09-26). Wait
+      // for a different id instead.
+      const firstCheckpointId = new URL(page.url()).searchParams.get('checkpoint');
+      expect(firstCheckpointId, '/tree did not name the open checkpoint in its URL').toBeTruthy();
       await sheet.getByRole('button', { name: 'Add checkpoint' }).click();
 
-      await page.waitForURL(/[?&]checkpoint=/);
+      await page.waitForURL((url) => {
+        const id = url.searchParams.get('checkpoint');
+        return id !== null && id !== firstCheckpointId;
+      });
       await waitForTreeApi(page);
       secondCheckpointId = new URL(page.url()).searchParams.get('checkpoint')!;
 
