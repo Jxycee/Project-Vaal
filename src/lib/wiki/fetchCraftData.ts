@@ -75,3 +75,8 @@ export const fetchModData = cachedLookup('mods', extractModData);
 export const fetchBaseData = cachedLookup('items', extractBaseData);
 /** Whether a slug is a rune or soul core; undefined = the request failed. */
 export const fetchIsRune = cachedLookup('items', extractIsRune);
+
+/** An item's raw detail file (for the Slice 5 stat engine's makeCollectData); null = no such item; undefined = failed. */
+export const fetchRawItem = cachedLookup('items', (raw) => raw);
+/** A mod's raw detail file; null = no such mod; undefined = failed. */
+export const fetchRawMod = cachedLookup('mods', (raw) => raw);

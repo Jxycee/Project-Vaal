@@ -38,6 +38,9 @@ import { emptyGearState, parseGearState } from '@/lib/build/gearState';
 import { summarizeJewels } from '@/lib/build/jewelState';
 import { offHandOccupiedBy, validateCheckpoint } from '@/lib/build/validate';
 import { useCraftData } from '@/components/build/useCraftData';
+import { useDefenceSheets } from '@/components/build/useDefenceSheets';
+import { useReservedSpirit } from '@/components/build/useReservedSpirit';
+import StatsSheet from '@/components/build/StatsSheet';
 import {
   addLoadout,
   addSupport,
@@ -231,6 +234,18 @@ export default function TreeBuildSession({
   const [gemState, setGemState] = useState(() => (build ? parseGemState(build.gem_state) : emptyGemState()));
   const [gemsSheetOpen, setGemsSheetOpen] = useState(false);
   const [checkpointsSheetOpen, setCheckpointsSheetOpen] = useState(false);
+  const [statsSheetOpen, setStatsSheetOpen] = useState(false);
+
+  // ---- Defence stats (Slice 5) -----------------------------------------------
+  // Derived from the live checkpoint on every change; nothing is stored.
+  const defenceSheets = useDefenceSheets({
+    tree: raw,
+    className: editorState?.className ?? build?.class,
+    level,
+    passive: livePassive,
+    gear: gearState,
+  });
+  const reservedSpirit = useReservedSpirit(gemState);
 
   // Every decision (the support cap, set normalisation, primary clearing) is
   // inside gemState.ts's pure reducers, unit-tested there — these handlers
@@ -465,6 +480,14 @@ export default function TreeBuildSession({
           </button>
           <JewelsChip summary={jewelsSummary} onOpen={() => setJewelsSheetOpen(true)} />
           <GemsChip loadouts={gemState.loadouts} onOpen={() => setGemsSheetOpen(true)} />
+          {/* TEST-GRADE (Slice 5): the defence stat sheet. */}
+          <button
+            type="button"
+            onClick={() => setStatsSheetOpen(true)}
+            className="flex h-11 items-center gap-1.5 rounded-lg border border-border bg-card/90 px-3 text-sm font-medium text-foreground backdrop-blur"
+          >
+            Stats
+          </button>
           {/* TEST-GRADE: a plain entry point to CheckpointsSheet, pending the UI session. */}
           <button
             type="button"
@@ -558,6 +581,7 @@ export default function TreeBuildSession({
         onSetQuality={handleSetGemQuality}
         onClose={() => setGemsSheetOpen(false)}
       />
+      <StatsSheet open={statsSheetOpen} sheets={defenceSheets} reserved={reservedSpirit} onClose={() => setStatsSheetOpen(false)} />
       <CheckpointsSheet
         open={checkpointsSheetOpen}
         // The saved build, if there is one yet. A scratch session that has
