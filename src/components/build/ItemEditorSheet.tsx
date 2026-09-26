@@ -19,19 +19,33 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import ItemPickerSheet from '@/components/build/ItemPickerSheet';
-import { bestRolls, clampToRange, emptyCraft, MAX_ITEM_QUALITY, rangesIn, type CraftedMod, type ItemCraft, type ItemRarity, type ValueRange } from '@/lib/build/craft';
+import {
+  bestRolls,
+  clampToRange,
+  emptyCraft,
+  MAX_AFFIXES_PER_KIND,
+  MAX_ITEM_QUALITY,
+  MAX_RUNES,
+  rangesIn,
+  type CraftedMod,
+  type ItemCraft,
+  type ItemRarity,
+  type ValueRange,
+} from '@/lib/build/craft';
 import { RUNE_PSEUDO_SLOT, type GearItem } from '@/lib/build/gearSlots';
 import type { BaseData, BuildWarning, ModData } from '@/lib/build/validate';
 import { fetchBaseData, fetchModData } from '@/lib/wiki/fetchCraftData';
 import type { AffixKind, ModGroup } from '@/lib/wiki/modCatalogue';
 
 const INPUT = 'h-11 w-20 rounded-md border border-input bg-background/60 px-2 text-sm text-foreground';
-const BUTTON = 'flex h-11 min-w-11 items-center justify-center rounded-md border border-border px-3 text-xs font-medium';
+const BUTTON = 'flex h-11 min-w-11 items-center justify-center rounded-md border border-border px-3 text-xs font-medium disabled:opacity-50';
 
 /** One base's detail, keyed by the slug it is FOR so a stale response is ignored (same pattern as GemsSheet's hooks). */
 function useBase(slug: string): BaseData | null | undefined {
   const [result, setResult] = useState<{ slug: string; data: BaseData | null | undefined } | null>(null);
   useEffect(() => {
+    // The sheet stays mounted with no item open; there is nothing to fetch then.
+    if (slug === '') return;
     let cancelled = false;
     fetchBaseData(slug).then((data) => {
       if (!cancelled) setResult({ slug, data });
@@ -66,24 +80,55 @@ function useMods(slugs: readonly string[]): Map<string, ModData | null> {
   return result;
 }
 
+/**
+ * One roll's number input. The text is the user's while they type: clamping
+ * every keystroke made any value whose minimum has two digits unreachable
+ * ("4" jumped to 30 before the "5" arrived) and made the field impossible to
+ * clear. An in-range number commits as typed; the field clamps when left.
+ */
+function RollInput({ range, value, label, onCommit }: { range: ValueRange; value: number | undefined; label: string; onCommit: (value: number) => void }) {
+  const [text, setText] = useState<string | null>(null);
+  const lo = Math.min(range.min, range.max);
+  const hi = Math.max(range.min, range.max);
+  return (
+    <input
+      type="number"
+      inputMode="decimal"
+      aria-label={label}
+      data-testid="roll-value"
+      className={INPUT}
+      value={text ?? value ?? ''}
+      onFocus={() => setText(value === undefined ? '' : String(value))}
+      onChange={(e) => {
+        setText(e.target.value);
+        const typed = Number.parseFloat(e.target.value);
+        if (Number.isFinite(typed) && typed >= lo && typed <= hi) onCommit(typed);
+      }}
+      onBlur={() => {
+        const typed = Number.parseFloat(text ?? '');
+        if (Number.isFinite(typed)) {
+          const clamped = clampToRange(typed, range);
+          if (clamped !== value) onCommit(clamped);
+        }
+        setText(null);
+      }}
+    />
+  );
+}
+
 /** Number inputs for one line's ranges. An unset row shows empty inputs; editing one fills the rest at their best roll. */
 function RangeInputs({ ranges, values, label, onChange }: { ranges: ValueRange[]; values: number[]; label: string; onChange: (values: number[]) => void }) {
   return (
     <span className="flex flex-wrap gap-2">
       {ranges.map((range, i) => (
         <label key={i} className="flex items-center gap-1 text-xs text-muted-foreground">
-          <input
-            type="number"
-            inputMode="decimal"
-            aria-label={`${label} value ${i + 1}`}
-            data-testid="roll-value"
-            className={INPUT}
-            value={values[i] ?? ''}
-            onChange={(e) => {
-              const typed = Number.parseFloat(e.target.value);
-              if (!Number.isFinite(typed)) return;
+          <RollInput
+            range={range}
+            value={values[i]}
+            label={`${label} value ${i + 1}`}
+            onCommit={(typed) => {
               const row = ranges.map((r, j) => (values.length === ranges.length ? values[j] : bestRolls([r])[0]));
-              row[i] = clampToRange(typed, range);
+              row[i] = typed;
               onChange(row);
             }}
           />
@@ -251,7 +296,14 @@ export default function ItemEditorSheet({
           );
         })}
       </ul>
-      <button type="button" data-testid={`add-${kind}`} onClick={() => setModPicker(kind)} className={`${BUTTON} mt-1`}>
+      {/* The validator warns at the game's limits; this stops at the write gate's, past which a save would fail. */}
+      <button
+        type="button"
+        data-testid={`add-${kind}`}
+        disabled={list.length >= MAX_AFFIXES_PER_KIND}
+        onClick={() => setModPicker(kind)}
+        className={`${BUTTON} mt-1`}
+      >
         + Add {kind}
       </button>
     </section>
@@ -361,7 +413,13 @@ export default function ItemEditorSheet({
               </li>
             ))}
           </ul>
-          <button type="button" data-testid="add-rune" onClick={() => setRunePickerOpen(true)} className={`${BUTTON} mt-1`}>
+          <button
+            type="button"
+            data-testid="add-rune"
+            disabled={craft.runes.length >= MAX_RUNES}
+            onClick={() => setRunePickerOpen(true)}
+            className={`${BUTTON} mt-1`}
+          >
             + Add rune
           </button>
         </section>

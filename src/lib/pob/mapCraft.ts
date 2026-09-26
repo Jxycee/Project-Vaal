@@ -24,8 +24,18 @@
 // - A unique's lines are matched against its own uniqueMods lines.
 // =============================================================================
 
-import { bestRolls, emptyCraft, rangesIn, type CraftedMod, type ItemCraft, type ItemRarity } from '@/lib/build/craft';
-import { matchTemplate, stripTags } from './craftText';
+import {
+  bestRolls,
+  emptyCraft,
+  MAX_AFFIXES_PER_KIND,
+  MAX_ITEM_QUALITY,
+  MAX_RUNES,
+  rangesIn,
+  type CraftedMod,
+  type ItemCraft,
+  type ItemRarity,
+} from '@/lib/build/craft';
+import { matchTemplate, stripTags, valueAt } from './craftText';
 
 export interface CraftMod {
   slug: string;
@@ -49,15 +59,7 @@ export interface CraftNote {
   message: string;
 }
 
-/** The write gate's limit per side (src/lib/build/stateInput.ts). */
-const MAX_PER_SIDE = 6;
-
 const RARITY: Record<string, ItemRarity> = { NORMAL: 'normal', MAGIC: 'magic', RARE: 'rare', UNIQUE: 'unique' };
-
-function valueAt(min: number, max: number, fraction: number): number {
-  const v = min + fraction * (max - min);
-  return Number.isInteger(min) && Number.isInteger(max) ? Math.round(v) : v;
-}
 
 function rangeFractionOf(line: string): number {
   const m = /\{range:([\d.]+)\}/.exec(line);
@@ -119,7 +121,7 @@ export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups):
   let isCrafted = false;
   for (const line of header) {
     const quality = /^Quality: (\d+)$/.exec(line);
-    if (quality) craft.quality = Math.min(20, Number(quality[1]));
+    if (quality) craft.quality = Math.min(MAX_ITEM_QUALITY, Number(quality[1]));
     const level = /^Item Level: (\d+)$/.exec(line);
     if (level) craft.itemLevel = Math.min(100, Math.max(1, Number(level[1])));
     const rune = /^Rune: (.+)$/.exec(line);
@@ -141,7 +143,7 @@ export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups):
       crafted[affix[1] === 'Prefix' ? 'prefix' : 'suffix'].push({ slug: mod.slug, values: mod.rolls.map((r) => valueAt(r.min, r.max, fraction)) });
     }
   }
-  if (craft.runes.length > MAX_PER_SIDE) craft.runes = craft.runes.slice(0, MAX_PER_SIDE);
+  if (craft.runes.length > MAX_RUNES) craft.runes = craft.runes.slice(0, MAX_RUNES);
 
   // Implicits: an {enchant} line is an enchantment, or rune-granted if also {rune}.
   const baseImplicits: string[] = [];
@@ -183,9 +185,9 @@ export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups):
   }
 
   for (const side of ['prefixes', 'suffixes'] as const) {
-    if (craft[side].length > MAX_PER_SIDE) {
-      notes.push({ kind: 'dropped', message: `The item listed ${craft[side].length} ${side}; the first ${MAX_PER_SIDE} were kept.` });
-      craft[side] = craft[side].slice(0, MAX_PER_SIDE);
+    if (craft[side].length > MAX_AFFIXES_PER_KIND) {
+      notes.push({ kind: 'dropped', message: `The item listed ${craft[side].length} ${side}; the first ${MAX_AFFIXES_PER_KIND} were kept.` });
+      craft[side] = craft[side].slice(0, MAX_AFFIXES_PER_KIND);
     }
   }
   return { craft, notes };

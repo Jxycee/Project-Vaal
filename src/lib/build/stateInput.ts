@@ -16,7 +16,7 @@
 // Used by POST /api/builds and addCheckpoint. Do not write a second copy.
 // =============================================================================
 
-import { MAX_ITEM_QUALITY, type CraftedMod, type ItemCraft, type ItemRarity } from './craft';
+import { MAX_AFFIXES_PER_KIND, MAX_ITEM_QUALITY, MAX_RUNES, RARITIES, type CraftedMod, type ItemCraft, type ItemRarity } from './craft';
 import { GEAR_SLOTS, type GearItem } from './gearSlots';
 import { parseGearState, type GearState } from './gearState';
 import { parseGemState, type GemState } from './gemState';
@@ -67,20 +67,18 @@ export function isAllowedIconUrl(value: string): boolean {
 // ---- Item craft (Slice 4) ----------------------------------------------------
 // Shape and bounds only. Whether a mod or rune slug exists is the validator's
 // job (a warning), so a later resync that renames one never makes a saved
-// build unsavable — see plans/2026-09-25-slice4-item-affixes.md. Bounds come
-// from our data (2026-09-25): at most 6 rolls per mod, 2 ranges per line, 7
-// implicit lines, 37 unique lines; mod slugs are [a-z0-9_-] (two carry '-'),
-// item slugs [a-z0-9-].
+// build unsavable — see plans/2026-09-25-slice4-item-affixes.md. The affix
+// and rune caps are craft.ts's, where the editor and the PoB importer read
+// them too. Other bounds come from our data (2026-09-25): at most 6 rolls per
+// mod, 2 ranges per line, 7 implicit lines, 37 unique lines; mod slugs are
+// [a-z0-9_-] (two carry '-'), item slugs [a-z0-9-].
 
-const RARITIES: readonly ItemRarity[] = ['normal', 'magic', 'rare', 'unique'];
 const CRAFT_KEYS = ['rarity', 'name', 'itemLevel', 'quality', 'corrupted', 'implicitValues', 'uniqueValues', 'prefixes', 'suffixes', 'runes'] as const;
 const MOD_SLUG_RE = /^[a-z0-9_-]{1,120}$/;
 const ITEM_SLUG_RE = /^[a-z0-9-]{1,120}$/;
-const MAX_AFFIXES_PER_KIND = 6;
 const MAX_VALUES_PER_ROW = 8;
 const MAX_IMPLICIT_ROWS = 16;
 const MAX_UNIQUE_ROWS = 64;
-const MAX_RUNES = 6;
 
 function cleanValueRow(raw: unknown): number[] | null {
   if (!Array.isArray(raw) || raw.length > MAX_VALUES_PER_ROW) return null;

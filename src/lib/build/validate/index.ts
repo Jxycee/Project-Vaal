@@ -11,7 +11,7 @@
 // not repeated here.
 // =============================================================================
 
-import { MAX_ASCENDANCY_POINTS } from '../constants';
+import { MAX_ASCENDANCY_POINTS, MAX_WEAPON_SET_POINTS } from '../constants';
 import { GEAR_SLOTS, GEAR_SLOT_LABELS, categoriesForSlot } from '../gearSlots';
 import type { GearState } from '../gearState';
 import type { PassiveState } from '../types';
@@ -24,13 +24,9 @@ export { offHandOccupiedBy } from './weaponRules';
 export { reservedSpirit, type ReservedSpirit, type ScalingEntry } from './reservation';
 export { socketLimitFor, type BaseData, type CraftData, type ModData } from './affixRules';
 
-/**
- * Weapon-set passive points: 2 per campaign quest, 12 quests (PoB2
- * src/Data/QuestRewards.lua) — the endgame total. PoB2 caps it lower before
- * the campaign ends; that depends on campaign progress, a Slice 5 question.
- * Same value as TreeControls' MAX_SET_POINTS.
- */
-export const MAX_WEAPON_SET_POINTS = 24;
+// PoB2 caps weapon-set points lower before the campaign ends; that depends on
+// campaign progress. The endgame total lives in ../constants.
+export { MAX_WEAPON_SET_POINTS };
 
 function treeWarnings(passive: PassiveState): BuildWarning[] {
   const warnings: BuildWarning[] = [];

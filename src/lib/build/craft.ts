@@ -13,7 +13,7 @@
 
 export type ItemRarity = 'normal' | 'magic' | 'rare' | 'unique';
 
-const RARITIES: readonly ItemRarity[] = ['normal', 'magic', 'rare', 'unique'];
+export const RARITIES: readonly ItemRarity[] = ['normal', 'magic', 'rare', 'unique'];
 
 /** A chosen affix: the mod file's slug, and one value per entry of that mod's `rolls[]`. */
 export interface CraftedMod {
@@ -46,6 +46,15 @@ export interface ItemCraft {
  */
 export const MAX_ITEM_QUALITY = 20;
 
+/**
+ * Storage bounds the write gate (stateInput.ts) refuses a craft over: affixes
+ * per side, and runes / soul cores per item. Headroom over the game (a rare is
+ * 3+3; PoB2's socketLimit is lower still), so the editor and the PoB importer
+ * stop here while the validator WARNS at the game's own limits.
+ */
+export const MAX_AFFIXES_PER_KIND = 6;
+export const MAX_RUNES = 6;
+
 export function emptyCraft(isUnique: boolean): ItemCraft {
   return {
     rarity: isUnique ? 'unique' : 'normal',
@@ -68,7 +77,7 @@ export interface ValueRange {
 
 // PoB2's own pattern for a ranged value (src/Modules/ItemTools.lua,
 // itemLib.applyRange): "(min-max)", either bound optionally negative or decimal.
-const RANGE_RE = /\((-?\d+(?:\.\d+)?)-(-?\d+(?:\.\d+)?)\)/g;
+export const RANGE_RE = /\((-?\d+(?:\.\d+)?)-(-?\d+(?:\.\d+)?)\)/g;
 
 /** Clamps `value` into `range`, whichever way round the bounds are written; a non-number reads as the lower bound. */
 export function clampToRange(value: number, range: ValueRange): number {

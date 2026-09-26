@@ -134,8 +134,9 @@ function SlotRow({
                 {craftSummary(craft)}
               </span>
             ) : null}
-            {warnings.map((w) => (
-              <span key={w.code} className="whitespace-normal text-xs text-muted-foreground">
+            {warnings.map((w, i) => (
+              // A slot can carry several warnings with one code (two out-of-range rolls).
+              <span key={`${w.code}-${i}`} className="whitespace-normal text-xs text-muted-foreground">
                 {w.message}
               </span>
             ))}

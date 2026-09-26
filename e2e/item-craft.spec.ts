@@ -3,8 +3,10 @@ import { MIN_TAP_PX, cleanupWithFreshPage, listedBuildNames, measureTapTargets, 
 
 // Slice 4 — an item carries everything our data backs
 // (plans/2026-09-25-slice4-item-affixes.md). Crafts a rare ring through the
-// real editor, proves an over-limit warning appears AND clears, proves values
-// clamp as typed, then proves every field survives a save and a full reload.
+// real editor, proves an over-limit warning appears AND clears, proves a value
+// can be typed digit by digit and clamps only when the field is left, then
+// proves every field survives a save and a full reload — and that the editor
+// stops at the write gate's rune cap, so a save never fails on it.
 // Writes one E2E- build under the shared test account; deleted in afterAll.
 
 test.describe('item craft', () => {
@@ -31,9 +33,19 @@ test.describe('item craft', () => {
     await editor.getByLabel('Item level').fill('82');
     await editor.getByLabel('Quality').fill('20');
 
-    // The ring's implicit is "+(7-13)% to Chaos Resistance": 99 clamps to 13.
+    // The ring's implicit is "+(7-13)% to Chaos Resistance". Typed key by key
+    // as a person does, "12" must read 12 — clamping every keystroke turned
+    // the "1" into 7 and then "72" into 13, so 10-13 were unreachable.
     const implicit = editor.getByLabel('Implicit 1 value 1');
+    await implicit.click();
+    await implicit.press('ControlOrMeta+a');
+    await implicit.press('Backspace');
+    await expect(implicit).toHaveValue('');
+    await implicit.pressSequentially('12');
+    await expect(implicit).toHaveValue('12');
+    // Out of range clamps when the field is left, not while typing.
     await implicit.fill('99');
+    await implicit.blur();
     await expect(implicit).toHaveValue('13');
 
     // Four prefixes from four different groups — one more than a rare allows.
@@ -58,9 +70,10 @@ test.describe('item craft', () => {
     await expect(editor.getByTestId('affix-row')).toHaveCount(3);
     await expect(editor.getByTestId('item-warning')).toHaveCount(0);
 
-    // A typed value clamps to its roll.
+    // A typed value clamps to its roll once the field is left.
     const firstValue = editor.getByTestId('affix-row').first().getByTestId('roll-value').first();
     await firstValue.fill('99999');
+    await firstValue.blur();
     await expect(firstValue).not.toHaveValue('99999');
     const clamped = await firstValue.inputValue();
     expect(Number(clamped)).toBeLessThan(99999);
@@ -98,5 +111,16 @@ test.describe('item craft', () => {
     await expect(rows.first().getByTestId('roll-value').first()).toHaveValue(clamped);
     await expect(editor.getByTestId('rune-row')).toHaveText(['greater-body-rune']);
     await expect(editor.getByTestId('item-warning')).toHaveCount(0);
+
+    // ---- The rune cap ------------------------------------------------------
+    // The write gate refuses a whole gear_state carrying more than 6 runes on
+    // one item. The editor must stop at 6, or one extra tap makes every save
+    // of the build fail. Six is over PoB2's socket limit, so it also warns.
+    for (let i = 1; i < 6; i++) await pickByName(page, editor.getByTestId('add-rune'), 'Greater Body Rune');
+    await expect(editor.getByTestId('rune-row')).toHaveCount(6);
+    await expect(editor.getByTestId('add-rune')).toBeDisabled();
+    await editor.getByRole('button', { name: 'Close item editor' }).click();
+    await gear.getByRole('button', { name: 'Close gear sheet' }).click();
+    await saveBuild(page);
   });
 });

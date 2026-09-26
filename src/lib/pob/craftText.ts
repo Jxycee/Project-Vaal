@@ -12,8 +12,9 @@
 // PoB's itemLib.applyRange does (src/Modules/ItemTools.lua:130).
 // =============================================================================
 
+import { RANGE_RE } from '@/lib/build/craft';
+
 const NUM = '(-?\\d+(?:\\.\\d+)?)';
-const RANGE_RE = /\((-?\d+(?:\.\d+)?)-(-?\d+(?:\.\d+)?)\)/g;
 
 /** PoB's `{…}` markup at the start of a line, removed. */
 export function stripTags(line: string): string {
@@ -25,7 +26,7 @@ function escapeRegex(text: string): string {
 }
 
 /** PoB rounds an integer range's value to a whole number; a decimal range keeps its precision. */
-function valueAt(min: number, max: number, fraction: number): number {
+export function valueAt(min: number, max: number, fraction: number): number {
   const v = min + fraction * (max - min);
   return Number.isInteger(min) && Number.isInteger(max) ? Math.round(v) : v;
 }

@@ -218,23 +218,37 @@ async function buildItems(): Promise<Catalogue['items']> {
       const detail = (await loadDetail('item', slug)) as WikiItemDetail | null;
       return detail?.iconUrl ?? null;
     },
-    async craftLookupsFor(slug) {
-      const detail = (await loadDetail('item', slug)) as WikiItemDetail | null;
-      const catalogue = await getModCatalogue();
-      const bySlug = modsBySlug(catalogue);
-      const tags = new Set(detail?.tags ?? []);
-      return {
-        modById: (id) => bySlug.get(id) ?? null,
-        candidates: catalogue.mods
-          .filter((m) => m.domain === detail?.modDomain && canSpawn(m.spawnWeights, tags))
-          .sort((a, b) => a.level - b.level)
-          .map(toCraftMod),
-        base: detail ? { implicitLines: detail.implicitMods ?? [], uniqueLines: detail.uniqueMods?.explicitMods ?? [] } : null,
-        runeSlugByName: (name) => {
-          const entry = byName.get(name);
-          return entry && entry.category === 'SoulCore' ? entry.slug : null;
-        },
-      };
+    craftLookupsFor(slug) {
+      // One scan of the ~5,300-mod catalogue per BASE, not per imported item:
+      // an import of 10 checkpoints x 25 items repeats the same few bases.
+      let lookups = lookupsBySlug.get(slug);
+      if (!lookups) {
+        lookups = craftLookups(slug, byName);
+        lookupsBySlug.set(slug, lookups);
+        lookups.catch(() => lookupsBySlug.delete(slug));
+      }
+      return lookups;
+    },
+  };
+}
+
+const lookupsBySlug = new Map<string, Promise<CraftLookups>>();
+
+async function craftLookups(slug: string, byName: Map<string, CatalogueItem>): Promise<CraftLookups> {
+  const detail = (await loadDetail('item', slug)) as WikiItemDetail | null;
+  const catalogue = await getModCatalogue();
+  const bySlug = modsBySlug(catalogue);
+  const tags = new Set(detail?.tags ?? []);
+  return {
+    modById: (id) => bySlug.get(id) ?? null,
+    candidates: catalogue.mods
+      .filter((m) => m.domain === detail?.modDomain && canSpawn(m.spawnWeights, tags))
+      .sort((a, b) => a.level - b.level)
+      .map((m) => bySlug.get(m.slug)!),
+    base: detail ? { implicitLines: detail.implicitMods ?? [], uniqueLines: detail.uniqueMods?.explicitMods ?? [] } : null,
+    runeSlugByName: (name) => {
+      const entry = byName.get(name);
+      return entry && entry.category === 'SoulCore' ? entry.slug : null;
     },
   };
 }
