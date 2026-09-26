@@ -38,7 +38,17 @@ export interface CollectData {
   node(id: number): { name: string; stats: [string, number][]; attribute?: boolean } | undefined;
   item(slug: string): { armour: { armour: number; evasion: number; energyShield: number } | null; spirit: number; implicits?: [string, number, number][][] } | undefined;
   mod(slug: string): { stat: string; min: number; max: number }[] | undefined;
+  /**
+   * A unique by name: the slug of its base (for base defences) and its lines,
+   * each with the stat ids unique-stats.json typed it to (null = untyped).
+   */
+  unique(name: string): { baseSlug: string; lines: { text: string; stats: string[] | null }[] } | undefined;
 }
+
+/** Words that mark a line as touching a defence the sheet reports — an untyped one is named. */
+const DEFENCE_WORDS = /Life|Mana|Energy Shield|Armour|Evasion|Resistance|Strength|Dexterity|Intelligence|Attributes|Spirit/;
+/** A number in a line: a "(a-b)" range, or a fixed number. */
+const NUMBER_TOKEN = /\((-?\d+(?:\.\d+)?)-(-?\d+(?:\.\d+)?)\)|(-?\d+(?:\.\d+)?)/g;
 
 export interface Collected {
   contributions: Contribution[];
@@ -121,21 +131,49 @@ function collectItem(
   notCounted: string[],
   assumed: string[],
 ): void {
-  if (item.isUnique) {
-    notCounted.push(`${item.name}: unique — its mods and base defences are not counted yet`);
-    return;
-  }
-  const detail = data.item(item.slug);
-  if (!detail) {
-    notCounted.push(`${item.name}: not in our item data`);
-    return;
-  }
   const craft = item.craft;
   const stats: [string, number][] = [];
+  let detail: ReturnType<CollectData['item']>;
+
+  if (item.isUnique) {
+    const unique = data.unique(item.name);
+    detail = unique ? data.item(unique.baseSlug) : undefined;
+    if (!unique || !detail) {
+      notCounted.push(`${item.name}: unique — not in our data`);
+      return;
+    }
+    let assumedRoll = false;
+    unique.lines.forEach((line, i) => {
+      const row = craft?.uniqueValues[i] ?? [];
+      const values: number[] = [];
+      let range = 0;
+      for (const m of line.text.matchAll(NUMBER_TOKEN)) {
+        if (m[3] !== undefined) {
+          values.push(Number(m[3]));
+          continue;
+        }
+        const chosen = row[range++];
+        if (chosen === undefined) assumedRoll = true;
+        values.push(chosen ?? (Number(m[1]) + Number(m[2])) / 2);
+      }
+      if (!line.stats || line.stats.length !== values.length) {
+        if (DEFENCE_WORDS.test(line.text)) notCounted.push(`${item.name}: "${line.text}" not counted`);
+        return;
+      }
+      line.stats.forEach((stat, k) => stats.push([stat, values[k]]));
+    });
+    if (assumedRoll) assumed.push(`${item.name}: unique rolls at mid-roll`);
+  } else {
+    detail = data.item(item.slug);
+    if (!detail) {
+      notCounted.push(`${item.name}: not in our item data`);
+      return;
+    }
+  }
 
   // Implicits: typed per implicit mod; a chosen value per range where the
   // counts line up, otherwise mid-roll — and say so.
-  const implicitRolls = (detail.implicits ?? []).flat();
+  const implicitRolls = item.isUnique ? [] : (detail.implicits ?? []).flat();
   if (implicitRolls.length > 0) {
     const chosen = (craft?.implicitValues ?? []).flat();
     if (chosen.length === implicitRolls.length) implicitRolls.forEach(([stat], i) => stats.push([stat, chosen[i]]));

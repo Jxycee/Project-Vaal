@@ -26,6 +26,19 @@ const ITEMS: Record<string, { armour: { armour: number; evasion: number; energyS
   'amethyst-ring': { armour: null, spirit: 0, implicits: [[['base_chaos_damage_resistance_%', 7, 13]]] },
   sceptre: { armour: null, spirit: 100 },
   emerald: { armour: null, spirit: 0 },
+  'silk-robe': { armour: { armour: 0, evasion: 0, energyShield: 50 }, spirit: 0 },
+};
+
+const UNIQUES: Record<string, { baseSlug: string; lines: { text: string; stats: string[] | null }[] }> = {
+  'Cloak of Flame': {
+    baseSlug: 'silk-robe',
+    lines: [
+      { text: '+(30-50) to maximum Energy Shield', stats: ['local_energy_shield'] },
+      { text: '+(30-50)% to Fire Resistance', stats: ['base_fire_damage_resistance_%'] },
+      { text: '50% of Physical Damage taken as Fire Damage', stats: null },
+      { text: '+(10-20) to maximum Life and Mana', stats: null },
+    ],
+  },
 };
 
 const MODS: Record<string, { stat: string; min: number; max: number }[]> = {
@@ -39,6 +52,7 @@ const data: CollectData = {
   node: (id) => NODES[id],
   item: (slug) => ITEMS[slug],
   mod: (slug) => MODS[slug],
+  unique: (name) => UNIQUES[name],
 };
 
 const tree = (over: Partial<PassiveState> = {}): PassiveState => ({ set1: [], set2: [], ascendancyNodes: [], ...over });
@@ -137,7 +151,7 @@ describe('collectContributions — gear', () => {
     );
     expect(r.notCounted).toEqual(
       expect.arrayContaining([
-        'Crown of Eyes: unique — its mods and base defences are not counted yet',
+        'Crown of Eyes: unique — not in our data',
         'Plate Vest: 1 rune not counted',
         'Plate Vest: mod "ghost" is not in our data',
         'Plate Vest: increased Armour from body armour',
@@ -150,6 +164,31 @@ describe('collectContributions — gear', () => {
     const g = gear({ jewels: { '30': emerald } });
     expect(total(run(tree({ set1: [30] }), g), 'life')).toBe(60);
     expect(total(run(tree(), g), 'life')).toBe(0);
+  });
+});
+
+describe('collectContributions — uniques (Slice 5, typed by wording)', () => {
+  const cloak = (uniqueValues: number[][] = []) => item('cloak-of-flame', 'Cloak of Flame', 'Body Armour', { uniqueValues }, true);
+
+  it("builds on its base's defences, with its local lines applied", () => {
+    // Silk Robe 50 ES + local "+(30-50)" at the chosen 40 = 90.
+    expect(total(run(tree(), gear({ body: cloak([[40], [45]]) })), 'energyShield')).toBe(90);
+  });
+
+  it('counts its global lines at the chosen value', () => {
+    expect(total(run(tree(), gear({ body: cloak([[40], [45]]) })), 'fireRes')).toBe(45);
+  });
+
+  it('takes an unchosen roll at mid-roll, and says so', () => {
+    const r = run(tree(), gear({ body: cloak() }));
+    expect(total(r, 'fireRes')).toBe(40);
+    expect(r.assumed).toContain('Cloak of Flame: unique rolls at mid-roll');
+  });
+
+  it('names an untyped line only when it touches a defence the sheet reports', () => {
+    const r = run(tree(), gear({ body: cloak() }));
+    expect(r.notCounted).toContain('Cloak of Flame: "+(10-20) to maximum Life and Mana" not counted');
+    expect(r.notCounted.join(' ')).not.toContain('Physical Damage taken as Fire');
   });
 });
 
