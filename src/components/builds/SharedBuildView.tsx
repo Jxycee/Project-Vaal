@@ -22,6 +22,7 @@ import { relativeTime } from '@/lib/prices/format';
 import ReadOnlyGearList from './ReadOnlyGearList';
 import ReadOnlyGemList from './ReadOnlyGemList';
 import SharedTreePanel from './SharedTreePanel';
+import SharedStatsPanel from './SharedStatsPanel';
 
 function JewelIcon({ item }: { item: GearItem }) {
   return (
@@ -210,6 +211,12 @@ export default function SharedBuildView({
             ))}
           </ul>
         )}
+      </section>
+
+      {/* Defence stats (Slice 5) — behind a tap, for the same reason as the tree below. */}
+      <section>
+        <h2 className="mb-2 text-sm font-semibold text-foreground">Stats</h2>
+        <SharedStatsPanel className={row.class} level={row.level} passiveState={passiveState} gear={gear} gemState={gemState} />
       </section>
 
       {/* Passive tree — below everything else, and behind a tap (SharedTreePanel). */}

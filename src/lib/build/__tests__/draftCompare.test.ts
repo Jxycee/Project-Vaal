@@ -137,6 +137,19 @@ describe('draftDiffersFrom — saved build', () => {
     expect(draftDiffersFrom(draft, savedBuild)).toBe(true);
   });
 
+  // Slice 5: an attribute choice is part of the tree, and a choice-only edit
+  // must still prompt — otherwise the restore offer silently loses it.
+  it('returns true when only an attribute choice differs', () => {
+    const draft = { ...matchingDraft, tree: { ...matchingTree, attributeChoices: { 1: 'dex' as const } } };
+    expect(draftDiffersFrom(draft, savedBuild)).toBe(true);
+  });
+
+  it('returns false when the attribute choices match the saved ones', () => {
+    const draft = { ...matchingDraft, tree: { ...matchingTree, attributeChoices: { 1: 'dex' as const } } };
+    const saved = { ...savedBuild, passive_state: { ...savedBuild.passive_state, attributeChoices: { '1': 'dex' as const } } };
+    expect(draftDiffersFrom(draft, saved)).toBe(false);
+  });
+
   it('returns true when a jewel is added with no other change', () => {
     const draft: BuildDraftState = {
       ...matchingDraft,

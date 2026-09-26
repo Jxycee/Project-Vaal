@@ -18,16 +18,20 @@
 //   forces them basic, matching PoB — and only the build's own ascendancy's
 //   nodes are kept.
 // - Unknown nodes (the real build loses one, 15671, across a patch boundary)
-//   and attribute choices (our model has no field for them) are dropped and
-//   REPORTED, never discarded silently.
+//   are dropped and REPORTED, never discarded silently.
+// - Attribute choices (PoB's <AttributeOverride>) are kept since Slice 5 as
+//   PassiveState.attributeChoices, for every imported generic attribute node.
+//   A choice for a node that was not imported, is not a generic attribute
+//   node, or is listed under two attributes is reported by id.
 // =============================================================================
 
+import type { AttributeChoice } from '@poe2-toolkit/tree-core';
 import type { PassiveState } from '@/lib/build/types';
 import type { Catalogue } from './catalogue';
 import type { PobSpec } from './parse';
 import type { ReportEntry } from './report';
 
-export type TreeLookup = Pick<Catalogue['tree'], 'hasNode' | 'ascendancyOf' | 'isStartNode'>;
+export type TreeLookup = Pick<Catalogue['tree'], 'hasNode' | 'ascendancyOf' | 'isStartNode' | 'isAttributeNode'>;
 
 function listIds(ids: number[]): string {
   return ids.join(', ');
@@ -95,16 +99,27 @@ export function mapTree(
     });
   }
 
-  const attributeChoices =
-    spec.attributeOverrides.str.length + spec.attributeOverrides.dex.length + spec.attributeOverrides.int.length;
-  if (attributeChoices > 0) {
+  const imported = new Set([...set1, ...set2]);
+  const listed = new Map<number, AttributeChoice[]>();
+  for (const choice of ['str', 'dex', 'int'] as const) {
+    for (const id of spec.attributeOverrides[choice]) listed.set(id, [...(listed.get(id) ?? []), choice]);
+  }
+  const attributeChoices: Record<string, AttributeChoice> = {};
+  const notKept: number[] = [];
+  for (const [id, choices] of listed) {
+    if (choices.length === 1 && imported.has(id) && tree.isAttributeNode(id)) attributeChoices[String(id)] = choices[0];
+    else notKept.push(id);
+  }
+  if (notKept.length > 0) {
     report.push({
       kind: 'dropped',
       area: 'tree',
       checkpoint,
-      message: `${attributeChoices} attribute choice(s) (which attribute each "+attribute" passive was set to) were not kept — Project Vaal does not store them yet. The passives themselves are allocated.`,
+      message: `${notKept.length} attribute choice(s) were not kept — each is for a passive that was not imported, is not a "+attribute" passive, or is listed under two attributes: ${listIds(notKept)}.`,
     });
   }
 
-  return { value: { set1, set2, ascendancyNodes }, report };
+  const value: PassiveState = { set1, set2, ascendancyNodes };
+  if (Object.keys(attributeChoices).length > 0) value.attributeChoices = attributeChoices;
+  return { value, report };
 }

@@ -36,6 +36,11 @@ import { saveDraft, loadDraft, clearDraft } from '@/lib/build/draft';
 import { draftDiffersFrom } from '@/lib/build/draftCompare';
 import { emptyGearState, parseGearState } from '@/lib/build/gearState';
 import { summarizeJewels } from '@/lib/build/jewelState';
+import { offHandOccupiedBy, validateCheckpoint } from '@/lib/build/validate';
+import { useCraftData } from '@/components/build/useCraftData';
+import { useDefenceSheets } from '@/components/build/useDefenceSheets';
+import { useReservedSpirit } from '@/components/build/useReservedSpirit';
+import StatsSheet from '@/components/build/StatsSheet';
 import {
   addLoadout,
   addSupport,
@@ -101,12 +106,13 @@ export default function TreeBuildSession({
 
   const initialState = useMemo<PassiveTreeInitialState | undefined>(() => {
     if (!build) return undefined;
-    const { main, ascendancyNodes } = fromPassiveState(build.passive_state);
+    const { main, ascendancyNodes, attributeChoices } = fromPassiveState(build.passive_state);
     return {
       className: build.class,
       ascendancyId: build.ascendancy ?? undefined,
       main,
       ascendancyNodes,
+      attributeChoices,
     };
   }, [build]);
 
@@ -142,6 +148,7 @@ export default function TreeBuildSession({
       ascendancyId: restoredDraft.ascendancyId,
       main: restoredDraft.main,
       ascendancyNodes: restoredDraft.ascendancyNodes,
+      attributeChoices: restoredDraft.attributeChoices,
     };
   }, [restoredDraft, initialState]);
 
@@ -160,6 +167,28 @@ export default function TreeBuildSession({
   // from under an already-mounted instance.
   const [gearState, setGearState] = useState(() => (build ? parseGearState(build.gear_state) : emptyGearState()));
   const [gearSheetOpen, setGearSheetOpen] = useState(false);
+
+  // ---- Structural validation (Slice 3) --------------------------------------
+  // Derived on every change, never stored: see src/lib/build/validate. Until
+  // PassiveTree reports its seeded state, the stored tree stands in, so a
+  // keystone that excuses an off-hand does not flash a false warning.
+  const livePassive = useMemo(
+    () =>
+      editorState
+        ? toPassiveState(editorState.main, editorState.ascendancyNodes, editorState.attributeChoices)
+        : (build?.passive_state ?? { set1: [], set2: [], ascendancyNodes: [] }),
+    [editorState, build],
+  );
+  // Slice 4: craft checks read mod/base/rune data, loaded lazily per slug.
+  const craftData = useCraftData(gearState);
+  const buildWarnings = useMemo(
+    () => validateCheckpoint({ passive: livePassive, gear: gearState, craftData }),
+    [livePassive, gearState, craftData],
+  );
+  const offHandOccupied = useMemo(
+    () => ({ 1: offHandOccupiedBy(gearState, livePassive, 1), 2: offHandOccupiedBy(gearState, livePassive, 2) }),
+    [gearState, livePassive],
+  );
 
   const handleGearChange = useCallback((slot: GearSlot, item: GearItem | null) => {
     setGearState((prev) => ({ ...prev, [slot]: item }));
@@ -205,6 +234,18 @@ export default function TreeBuildSession({
   const [gemState, setGemState] = useState(() => (build ? parseGemState(build.gem_state) : emptyGemState()));
   const [gemsSheetOpen, setGemsSheetOpen] = useState(false);
   const [checkpointsSheetOpen, setCheckpointsSheetOpen] = useState(false);
+  const [statsSheetOpen, setStatsSheetOpen] = useState(false);
+
+  // ---- Defence stats (Slice 5) -----------------------------------------------
+  // Derived from the live checkpoint on every change; nothing is stored.
+  const defenceSheets = useDefenceSheets({
+    tree: raw,
+    className: editorState?.className ?? build?.class,
+    level,
+    passive: livePassive,
+    gear: gearState,
+  });
+  const reservedSpirit = useReservedSpirit(gemState);
 
   // Every decision (the support cap, set normalisation, primary clearing) is
   // inside gemState.ts's pure reducers, unit-tested there — these handlers
@@ -340,7 +381,7 @@ export default function TreeBuildSession({
             // present" discipline exists to protect a save path that
             // legitimately doesn't touch notes, which this one isn't.
             notes: meta.notes,
-            passive_state: toPassiveState(editorState.main, editorState.ascendancyNodes),
+            passive_state: toPassiveState(editorState.main, editorState.ascendancyNodes, editorState.attributeChoices),
             // Sent on every save (not conditionally) now that gear exists —
             // POST /api/builds only writes gear_state when the key is
             // present in the body, precisely so a save that omits it can't
@@ -439,6 +480,14 @@ export default function TreeBuildSession({
           </button>
           <JewelsChip summary={jewelsSummary} onOpen={() => setJewelsSheetOpen(true)} />
           <GemsChip loadouts={gemState.loadouts} onOpen={() => setGemsSheetOpen(true)} />
+          {/* TEST-GRADE (Slice 5): the defence stat sheet. */}
+          <button
+            type="button"
+            onClick={() => setStatsSheetOpen(true)}
+            className="flex h-11 items-center gap-1.5 rounded-lg border border-border bg-card/90 px-3 text-sm font-medium text-foreground backdrop-blur"
+          >
+            Stats
+          </button>
           {/* TEST-GRADE: a plain entry point to CheckpointsSheet, pending the UI session. */}
           <button
             type="button"
@@ -505,6 +554,8 @@ export default function TreeBuildSession({
       <GearSheet
         open={gearSheetOpen}
         gear={gearState}
+        warnings={buildWarnings}
+        occupiedBy={offHandOccupied}
         onChange={handleGearChange}
         onClose={() => setGearSheetOpen(false)}
       />
@@ -530,6 +581,7 @@ export default function TreeBuildSession({
         onSetQuality={handleSetGemQuality}
         onClose={() => setGemsSheetOpen(false)}
       />
+      <StatsSheet open={statsSheetOpen} sheets={defenceSheets} reserved={reservedSpirit} onClose={() => setStatsSheetOpen(false)} />
       <CheckpointsSheet
         open={checkpointsSheetOpen}
         // The saved build, if there is one yet. A scratch session that has
@@ -544,7 +596,7 @@ export default function TreeBuildSession({
         currentState={
           editorState
             ? {
-                passive_state: toPassiveState(editorState.main, editorState.ascendancyNodes),
+                passive_state: toPassiveState(editorState.main, editorState.ascendancyNodes, editorState.attributeChoices),
                 gear_state: gearState,
                 gem_state: gemState,
               }

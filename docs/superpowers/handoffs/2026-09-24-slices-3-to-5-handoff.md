@@ -70,7 +70,7 @@
 **Inputs already in hand:** character level (a real stored input), affixed items (after Slice 4), tree allocation per checkpoint.
 
 **From the feasibility report — mind its verification status:**
-- PoB2's `CalcDefence.lua` / `CalcPerform.lua` implement this. PoB2 is **MIT**, so porting the arithmetic is allowed with attribution. **The attribution line is "Copyright (c) 2018 Xavier Wang"**, not the report body's "David Gowor, 2016" (corrected in its Controller verification section). Check per-file headers of anything ported.
+- PoB2's `CalcDefence.lua` / `CalcPerform.lua` implement this. PoB2 is **MIT**, so porting the arithmetic is allowed with attribution. **The attribution line is "Copyright (c) 2016 David Gowor"**, as the report body and `THIRD-PARTY-NOTICES.md` say. *(Corrected 2026-09-24: this line first said "2018 Xavier Wang", copied from the report's Controller verification section. The raw `LICENSE.md` contains no such name.)* Check per-file headers of anything ported.
 - The numeric constants (Life = 28 + 12/level + 2/Str, the resistance caps, the armour formula with 12, and so on) are **cross-checked by the report but not independently verified**. Verify them before building on them.
 
 **Open decisions for the Slice 5 plan:**

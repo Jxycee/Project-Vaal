@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { toPassiveState, fromPassiveState } from '@/lib/build/passiveState';
+import { toPassiveState, fromPassiveState, parsePassiveState } from '@/lib/build/passiveState';
 import type { WeaponSetAllocation } from '@poe2-toolkit/tree-core';
 
 describe('toPassiveState', () => {
@@ -90,5 +90,45 @@ describe('round trip', () => {
     expect([...back.main.allocated].sort((a, b) => a - b)).toEqual([1, 2, 3, 4]);
     expect(back.main.weaponSets).toEqual({ 2: 1, 3: 2 });
     expect(back.ascendancyNodes).toEqual(ascendancyNodes);
+  });
+});
+
+// Slice 5: the attribute a generic "+5 to any Attribute" node was set to.
+// Stored beside the allocation; absent on every row saved before Slice 5.
+describe('attribute choices (Slice 5)', () => {
+  const main: WeaponSetAllocation = { allocated: [10, 20], weaponSets: {} };
+
+  it('writes no attributeChoices key when there are none, so the stored shape is unchanged', () => {
+    expect(toPassiveState(main, [])).not.toHaveProperty('attributeChoices');
+    expect(toPassiveState(main, [], {})).not.toHaveProperty('attributeChoices');
+  });
+
+  it('keeps choices for allocated nodes only, keyed as strings', () => {
+    expect(toPassiveState(main, [], { 10: 'str', 99: 'dex' }).attributeChoices).toEqual({ '10': 'str' });
+  });
+
+  it('reads choices back, and none from an old row', () => {
+    expect(parsePassiveState({ set1: [10], set2: [10], ascendancyNodes: [], attributeChoices: { '10': 'int' } }).attributeChoices).toEqual({ '10': 'int' });
+    expect(parsePassiveState({ set1: [], set2: [], ascendancyNodes: [] })).not.toHaveProperty('attributeChoices');
+  });
+
+  it('drops a malformed choice on its own when reading', () => {
+    expect(
+      parsePassiveState({ set1: [], set2: [], ascendancyNodes: [], attributeChoices: { '10': 'str', '11': 'luck', abc: 'dex', '12': 5 } }).attributeChoices,
+    ).toEqual({ '10': 'str' });
+    expect(parsePassiveState({ set1: [], set2: [], ascendancyNodes: [], attributeChoices: 'str' })).not.toHaveProperty('attributeChoices');
+  });
+});
+
+describe('fromPassiveState — attribute choices (Slice 5)', () => {
+  it('hands the editor its choices keyed by number, and {} for an old row', () => {
+    expect(fromPassiveState({ set1: [10], set2: [10], ascendancyNodes: [], attributeChoices: { '10': 'str' } }).attributeChoices).toEqual({ 10: 'str' });
+    expect(fromPassiveState({ set1: [10], set2: [10], ascendancyNodes: [] }).attributeChoices).toEqual({});
+  });
+
+  it('round-trips through toPassiveState unchanged', () => {
+    const stored = { set1: [10, 11], set2: [10], ascendancyNodes: [], attributeChoices: { '10': 'int' as const } };
+    const { main, ascendancyNodes, attributeChoices } = fromPassiveState(stored);
+    expect(toPassiveState(main, ascendancyNodes, attributeChoices)).toEqual(stored);
   });
 });

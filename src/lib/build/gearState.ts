@@ -11,6 +11,7 @@
 // that no longer parses as valid JSON) rather than trusting the database.
 // =============================================================================
 
+import { parseCraft } from './craft';
 import { GEAR_SLOTS, isGearSlot, type GearItem, type GearSlot } from './gearSlots';
 
 /**
@@ -71,7 +72,7 @@ export function parseGearState(raw: unknown): GearState {
     if (item === null) {
       state[key] = null;
     } else if (isGearItem(item)) {
-      state[key] = item;
+      state[key] = withParsedCraft(item);
     }
     // Anything else (wrong shape) is left at the `null` default from emptyGearState.
   }
@@ -89,7 +90,24 @@ function parseJewelsRecord(value: unknown): Record<string, GearItem> {
   const jewels: Record<string, GearItem> = {};
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return jewels;
   for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
-    if (isGearItem(item)) jewels[key] = item;
+    if (isGearItem(item)) jewels[key] = withParsedCraft(item);
   }
   return jewels;
+}
+
+/**
+ * A gear or jewel item with its Slice 4 `craft` read defensively. An item
+ * with no craft is returned untouched, so rows saved before Slice 4 read
+ * exactly as they always did.
+ */
+function withParsedCraft(item: GearItem): GearItem {
+  const raw = (item as unknown as Record<string, unknown>).craft;
+  if (raw === undefined) return item;
+  if (raw === null) {
+    // "No craft" is an absent key; a null one is refused by the write gate.
+    const rest = { ...item };
+    delete rest.craft;
+    return rest;
+  }
+  return { ...item, craft: parseCraft(raw, item.isUnique) };
 }

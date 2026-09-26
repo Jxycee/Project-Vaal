@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Search } from 'lucide-react';
 import type { AllocMode } from '@poe2-toolkit/tree-core';
-import { MAX_ASCENDANCY_POINTS } from '@/lib/build/constants';
+import { MAX_ASCENDANCY_POINTS, MAX_WEAPON_SET_POINTS } from '@/lib/build/constants';
 import { WEAPON_SET_DOT } from '@/lib/build/weaponSetColors';
 import ResetButton from '@/components/tree/ResetButton';
 
@@ -59,10 +59,9 @@ const MODE_LABEL: Record<AllocMode, string> = { 0: 'Main', 1: 'Set I', 2: 'Set I
 // rather than one of the two set colours from weaponSetColors.ts.
 const MODE_DOT: Record<AllocMode, string> = { 0: 'bg-primary', 1: WEAPON_SET_DOT[1], 2: WEAPON_SET_DOT[2] };
 
-// Each weapon set draws from its own, separate 24-point pool — a fixed game
-// constant, not derived from level the way the basic/shared pool now is (see
-// `maxBasicPoints` prop / `derivePassiveBudget`).
-const MAX_SET_POINTS = 24;
+// Each weapon set draws from its own, separate MAX_WEAPON_SET_POINTS pool — a
+// fixed game constant, not derived from level the way the basic/shared pool
+// now is (see `maxBasicPoints` prop / `derivePassiveBudget`).
 
 export default function TreeControls({
   classes,
@@ -161,8 +160,8 @@ export default function TreeControls({
                 m === 0
                   ? [pointCounts.basic, maxBasicPoints]
                   : m === 1
-                    ? [pointCounts.setI, MAX_SET_POINTS]
-                    : [pointCounts.setII, MAX_SET_POINTS];
+                    ? [pointCounts.setI, MAX_WEAPON_SET_POINTS]
+                    : [pointCounts.setII, MAX_WEAPON_SET_POINTS];
               // Only the basic/shared pool is level-derived, so only it can
               // be "over budget" in the sense this feature means — a weapon
               // set's 24-point pool is a fixed game constant the tree-core

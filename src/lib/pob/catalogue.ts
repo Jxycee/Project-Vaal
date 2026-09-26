@@ -19,6 +19,9 @@ import path from 'node:path';
 import { GEAR_SLOTS, JEWEL_CATEGORIES, categoriesForSlot } from '@/lib/build/gearSlots';
 import { TREE_VERSION } from '@/lib/tree/version';
 import { loadAllSlugs, loadDetail } from '@/lib/wiki/load';
+import { getModCatalogue, type ModCatalogue } from '@/lib/wiki/modCatalogue';
+import { canSpawn } from '@/lib/wiki/spawn';
+import type { CraftLookups, CraftMod } from './mapCraft';
 import { loadIndex } from '@/lib/wiki/loadIndex';
 import type { WikiItemDetail, WikiSkillDetail } from '@/lib/wiki/types';
 
@@ -61,6 +64,8 @@ export interface Catalogue {
      * spec lists both, so the importer must omit them.
      */
     isStartNode(id: number): boolean;
+    /** A generic "+5 to any Attribute" node (GGG: isGenericAttribute) — Slice 5 attribute choices. */
+    isAttributeNode(id: number): boolean;
   };
   /** Keyed by the gem's GGG id — the last segment of its metadata path, e.g. 'SkillGemIceNova'. */
   gems: Map<string, CatalogueGem>;
@@ -73,11 +78,19 @@ export interface Catalogue {
      */
     findBaseIn(text: string): CatalogueItem | null;
     iconUrlFor(slug: string): Promise<string | null>;
+    /**
+     * What mapCraft needs to read one item's PoB text against our data
+     * (Slice 4): mods by id, the tiers that can roll on this base, the base's
+     * implicit and unique lines, and runes by name. Optional so a test fake
+     * without it keeps Slice 2's "reported, not kept" behaviour.
+     */
+    craftLookupsFor?(slug: string): Promise<CraftLookups>;
   };
 }
 
 interface RawTreeNode {
   ascendancyId?: string;
+  isGenericAttribute?: boolean;
   isAscendancyStart?: boolean;
   isJewelSocket?: boolean;
   classStartIndex?: unknown;
@@ -100,10 +113,12 @@ async function buildTree(): Promise<Catalogue['tree']> {
   const ascendancyByNode = new Map<number, string | null>();
   const startNodes = new Set<number>();
   const jewelSockets = new Set<number>();
+  const attributeNodes = new Set<number>();
   for (const [key, node] of Object.entries(raw.nodes)) {
     if (!/^\d+$/.test(key)) continue;
     ascendancyByNode.set(Number(key), node.ascendancyId ?? null);
     if (node.isJewelSocket) jewelSockets.add(Number(key));
+    if (node.isGenericAttribute) attributeNodes.add(Number(key));
     // Class starts carry classesStart (e.g. [3, 9]: DUELIST is shared by
     // Duelist and Mercenary); ascendancy starts carry isAscendancyStart.
     if (node.isAscendancyStart || node.classStartIndex !== undefined || node.classesStart !== undefined) {
@@ -124,6 +139,7 @@ async function buildTree(): Promise<Catalogue['tree']> {
     isJewelSocket: (id) => jewelSockets.has(id),
     ascendancyIdFor: (className, ascendancyName) => ascendancyIds.get(`${className}\u0000${ascendancyName}`) ?? null,
     isStartNode: (id) => startNodes.has(id),
+    isAttributeNode: (id) => attributeNodes.has(id),
   };
 }
 
@@ -202,7 +218,55 @@ async function buildItems(): Promise<Catalogue['items']> {
       const detail = (await loadDetail('item', slug)) as WikiItemDetail | null;
       return detail?.iconUrl ?? null;
     },
+    craftLookupsFor(slug) {
+      // One scan of the ~5,300-mod catalogue per BASE, not per imported item:
+      // an import of 10 checkpoints x 25 items repeats the same few bases.
+      let lookups = lookupsBySlug.get(slug);
+      if (!lookups) {
+        lookups = craftLookups(slug, byName);
+        lookupsBySlug.set(slug, lookups);
+        lookups.catch(() => lookupsBySlug.delete(slug));
+      }
+      return lookups;
+    },
   };
+}
+
+const lookupsBySlug = new Map<string, Promise<CraftLookups>>();
+
+async function craftLookups(slug: string, byName: Map<string, CatalogueItem>): Promise<CraftLookups> {
+  const detail = (await loadDetail('item', slug)) as WikiItemDetail | null;
+  const catalogue = await getModCatalogue();
+  const bySlug = modsBySlug(catalogue);
+  const tags = new Set(detail?.tags ?? []);
+  return {
+    modById: (id) => bySlug.get(id) ?? null,
+    candidates: catalogue.mods
+      .filter((m) => m.domain === detail?.modDomain && canSpawn(m.spawnWeights, tags))
+      .sort((a, b) => a.level - b.level)
+      .map((m) => bySlug.get(m.slug)!),
+    base: detail ? { implicitLines: detail.implicitMods ?? [], uniqueLines: detail.uniqueMods?.explicitMods ?? [] } : null,
+    runeSlugByName: (name) => {
+      const entry = byName.get(name);
+      return entry && entry.category === 'SoulCore' ? entry.slug : null;
+    },
+  };
+}
+
+function toCraftMod(m: ModCatalogue['mods'][number]): CraftMod {
+  return { slug: m.slug, kind: m.kind, rolls: m.rolls.map((r) => ({ min: r.min, max: r.max })), stats: m.stats };
+}
+
+const modIndexes = new WeakMap<ModCatalogue, Map<string, CraftMod>>();
+
+/** The mod catalogue keyed by slug, built once per catalogue. */
+function modsBySlug(catalogue: ModCatalogue): Map<string, CraftMod> {
+  let index = modIndexes.get(catalogue);
+  if (!index) {
+    index = new Map(catalogue.mods.map((m) => [m.slug, toCraftMod(m)]));
+    modIndexes.set(catalogue, index);
+  }
+  return index;
 }
 
 let cached: Promise<Catalogue> | null = null;

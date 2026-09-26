@@ -3,7 +3,6 @@ import path from 'node:path';
 import { WIKI_DATA_VERSION, isWikiSearchEntry } from './types';
 import type { WikiItemDetail, WikiSkillDetail, WikiModDetail, WikiEffectDetail, WikiMapDetail } from './types';
 
-const ROOT = path.join(process.cwd(), 'public', 'data', 'wiki', WIKI_DATA_VERSION);
 const SAFE_SLUG = /^[a-z0-9-]+$/;
 
 /**
@@ -49,7 +48,13 @@ export async function loadDetail(
 ): Promise<WikiItemDetail | WikiSkillDetail | WikiModDetail | WikiEffectDetail | WikiMapDetail | null> {
   if (!SAFE_SLUG.test(slug)) return null;
   try {
-    const raw = await readFile(path.join(ROOT, `${kind}s`, `${slug}.json`), 'utf8');
+    // Full path in one expression, no shared ROOT: a directory-valued
+    // constant makes the file tracer ship the whole wiki directory, icons
+    // included. See the comment in loadIndex.ts's readIndex.
+    const raw = await readFile(
+      path.join(process.cwd(), 'public', 'data', 'wiki', WIKI_DATA_VERSION, `${kind}s`, `${slug}.json`),
+      'utf8',
+    );
     const parsed: unknown = JSON.parse(raw);
     if (!isDetailFor(kind, parsed)) return null;
     return parsed as WikiItemDetail | WikiSkillDetail | WikiModDetail | WikiEffectDetail | WikiMapDetail;
@@ -66,7 +71,7 @@ export async function loadDetail(
  */
 export async function loadAllSlugs(kind: 'item' | 'skill' | 'mod' | 'effect' | 'map'): Promise<string[]> {
   try {
-    const files = await readdir(path.join(ROOT, `${kind}s`));
+    const files = await readdir(path.join(process.cwd(), 'public', 'data', 'wiki', WIKI_DATA_VERSION, `${kind}s`));
     return files.filter((f) => f.endsWith('.json')).map((f) => f.replace(/\.json$/, ''));
   } catch {
     return [];

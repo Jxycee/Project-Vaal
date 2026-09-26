@@ -140,12 +140,21 @@ Do not skip the defensive stat sheet — it's buildable. Concretely:
 
 ---
 
+## Second verification, 2026-09-25 (Slice 5 planning)
+
+- **The armour constant is 10 in PoB2 today, not 12.** `src/Modules/Data.lua` sets `data.misc.ArmourRatio = 10`, and `CalcDefence.lua:62-64` computes `armour / (armour + raw × ArmourRatio)`. The "12" above came from Maxroll. Rows 8 and §3 are wrong on the constant; the formula's shape is right.
+- **Confirmed first-hand** (raw PoB2 files): Life `12 × level + 16` and Mana `4 × level + 30`, from GGG-exported `life_per_level` / `mana_per_level` (`Data/Misc.lua:156-157`, `CalcSetup.lua:955-956`); +2 Life per Str, +2 Mana per Int, +6 Accuracy per Dex (`CalcPerform.lua:494-519`); resistance cap 75, max 90; base Spirit 0.
+- **Spirit from quests** (§3, "UNCERTAIN"): PoB2's `Data/QuestRewards.lua` has +30 (Act 1, King in the Mists), +30 (Act 3, Ignagduk) and +40 (Interlude 3, Lythara), 100 in all, **earned by quest, not flat**.
+- The tree's stats are available typed from GGG's `PassiveSkills` table. See `docs/superpowers/plans/2026-09-25-slice5-defence-engine.md`.
+
 ## Controller verification, 2026-09-23
 
 Two claims in this report were re-checked independently before it was acted on.
 
 **CONFIRMED — our mod data is typed.** `public/data/wiki/2026-08-25/mods/` holds **5,267** files, each carrying `rolls: [{stat, min, max}]` alongside `tier`, `level`, `generationType`, `families` and `spawnWeights` — e.g. `{"stat":"warcry_cooldown_speed_+%","min":17,"max":25}` beside the display string `"(17-25)% increased Warcry Cooldown Recovery Rate"`. This is the report's most consequential finding and it holds: affixes are a mapping problem against typed data we already own, not a text-parsing problem.
 
-**CORRECTED — the licence holder.** The report states "Copyright David Gowor, 2016". The actual root `LICENSE.md` on the `dev` branch reads **"Copyright (c) 2018 Xavier Wang"**, and the repository has exactly one licence file at root (24 root entries, verified via the GitHub contents API). The MIT conclusion is unaffected — permissive, attribution required — but any attribution we ship must use the real line, and per-file headers should be checked for the specific modules we port from.
+> **This correction was itself wrong (found 2026-09-24).** The raw root `LICENSE.md` on `dev`, fetched with curl and read directly, opens "Path of Building Community: … Copyright (c) 2016 David Gowor", and the name "Xavier Wang" appears nowhere in it. **The report body was right.** `THIRD-PARTY-NOTICES.md` has used the David Gowor line all along. The paragraph below is kept as the record.
+
+~~**CORRECTED — the licence holder.**~~ The report states "Copyright David Gowor, 2016". The actual root `LICENSE.md` on the `dev` branch reads **"Copyright (c) 2018 Xavier Wang"**, and the repository has exactly one licence file at root (24 root entries, verified via the GitHub contents API). The MIT conclusion is unaffected — permissive, attribution required — but any attribution we ship must use the real line, and per-file headers should be checked for the specific modules we port from.
 
 **NOT independently verified:** the numeric constants (Life = 28 + 12/level + 2/Str, etc.), the contents of the large Lua calc files, and the claim that no headless PoB2 API exists. These are relayed from the report, which cross-checked them against three sources. Treat them as strong but unconfirmed until something is built on them.

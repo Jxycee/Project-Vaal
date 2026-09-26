@@ -108,13 +108,14 @@ export function draftDiffersFrom(
   if (draft.tree.className !== build.class) return true;
   if ((draft.tree.ascendancyId ?? null) !== build.ascendancy) return true;
 
-  const draftState = toPassiveState(draft.tree.main, draft.tree.ascendancyNodes);
+  const draftState = toPassiveState(draft.tree.main, draft.tree.ascendancyNodes, draft.tree.attributeChoices);
   const savedState = build.passive_state;
 
   if (
     !sameNumberSet(draftState.set1, savedState.set1) ||
     !sameNumberSet(draftState.set2, savedState.set2) ||
-    !sameNumberSet(draftState.ascendancyNodes, savedState.ascendancyNodes)
+    !sameNumberSet(draftState.ascendancyNodes, savedState.ascendancyNodes) ||
+    !sameChoices(draftState.attributeChoices, savedState.attributeChoices)
   ) {
     return true;
   }
@@ -123,4 +124,11 @@ export function draftDiffersFrom(
   if (!gemStateEqual(draft.gem, parseGemState(build.gem_state))) return true;
 
   return false;
+}
+
+/** Attribute choices compared by content; absent and empty are the same. */
+function sameChoices(a: Record<string, string> | undefined, b: Record<string, string> | undefined): boolean {
+  const left = Object.entries(a ?? {});
+  const right = b ?? {};
+  return left.length === Object.keys(right).length && left.every(([id, choice]) => right[id] === choice);
 }

@@ -138,8 +138,12 @@ export function resolveMentionTarget(matchedText: string, index: MentionIndex): 
 }
 
 async function readSearchIndex(kind: WikiEntryKind): Promise<WikiSearchEntry[]> {
-  const root = path.join(process.cwd(), 'public', 'data', 'wiki', WIKI_DATA_VERSION);
-  const raw = await readFile(path.join(root, `${kind}-index.json`), 'utf8');
+  // One expression to the file name, no directory-valued `root`: see the
+  // file-tracing comment in loadIndex.ts's readIndex.
+  const raw = await readFile(
+    path.join(process.cwd(), 'public', 'data', 'wiki', WIKI_DATA_VERSION, `${kind}-index.json`),
+    'utf8',
+  );
   return (JSON.parse(raw) as { entries: WikiSearchEntry[] }).entries;
 }
 

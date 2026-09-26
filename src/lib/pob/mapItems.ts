@@ -16,9 +16,11 @@
 //   item is, not by PoB's slot number: our flask1 is Life, flask2 is Mana.
 //   Ring 3, a second flask of one kind, and any slot name we do not know are
 //   reported, never forced into a wrong slot.
-// - We store the base item only. Rolled mods, runes, quality and a unique's
-//   selected variant are counted per item and reported — reading them is
-//   ModParser's job, and belongs to a later slice.
+// - Slice 4: each item's craft — rarity, name, quality, rolls, affixes,
+//   runes — is read by mapCraft (./mapCraft.ts) when the catalogue offers
+//   craftLookupsFor, and whatever it cannot match is reported. Without it
+//   (a test fake), the Slice 2 behaviour stands: details counted and
+//   reported as not kept.
 // - Jewels (mapJewels) follow the same item rules, keyed by socket node id.
 //   PoB sockets jewels per spec while gear is shared, so mapBuild takes them
 //   from one spec and says so.
@@ -27,6 +29,7 @@
 import { categoriesForSlot, GEAR_SLOT_LABELS, JEWEL_CATEGORIES, type GearItem, type GearSlot } from '@/lib/build/gearSlots';
 import { emptyGearState, type GearState } from '@/lib/build/gearState';
 import type { Catalogue, CatalogueItem } from './catalogue';
+import { mapCraft } from './mapCraft';
 import type { PobItem, PobSlot } from './parse';
 import type { ReportEntry } from './report';
 
@@ -153,6 +156,30 @@ async function toGearItem(found: CatalogueItem, items: ItemLookup): Promise<Gear
   };
 }
 
+/**
+ * The imported item, with its craft when the catalogue can read one (Slice 4)
+ * — every note mapCraft makes is reported against the item. Otherwise the
+ * Slice 2 report of what was not kept.
+ */
+async function importItem(
+  found: CatalogueItem,
+  raw: string,
+  read: ReadItem,
+  displayName: string,
+  where: string,
+  items: ItemLookup,
+  report: ReportEntry[],
+): Promise<GearItem> {
+  const item = await toGearItem(found, items);
+  if (!items.craftLookupsFor) {
+    reportLostDetails(read, displayName, where, report);
+    return item;
+  }
+  const { craft, notes } = mapCraft(raw, found.isUnique, await items.craftLookupsFor(found.slug));
+  for (const note of notes) report.push({ kind: note.kind, area: 'items', message: `${displayName} (${where}): ${note.message}` });
+  return { ...item, craft };
+}
+
 function reportLostDetails(read: ReadItem, displayName: string, where: string, report: ReportEntry[]): void {
   const lost = lostDetails(read);
   if (lost.length > 0) {
@@ -229,9 +256,8 @@ export async function mapItems(
       continue;
     }
 
-    value[slot] = await toGearItem(found, items);
     if (resolved.note) report.push(resolved.note);
-    reportLostDetails(read, displayName, GEAR_SLOT_LABELS[slot], report);
+    value[slot] = await importItem(found, pobItem.raw, read, displayName, GEAR_SLOT_LABELS[slot], items, report);
   }
 
   return { value, report };
@@ -275,9 +301,8 @@ export async function mapJewels(
       continue;
     }
 
-    value[String(nodeId)] = await toGearItem(found, items);
     if (resolved.note) report.push(resolved.note);
-    reportLostDetails(read, displayName, where, report);
+    value[String(nodeId)] = await importItem(found, pobItem!.raw, read, displayName, where, items, report);
   }
 
   return { value, report };

@@ -6,17 +6,22 @@
 // both allocates it AND pins its description here, rather than relying on a
 // hover that mobile users would never see.
 import { X } from 'lucide-react';
+import type { AttributeChoice } from '@poe2-toolkit/tree-core';
 import { parseStatText } from '@/lib/tree/statText';
 
 export interface SelectedNode {
+  skill: number;
   name: string;
   stats: string[];
 }
+
+const ATTRIBUTE_LABELS: Record<AttributeChoice, string> = { str: 'Strength', dex: 'Dexterity', int: 'Intelligence' };
 
 export default function NodeInfoPanel({
   node,
   pendingKind,
   onConfirm,
+  attribute,
   onDismiss,
 }: {
   node: SelectedNode | null;
@@ -24,6 +29,12 @@ export default function NodeInfoPanel({
   pendingKind?: 'add' | 'remove';
   /** Commits the pending preview. Only passed alongside `pendingKind`. */
   onConfirm?: () => void;
+  /**
+   * Slice 5: set when the node is an ALLOCATED generic "+5 to any Attribute"
+   * node. `onChoose` is absent in read-only mode, where the choice is shown
+   * but cannot change. TEST-GRADE buttons until the UI pass.
+   */
+  attribute?: { current: AttributeChoice | undefined; onChoose?: (choice: AttributeChoice) => void };
   onDismiss: () => void;
 }) {
   if (!node) return null;
@@ -50,6 +61,29 @@ export default function NodeInfoPanel({
       ) : (
         <p className="mt-1 text-xs text-muted-foreground">No effect.</p>
       )}
+      {attribute ? (
+        attribute.onChoose ? (
+          <div className="mt-2 flex gap-1.5" data-testid="attribute-choice">
+            {(['str', 'dex', 'int'] as const).map((choice) => (
+              <button
+                key={choice}
+                type="button"
+                aria-pressed={attribute.current === choice}
+                onClick={() => attribute.onChoose!(choice)}
+                className={`flex h-11 flex-1 items-center justify-center rounded-md border border-border text-xs ${
+                  attribute.current === choice ? 'bg-primary text-primary-foreground' : ''
+                }`}
+              >
+                {ATTRIBUTE_LABELS[choice]}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-1 text-xs text-muted-foreground">
+            {attribute.current ? `Set to ${ATTRIBUTE_LABELS[attribute.current]}` : 'No attribute chosen'}
+          </p>
+        )
+      ) : null}
       {pendingKind && onConfirm ? (
         <button
           type="button"

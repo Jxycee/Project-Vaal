@@ -11,6 +11,12 @@ export const GAME_VERSION = '0.5.5';
 export const MAX_ASCENDANCY_POINTS = 8;
 
 /**
+ * Weapon-set passive points, each set's own pool: 2 per campaign quest, 12
+ * quests (PoB2 src/Data/QuestRewards.lua) — the endgame total.
+ */
+export const MAX_WEAPON_SET_POINTS = 24;
+
+/**
  * Cap on `builds.notes` length. The column itself has no CHECK constraint
  * (verified via information_schema.columns, see CURRENT-STATE.md) — this is
  * an application-level sanity bound, not a data-backed one, picked as

@@ -25,8 +25,31 @@ import { GEM_SKILL_PSEUDO_SLOT, GEM_SUPPORT_PSEUDO_SLOT, MAX_SUPPORTS_PER_SKILL 
 import { WEAPON_SET_DOT } from '@/lib/build/weaponSetColors';
 import { MAX_GEM_QUALITY } from '@/lib/build/gemState';
 import { fetchMaxGemLevel } from '@/lib/wiki/fetchGemScaling';
+import { useReservedSpirit } from '@/components/build/useReservedSpirit';
 import type { GearItem } from '@/lib/build/gearSlots';
 import type { GemLoadout, GemState } from '@/lib/build/gemState';
+
+/**
+ * TEST-GRADE (Slice 3, plans/2026-09-24-slice3-structural-validation.md):
+ * plain text, functional only — the UI pass after Slice 5 replaces it. The
+ * raw reserved total per weapon set; the Stats sheet (Slice 5) compares it
+ * with the character's Spirit.
+ */
+function ReservedSpiritLine({ gemState }: { gemState: GemState }) {
+  const reserved = useReservedSpirit(gemState);
+  if (reserved === null) {
+    return <p className="px-3 pt-3 text-xs text-muted-foreground">Spirit reserved: calculating…</p>;
+  }
+  return (
+    <div className="px-3 pt-3 text-xs text-muted-foreground">
+      <p data-testid="spirit-reserved" className="text-sm text-foreground">
+        Spirit reserved — Set I: {reserved.total.set1} · Set II: {reserved.total.set2}
+      </p>
+      <p>Before reservation modifiers; compared with your Spirit on the Stats sheet.</p>
+      {reserved.missingNames.length > 0 ? <p>Data missing for: {reserved.missingNames.join(', ')}</p> : null}
+    </div>
+  );
+}
 
 /**
  * Fetches the currently-picked skill's per-gem level cap (see
@@ -317,6 +340,7 @@ export default function GemsSheet({
       </div>
 
       <div className="flex-1 overflow-y-auto">
+        <ReservedSpiritLine gemState={gemState} />
         {gemState.loadouts.length === 0 ? (
           <p className="px-3 py-6 text-center text-sm text-muted-foreground">No skills yet.</p>
         ) : (

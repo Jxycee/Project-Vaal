@@ -23,11 +23,11 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import Link from 'next/link';
 import { fetchWikiCardSnippet } from '@/lib/wiki/fetchDetail';
-import { GEAR_SLOT_LABELS, JEWEL_PSEUDO_SLOT, isGearSlot, type GearItem, type GearSlot } from '@/lib/build/gearSlots';
+import { GEAR_SLOT_LABELS, JEWEL_PSEUDO_SLOT, RUNE_PSEUDO_SLOT, isGearSlot, type GearItem, type GearSlot } from '@/lib/build/gearSlots';
 import { GEM_SKILL_PSEUDO_SLOT, GEM_SUPPORT_PSEUDO_SLOT, isGemPseudoSlot, type GemPseudoSlot } from '@/lib/build/gemSlots';
 import type { WikiEntryKind, WikiSearchEntry } from '@/lib/wiki/types';
 
-export type ItemPickerSlot = GearSlot | typeof JEWEL_PSEUDO_SLOT | GemPseudoSlot;
+export type ItemPickerSlot = GearSlot | typeof JEWEL_PSEUDO_SLOT | typeof RUNE_PSEUDO_SLOT | GemPseudoSlot;
 
 /** Debounce for the search-as-you-type network call — short enough to feel live, long enough not to fire one request per keystroke. */
 const SEARCH_DEBOUNCE_MS = 300;
@@ -40,6 +40,7 @@ function pickerKind(slot: ItemPickerSlot): WikiEntryKind {
 function slotLabel(slot: ItemPickerSlot): string {
   if (slot === GEM_SKILL_PSEUDO_SLOT) return 'Skill gem';
   if (slot === GEM_SUPPORT_PSEUDO_SLOT) return 'Support gem';
+  if (slot === RUNE_PSEUDO_SLOT) return 'Rune or soul core';
   return isGearSlot(slot) ? GEAR_SLOT_LABELS[slot] : 'Jewel';
 }
 

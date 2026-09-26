@@ -8,7 +8,7 @@ import { parsePobXml, type PobSpec } from '../parse';
 // Failure modes first (AGENTS.md). A small fake tree isolates each rule;
 // the real tree and the real build check the whole thing at the end.
 //
-//   main nodes 1–10    class start 99    unknown: anything else
+//   main nodes 1–10 (1–5 are generic attribute nodes)    class start 99    unknown: anything else
 //   ascendancy 'A1': start 20, nodes 21, 22
 //   ascendancy 'B1': node 30
 
@@ -16,6 +16,7 @@ const fake: TreeLookup = {
   hasNode: (id) => (id >= 1 && id <= 10) || [20, 21, 22, 30, 99].includes(id),
   ascendancyOf: (id) => (id >= 20 && id <= 22 ? 'A1' : id === 30 ? 'B1' : null),
   isStartNode: (id) => id === 20 || id === 99,
+  isAttributeNode: (id) => id >= 1 && id <= 5,
 };
 
 const spec = (overrides: Partial<PobSpec> = {}): PobSpec => ({
@@ -66,16 +67,25 @@ describe('mapTree — every way it can go wrong', () => {
     expect(value).toEqual({ set1: [], set2: [], ascendancyNodes: [21] });
   });
 
-  it('reports attribute choices as dropped — our model has nowhere to keep them', () => {
-    const { report } = mapTree(
-      spec({ nodes: [1, 2, 3], attributeOverrides: { str: [1], dex: [2, 3], int: [] } }),
-      'A1',
-      fake,
-      2,
-    );
+  // Slice 5: attribute choices are stored now (PassiveState.attributeChoices).
+  it('keeps the attribute choice of every imported generic attribute node, and reports nothing', () => {
+    const { value, report } = mapTree(spec({ nodes: [1, 2, 3], attributeOverrides: { str: [1], dex: [2, 3], int: [] } }), 'A1', fake, 2);
+    expect(value.attributeChoices).toEqual({ '1': 'str', '2': 'dex', '3': 'dex' });
+    expect(report).toEqual([]);
+  });
+
+  it('reports a choice for a node that was not imported, or is not a generic attribute node, by id', () => {
+    const { value, report } = mapTree(spec({ nodes: [1, 7], attributeOverrides: { str: [1, 2], dex: [7, 555], int: [] } }), 'A1', fake, 2);
+    expect(value.attributeChoices).toEqual({ '1': 'str' });
     expect(report).toHaveLength(1);
     expect(report[0]).toMatchObject({ kind: 'dropped', area: 'tree', checkpoint: 2 });
-    expect(report[0].message).toContain('3');
+    for (const id of ['2', '7', '555']) expect(report[0].message).toContain(id);
+  });
+
+  it('refuses to guess when PoB lists one node under two attributes', () => {
+    const { value, report } = mapTree(spec({ nodes: [1], attributeOverrides: { str: [1], dex: [1], int: [] } }), 'A1', fake, 2);
+    expect(value).not.toHaveProperty('attributeChoices');
+    expect(report[0].message).toContain('1');
   });
 
   it('turns an empty spec into an empty state with nothing to report', () => {
@@ -110,8 +120,13 @@ describe('mapTree — the real build against the real tree', async () => {
     expect(value.set1).toHaveLength(35);
     expect(value.set2).toEqual(value.set1); // no weapon-set nodes in this build
     expect(value.ascendancyNodes).toHaveLength(2);
-    // Only the attribute choices go; nothing in this spec is unknown.
-    expect(report.map((r) => r.message).join(' ')).not.toContain('not in this');
+    // Nothing in this spec is unknown, and every attribute choice is kept.
+    expect(report).toEqual([]);
+    expect(value.attributeChoices).toEqual({
+      '45969': 'dex', '27439': 'dex', '42350': 'dex', '22975': 'dex', '8600': 'dex', '36629': 'dex',
+      '51921': 'int', '61438': 'int', '16168': 'int',
+      '28510': 'str', '25374': 'str',
+    });
   });
 
   it('imports spec 8 at exactly the 8-point ascendancy cap, reporting the one lost node', () => {
@@ -120,5 +135,7 @@ describe('mapTree — the real build against the real tree', async () => {
     expect(value.set1).toHaveLength(116);
     expect(value.ascendancyNodes).toHaveLength(8);
     expect(report.some((r) => r.message.includes('15671'))).toBe(true);
+    // 28 overrides; 15671 is the one node this tree does not have.
+    expect(Object.keys(value.attributeChoices ?? {})).toHaveLength(27);
   });
 });

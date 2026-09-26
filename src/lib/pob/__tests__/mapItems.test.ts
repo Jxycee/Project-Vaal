@@ -199,6 +199,27 @@ describe('mapItems — output', () => {
     expect(value.weapon2_off?.name).toBe('Plain Shield');
   });
 
+  it('keeps a dual-wielded off-hand weapon now that the off-hand accepts one, but still drops a Wand there', async () => {
+    const extra = [entry('Plain Dagger', 'Dagger'), entry('Plain Wand', 'Wand')];
+    const lookup: ItemLookup = {
+      ...fake,
+      byName: new Map([...fake.byName, ...extra.map((i) => [i.name, i] as const)]),
+      findBaseIn: () => null,
+    };
+    const { value, report } = await mapItems(
+      [rare(1, 'Plain Dagger'), rare(2, 'Plain Wand')],
+      [slot('Weapon 1', 1), slot('Weapon 2', 1), slot('Weapon 1 Swap', 2), slot('Weapon 2 Swap', 2)],
+      lookup,
+    );
+    expect(value.weapon1_main?.name).toBe('Plain Dagger');
+    expect(value.weapon1_off?.name).toBe('Plain Dagger');
+    expect(value.weapon2_main?.name).toBe('Plain Wand');
+    expect(value.weapon2_off).toBeNull();
+    expect(report.filter((r) => r.kind === 'dropped').map((r) => r.message)).toEqual([
+      expect.stringContaining('Plain Wand'),
+    ]);
+  });
+
   it('carries the icon the catalogue resolves, and state the write gate accepts unchanged', async () => {
     const { value } = await mapItems([rare(1, 'Plain Ring'), rare(2, 'Plain Charm')], [slot('Ring 1', 1), slot('Charm 2', 2)], fake);
     expect(value.ring1?.iconUrl).toBe('/data/wiki/2026-08-25/icons/items/plain-ring.png');
@@ -312,5 +333,48 @@ describe('mapItems — the real build against the real catalogue', async () => {
     const gated = cleanGearStateInput(value);
     expect(gated.ok).toBe(true);
     if (gated.ok) expect(gated.value).toEqual(value);
+  });
+
+  // Slice 4: the importer keeps what it can match. Values re-derived from each
+  // mod's own min/max at PoB's range (checked by hand against PoB's displayed
+  // lines, 2026-09-25) — not copied from the display text.
+  it("keeps the crossbow's six crafted mods at PoB's rolled values", () => {
+    expect(value.weapon1_main?.craft).toMatchObject({
+      rarity: 'rare',
+      quality: 20,
+      prefixes: [
+        { slug: 'weaponelementaldamageontwohandweapon5', values: [100] },
+        { slug: 'localincreasedphysicaldamagepercent6', values: [150] },
+        { slug: 'localaddedphysicaldamagetwohand7', values: [34, 58] },
+      ],
+      suffixes: [
+        { slug: 'globalprojectileskillgemleveltwohandweapon4', values: [4] },
+        { slug: 'localincreasedattackspeed3', values: [13] },
+        { slug: 'localcriticalstrikechance4', values: [377] },
+      ],
+      runes: ['soul-core-of-citaqualotl', 'soul-core-of-citaqualotl'],
+    });
+  });
+
+  it("keeps Cloak of Flame's rolls and runes, and names the line this patch changed", () => {
+    expect(value.body?.craft).toMatchObject({ rarity: 'unique', quality: 20, uniqueValues: [[], [40], [40], [], []], runes: ['greater-body-rune', 'greater-body-rune'] });
+    expect(report.some((r) => r.message.includes('40% of Physical Damage taken as Fire Damage'))).toBe(true);
+  });
+
+  it("reads Blueflame Bracers' selected variant only", () => {
+    expect(value.gloves?.craft?.uniqueValues).toEqual([[], [15], [10], [10], []]);
+  });
+
+  it('keeps the Emerald jewel with its three crafted mods', () => {
+    const emerald = jewels.value['26725'].craft;
+    expect(emerald?.prefixes.map((m) => m.slug)).toEqual(['jewelprojectilespeed']);
+    expect(emerald?.suffixes.map((m) => m.slug)).toEqual(['jewelattackspeed', 'jewelcrossbowspeed']);
+  });
+
+  it('no longer reports any imported item as "base item only"', () => {
+    expect([...report, ...jewels.report].some((r) => r.message.includes('base item only'))).toBe(false);
+    for (const [key, item] of Object.entries(value)) {
+      if (key !== 'jewels' && item) expect((item as { craft?: unknown }).craft, key).toBeDefined();
+    }
   });
 });

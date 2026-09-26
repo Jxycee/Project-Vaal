@@ -1,4 +1,4 @@
-import type { WeaponSetAllocation } from '@poe2-toolkit/tree-core';
+import type { AttributeChoice, WeaponSetAllocation } from '@poe2-toolkit/tree-core';
 import type { Database } from '@/types/database';
 
 /** Matches the CHECK constraint on public.builds.visibility. */
@@ -15,6 +15,13 @@ export interface PassiveState {
   set1: number[];
   set2: number[];
   ascendancyNodes: number[];
+  /**
+   * The attribute each allocated generic "+5 to any Attribute" node was set to,
+   * keyed by node id (a string, as jsonb keys are). Slice 5 — it changes
+   * Str/Dex/Int and so Life and Mana. ABSENT (not `{}`) when there are none,
+   * so every row saved before Slice 5 keeps exactly its old shape.
+   */
+  attributeChoices?: Record<string, AttributeChoice>;
 }
 
 /**
@@ -32,6 +39,8 @@ export interface BuildEditorState {
   ascendancyId: string | undefined;
   main: WeaponSetAllocation;
   ascendancyNodes: number[];
+  /** Slice 5: node id -> chosen attribute for generic "+5 to any Attribute" nodes. Optional so drafts saved before Slice 5 still validate. */
+  attributeChoices?: Record<number, AttributeChoice>;
 }
 
 /**
@@ -43,6 +52,7 @@ export interface PassiveTreeInitialState {
   ascendancyId: string | undefined;
   main: WeaponSetAllocation;
   ascendancyNodes: number[];
+  attributeChoices?: Record<number, AttributeChoice>;
 }
 
 /** A build row as the save route returns it. */

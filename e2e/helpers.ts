@@ -1,4 +1,4 @@
-import type { Browser, Page } from '@playwright/test';
+import type { Browser, Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 import path from 'node:path';
 import type { TreeTestApi, TreeTestState } from '../src/lib/tree/testApi';
@@ -272,4 +272,19 @@ export async function cleanupWithFreshPage(browser: Browser): Promise<void> {
   } finally {
     await context.close();
   }
+}
+
+/** Opens the picker from `opener`, searches for `name`, and picks the row whose name is exactly `name`. */
+export async function pickByName(page: Page, opener: Locator, name: string): Promise<void> {
+  await opener.click();
+  const picker = page.locator('.z-50');
+  const search = picker.getByPlaceholder('Search items…');
+  await expect(search).toBeVisible();
+  await search.fill(name);
+  const exact = picker
+    .locator('ul li button')
+    .filter({ has: page.locator('span.truncate', { hasText: new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) }) });
+  await expect(exact).toHaveCount(1, { timeout: 15_000 });
+  await exact.click();
+  await expect(search).toBeHidden();
 }

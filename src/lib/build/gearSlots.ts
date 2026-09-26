@@ -11,6 +11,8 @@
 // implements the corrected table, not the original.
 // =============================================================================
 
+import type { ItemCraft } from './craft';
+
 /** The 17 gear slots a character has. `weapon1_*`/`weapon2_*` mirror the tree's set1/set2 vocabulary. */
 export const GEAR_SLOTS = [
   'head',
@@ -72,6 +74,15 @@ export const JEWEL_PSEUDO_SLOT = 'jewels';
 
 export const JEWEL_CATEGORIES = ['Jewel'] as const;
 
+/**
+ * Runes and soul cores socketed into an item (Slice 4). Same pseudo-slot
+ * trick as jewels: the picker is shared, the category list lives here. Our
+ * data files all of them under the one `SoulCore` category (305 items).
+ */
+export const RUNE_PSEUDO_SLOT = 'runes';
+
+export const RUNE_CATEGORIES = ['SoulCore'] as const;
+
 // Druid's weapon class, added in patch 0.4.0 — despite the name this is NOT
 // jewellery. Missing from the original spec's Appendix B, which left Druid
 // with zero selectable weapons. See corrections doc §3.
@@ -100,7 +111,34 @@ const WEAPON_MAIN_CATEGORIES = [
 // every unique focus in the game. Same base/unique split trap as the flask
 // categories below; filtering on 'Focus' alone silently hides every unique
 // focus. See corrections doc §2.
-const WEAPON_OFF_CATEGORIES = ['Shield', 'Buckler', 'Focus', 'Focii', 'Quiver'] as const;
+//
+// The rest follows PoB2's off-hand rule (src/Classes/ItemsTab.lua,
+// IsItemValidForSlot, "Weapon 2"): a Sceptre; any `one_hand_weapon`, for dual
+// wielding ('Mace' is the unique-stash category and may hold two-handers —
+// see validate/handedness.ts); and, with Giant's Blood, a two-handed axe,
+// mace or sword. Wand (tagged `onehand`, not `one_hand_weapon`) and Spear
+// (excluded by name) are never an off-hand. Which pairing is legal depends on
+// the main hand and the tree, so the picker offers the union and
+// src/lib/build/validate warns about the rest — a slot list cannot express a
+// pairing rule. Added in Slice 3, plans/2026-09-24-slice3-structural-validation.md.
+const WEAPON_OFF_CATEGORIES = [
+  'Shield',
+  'Buckler',
+  'Focus',
+  'Focii',
+  'Quiver',
+  'Sceptre',
+  'One Hand Sword',
+  'One Hand Axe',
+  'One Hand Mace',
+  'Mace',
+  'Claw',
+  'Dagger',
+  'Flail',
+  'Two Hand Sword',
+  'Two Hand Axe',
+  'Two Hand Mace',
+] as const;
 
 const LIFE_FLASK_CATEGORIES = ['LifeFlask', 'Life Flask'] as const;
 const MANA_FLASK_CATEGORIES = ['ManaFlask', 'Mana Flask'] as const;
@@ -148,4 +186,10 @@ export interface GearItem {
   category: string;
   isUnique: boolean;
   iconUrl: string | null;
+  /**
+   * Everything beyond the base (Slice 4): rarity, rolls, affixes, runes. Only
+   * on gear-slot and jewel items, never on gems; absent on rows saved before
+   * Slice 4. Read with parseCraft (via parseGearState), never trusted directly.
+   */
+  craft?: ItemCraft;
 }

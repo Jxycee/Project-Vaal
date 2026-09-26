@@ -20,10 +20,13 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import ItemEditorSheet from '@/components/build/ItemEditorSheet';
 import ItemPickerSheet from '@/components/build/ItemPickerSheet';
 import { GEAR_SLOT_LABELS, type GearItem, type GearSlot } from '@/lib/build/gearSlots';
 import { WEAPON_SET_DOT } from '@/lib/build/weaponSetColors';
+import { craftSummary } from '@/lib/build/craft';
 import type { GearState } from '@/lib/build/gearState';
+import type { BuildWarning } from '@/lib/build/validate';
 import type { WeaponSet } from '@poe2-toolkit/tree-core';
 
 /** Slot order for the sheet's non-weapon rows, top to bottom. */
@@ -50,24 +53,37 @@ function weaponSlots(set: WeaponSet): readonly GearSlot[] {
 function SlotRow({
   slot,
   item,
+  warnings,
+  occupiedBy,
   onOpenPicker,
+  onEdit,
   onClear,
 }: {
   slot: GearSlot;
   item: GearItem | null;
+  /** This slot's validation results (Slice 3). TEST-GRADE marker: plain text, no tooltip yet. */
+  warnings: readonly BuildWarning[];
+  /** The two-hander filling this (empty) off-hand, as the game draws it. */
+  occupiedBy: GearItem | null;
   onOpenPicker: () => void;
+  /** Opens the item editor (Slice 4). */
+  onEdit: () => void;
   onClear: () => void;
 }) {
+  const craft = item?.craft;
+  const hasWarning = warnings.some((w) => w.severity === 'warning');
+  const hasNote = warnings.some((w) => w.severity === 'note');
   return (
     <li className="border-b border-border/60">
-      <div className="flex h-14 w-full items-center gap-3 px-3">
+      <div className="flex min-h-14 w-full items-center gap-3 px-3">
         <button
           type="button"
           onClick={onOpenPicker}
-          // h-full: the row is h-14, but a button with no height collapses to
-          // its 36px content, so the actual tap target was smaller than the
-          // row it appears to be.
-          className="flex h-full min-w-0 flex-1 items-center gap-3 text-left"
+          // min-h-14 + self-stretch: a button with no height collapses to its
+          // 36px content, so the actual tap target was smaller than the row
+          // it appears to be. min-h (not h-) because a warning's text under
+          // the name (Slice 3) makes the row grow.
+          className="flex min-h-14 min-w-0 flex-1 items-center gap-3 self-stretch py-1 text-left"
         >
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-card/60 overflow-hidden">
             {item?.iconUrl ? (
@@ -87,7 +103,24 @@ function SlotRow({
           <span className="flex min-w-0 flex-col">
             <span className="text-xs text-muted-foreground">{GEAR_SLOT_LABELS[slot]}</span>
             <span className="truncate text-sm text-foreground">
-              {item ? item.name : 'Empty'}
+              {hasWarning ? (
+                <span data-testid={`gear-warning-${slot}`} aria-label="Warning" className="mr-1 text-destructive">
+                  ⚠
+                </span>
+              ) : hasNote ? (
+                <span data-testid={`gear-note-${slot}`} aria-label="Note" className="mr-1 text-muted-foreground">
+                  ⓘ
+                </span>
+              ) : null}
+              {item ? (
+                item.name
+              ) : occupiedBy ? (
+                <span data-testid={`gear-occupied-${slot}`} className="text-muted-foreground">
+                  Occupied by {occupiedBy.name}
+                </span>
+              ) : (
+                'Empty'
+              )}
               {item?.isUnique ? (
                 <span className="ml-1.5 text-xs font-medium" style={{ color: 'var(--wiki-unique)' }}>
                   {' '}
@@ -95,8 +128,30 @@ function SlotRow({
                 </span>
               ) : null}
             </span>
+            {craft ? (
+              // TEST-GRADE (Slice 4): a one-line craft summary until the UI pass.
+              <span data-testid={`gear-craft-${slot}`} className="text-xs text-muted-foreground">
+                {craftSummary(craft)}
+              </span>
+            ) : null}
+            {warnings.map((w, i) => (
+              // A slot can carry several warnings with one code (two out-of-range rolls).
+              <span key={`${w.code}-${i}`} className="whitespace-normal text-xs text-muted-foreground">
+                {w.message}
+              </span>
+            ))}
           </span>
         </button>
+        {item ? (
+          <button
+            type="button"
+            onClick={onEdit}
+            aria-label={`Edit ${GEAR_SLOT_LABELS[slot]}`}
+            className="flex h-11 min-w-11 shrink-0 items-center justify-center px-2 text-xs text-muted-foreground"
+          >
+            Edit
+          </button>
+        ) : null}
         {item ? (
           <button
             type="button"
@@ -115,11 +170,17 @@ function SlotRow({
 export default function GearSheet({
   open,
   gear,
+  warnings,
+  occupiedBy,
   onChange,
   onClose,
 }: {
   open: boolean;
   gear: GearState;
+  /** validateCheckpoint's output for the live checkpoint (Slice 3). */
+  warnings: readonly BuildWarning[];
+  /** offHandOccupiedBy per weapon set. */
+  occupiedBy: Record<WeaponSet, GearItem | null>;
   onChange: (slot: GearSlot, item: GearItem | null) => void;
   onClose: () => void;
 }) {
@@ -129,11 +190,14 @@ export default function GearSheet({
   // which one is being painted.
   const [weaponSet, setWeaponSet] = useState<WeaponSet>(1);
   const [pickerSlot, setPickerSlot] = useState<GearSlot | null>(null);
+  const [editSlot, setEditSlot] = useState<GearSlot | null>(null);
 
   // Also gates the SSR pass, where `document` does not exist — moot in
   // practice since `open` starts `false` and only flips true from a client
   // event, but cheap to guard explicitly rather than rely on that.
   if (!open || typeof document === 'undefined') return null;
+
+  const slotWarnings = (slot: GearSlot) => warnings.filter((w) => w.target.kind === 'gear' && w.target.slot === slot);
 
   return createPortal(
     <div className="fixed inset-0 z-40 flex flex-col bg-background">
@@ -171,13 +235,29 @@ export default function GearSheet({
           </div>
         </div>
 
+        {/* TEST-GRADE (Slice 3): every structural warning as a plain list, tree
+            ones included, until the UI pass gives them a proper home. */}
+        {warnings.length > 0 ? (
+          <ul className="border-b border-border px-3 py-2 text-xs">
+            {warnings.map((w, i) => (
+              <li key={`${w.code}-${i}`} data-testid="build-warning" data-severity={w.severity} className="py-1 text-foreground">
+                {w.severity === 'warning' ? '⚠ ' : 'ⓘ '}
+                {w.message}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
         <ul>
           {weaponSlots(weaponSet).map((slot) => (
             <SlotRow
               key={slot}
               slot={slot}
               item={gear[slot]}
+              warnings={slotWarnings(slot)}
+              occupiedBy={slot.endsWith('_off') ? occupiedBy[weaponSet] : null}
               onOpenPicker={() => setPickerSlot(slot)}
+              onEdit={() => setEditSlot(slot)}
               onClear={() => onChange(slot, null)}
             />
           ))}
@@ -186,13 +266,24 @@ export default function GearSheet({
               key={slot}
               slot={slot}
               item={gear[slot]}
+              warnings={slotWarnings(slot)}
+              occupiedBy={null}
               onOpenPicker={() => setPickerSlot(slot)}
+              onEdit={() => setEditSlot(slot)}
               onClear={() => onChange(slot, null)}
             />
           ))}
         </ul>
       </div>
 
+      <ItemEditorSheet
+        item={editSlot ? gear[editSlot] : null}
+        warnings={editSlot ? slotWarnings(editSlot) : []}
+        onChange={(item) => {
+          if (editSlot) onChange(editSlot, item);
+        }}
+        onClose={() => setEditSlot(null)}
+      />
       <ItemPickerSheet
         // Keyed by slot: opening the picker for a different slot remounts
         // it, which resets its internal search query for free instead of

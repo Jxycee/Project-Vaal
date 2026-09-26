@@ -63,6 +63,30 @@ describe('categoriesForSlot', () => {
     }
   });
 
+  // Slice 3: PoB2's off-hand rule (ItemsTab.lua IsItemValidForSlot) allows a
+  // Sceptre, any `one_hand_weapon` (dual wield), and — with Giant's Blood —
+  // a two-handed axe, mace or sword. Pairings the rule forbids are warned
+  // about by src/lib/build/validate, not hidden from the picker.
+  it("weapon off slots carry Sceptre, dual-wieldable one-handers, and the Giant's Blood two-handers", () => {
+    const expected = [
+      'Sceptre', 'One Hand Sword', 'One Hand Axe', 'One Hand Mace', 'Mace', 'Claw', 'Dagger', 'Flail',
+      'Two Hand Sword', 'Two Hand Axe', 'Two Hand Mace',
+    ];
+    for (const category of expected) {
+      expect(categoriesForSlot('weapon1_off')).toContain(category);
+      expect(categoriesForSlot('weapon2_off')).toContain(category);
+    }
+  });
+
+  it('weapon off slots never carry what can never be an off-hand', () => {
+    // Wand carries `onehand` but not `one_hand_weapon`; PoB2 excludes Spear
+    // by name; the rest are two-handers no passive lets into the off-hand.
+    for (const category of ['Wand', 'Spear', 'Bow', 'Crossbow', 'Staff', 'Warstaff', 'Talisman']) {
+      expect(categoriesForSlot('weapon1_off')).not.toContain(category);
+      expect(categoriesForSlot('weapon2_off')).not.toContain(category);
+    }
+  });
+
   // Flask slots: base and unique items live under different spellings of
   // the same category. Missing either spelling silently drops half the pool.
   it('flask1 (life) includes both LifeFlask spellings', () => {

@@ -58,7 +58,10 @@ test.describe('Path of Building 2 import', () => {
 
       const dropped = sheet.getByTestId('import-report-dropped');
       await expect(dropped).toContainText('15671');
-      await expect(dropped).toContainText('attribute choice');
+      // Slice 5 keeps attribute choices; the one still reported is spec 8's
+      // choice for 15671, the node this patch's tree does not have.
+      await expect(dropped).toContainText('attribute choice(s) were not kept');
+      await expect(dropped).toContainText('15671');
       // Ring 3 is empty in this build, so nothing may be said about it.
       await expect(sheet).not.toContainText('Ring 3');
     });
@@ -83,6 +86,8 @@ test.describe('Path of Building 2 import', () => {
     await test.step('first and last checkpoints come back after a full reload, different and non-zero', async () => {
       await openTree(page, buildId);
       await expect.poll(async () => (await treeState(page)).allocated.length, { timeout: 30_000 }).toBe(35);
+      // Slice 5: spec 1's eleven "+attribute" choices came across and saved.
+      expect(Object.keys((await treeState(page)).attributeChoices)).toHaveLength(11);
 
       await page.getByRole('button', { name: /^Checkpoints/ }).click();
       const cpSheet = page.getByTestId('checkpoints-sheet');
@@ -96,6 +101,47 @@ test.describe('Path of Building 2 import', () => {
       await page.goto(`/tree?build=${buildId}&checkpoint=${lastId}`);
       await waitForTreeApi(page);
       await expect.poll(async () => (await treeState(page)).allocated.length, { timeout: 30_000 }).toBe(116);
+      expect(Object.keys((await treeState(page)).attributeChoices)).toHaveLength(27);
+    });
+
+    // Slice 4: items arrive with their craft, not as bases only. Values are
+    // pinned in src/lib/pob/__tests__/mapItems.test.ts; this proves they
+    // survive the import write, the gate and a full reload into the editor.
+    await test.step('imported items keep their crafts through the save and a reload', async () => {
+      await page.getByRole('button', { name: 'Gear' }).click();
+      const gear = page.locator('.fixed.inset-0.z-40');
+      await expect(gear.getByTestId('gear-craft-weapon1_main')).toHaveText('rare · 6 affixes · 2 runes');
+      await expect(gear.getByTestId('gear-craft-body')).toHaveText('unique · 0 affixes · 2 runes');
+
+      await gear.getByRole('button', { name: 'Edit Weapon' }).first().click();
+      const editor = page.getByTestId('item-editor');
+      await expect(editor.getByTestId('affix-row')).toHaveCount(6);
+      await expect(editor.locator('[data-testid="affix-row"][data-slug="localaddedphysicaldamagetwohand7"]')).toBeVisible();
+      await editor.getByRole('button', { name: 'Close item editor' }).click();
+      await gear.getByRole('button', { name: 'Close gear sheet' }).click();
+    });
+
+    // Slice 5: the defence sheet for the imported last checkpoint (level 94),
+    // after a full reload. Exact values from the real pipeline, pinned piece by
+    // piece in src/lib/build/stats/__tests__/fixture.test.ts; this proves the
+    // browser path (data fetches, hook, sheet) produces the same numbers.
+    await test.step("the stat sheet shows the engine's numbers for the last checkpoint", async () => {
+      await page.getByRole('button', { name: 'Stats', exact: true }).click();
+      const stats = page.getByTestId('stats-sheet');
+      await expect(stats.getByTestId('stat-life')).toHaveText('2498', { timeout: 30_000 });
+      await expect(stats.getByTestId('stat-mana')).toHaveText('916');
+      await expect(stats.getByTestId('stat-energy-shield')).toHaveText('167');
+      await expect(stats.getByTestId('stat-armour')).toHaveText('1151');
+      await expect(stats.getByTestId('stat-evasion')).toHaveText('18');
+      await expect(stats.getByTestId('stat-str')).toHaveText('185');
+      await expect(stats.getByTestId('stat-dex')).toHaveText('80');
+      await expect(stats.getByTestId('stat-int')).toHaveText('44');
+      await expect(stats.getByTestId('stat-fire')).toHaveText('75% (max 75%, 135% before the cap)');
+      await expect(stats.getByTestId('stat-chaos')).toHaveText('73% (max 75%)');
+      await expect(stats.getByTestId('stat-spirit')).toContainText('100');
+      await expect(stats.getByTestId('stat-act')).toContainText('Endgame');
+      await expect(stats.getByTestId('stat-not-counted')).toContainText('Siege Crossbow: 2 runes not counted');
+      await stats.getByRole('button', { name: 'Close stats sheet' }).click();
     });
 
     await test.step('the build lists under its name', async () => {
