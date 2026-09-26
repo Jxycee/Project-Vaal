@@ -23,6 +23,12 @@ A cloud session is fixing the review's bugs **right now** on branch `claude/proj
 
 Branch your work from `main`. After the review branch merges, merge `main` into your branch; never rebase someone else's branch.
 
+**Status (updated 2026-09-26, same day):** items 1–12 are fixed and pushed on the review branch, one commit each (`git log main..origin/claude/project-vaal-security-review-m0qwi7`). Unit tests: 1,156 passing; type-check, lint and `next build --webpack` clean. Still open before it can merge:
+
+- **Migration `20260926141500_build_write_guard.sql` is NOT applied.** It was rehearsed on the live database inside a rolled-back transaction (16/16 checks). It is compatible with the code on `main` today, so it can be applied before or after the merge. Applying it waits on the user's go-ahead. Afterwards: `npm run db:types`.
+- **New E2E cases are written but have not been run** (the cloud session has no test account): `api-contracts` (direct PostgREST writes), `checkpoints` (reorder keeps the open checkpoint), `loadout-persistence` (cancelled pick), `draft-and-auth` (edits made during a save). Run the full suite locally before merging, with the migration applied for the `api-contracts` case.
+- **After deploy, confirm the redirect header:** `curl -sI https://www.project-vaal.xyz/data/wiki/2026-08-25/item-index.json` must show `cache-control: no-store` on the 307. Vercel preview deployments of this project answer 500 even for untouched code (probably missing Supabase env vars), so it could not be checked before merging.
+
 ---
 
 ## 1. Your task
