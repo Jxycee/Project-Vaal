@@ -16,6 +16,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ComponentProps,
   type ComponentType,
@@ -321,8 +322,14 @@ export default function TreeBuildSession({
   // here would. Depends on gearState/gemState too (not just editorState), or
   // a gear/gem-only edit would never mark the session dirty and that work
   // would vanish silently on refresh with no restore prompt at all.
+  //
+  // `latestSession` mirrors what the draft now holds, so a save can tell
+  // whether anything changed after it sent its snapshot (see handleSave).
+  const latestSession = useRef<{ tree: BuildEditorState; gear: typeof gearState; gem: typeof gemState } | null>(null);
   useEffect(() => {
-    if (editorState) saveDraft(buildId, { tree: editorState, gear: gearState, gem: gemState }, checkpointId);
+    if (!editorState) return;
+    latestSession.current = { tree: editorState, gear: gearState, gem: gemState };
+    saveDraft(buildId, { tree: editorState, gear: gearState, gem: gemState }, checkpointId);
   }, [editorState, gearState, gemState, buildId, checkpointId]);
 
   // ---- Save ------------------------------------------------------------
@@ -357,6 +364,8 @@ export default function TreeBuildSession({
   const handleSave = useCallback(
     async (meta: { name: string; level: number; league: string; notes: string }) => {
       if (!editorState) return;
+      // What this save carries. Edits made while it is in flight are not in it.
+      const sent = { tree: editorState, gear: gearState, gem: gemState };
       setSaving(true);
       setSaveError(null);
       try {
@@ -414,8 +423,14 @@ export default function TreeBuildSession({
           if (!build) setCreatedBuild(payload.build);
           if (payload.checkpoint?.id) setCreatedCheckpointId(payload.checkpoint.id);
           setSavedAt(new Date().toLocaleTimeString());
-          // Only clear the draft once the server has the work.
-          clearDraft(buildId, checkpointId);
+          // Only clear the draft once the server has the work — and only if
+          // the work did not move on while the save was in flight. Otherwise
+          // the draft holds edits the server never received, and clearing it
+          // lost them on the next reload (review 2026-09-26).
+          const now = latestSession.current;
+          if (!now || (now.tree === sent.tree && now.gear === sent.gear && now.gem === sent.gem)) {
+            clearDraft(buildId, checkpointId);
+          }
           // Re-render the server page so the checkpoint list reflects this
           // save (its level, for one). This instance is keyed and seeds
           // lazily, so fresh props cannot reset what is on screen. A Route
