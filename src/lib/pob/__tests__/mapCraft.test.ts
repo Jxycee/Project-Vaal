@@ -14,7 +14,7 @@ const HYBRID = mod('lifeandarmour3', { rolls: [{ min: 20, max: 30 }, { min: 10, 
 const STR = mod('strength5', { kind: 'suffix', rolls: [{ min: 20, max: 24 }], stats: ['+(20-24) to Strength'] });
 
 const lookups = (over: Partial<CraftLookups> = {}): CraftLookups => ({
-  modById: (slug) => [LIFE, CRIT, ADDED, HYBRID, STR].find((m) => m.slug === slug) ?? null,
+  modById: (id) => [LIFE, CRIT, ADDED, HYBRID, STR].find((m) => m.slug === id.toLowerCase()) ?? null,
   candidates: [HYBRID, LIFE, CRIT, ADDED, STR],
   base: { implicitLines: ['+(5-7) to all Attributes'], uniqueLines: [] },
   runeSlugByName: (name) => (name === 'Greater Body Rune' ? 'greater-body-rune' : null),

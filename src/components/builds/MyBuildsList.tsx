@@ -23,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { SavedBuild } from '@/lib/build/types';
 import type { ActionResult } from '@/app/(dashboard)/builds/actions';
 import { BUILD_VISIBILITIES, VISIBILITY_LABEL } from '@/lib/build/visibility';
+import { callAction } from '@/lib/callAction';
 
 interface MyBuildsListProps {
   builds: SavedBuild[] | null;
@@ -72,7 +73,7 @@ export default function MyBuildsList({
     if (!name) return;
     setError(null);
     startTransition(async () => {
-      const result = await renameAction(id, name);
+      const result = await callAction(() => renameAction(id, name));
       if (!result.ok) setError(result.error);
     });
   }
@@ -81,7 +82,7 @@ export default function MyBuildsList({
     setPendingDeleteId(null);
     setError(null);
     startTransition(async () => {
-      const result = await deleteAction(id);
+      const result = await callAction(() => deleteAction(id));
       if (!result.ok) setError(result.error);
     });
   }
@@ -89,7 +90,7 @@ export default function MyBuildsList({
   function handleVisibilityChange(id: string, visibility: string) {
     setError(null);
     startTransition(async () => {
-      const result = await setVisibilityAction(id, visibility);
+      const result = await callAction(() => setVisibilityAction(id, visibility));
       if (!result.ok) setError(result.error);
     });
   }
@@ -101,7 +102,7 @@ export default function MyBuildsList({
     if (!tag) return;
     setError(null);
     startTransition(async () => {
-      const result = await addTagAction(buildId, tag);
+      const result = await callAction(() => addTagAction(buildId, tag));
       if (!result.ok) setError(result.error);
     });
   }
@@ -109,7 +110,7 @@ export default function MyBuildsList({
   function handleRemoveTag(buildId: string, tag: string) {
     setError(null);
     startTransition(async () => {
-      const result = await removeTagAction(buildId, tag);
+      const result = await callAction(() => removeTagAction(buildId, tag));
       if (!result.ok) setError(result.error);
     });
   }

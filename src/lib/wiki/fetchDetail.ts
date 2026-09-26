@@ -9,6 +9,7 @@ import { itemAccentColor, skillAccentColor, MOD_ACCENT_COLOR, EFFECT_ACCENT_COLO
 import { WikiIndexFetchError, WikiSessionExpiredError } from './fetchIndex';
 import { WIKI_DATA_VERSION } from './types';
 import type { WikiEntryKind } from './types';
+import { fetchWikiData } from './fetchWikiData';
 
 export interface WikiCardSnippet {
   iconUrl: string | null;
@@ -72,7 +73,7 @@ export function extractCardSnippet(kind: WikiEntryKind, raw: unknown): WikiCardS
  * (`proxy.ts`) as the index files `fetchWikiIndex` already reads.
  */
 export async function fetchWikiCardSnippet(kind: WikiEntryKind, slug: string): Promise<WikiCardSnippet> {
-  const res = await fetch(`/data/wiki/${WIKI_DATA_VERSION}/${KIND_PLURAL[kind]}/${slug}.json`);
+  const res = await fetchWikiData(`/data/wiki/${WIKI_DATA_VERSION}/${KIND_PLURAL[kind]}/${slug}.json`);
 
   if (res.redirected && new URL(res.url).pathname === '/login') {
     throw new WikiSessionExpiredError('Session expired — please sign in again.');

@@ -7,7 +7,7 @@
 import { useState, type FormEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { MAX_NOTES_LENGTH } from '@/lib/build/constants';
+import { MAX_BUILD_LABEL_LENGTH, MAX_BUILD_NAME_LENGTH, MAX_NOTES_LENGTH } from '@/lib/build/constants';
 
 export default function BuildSavePanel({
   buildId,
@@ -98,6 +98,7 @@ export default function BuildSavePanel({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Lightning Spear Deadeye"
+            maxLength={MAX_BUILD_NAME_LENGTH}
             disabled={saving}
             className="h-11"
           />
@@ -121,6 +122,7 @@ export default function BuildSavePanel({
               id="build-league"
               value={league}
               onChange={(e) => setLeague(e.target.value)}
+              maxLength={MAX_BUILD_LABEL_LENGTH}
               disabled={saving}
               className="h-11"
             />

@@ -235,3 +235,42 @@ describe('draftDiffersFrom — scratch mode (build === null)', () => {
     expect(draftDiffersFrom(draft, null)).toBe(true);
   });
 });
+
+// Slice 4 put a `craft` on gear items, and the item editor changes nothing
+// else. A comparison blind to it judged an affix-only edit "unchanged", so
+// the restore prompt never showed and the mount-time draft save overwrote it
+// (review 2026-09-26).
+describe('draftDiffersFrom — item crafts', () => {
+  const craft = {
+    rarity: 'rare' as const,
+    name: 'Storm Tread',
+    itemLevel: 80,
+    quality: 0,
+    corrupted: false,
+    implicitValues: [],
+    uniqueValues: [],
+    prefixes: [{ slug: 'increasedlife4', values: [70] }],
+    suffixes: [],
+    runes: [],
+  };
+  const build = (b: GearItem) => ({ ...savedBuild, gear_state: { ...emptyGearState(), boots: b } });
+  const draft = (b: GearItem): BuildDraftState => ({ tree: matchingTree, gear: { ...emptyGearState(), boots: b }, gem: savedGem });
+
+  it('reports a draft whose only change is an affix roll', () => {
+    const saved = { ...boots, isUnique: false, craft };
+    const edited = { ...saved, craft: { ...craft, prefixes: [{ slug: 'increasedlife4', values: [55] }] } };
+    expect(draftDiffersFrom(draft(edited), build(saved))).toBe(true);
+  });
+
+  it('reports a craft added to, or removed from, an item', () => {
+    const plain = { ...boots, isUnique: false };
+    expect(draftDiffersFrom(draft({ ...plain, craft }), build(plain))).toBe(true);
+    expect(draftDiffersFrom(draft(plain), build({ ...plain, craft }))).toBe(true);
+  });
+
+  it('does not prompt when the craft is the same, whatever order its keys were stored in', () => {
+    const saved = { ...boots, isUnique: false, craft };
+    const reordered = Object.fromEntries(Object.entries(craft).reverse()) as typeof craft;
+    expect(draftDiffersFrom(draft({ ...saved, craft: reordered }), build(saved))).toBe(false);
+  });
+});

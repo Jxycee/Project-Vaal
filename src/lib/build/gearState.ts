@@ -13,6 +13,7 @@
 
 import { parseCraft } from './craft';
 import { GEAR_SLOTS, isGearSlot, type GearItem, type GearSlot } from './gearSlots';
+import { isAllowedIconUrl, isSafeItemSlug } from './iconUrl';
 
 /**
  * `jewels` rides alongside the 17 gear slots in the same jsonb column but is
@@ -71,8 +72,8 @@ export function parseGearState(raw: unknown): GearState {
     const item = v[key];
     if (item === null) {
       state[key] = null;
-    } else if (isGearItem(item)) {
-      state[key] = withParsedCraft(item);
+    } else if (isGearItem(item) && isSafeItemSlug(item.slug)) {
+      state[key] = withParsedCraft(withSafeIcon(item));
     }
     // Anything else (wrong shape) is left at the `null` default from emptyGearState.
   }
@@ -90,9 +91,18 @@ function parseJewelsRecord(value: unknown): Record<string, GearItem> {
   const jewels: Record<string, GearItem> = {};
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return jewels;
   for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
-    if (isGearItem(item)) jewels[key] = withParsedCraft(item);
+    if (isGearItem(item) && isSafeItemSlug(item.slug)) jewels[key] = withParsedCraft(withSafeIcon(item));
   }
   return jewels;
+}
+
+/**
+ * The item with an icon URL the write gate would refuse blanked to null. The
+ * item itself is kept — its icon is the only thing that could reach another
+ * viewer's browser as a request. Shared with gemState.ts.
+ */
+export function withSafeIcon<T extends GearItem>(item: T): T {
+  return item.iconUrl === null || isAllowedIconUrl(item.iconUrl) ? item : { ...item, iconUrl: null };
 }
 
 /**

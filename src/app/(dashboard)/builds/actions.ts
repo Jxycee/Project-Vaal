@@ -16,7 +16,7 @@
 // casually here — see the comment in builds/page.tsx.
 import { revalidatePath } from 'next/cache';
 import { createClient, getCachedUser } from '@/lib/supabase/server';
-import { UUID_RE } from '@/lib/build/constants';
+import { MAX_BUILD_NAME_LENGTH, UUID_RE } from '@/lib/build/constants';
 import { isBuildVisibility } from '@/lib/build/visibility';
 import { normalizeTag, MAX_TAGS_PER_BUILD } from '@/lib/build/tags';
 import type { BuildVisibility } from '@/lib/build/types';
@@ -29,9 +29,8 @@ export type ActionResult = { ok: true } | { ok: false; error: string };
 // else" by probing ids.
 const NOT_FOUND: ActionResult = { ok: false, error: "Couldn't find that build." };
 
-// builds.name has no CHECK constraint in the schema, so this cap is ours to
-// impose rather than the database's.
-const MAX_NAME_LENGTH = 80;
+// The builds_name_length CHECK constraint's bound, shared with POST /api/builds.
+const MAX_NAME_LENGTH = MAX_BUILD_NAME_LENGTH;
 
 export async function renameBuild(id: string, name: string): Promise<ActionResult> {
   if (typeof id !== 'string' || !UUID_RE.test(id)) {

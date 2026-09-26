@@ -13,7 +13,8 @@
 // =============================================================================
 
 import type { WeaponSet } from '@poe2-toolkit/tree-core';
-import { isGearItem } from './gearState'; // already exported and already unit-tested
+import { isGearItem, withSafeIcon } from './gearState'; // already exported and already unit-tested
+import { isSafeItemSlug } from './iconUrl';
 import type { GearItem } from './gearSlots';
 import { MAX_SUPPORTS_PER_SKILL } from './gemSlots';
 
@@ -95,10 +96,14 @@ function parseLoadout(raw: unknown): GemLoadout | null {
   const v = raw as Record<string, unknown>;
   if (typeof v.id !== 'string' || v.id.length === 0) return null;
 
-  const skill = isGearItem(v.skill) ? v.skill : null;
+  // Same reader rule as gear: a path-shaped slug drops the item, an off-origin
+  // icon is blanked (see iconUrl.ts).
+  const isSafeGem = (item: unknown): item is GearItem => isGearItem(item) && isSafeItemSlug(item.slug);
+  const skill = isSafeGem(v.skill) ? withSafeIcon(v.skill) : null;
   const supports = (Array.isArray(v.supports) ? v.supports : [])
-    .filter((item): item is GearItem => isGearItem(item))
-    .slice(0, MAX_SUPPORTS_PER_SKILL);
+    .filter(isSafeGem)
+    .slice(0, MAX_SUPPORTS_PER_SKILL)
+    .map(withSafeIcon);
   const sets = normalizeSets(Array.isArray(v.sets) ? (v.sets as unknown[]).filter((n): n is number => typeof n === 'number') : []);
 
   // Old gem states (pre-level/quality) never carried these keys — migrate

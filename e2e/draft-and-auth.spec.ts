@@ -40,6 +40,40 @@ test.describe('draft restore', () => {
     await expect.poll(async () => (await treeState(page)).allocated.length).toBe(before);
   });
 
+  test('edits made while a save is in flight keep their draft', async ({ page }) => {
+    // The save only carries the state at the moment it was sent. Clearing the
+    // draft on success used to throw away anything allocated while it was in
+    // flight (review 2026-09-26); the prompt must still offer it afterwards.
+    await openTree(page);
+    await allocateNodes(page, await twoNodes(page));
+    await page.route('**/api/builds', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 3_000));
+      await route.continue();
+    });
+
+    const panel = page.getByRole('button', { name: /^(Save build|Saved build)$/ });
+    if (await panel.isVisible().catch(() => false)) await panel.click();
+    await page.locator('#build-name').fill(testBuildName('in-flight'));
+    await page.getByRole('button', { name: /^(Save|Update)$/ }).click();
+
+    // While the save is held back, allocate more.
+    const more = await page.evaluate(() => {
+      const api = window.__vaalTree!;
+      const taken = new Set(api.getState().allocated);
+      return api.neighbours(api.startNode()).filter((id) => !taken.has(id)).slice(0, 2);
+    });
+    await allocateNodes(page, more);
+    const after = (await treeState(page)).allocated.length;
+    await expect(page.getByText(/^Saved /)).toBeVisible({ timeout: 30_000 });
+    await page.unroute('**/api/builds');
+
+    await page.reload();
+    await waitForTreeApi(page);
+    await expect(page.getByText(RESTORE)).toBeVisible({ timeout: 30_000 });
+    await page.getByRole('button', { name: 'Restore' }).click();
+    await expect.poll(async () => (await treeState(page)).allocated.length).toBe(after);
+  });
+
   test('a tampered draft restores to something that still saves', async ({ page }) => {
     // localStorage is not ours: a draft can hold what the write gate refuses —
     // a junk attribute choice, or an item whose craft is null. Restoring it

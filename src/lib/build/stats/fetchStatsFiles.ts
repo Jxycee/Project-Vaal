@@ -7,6 +7,7 @@
 // =============================================================================
 
 import { TREE_VERSION } from '@/lib/tree/version';
+import { fetchWikiData } from '@/lib/wiki/fetchWikiData';
 import { WIKI_DATA_VERSION } from '@/lib/wiki/types';
 import type { RawCollectFiles } from './collectData';
 
@@ -15,7 +16,7 @@ export type StatsFiles = Pick<RawCollectFiles, 'nodeStats' | 'implicitStats' | '
 let pending: Promise<StatsFiles> | null = null;
 
 async function getJson(url: string): Promise<unknown> {
-  const res = await fetch(url);
+  const res = await fetchWikiData(url);
   if (!res.ok) throw new Error(`${url} answered ${res.status}`);
   return res.json();
 }

@@ -3,17 +3,22 @@
 // Server-side gate for tree, gear and gem state arriving from a client.
 //
 // parseGearState/parseGemState exist to READ stored jsonb defensively. They
-// are not enough on their own for WRITES: isGearItem accepts any string as
-// `iconUrl` and ignores extra properties, and nothing bounds the size of what
-// is stored. Every stored item is later rendered for OTHER viewers (the
-// finder, shared build pages) as a raw <img src={iconUrl}>, so an unchecked
-// URL is a tracking pixel planted on every signed-in visitor.
+// are not enough on their own for WRITES: they REPAIR what they read (an
+// off-origin icon is blanked, a malformed item dropped) and ignore extra
+// properties, and nothing bounds the size of what is stored. Every stored item
+// is later rendered for OTHER viewers (the finder, shared build pages) as a
+// raw <img src={iconUrl}>, so an unchecked URL is a tracking pixel planted on
+// every signed-in visitor.
 //
 // So a write goes through here: parse with the same readers (one notion of
 // "valid shape"), then reject anything that is not what our own client
-// produces, and store a projection carrying only the known item fields.
+// produces — judged on what the client SENT, never on the readers' repaired
+// copy — and store a projection carrying only the known item fields.
 //
-// Used by POST /api/builds and addCheckpoint. Do not write a second copy.
+// Used by POST /api/builds, addCheckpoint and the PoB import. Do not write a
+// second copy. The database refuses the same icon and slug shapes on its own
+// (20260926141500_build_write_guard), because a client can write to the
+// tables without coming through here.
 // =============================================================================
 
 import { MAX_AFFIXES_PER_KIND, MAX_ITEM_QUALITY, MAX_RUNES, RARITIES, type CraftedMod, type ItemCraft, type ItemRarity } from './craft';
@@ -21,20 +26,13 @@ import { GEAR_SLOTS, type GearItem } from './gearSlots';
 import { parseGearState, type GearState } from './gearState';
 import { parseGemState, type GemState } from './gemState';
 import type { AttributeChoice } from '@poe2-toolkit/tree-core';
+import { isAllowedIconUrl, ITEM_SLUG_RE } from './iconUrl';
 import { isAttributeChoice } from './passiveState';
 import type { PassiveState } from './types';
 
 /** Serialised size cap per state column. A full build is a few KB; this is headroom, not a target. */
 export const MAX_STATE_JSON_LENGTH = 64 * 1024;
 
-/**
- * The only icon URLs our client stores: same-origin wiki icons, as written by
- * scripts/sync-wiki.ts (`/data/wiki/<version>/icons/<kind>s/<slug>.png`), plus
- * the older flat `/data/wiki/<version>/icons/<slug>.png` layout that saved
- * builds may still carry. A literal pattern, not a prefix check, so `..`,
- * `//host` and query strings cannot ride along.
- */
-const ICON_URL_RE = /^\/data\/wiki\/\d{4}-\d{2}-\d{2}\/icons\/(?:[a-z]+\/)?[a-z0-9-]+\.png$/;
 
 const MAX_TEXT_LENGTH = 200;
 const MAX_LOADOUT_ID_LENGTH = 64;
@@ -60,9 +58,7 @@ function tooLarge(raw: unknown): boolean {
   }
 }
 
-export function isAllowedIconUrl(value: string): boolean {
-  return ICON_URL_RE.test(value);
-}
+export { isAllowedIconUrl };
 
 // ---- Item craft (Slice 4) ----------------------------------------------------
 // Shape and bounds only. Whether a mod or rune slug exists is the validator's
@@ -75,7 +71,6 @@ export function isAllowedIconUrl(value: string): boolean {
 
 const CRAFT_KEYS = ['rarity', 'name', 'itemLevel', 'quality', 'corrupted', 'implicitValues', 'uniqueValues', 'prefixes', 'suffixes', 'runes'] as const;
 const MOD_SLUG_RE = /^[a-z0-9_-]{1,120}$/;
-const ITEM_SLUG_RE = /^[a-z0-9-]{1,120}$/;
 const MAX_VALUES_PER_ROW = 8;
 const MAX_IMPLICIT_ROWS = 16;
 const MAX_UNIQUE_ROWS = 64;
@@ -141,16 +136,20 @@ function cleanCraft(raw: unknown): ItemCraft | null {
 }
 
 /**
- * Validates one item already accepted by isGearItem, and projects it to
- * exactly the GearItem fields. `rawCraft` is the item's `craft` as the client
- * SENT it — not the reader's defaulted copy — so a malformed craft is
- * refused rather than silently repaired. Gems pass `allowCraft: false`.
+ * Validates one item already accepted by the reader, and projects it to
+ * exactly the GearItem fields. `rawItem` is the item as the client SENT it —
+ * not the reader's copy, which blanks a bad icon and defaults a bad craft — so
+ * either is refused rather than silently repaired. Gems pass
+ * `allowCraft: false`.
  */
-function cleanItem(item: GearItem, rawCraft: unknown, allowCraft: boolean): GearItem | null {
+function cleanItem(item: GearItem, rawItem: unknown, allowCraft: boolean): GearItem | null {
   for (const text of [item.slug, item.name, item.category]) {
     if (text.length === 0 || text.length > MAX_TEXT_LENGTH) return null;
   }
-  if (item.iconUrl !== null && !isAllowedIconUrl(item.iconUrl)) return null;
+  if (!ITEM_SLUG_RE.test(item.slug)) return null;
+  const rawIcon = isPlainObject(rawItem) ? rawItem.iconUrl : undefined;
+  if (rawIcon !== null && (typeof rawIcon !== 'string' || !isAllowedIconUrl(rawIcon))) return null;
+  const rawCraft = isPlainObject(rawItem) ? rawItem.craft : undefined;
   const base: GearItem = {
     slug: item.slug,
     name: item.name,
@@ -162,11 +161,6 @@ function cleanItem(item: GearItem, rawCraft: unknown, allowCraft: boolean): Gear
   if (!allowCraft) return null;
   const craft = cleanCraft(rawCraft);
   return craft ? { ...base, craft } : null;
-}
-
-/** The `craft` property as sent, or undefined when the item has none. */
-function rawCraftOf(rawItem: unknown): unknown {
-  return isPlainObject(rawItem) ? rawItem.craft : undefined;
 }
 
 function isFiniteNumberArray(value: unknown): value is number[] {
@@ -219,7 +213,7 @@ export function cleanGearStateInput(raw: unknown): InputResult<GearState> {
   for (const slot of GEAR_SLOTS) {
     const item = parsed[slot];
     if (item === null) continue;
-    const cleaned = cleanItem(item, rawCraftOf(raw[slot]), true);
+    const cleaned = cleanItem(item, raw[slot], true);
     if (!cleaned) return fail('Malformed gear_state');
     out[slot] = cleaned;
   }
@@ -228,7 +222,7 @@ export function cleanGearStateInput(raw: unknown): InputResult<GearState> {
   if (jewelEntries.length > MAX_JEWELS) return fail('Malformed gear_state');
   const rawJewels = (raw.jewels ?? {}) as Record<string, unknown>;
   for (const [key, item] of jewelEntries) {
-    const cleaned = cleanItem(item, rawCraftOf(rawJewels[key]), true);
+    const cleaned = cleanItem(item, rawJewels[key], true);
     if (!JEWEL_KEY_RE.test(key) || !cleaned) return fail('Malformed gear_state');
     out.jewels[key] = cleaned;
   }
@@ -255,14 +249,19 @@ export function cleanGemStateInput(raw: unknown): InputResult<GemState> {
   }
   if (parsed.loadouts.length > MAX_LOADOUTS) return fail('Malformed gem_state');
 
+  // Every raw loadout survived parsing and kept all its supports (checked
+  // above), so parsed index i is raw index i, for loadouts and supports alike.
   const loadouts = [];
-  for (const loadout of parsed.loadouts) {
+  for (let i = 0; i < parsed.loadouts.length; i++) {
+    const loadout = parsed.loadouts[i];
+    const rawLoadout = rawLoadouts[i] as Record<string, unknown>;
+    const rawSupports = (rawLoadout.supports ?? []) as unknown[];
     if (loadout.id.length > MAX_LOADOUT_ID_LENGTH) return fail('Malformed gem_state');
-    const skill = loadout.skill === null ? null : cleanItem(loadout.skill, rawCraftOf(loadout.skill), false);
+    const skill = loadout.skill === null ? null : cleanItem(loadout.skill, rawLoadout.skill, false);
     if (loadout.skill !== null && !skill) return fail('Malformed gem_state');
     const supports = [];
-    for (const support of loadout.supports) {
-      const cleaned = cleanItem(support, rawCraftOf(support), false);
+    for (let j = 0; j < loadout.supports.length; j++) {
+      const cleaned = cleanItem(loadout.supports[j], rawSupports[j], false);
       if (!cleaned) return fail('Malformed gem_state');
       supports.push(cleaned);
     }

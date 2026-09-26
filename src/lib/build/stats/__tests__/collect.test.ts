@@ -42,6 +42,17 @@ const UNIQUES: Record<string, { baseSlug: string; lines: { text: string; stats: 
       { text: '+(10-20) to maximum Life and Mana', stats: null },
     ],
   },
+  // Our data lists each alternative roll of some uniques as its own line
+  // (Sunsplinter: six "+N% to Maximum Fire Resistance" lines, one of which a
+  // real item has). Summing them gave +87% maximum resistances.
+  Sunsplinter: {
+    baseSlug: 'plate-vest',
+    lines: [
+      { text: '+1% to Maximum Fire Resistance', stats: ['base_maximum_fire_damage_resistance_%'] },
+      { text: '+3% to Maximum Fire Resistance', stats: ['base_maximum_fire_damage_resistance_%'] },
+      { text: '+(20-30) to maximum Life', stats: ['base_maximum_life'] },
+    ],
+  },
 };
 
 const MODS: Record<string, { stat: string; min: number; max: number }[]> = {
@@ -186,6 +197,15 @@ describe('collectContributions — uniques (Slice 5, typed by wording)', () => {
     const r = run(tree(), gear({ body: cloak() }));
     expect(total(r, 'fireRes')).toBe(40);
     expect(r.assumed).toContain('Cloak of Flame: unique rolls at mid-roll');
+  });
+
+  it('counts none of a unique\'s alternative rolls, and names them instead of guessing one', () => {
+    const r = run(tree(), gear({ weapon1_off: item('sunsplinter', 'Sunsplinter', 'Shield', { uniqueValues: [[], [], [25]] }, true) }));
+    expect(total(r, 'fireMax')).toBe(0);
+    expect(total(r, 'life')).toBe(25);
+    expect(r.notCounted).toContain(
+      'Sunsplinter: rolls one of "+1% to Maximum Fire Resistance" / "+3% to Maximum Fire Resistance" — not counted',
+    );
   });
 
   it('names an untyped line only when it touches a defence the sheet reports', () => {

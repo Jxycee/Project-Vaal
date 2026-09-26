@@ -10,6 +10,7 @@
 
 import type { BaseData, ModData } from '@/lib/build/validate/affixRules';
 import { WIKI_DATA_VERSION } from './types';
+import { fetchWikiData } from './fetchWikiData';
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const isFiniteNumber = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
@@ -45,7 +46,7 @@ export function extractIsRune(raw: unknown): boolean {
 /** `undefined` = the request failed (not cached, may be retried); otherwise the parsed JSON, or null for a 404. */
 async function fetchDetail(kind: 'mods' | 'items', slug: string): Promise<unknown | null | undefined> {
   try {
-    const res = await fetch(`/data/wiki/${WIKI_DATA_VERSION}/${kind}/${slug}.json`);
+    const res = await fetchWikiData(`/data/wiki/${WIKI_DATA_VERSION}/${kind}/${slug}.json`);
     if (res.status === 404) return null;
     if (!res.ok || !(res.headers.get('content-type') ?? '').includes('application/json')) return undefined;
     return await res.json();
