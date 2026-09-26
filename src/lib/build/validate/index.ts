@@ -17,6 +17,7 @@ import type { GearState } from '../gearState';
 import type { PassiveState } from '../types';
 import type { BuildWarning } from './types';
 import { validateCrafts, type CraftData } from './affixRules';
+import { ascendancyPointsSpent, weaponSetPointCap } from '../pointCaps';
 import { validateWeapons } from './weaponRules';
 
 export type { BuildWarning, WarningCode, WarningTarget } from './types';
@@ -34,22 +35,29 @@ function treeWarnings(passive: PassiveState): BuildWarning[] {
   const inSet2 = new Set(passive.set2);
   // A node in both sets is shared; a node in only one was painted into it.
   const only = { 'Set I': passive.set1.filter((n) => !inSet2.has(n)).length, 'Set II': passive.set2.filter((n) => !inSet1.has(n)).length };
+  // Weapon Master raises the cap; see pointCaps.ts.
+  const setCap = weaponSetPointCap(passive);
   for (const [label, count] of Object.entries(only)) {
-    if (count > MAX_WEAPON_SET_POINTS) {
+    if (count > setCap) {
       warnings.push({
         code: 'weapon-set-points-over',
         severity: 'warning',
         target: { kind: 'tree' },
-        message: `${label} has ${count} weapon-set passives allocated; the campaign grants at most ${MAX_WEAPON_SET_POINTS}.`,
+        message:
+          setCap === MAX_WEAPON_SET_POINTS
+            ? `${label} has ${count} weapon-set passives allocated; the campaign grants at most ${MAX_WEAPON_SET_POINTS}.`
+            : `${label} has ${count} weapon-set passives allocated; with Weapon Master the most is ${setCap}.`,
       });
     }
   }
-  if (passive.ascendancyNodes.length > MAX_ASCENDANCY_POINTS) {
+  // Free ascendancy notables cost no point; see pointCaps.ts.
+  const ascendancySpent = ascendancyPointsSpent(passive.ascendancyNodes);
+  if (ascendancySpent > MAX_ASCENDANCY_POINTS) {
     warnings.push({
       code: 'ascendancy-points-over',
       severity: 'warning',
       target: { kind: 'tree' },
-      message: `${passive.ascendancyNodes.length} ascendancy points allocated; a character has at most ${MAX_ASCENDANCY_POINTS}.`,
+      message: `${ascendancySpent} ascendancy points allocated; a character has at most ${MAX_ASCENDANCY_POINTS}.`,
     });
   }
   return warnings;

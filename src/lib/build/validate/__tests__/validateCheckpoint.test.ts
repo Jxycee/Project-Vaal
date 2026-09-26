@@ -25,6 +25,18 @@ describe('validateCheckpoint — every way it could be wrong', () => {
     ]);
   });
 
+  // Weapon Master (8272): "100 Passive Skill Points become Weapon Set Skill
+  // Points". isFree ascendancy notables (8415 Sanguimancy, …) cost no point.
+  // Both were counted as if they did not exist (review 2026-09-26).
+  it('lets Weapon Master raise the weapon-set cap, and never charges a free ascendancy node', () => {
+    const setIOnly: PassiveState = { set1: range(1, 30), set2: [], ascendancyNodes: [8272] };
+    expect(validateCheckpoint({ passive: setIOnly, gear: emptyGearState() })).toEqual([]);
+    expect(validateCheckpoint({ passive: { ...setIOnly, ascendancyNodes: [] }, gear: emptyGearState() }).map((w) => w.code)).toEqual(['weapon-set-points-over']);
+
+    const withFree: PassiveState = { ...EMPTY_TREE, ascendancyNodes: [...range(1000, MAX_ASCENDANCY_POINTS), 8415] };
+    expect(validateCheckpoint({ passive: withFree, gear: emptyGearState() })).toEqual([]);
+  });
+
   it('flags a jewel socket holding something that is not a jewel, targeted at that socket', () => {
     // The write gate checks shape, not category, and the stat engine counted
     // whatever sat under an allocated socket: Kaom's Heart there added +1500

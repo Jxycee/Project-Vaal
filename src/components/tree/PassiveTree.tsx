@@ -29,6 +29,7 @@ import NodeInfoPanel, { type SelectedNode } from '@/components/tree/NodeInfoPane
 import { useTreeResources, useClassCentreSprites } from '@/lib/tree/resources';
 import { MAX_ASCENDANCY_POINTS } from '@/lib/build/constants';
 import { derivePassiveBudget } from '@/lib/build/passiveBudget';
+import { ascendancyPointsSpent, basicPointShift, weaponSetPointCap } from '@/lib/build/pointCaps';
 import type { BuildEditorState, PassiveTreeInitialState } from '@/lib/build/types';
 import type { TreeTestApi } from '@/lib/tree/testApi';
 
@@ -161,16 +162,15 @@ export default function PassiveTree({
       const mainSet = new Set(main.allocated);
       const nextAscendancy = next.filter((id) => !mainSet.has(id));
       // Refuse growth past the cap; always allow a click that shrinks the
-      // allocation, so a user at the cap can still deallocate.
-      if (
-        nextAscendancy.length > MAX_ASCENDANCY_POINTS &&
-        nextAscendancy.length > ascendancyNodes.length
-      ) {
+      // allocation, so a user at the cap can still deallocate. Free
+      // ascendancy notables cost no point (pointCaps.ts).
+      const nextSpent = ascendancyPointsSpent(nextAscendancy);
+      if (nextSpent > MAX_ASCENDANCY_POINTS && nextSpent > ascendancyPointsSpent(ascendancyNodes)) {
         return;
       }
       setAscendancyNodes(nextAscendancy);
     },
-    [main.allocated, ascendancyNodes.length, readOnly],
+    [main.allocated, ascendancyNodes, readOnly],
   );
 
   // Tooltips: real pointer hover only fires for a mouse (touch always starts
@@ -261,10 +261,13 @@ export default function PassiveTree({
       if (set === 1) setI++;
       else if (set === 2) setII++;
     }
-    return { basic: main.allocated.length - setI - setII, setI, setII, ascendancy: ascendancyNodes.length };
+    return { basic: main.allocated.length - setI - setII, setI, setII, ascendancy: ascendancyPointsSpent(ascendancyNodes) };
   }, [main, ascendancyNodes]);
 
-  const maxBasicPoints = useMemo(() => derivePassiveBudget(level ?? 100), [level]);
+  // Weapon Master turns 100 basic points into weapon-set points (pointCaps.ts).
+  const allocatedForCaps = useMemo(() => ({ set1: main.allocated, set2: [], ascendancyNodes }), [main.allocated, ascendancyNodes]);
+  const maxBasicPoints = useMemo(() => derivePassiveBudget(level ?? 100) + basicPointShift(allocatedForCaps), [level, allocatedForCaps]);
+  const maxWeaponSetPoints = useMemo(() => weaponSetPointCap(allocatedForCaps), [allocatedForCaps]);
 
   const scene = useMemo(
     () =>
@@ -590,6 +593,7 @@ export default function PassiveTree({
         mode={mode}
         pointCounts={pointCounts}
         maxBasicPoints={maxBasicPoints}
+        maxWeaponSetPoints={maxWeaponSetPoints}
         searchQuery={searchQuery}
         hasAllocations={allocated.length > 0}
         onClass={handleClass}

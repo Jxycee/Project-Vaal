@@ -37,6 +37,8 @@ interface TreeControlsProps {
    * so this component stays free of the level itself.
    */
   maxBasicPoints: number;
+  /** Each weapon set's point cap: MAX_WEAPON_SET_POINTS, raised by Weapon Master (see pointCaps.ts). */
+  maxWeaponSetPoints?: number;
   searchQuery: string;
   hasAllocations: boolean;
   onClass: (id: number) => void;
@@ -70,6 +72,7 @@ export default function TreeControls({
   mode,
   pointCounts,
   maxBasicPoints,
+  maxWeaponSetPoints = MAX_WEAPON_SET_POINTS,
   searchQuery,
   hasAllocations,
   onClass,
@@ -160,12 +163,14 @@ export default function TreeControls({
                 m === 0
                   ? [pointCounts.basic, maxBasicPoints]
                   : m === 1
-                    ? [pointCounts.setI, MAX_WEAPON_SET_POINTS]
-                    : [pointCounts.setII, MAX_WEAPON_SET_POINTS];
+                    ? [pointCounts.setI, maxWeaponSetPoints]
+                    : [pointCounts.setII, maxWeaponSetPoints];
               // Only the basic/shared pool is level-derived, so only it can
-              // be "over budget" in the sense this feature means — a weapon
-              // set's 24-point pool is a fixed game constant the tree-core
-              // toggle functions already refuse to exceed. SIGNAL only, per
+              // be "over budget" in the sense this feature means. (A weapon
+              // set's pool is fixed by the game; tree-core does NOT refuse a
+              // point past it, contrary to what this comment used to say —
+              // checked 2026-09-26 — and the structural validator warns
+              // instead.) SIGNAL only, per
               // brief: this never disables the button or blocks a click —
               // planning a level-90 build while the build row still says
               // level 1 is a normal workflow, not an error state.
