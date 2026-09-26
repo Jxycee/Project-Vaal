@@ -92,6 +92,14 @@ describe('catalogue — lookups', () => {
     expect(tree.isJewelSocket(45969)).toBe(false);
   });
 
+  it('resolves an ascendancy to the graph whose nodes it uses', async () => {
+    const { tree } = await getCatalogue();
+    // Abyssal Lich owns no nodes; its overridePairs re-skin Lich's.
+    expect(tree.graphOf('Witch3b')).toBe('Witch3');
+    expect(tree.graphOf('Witch3')).toBe('Witch3');
+    expect(tree.graphOf('Mercenary2')).toBe('Mercenary2');
+  });
+
   it('knows which ascendancy a node belongs to', async () => {
     const { tree } = await getCatalogue();
     expect(tree.ascendancyOf(42761)).toBe('Druid1');

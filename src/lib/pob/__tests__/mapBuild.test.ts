@@ -58,6 +58,38 @@ describe('mapBuild — every way it can go wrong', () => {
     expect(entry?.kind).toBe('dropped');
   });
 
+  // Abyssal Lich ("Witch3b") owns no tree nodes: it reuses Lich's "Witch3"
+  // graph, with 13 of those nodes re-skinned via the export's overridePairs.
+  // PoB2 lists the base Witch3 ids for it (passivetree_ggg.lua hangs the
+  // replacement on the base node as an `option`), and so does our editor.
+  // Failure modes, written before the fix (2026-09-26):
+  //  1. every Lich-graph node is dropped as "a different ascendancy";
+  //  2. the fix lets another Witch ascendancy's nodes in too;
+  //  3. the ascendancy start node starts being stored;
+  //  4. the stored ascendancy is not the editor's id ("Abyssal Lich");
+  //  5. a plain Lich build changes.
+  describe('Abyssal Lich, which shares Lich’s graph', () => {
+    // 59, 2516 and 2877 are Witch3 nodes (2516 and 2877 are also override
+    // bases); 23710 is Witch3's ascendancy start; 3165 is a Blood Mage node.
+    const nodes = [59, 2516, 2877, 23710, 3165];
+
+    it('keeps the Lich-graph nodes, drops the start silently and another ascendancy’s node loudly', async () => {
+      const p = await plan(build({ className: 'Witch', ascendClassName: 'Abyssal Lich', specs: [spec('Only', { nodes })] }));
+      expect(p.build.ascendancy).toBe('Abyssal Lich');
+      expect(p.checkpoints[0].passive_state.ascendancyNodes).toEqual([59, 2516, 2877]);
+      const dropped = p.report.filter((r) => r.area === 'tree' && r.kind === 'dropped');
+      expect(dropped).toHaveLength(1);
+      expect(dropped[0].message).toContain('3165');
+      expect(dropped[0].message).not.toContain('2516');
+    });
+
+    it('leaves a plain Lich build as it was', async () => {
+      const p = await plan(build({ className: 'Witch', ascendClassName: 'Lich', specs: [spec('Only', { nodes })] }));
+      expect(p.build.ascendancy).toBe('Lich');
+      expect(p.checkpoints[0].passive_state.ascendancyNodes).toEqual([59, 2516, 2877]);
+    });
+  });
+
   it('treats "None" as no ascendancy, silently', async () => {
     const p = await plan(build({ ascendClassName: 'None' }));
     expect(p.build.ascendancy).toBeNull();
