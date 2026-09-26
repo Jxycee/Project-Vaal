@@ -42,27 +42,6 @@ async function loadPublicBuilds(
   supabase: Awaited<ReturnType<typeof createClient>>,
   filters: BuildFinderFilters,
 ): Promise<{ builds: PublicBuildRow[] | null; loadError: string | null }> {
-  let buildIds: string[] | null = null;
-  if (filters.tag) {
-    // Tag filtering goes build_tags (indexed on `tag`) -> build ids ->
-    // builds, in that direction — build_tags carries no visibility of its
-    // own to filter on directly.
-    const { data: tagRows, error: tagError } = await supabase
-      .from('build_tags')
-      .select('build_id')
-      // normalizeTag, because addBuildTag normalised on the way IN (lowercase,
-      // whitespace-collapsed — see tags.ts). Querying the raw user string made
-      // the filter miss every tag that was not already lowercase: typing
-      // "Minion" found nothing, while the stored tag was "minion".
-      .eq('tag', normalizeTag(filters.tag) ?? filters.tag);
-    if (tagError) {
-      console.error('Failed to look up build_tags for finder:', tagError);
-      return { builds: null, loadError: "Couldn't load public builds." };
-    }
-    buildIds = (tagRows ?? []).map((r) => r.build_id);
-    if (buildIds.length === 0) return { builds: [], loadError: null };
-  }
-
   // Named columns only, never `*` — the finder doesn't need
   // passive_state/gear_state/gem_state, and those are the three large jsonb
   // columns; shipping them for every row of a list is the difference
@@ -84,9 +63,17 @@ async function loadPublicBuilds(
   // (builds_main_skill_idx). Nothing indexes updated_at/created_at/
   // view_count — any ordering is a sort over the whole public set, which is
   // exactly why this always carries an explicit .limit().
+  //
+  // A tag filters through an inner join on build_tags in this same request.
+  // It used to fetch every build id carrying the tag first and send them all
+  // back as `.in('id', [...])`: a tag on a few hundred builds made the URL too
+  // long for the API gateway and the tab showed "Couldn't load public builds"
+  // (review 2026-09-26). build_tags' own read policy (own or public) never
+  // widens this: the visibility filter below still applies to the builds.
+  const columns = 'id, name, class, ascendancy, level, league, main_skill, share_token, view_count, updated_at';
   let q = supabase
     .from('builds')
-    .select('id, name, class, ascendancy, level, league, main_skill, share_token, view_count, updated_at')
+    .select(filters.tag ? `${columns}, build_tags!inner(tag)` : columns)
     .eq('visibility', 'public')
     .order('updated_at', { ascending: false })
     .limit(PUBLIC_PAGE_SIZE);
@@ -94,14 +81,22 @@ async function loadPublicBuilds(
   if (filters.class) q = q.eq('class', filters.class);
   if (filters.league) q = q.eq('league', filters.league);
   if (filters.skill) q = q.eq('main_skill', filters.skill);
-  if (buildIds) q = q.in('id', buildIds);
+  // normalizeTag, because addBuildTag normalised on the way IN (lowercase,
+  // whitespace-collapsed — see tags.ts): the raw "Minion" would miss "minion".
+  if (filters.tag) q = q.eq('build_tags.tag', normalizeTag(filters.tag) ?? filters.tag);
 
   const { data, error } = await q;
   if (error) {
     console.error('Failed to load public builds:', error);
     return { builds: null, loadError: "Couldn't load public builds." };
   }
-  return { builds: (data ?? []) as unknown as PublicBuildRow[], loadError: null };
+  // The joined tag rows are only a filter; the finder does not show them.
+  const rows = ((data ?? []) as unknown as (PublicBuildRow & { build_tags?: unknown })[]).map((row) => {
+    const build = { ...row };
+    delete build.build_tags;
+    return build as PublicBuildRow;
+  });
+  return { builds: rows, loadError: null };
 }
 
 export default async function BuildsPage({
