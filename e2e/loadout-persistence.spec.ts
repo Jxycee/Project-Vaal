@@ -240,3 +240,39 @@ test.describe('loadout persistence', () => {
     }
   });
 });
+
+// A pick waits for the item's icon (its wiki detail file) before it lands.
+// Closing the picker in that window used to be ignored: the pick landed a
+// moment later anyway — replacing whatever was in the slot, craft and all —
+// and its stale close then shut whichever picker was open by then
+// (review 2026-09-26). The detail fetch is held back here so the window is
+// wide enough to act in.
+test('a pick cancelled while its icon loads never lands, and closes nothing else', async ({ page }) => {
+  await openTree(page);
+  await page.route('**/data/wiki/**/items/*.json', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 3_000));
+    await route.continue();
+  });
+
+  await page.getByRole('button', { name: 'Gear' }).click();
+  const gearSheet = page.locator('.z-40');
+  const beltRow = gearSheet.locator('ul li').filter({ hasText: 'Belt' }).first();
+  const glovesRow = gearSheet.locator('ul li').filter({ hasText: 'Gloves' }).first();
+  await expect(beltRow).toContainText('Empty');
+
+  const picker = page.locator('.z-50');
+  await beltRow.getByRole('button').first().click();
+  const firstResult = picker.locator('ul li button').first();
+  await expect(firstResult).toBeVisible({ timeout: 15_000 });
+  await firstResult.click();
+  await page.getByRole('button', { name: 'Close item picker' }).click();
+
+  // Open another picker while the cancelled pick's icon is still loading.
+  await glovesRow.getByRole('button').first().click();
+  await expect(picker.getByPlaceholder('Search items…')).toBeVisible();
+
+  // Past the held-back fetch: the belt is still empty and the gloves picker still open.
+  await page.waitForTimeout(4_500);
+  await expect(picker.getByPlaceholder('Search items…')).toBeVisible();
+  await expect(beltRow).toContainText('Empty');
+});

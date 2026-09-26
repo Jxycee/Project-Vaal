@@ -77,6 +77,17 @@ export default function ItemPickerSheet({
   // two picks — the row itself shows a "Picking…" state instead of a spinner
   // overlay, keeping the whole list interactive.
   const [pickingSlug, setPickingSlug] = useState<string | null>(null);
+  // Bumped by every pick, every close and unmount; see handleRowPick.
+  const pickToken = useRef(0);
+  useEffect(() => {
+    if (!open) pickToken.current += 1;
+  }, [open]);
+  useEffect(
+    () => () => {
+      pickToken.current += 1;
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -128,6 +139,11 @@ export default function ItemPickerSheet({
   const isSkillKind = pickerKind(slot) === 'skill';
 
   async function handleRowPick(entry: WikiSearchEntry) {
+    // The pick lands only if nothing happened while its icon loaded: the
+    // picker was not closed or unmounted, and no newer pick was made. Without
+    // this a cancelled pick still replaced the slot's item (craft and all) and
+    // its stale onClose shut whichever picker was open by then.
+    const token = ++pickToken.current;
     setPickingSlug(entry.slug);
     let iconUrl: string | null = null;
     try {
@@ -138,6 +154,7 @@ export default function ItemPickerSheet({
       // render the fallback instead (see gear-design.md's error table).
       iconUrl = null;
     }
+    if (token !== pickToken.current) return;
     setPickingSlug(null);
     onPick({
       slug: entry.slug,
