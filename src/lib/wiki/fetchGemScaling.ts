@@ -12,6 +12,7 @@
 // tolerance-over-rejection reasoning: a malformed or missing file falls back
 // to 1 (the one level every gem legitimately has) rather than throwing.
 import { WIKI_DATA_VERSION } from './types';
+import { fetchWikiData } from './fetchWikiData';
 
 /**
  * Pure extraction — no I/O, unit-test target. Given a skill detail's raw
@@ -35,7 +36,7 @@ export function extractMaxGemLevel(raw: unknown): number {
  */
 export async function fetchMaxGemLevel(slug: string): Promise<number> {
   try {
-    const res = await fetch(`/data/wiki/${WIKI_DATA_VERSION}/skills/${slug}.json`);
+    const res = await fetchWikiData(`/data/wiki/${WIKI_DATA_VERSION}/skills/${slug}.json`);
     if (!res.ok) return 1;
     const contentType = res.headers.get('content-type') ?? '';
     if (!contentType.includes('application/json')) return 1;
@@ -81,7 +82,7 @@ export function fetchReservationScaling(slug: string): Promise<ReservationScalin
   if (!pending) {
     pending = (async () => {
       try {
-        const res = await fetch(`/data/wiki/${WIKI_DATA_VERSION}/skills/${slug}.json`);
+        const res = await fetchWikiData(`/data/wiki/${WIKI_DATA_VERSION}/skills/${slug}.json`);
         if (!res.ok) return null;
         if (!(res.headers.get('content-type') ?? '').includes('application/json')) return null;
         return extractReservationScaling(await res.json());

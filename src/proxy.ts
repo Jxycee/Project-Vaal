@@ -192,7 +192,7 @@ export async function proxy(request: NextRequest) {
       'redirect',
       request.nextUrl.pathname + request.nextUrl.search
     )
-    return NextResponse.redirect(redirectUrl)
+    return uncacheable(NextResponse.redirect(redirectUrl))
   }
 
   // Redirect authenticated users away from auth pages
@@ -209,10 +209,24 @@ export async function proxy(request: NextRequest) {
   if (user && isAuthPage(request.nextUrl.pathname)) {
     let target = safeRedirect(request.nextUrl.searchParams.get('redirect'))
     if (isAuthPage(new URL(target, request.url).pathname)) target = DEFAULT_REDIRECT
-    return NextResponse.redirect(new URL(target, request.url))
+    return uncacheable(NextResponse.redirect(new URL(target, request.url)))
   }
 
   return supabaseResponse
+}
+
+// A redirect here depends on who is asking, so no browser may keep it.
+// next.config.ts sets Cache-Control on /data/wiki/** by PATH, and Next applies
+// those header rules before this proxy runs, so without this override the
+// 307 to /login inherited `private, max-age=3600`: after a session expired on
+// a wiki page, the browser replayed that redirect for an hour — signing back
+// in only made it loop (cached 307 -> /login -> back -> cached 307) until the
+// fetch gave up. Headers set here win over next.config's
+// (node_modules/next/dist/server/lib/router-utils/resolve-routes.js, the
+// middleware-headers merge). Confirmed on production 2026-09-26.
+function uncacheable(response: NextResponse): NextResponse {
+  response.headers.set('Cache-Control', 'no-store')
+  return response
 }
 
 export const config = {

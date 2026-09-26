@@ -233,8 +233,15 @@ const nextConfig: NextConfig = {
       // which is why `max-age` here is 1 hour, not a day) but not shared
       // across users the way `public` + a CDN would be.
       //
-      // A day of shared caching with stale-while-revalidate matches the
-      // sync's weekly cadence and the detail pages' own `revalidate`.
+      // No stale-while-revalidate (removed 2026-09-26): it let a browser keep
+      // serving its stale copy for another 7 days after `max-age`, which
+      // undid the 1-hour bound the paragraph above exists for.
+      //
+      // The 307 to /login does NOT keep this header: src/proxy.ts overrides
+      // every redirect it issues with `no-store`. It had inherited this rule
+      // until 2026-09-26, and a cached redirect broke the wiki for an hour
+      // after any session expiry. Keep that override if this rule changes.
+      //
       // If WIKI_DATA_VERSION ever does get bumped per sync, this can go
       // back to immutable — but must stay `private`, never `public`, as
       // long as this path requires auth.
@@ -244,7 +251,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'private, max-age=3600, stale-while-revalidate=604800',
+            value: 'private, max-age=3600',
           },
         ],
       },

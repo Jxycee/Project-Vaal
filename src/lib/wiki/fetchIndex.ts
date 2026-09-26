@@ -1,5 +1,6 @@
 import { WIKI_DATA_VERSION, isWikiSearchEntry } from './types';
 import type { WikiEntryKind, WikiSearchEntry } from './types';
+import { fetchWikiData } from './fetchWikiData';
 
 export class WikiIndexFetchError extends Error {}
 
@@ -24,7 +25,7 @@ export class WikiSessionExpiredError extends WikiIndexFetchError {}
  * function is, including the redirect-to-login case below.
  */
 export async function fetchWikiIndex(kind: WikiEntryKind): Promise<WikiSearchEntry[]> {
-  const res = await fetch(`/data/wiki/${WIKI_DATA_VERSION}/${kind}-index.json`);
+  const res = await fetchWikiData(`/data/wiki/${WIKI_DATA_VERSION}/${kind}-index.json`);
 
   // A same-origin fetch that reaches an unauthenticated context gets
   // redirected to /login by src/proxy.ts. `fetch` follows that redirect by
