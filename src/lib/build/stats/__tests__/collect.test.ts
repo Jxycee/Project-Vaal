@@ -19,6 +19,13 @@ const NODES: Record<number, { name: string; stats: [string, number][]; attribute
   7: { name: 'Offence', stats: [['attack_speed_+%', 5]] },
   [NO_SPIRIT_NODE]: { name: 'Embrace the Darkness', stats: [['base_darkness', 100]] },
   30: { name: 'Jewel Socket', stats: [] },
+  // Real ids from node-stats.json (review 2026-09-26): each changed a defence
+  // the sheet reports, yet was neither counted nor named.
+  40: { name: 'Eldritch Will', stats: [['maximum_life_mana_and_energy_shield_+%', 3]] },
+  41: { name: 'Attributes', stats: [['base_all_attributes', 5]] },
+  42: { name: 'Iron Reflexes', stats: [['keystone_iron_reflexes', 1]] },
+  43: { name: 'Mysterious Lineage', stats: [['titan_maximum_life_+%_final', 15]] },
+  44: { name: "Chayula's Gift", stats: [['chaos_damage_resistance_is_doubled', 1]] },
 };
 
 const ITEMS: Record<
@@ -107,6 +114,24 @@ describe('collectContributions — the tree', () => {
     const r = run(tree({ set1: [6, 7] }));
     expect(r.notCounted).toContain('Lead me through Grace...: Spirit from body armour Evasion');
     expect(r.notCounted.join(' ')).not.toContain('Offence');
+  });
+});
+
+describe('collectContributions — defence stats beyond the simple ones', () => {
+  it('counts an always-on increase to Life, Mana and Energy Shield, and a flat all-attributes bonus', () => {
+    const r = run(tree({ set1: [40, 41] }));
+    expect(total(r, 'life', 'increased')).toBe(3);
+    expect(total(r, 'mana', 'increased')).toBe(3);
+    expect(total(r, 'energyShield', 'increased')).toBe(3);
+    expect(total(r, 'str') + total(r, 'dex') + total(r, 'int')).toBe(15);
+  });
+
+  it('names a keystone, a "more" multiplier and a doubling it does not model, by node', () => {
+    const r = run(tree({ set1: [42, 43, 44] }));
+    const named = r.notCounted.join('\n');
+    expect(named).toContain('Iron Reflexes: ');
+    expect(named).toContain('Mysterious Lineage: ');
+    expect(named).toContain("Chayula's Gift: ");
   });
 });
 
