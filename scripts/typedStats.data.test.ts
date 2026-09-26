@@ -15,6 +15,12 @@ const implicitStats = JSON.parse(readFileSync('public/data/wiki/2026-08-25/impli
 };
 const tree = JSON.parse(readFileSync('public/data/tree/0.5.2/data.json', 'utf8')) as { nodes: Record<string, unknown> };
 
+// The two tests that read a whole data directory (5,267 mod files, 4,994 item
+// files) take ~2s alone but exceed vitest's 5s default when `npm test` runs
+// every file in parallel. Reading everything is the point of them, so they
+// get room rather than a sample (2026-09-26: both timed out on main).
+const DATA_SWEEP_TIMEOUT_MS = 30_000;
+
 describe('node-stats.json', () => {
   it('covers every numeric node of our tree, from the pinned patch', () => {
     const treeIds = Object.keys(tree.nodes).filter((k) => /^\d+$/.test(k));
@@ -68,7 +74,7 @@ describe('one stat vocabulary', () => {
       expect(modStats.has(id), id).toBe(true);
       expect(onTree.has(id), id).toBe(true);
     }
-  });
+  }, DATA_SWEEP_TIMEOUT_MS);
 });
 
 describe('unique-stats.json', () => {
@@ -96,6 +102,7 @@ describe('unique-stats.json', () => {
   it('gives every unique a base our item data has', () => {
     const items = new Set(readdirSync('public/data/wiki/2026-08-25/items').map((f) => (JSON.parse(readFileSync(`public/data/wiki/2026-08-25/items/${f}`, 'utf8')) as { name: string }).name));
     const missing = Object.entries(uniques).filter(([, u]) => u.baseType && !items.has(u.baseType)).map(([n]) => n);
+    expect(items.size).toBeGreaterThan(4000);
     expect(missing).toEqual([]);
-  });
+  }, DATA_SWEEP_TIMEOUT_MS);
 });
