@@ -176,3 +176,47 @@ describe('socketLimitFor — PoB2 socketLimit by base group', () => {
     expect(socketLimitFor({ category: 'Mace', slug: 'unknown-mace' })).toBeNull();
   });
 });
+
+// Some bases' implicits change the craft rules themselves (checked on disk
+// 2026-09-26): Dusk/Gloam/Penumbra/Tenebrous and a few other amulets and rings
+// shift the prefix/suffix limits ("+1 Prefix Modifier allowed"), and the
+// Grasping Mail bodies "Can roll Ring Modifiers". Ignoring them gave false
+// over-limit warnings, missed real ones, and refused every ring mod on the
+// Grasping Mail. PoB2 applies the limit shifts in Item.lua:1263-1267 and
+// 1750-1767 (clamped per rarity).
+describe('validateCrafts — base implicits that change the craft rules', () => {
+  const base = (slug: string, implicitLines: string[], tags = ['default', 'amulet']): BaseData => ({ tags, modDomain: 'Item', implicitLines, uniqueLines: [] });
+  const amulet = (slug: string, craft: Partial<ItemCraft>): GearItem => ({ slug, name: slug, category: 'Amulet', isUnique: false, iconUrl: null, craft: { ...emptyCraft(false), ...craft } });
+  const pre = (g: string) => mod({ group: g, spawnWeights: [{ tag: 'amulet', weight: 1 }] });
+  const suf = (g: string) => mod({ kind: 'suffix', group: g, spawnWeights: [{ tag: 'amulet', weight: 1 }] });
+  const mods = { p1: pre('P1'), p2: pre('P2'), p3: pre('P3'), p4: pre('P4'), p5: pre('P5'), s1: suf('S1'), s2: suf('S2'), s3: suf('S3') };
+  const withBase = (slug: string, lines: string[]) => data(mods, { bases: new Map([[slug, base(slug, lines)]]) });
+  const DUSK = ['+1 Prefix Modifier allowed', '-1 Suffix Modifier allowed'];
+  const PENUMBRA = ['+2 Prefix Modifiers allowed', '-2 Suffix Modifiers allowed'];
+
+  it('lets a rare Dusk Amulet take four prefixes, and holds it to two suffixes', () => {
+    const d = withBase('dusk-amulet', DUSK);
+    expect(codes(gear({ amulet: amulet('dusk-amulet', { rarity: 'rare', prefixes: [p('p1'), p('p2'), p('p3'), p('p4')], suffixes: [p('s1'), p('s2')] }) }), d)).toEqual([]);
+    const over = validateCrafts(gear({ amulet: amulet('dusk-amulet', { rarity: 'rare', suffixes: [p('s1'), p('s2'), p('s3')] }) }), d);
+    expect(over.map((w) => w.code)).toEqual(['affix-over-limit']);
+    expect(over[0].message).toContain('can have 2');
+  });
+
+  it('holds a rare Penumbra Amulet to one suffix and lets it take five prefixes', () => {
+    const d = withBase('penumbra-amulet', PENUMBRA);
+    expect(codes(gear({ amulet: amulet('penumbra-amulet', { rarity: 'rare', prefixes: [p('p1'), p('p2'), p('p3'), p('p4'), p('p5')], suffixes: [p('s1')] }) }), d)).toEqual([]);
+    expect(codes(gear({ amulet: amulet('penumbra-amulet', { rarity: 'rare', suffixes: [p('s1'), p('s2')] }) }), d)).toEqual(['affix-over-limit']);
+  });
+
+  it('shifts a magic item\'s limits too, clamped to 0-2 per side', () => {
+    const d = withBase('dusk-amulet', DUSK);
+    expect(codes(gear({ amulet: amulet('dusk-amulet', { rarity: 'magic', prefixes: [p('p1'), p('p2')] }) }), d)).toEqual([]);
+    expect(codes(gear({ amulet: amulet('dusk-amulet', { rarity: 'magic', suffixes: [p('s1')] }) }), d)).toEqual(['affix-over-limit']);
+  });
+
+  it('lets a base that "Can roll Ring Modifiers" roll a ring mod', () => {
+    const mail: GearItem = { slug: 'grasping-mail', name: 'Grasping Mail', category: 'Body Armour', isUnique: false, iconUrl: null, craft: { ...emptyCraft(false), rarity: 'rare', prefixes: [p('ringonly')] } };
+    const d = data({ ringonly: mod() }, { bases: new Map([['grasping-mail', base('grasping-mail', ['Can roll Ring Modifiers'], ['default', 'armour', 'body_armour'])]]) });
+    expect(codes(gear({ body: mail }), d)).toEqual([]);
+  });
+});

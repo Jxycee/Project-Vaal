@@ -21,7 +21,7 @@ import { TREE_VERSION } from '@/lib/tree/version';
 import { loadAllSlugs, loadDetail } from '@/lib/wiki/load';
 import { getModCatalogue, type ModCatalogue } from '@/lib/wiki/modCatalogue';
 import { slugify } from '@/lib/wiki/normalize';
-import { canSpawn } from '@/lib/wiki/spawn';
+import { canSpawn, spawnTagsOf } from '@/lib/wiki/spawn';
 import type { CraftLookups, CraftMod } from './mapCraft';
 import { loadIndex } from '@/lib/wiki/loadIndex';
 import type { WikiItemDetail, WikiSkillDetail } from '@/lib/wiki/types';
@@ -274,7 +274,7 @@ async function craftLookups(slug: string, byName: Map<string, CatalogueItem>): P
   const detail = (await loadDetail('item', slug)) as WikiItemDetail | null;
   const catalogue = await getModCatalogue();
   const bySlug = modsBySlug(catalogue);
-  const tags = new Set(detail?.tags ?? []);
+  const tags = spawnTagsOf(detail?.tags ?? [], detail?.implicitMods ?? []);
   return {
     modById: (id) => modSlugsFor(id).map((slug) => bySlug.get(slug)).find(Boolean) ?? null,
     candidates: catalogue.mods

@@ -1,3 +1,4 @@
+import { canSpawn } from './spawn';
 import { describe, expect, it } from 'vitest';
 import { eligibleMods, getModCatalogue } from './modCatalogue';
 
@@ -65,5 +66,19 @@ describe('eligibleMods — matches PoB2 on real bases', () => {
 describe('getModCatalogue', () => {
   it('is built once and shared', async () => {
     expect(await getModCatalogue()).toBe(await getModCatalogue());
+  });
+});
+
+describe('eligibleMods — a base whose implicit adds ring modifiers', () => {
+  it('offers ring prefixes on the Grasping Mail ("Can roll Ring Modifiers"), not on a plain body armour', async () => {
+    const { mods } = await getModCatalogue();
+    // A prefix that ring bases can roll and body armours cannot.
+    const ringOnly = mods.find(
+      (m) => m.kind === 'prefix' && m.domain === 'Item' && canSpawn(m.spawnWeights, new Set(['default', 'ring'])) && !canSpawn(m.spawnWeights, new Set(['default', 'armour', 'body_armour'])),
+    );
+    expect(ringOnly, 'no ring-only prefix in our data').toBeDefined();
+    const offered = (groups: Awaited<ReturnType<typeof eligibleMods>>) => (groups ?? []).flatMap((g) => g.tiers.map((t) => t.slug));
+    expect(offered(await eligibleMods('runemastered-grasping-mail', 'prefix'))).toContain(ringOnly!.slug);
+    expect(offered(await eligibleMods('full-plate', 'prefix'))).not.toContain(ringOnly!.slug);
   });
 });

@@ -20,7 +20,7 @@
 
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { canSpawn } from './spawn';
+import { canSpawn, spawnTagsOf } from './spawn';
 import { WIKI_DATA_VERSION } from './types';
 
 /** Item slugs as the sync writes them. Checked BEFORE a path is built, so no input can leave items/. */
@@ -128,7 +128,7 @@ export function getModCatalogue(): Promise<ModCatalogue> {
  */
 export async function eligibleMods(itemSlug: string, kind: AffixKind): Promise<ModGroup[] | null> {
   if (!ITEM_SLUG_RE.test(itemSlug)) return null;
-  let item: { rarity?: unknown; modDomain?: unknown; tags?: unknown };
+  let item: { rarity?: unknown; modDomain?: unknown; tags?: unknown; implicitMods?: unknown };
   try {
     item = JSON.parse(
       await readFile(path.join(process.cwd(), 'public', 'data', 'wiki', WIKI_DATA_VERSION, 'items', `${itemSlug}.json`), 'utf8'),
@@ -137,7 +137,9 @@ export async function eligibleMods(itemSlug: string, kind: AffixKind): Promise<M
     return null;
   }
   if (item.rarity === 'unique') return [];
-  const tags = new Set(Array.isArray(item.tags) ? item.tags.filter((t): t is string => typeof t === 'string') : []);
+  const strings = (v: unknown) => (Array.isArray(v) ? v.filter((t): t is string => typeof t === 'string') : []);
+  // Plus any tag the base's implicits add ("Can roll Ring Modifiers").
+  const tags = spawnTagsOf(strings(item.tags), strings(item.implicitMods));
   const domain = item.modDomain;
 
   const { mods } = await getModCatalogue();

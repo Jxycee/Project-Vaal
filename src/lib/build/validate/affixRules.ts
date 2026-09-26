@@ -15,7 +15,7 @@ import { rangesIn, type CraftedMod, type ItemCraft, type ValueRange } from '../c
 import type { GearItem } from '../gearSlots';
 import type { GearState } from '../gearState';
 import { GEAR_SLOTS } from '../gearSlots';
-import { canSpawn, type SpawnWeight } from '@/lib/wiki/spawn';
+import { canSpawn, craftRulesOf, spawnTagsOf, type SpawnWeight } from '@/lib/wiki/spawn';
 import { handednessOf } from './handedness';
 import type { BuildWarning, WarningTarget } from './types';
 
@@ -49,12 +49,16 @@ export interface CraftData {
 /**
  * Affixes per side for a rarity — PoB2 src/Classes/Item.lua:1750-1768: Magic
  * 1 + 1, Rare 3 + 3 except a rare jewel 2 + 2. Normal and unique items take
- * none. PoB2's per-item limit modifiers are not modelled.
+ * none. A base whose implicit shifts a side ("+1 Prefix Modifier allowed")
+ * moves that side's limit, clamped to 0..2 for magic and 0..(2 x per side)
+ * for rare, as PoB2 clamps it.
  */
-function affixLimit(craft: ItemCraft, category: string): number {
-  if (craft.rarity === 'magic') return 1;
-  if (craft.rarity === 'rare') return category === 'Jewel' ? 2 : 3;
-  return 0;
+export function affixLimits(craft: ItemCraft, category: string, implicitLines: readonly string[] = []): { prefix: number; suffix: number } {
+  const per = craft.rarity === 'magic' ? 1 : craft.rarity === 'rare' ? (category === 'Jewel' ? 2 : 3) : 0;
+  if (per === 0) return { prefix: 0, suffix: 0 };
+  const { prefixDelta, suffixDelta } = craftRulesOf(implicitLines);
+  const clamp = (n: number) => Math.max(0, Math.min(2 * per, n));
+  return { prefix: clamp(per + prefixDelta), suffix: clamp(per + suffixDelta) };
 }
 
 const FOUR_SOCKETS = new Set(['Two Hand Sword', 'Two Hand Axe', 'Two Hand Mace', 'Bow', 'Crossbow', 'Staff', 'Warstaff', 'Talisman', 'Body Armour']);
@@ -96,15 +100,16 @@ function checkItem(item: GearItem, target: WarningTarget, data: CraftData): Buil
   const out: BuildWarning[] = [];
   const warn = (code: BuildWarning['code'], message: string) => out.push({ code, severity: 'warning', target, message });
 
-  const limit = affixLimit(craft, item.category);
+  const base = data.bases.get(item.slug);
+  const limits = affixLimits(craft, item.category, base?.implicitLines ?? []);
   for (const [side, list] of [['prefix', craft.prefixes], ['suffix', craft.suffixes]] as const) {
-    if (list.length > limit) {
-      warn('affix-over-limit', `${item.name} has ${list.length} ${side}es; a ${craft.rarity} item can have ${limit}.`);
+    if (list.length > limits[side]) {
+      const whose = limits[side] === affixLimits(craft, item.category)[side] ? `a ${craft.rarity} item` : `this ${craft.rarity} ${item.name}`;
+      warn('affix-over-limit', `${item.name} has ${list.length} ${side}es; ${whose} can have ${limits[side]}.`);
     }
   }
 
-  const base = data.bases.get(item.slug);
-  const tags = new Set(base?.tags ?? []);
+  const tags = spawnTagsOf(base?.tags ?? [], base?.implicitLines ?? []);
   const groups = new Set<string>();
   const affixes: [CraftedMod, 'prefix' | 'suffix'][] = [
     ...craft.prefixes.map((m) => [m, 'prefix'] as [CraftedMod, 'prefix']),
