@@ -258,6 +258,27 @@ describe('deleteCheckpoint', () => {
     results['build_checkpoints:delete'] = { data: [], error: null };
     expect(await deleteCheckpoint(CP_A)).toEqual(NOT_FOUND);
   });
+
+  // Deleting the mirrored checkpoint re-points the build row at a survivor
+  // (a database trigger) and copies its gems — but not main_skill, which the
+  // save route derives in code. The finder then showed, and filtered on, the
+  // deleted checkpoint's skill (review 2026-09-26).
+  it("re-derives the build's main skill from the gems the build now mirrors", async () => {
+    results['build_checkpoints:delete'] = { data: [{ id: CP_A, build_id: BUILD }], error: null };
+    results['builds:select:gem_state'] = {
+      data: {
+        gem_state: {
+          loadouts: [{ id: 'l1', skill: { slug: 'ice-nova', name: 'Ice Nova', category: 'Active Skill Gem', isUnique: false, iconUrl: null }, supports: [], sets: [1, 2], level: 1, quality: 0 }],
+          primaryId: 'l1',
+        },
+      },
+      error: null,
+    };
+    expect(await deleteCheckpoint(CP_A)).toEqual({ ok: true });
+    const update = calls.find((c) => c.table === 'builds' && c.op === 'update');
+    expect(update?.arg).toEqual({ main_skill: 'Ice Nova' });
+    expect(update?.filters).toEqual(expect.arrayContaining([['id', BUILD], ['user_id', USER]]));
+  });
 });
 
 describe('reorderCheckpoints', () => {

@@ -27,6 +27,7 @@
 import { refresh } from 'next/cache';
 import { createClient, getCachedUser } from '@/lib/supabase/server';
 import { UUID_RE } from '@/lib/build/constants';
+import { deriveMainSkill, parseGemState } from '@/lib/build/gemState';
 import type { Json } from '@/types/database';
 import { cleanGearStateInput, cleanGemStateInput, cleanPassiveStateInput } from '@/lib/build/stateInput';
 import type { ActionResult } from './actions';
@@ -222,7 +223,7 @@ export async function deleteCheckpoint(id: string): Promise<ActionResult> {
   if (!userData.user) return NOT_FOUND;
 
   const supabase = await createClient();
-  const { data, error } = await supabase.from('build_checkpoints').delete().eq('id', id).select('id');
+  const { data, error } = await supabase.from('build_checkpoints').delete().eq('id', id).select('id, build_id');
 
   if (error) {
     // 23514: the prevent_deleting_last_checkpoint trigger. A build always
@@ -236,8 +237,32 @@ export async function deleteCheckpoint(id: string): Promise<ActionResult> {
   }
   if (!data || data.length === 0) return NOT_FOUND;
 
+  await rederiveMainSkill(supabase, data[0].build_id, userData.user.id);
   refresh();
   return { ok: true };
+}
+
+/**
+ * Brings builds.main_skill in line with the gems the build row mirrors.
+ *
+ * Deleting the mirrored checkpoint re-points the build at a survivor and copies
+ * its gems (repoint_build_mirror_on_checkpoint_delete), but main_skill is
+ * derived in code, by the save route, so the finder kept showing — and
+ * filtering on — the deleted checkpoint's skill (review 2026-09-26). The
+ * delete has already happened, so a failure here is logged, not reported.
+ */
+async function rederiveMainSkill(supabase: Awaited<ReturnType<typeof createClient>>, buildId: string, userId: string): Promise<void> {
+  const { data: mirror, error } = await supabase.from('builds').select('gem_state').eq('id', buildId).eq('user_id', userId).maybeSingle();
+  if (error || !mirror) {
+    if (error) console.error('Failed to read the build after deleting a checkpoint:', error);
+    return;
+  }
+  const { error: updateError } = await supabase
+    .from('builds')
+    .update({ main_skill: deriveMainSkill(parseGemState(mirror.gem_state)) })
+    .eq('id', buildId)
+    .eq('user_id', userId);
+  if (updateError) console.error("Failed to update the build's main skill after deleting a checkpoint:", updateError);
 }
 
 /**
