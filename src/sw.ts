@@ -1,6 +1,7 @@
 import { defaultCache } from '@serwist/next/worker';
 import { NetworkOnly, Serwist } from 'serwist';
 import type { PrecacheEntry, RouteHandler, RouteHandlerObject, SerwistGlobalConfig } from 'serwist';
+import { PERSONAL_CACHE_NAMES, publicAssetCaching } from './lib/pwa/runtimeCaching';
 
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -29,8 +30,12 @@ const serwist = new Serwist({
       matcher: ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith('/data/wiki/'),
       handler: new NetworkOnly(),
     },
-    ...defaultCache, // default asset caching for everything else — no other
-                      // custom rules; installable-only scope, per the design spec
+    // Public static assets only. The rest of defaultCache stores pages, RSC
+    // payloads, /api responses and cross-origin (Supabase) calls — a
+    // signed-in user's own responses, kept after sign-out (review
+    // 2026-09-26). See src/lib/pwa/runtimeCaching.ts. Anything not matched
+    // here goes to the network as if there were no service worker.
+    ...publicAssetCaching(defaultCache),
   ],
 });
 
@@ -63,6 +68,9 @@ const defaultCacheNames = new Set(
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
+      // The caches publicAssetCaching() no longer uses may still hold another
+      // user's pages and API responses from before 2026-09-26. Drop them whole.
+      await Promise.all(PERSONAL_CACHE_NAMES.map((name) => caches.delete(name)));
       const cacheNames = (await caches.keys()).filter((name) => defaultCacheNames.has(name));
       await Promise.all(
         cacheNames.map(async (name) => {

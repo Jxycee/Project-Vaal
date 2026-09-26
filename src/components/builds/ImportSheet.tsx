@@ -20,6 +20,7 @@ import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
 import { importPobBuild, previewPobImport, type ImportSummary } from '@/app/(dashboard)/builds/importActions';
 import type { ReportEntry } from '@/lib/pob/report';
+import { callAction } from '@/lib/callAction';
 
 const BUTTON = 'flex h-11 min-w-11 items-center justify-center rounded-md border border-border px-3 text-sm text-foreground disabled:opacity-50';
 
@@ -47,7 +48,7 @@ export default function ImportSheet() {
   const runPreview = () => {
     setError(null);
     startTransition(async () => {
-      const result = await previewPobImport(input);
+      const result = await callAction(() => previewPobImport(input));
       if (!result.ok) {
         setPreview(null);
         setError(result.error);
@@ -61,7 +62,7 @@ export default function ImportSheet() {
   const runImport = () => {
     setError(null);
     startTransition(async () => {
-      const result = await importPobBuild(input, name);
+      const result = await callAction(() => importPobBuild(input, name));
       if (!result.ok) {
         setError(result.error);
         return;

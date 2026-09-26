@@ -134,7 +134,7 @@ describe('importPobBuild — the real build', () => {
     expect(args.p_build).toMatchObject({
       name: 'My Witchhunter',
       class: 'Mercenary',
-      ascendancy: 'Mercenary2',
+      ascendancy: 'Witchhunter',
       level: 94,
       main_skill: 'Siege Ballista',
     });

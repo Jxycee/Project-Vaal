@@ -18,7 +18,7 @@
 
 import { nanoid } from 'nanoid';
 import { refresh } from 'next/cache';
-import { GAME_VERSION } from '@/lib/build/constants';
+import { GAME_VERSION, MAX_BUILD_NAME_LENGTH } from '@/lib/build/constants';
 import { deriveMainSkill } from '@/lib/build/gemState';
 import { cleanGearStateInput, cleanGemStateInput, cleanPassiveStateInput } from '@/lib/build/stateInput';
 import { getCatalogue } from '@/lib/pob/catalogue';
@@ -30,8 +30,8 @@ import { MAX_CODE_BYTES, resolvePobInput } from '@/lib/pob/source';
 import { createClient, getCachedUser } from '@/lib/supabase/server';
 import type { Json } from '@/types/database';
 
-// Matches renameBuild's limit in actions.ts.
-const MAX_NAME_LENGTH = 80;
+// The builds_name_length CHECK constraint's bound, shared with POST /api/builds.
+const MAX_NAME_LENGTH = MAX_BUILD_NAME_LENGTH;
 
 const SIGNED_OUT: { ok: false; error: string } = { ok: false, error: 'Sign in to import a build.' };
 

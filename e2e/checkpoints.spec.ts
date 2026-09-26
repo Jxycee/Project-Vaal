@@ -75,9 +75,19 @@ test.describe('leveling checkpoints', () => {
     await test.step('add a second checkpoint as a copy, then make it diverge', async () => {
       await sheet.getByLabel('Checkpoint name').fill('Level 94');
       await sheet.getByLabel('Checkpoint level').fill('94');
+      // /tree now names the open checkpoint in the URL on load, so the URL
+      // already has ?checkpoint= (checkpoint 0's) before the add. Waiting for
+      // "any checkpoint=" resolved at once on the old URL, captured checkpoint
+      // 0's id and allocated before the navigation landed (2026-09-26). Wait
+      // for a different id instead.
+      const firstCheckpointId = new URL(page.url()).searchParams.get('checkpoint');
+      expect(firstCheckpointId, '/tree did not name the open checkpoint in its URL').toBeTruthy();
       await sheet.getByRole('button', { name: 'Add checkpoint' }).click();
 
-      await page.waitForURL(/[?&]checkpoint=/);
+      await page.waitForURL((url) => {
+        const id = url.searchParams.get('checkpoint');
+        return id !== null && id !== firstCheckpointId;
+      });
       await waitForTreeApi(page);
       secondCheckpointId = new URL(page.url()).searchParams.get('checkpoint')!;
 
@@ -128,6 +138,28 @@ test.describe('leveling checkpoints', () => {
       // A fresh load with no ?checkpoint= opens position 0 — now Level 94.
       await openTree(page, buildId);
       await expect.poll(async () => (await treeState(page)).allocated.length).toBe(secondAlloc);
+    });
+
+    await test.step('the editor stays on its checkpoint when another one moves above it', async () => {
+      // A link with no ?checkpoint= (My Builds, Import, Edit) used to leave the
+      // choice to "whichever is first", so a reorder silently switched the
+      // editor to a different checkpoint. The page now names the checkpoint
+      // in the URL on load, so a reorder changes nothing about what is open.
+      await openTree(page, buildId);
+      await page.waitForURL(/[?&]checkpoint=/, { timeout: 30_000 });
+      const openedOn = new URL(page.url()).searchParams.get('checkpoint');
+      await expect.poll(async () => (await treeState(page)).allocated.length).toBe(secondAlloc);
+
+      await openSheet();
+      await sheet.getByRole('button', { name: 'Move Level 94 down' }).click();
+      await expect(rows.first()).toContainText('Level 31');
+
+      expect(new URL(page.url()).searchParams.get('checkpoint')).toBe(openedOn);
+      await expect.poll(async () => (await treeState(page)).allocated.length).toBe(secondAlloc);
+
+      // Put the order back for the steps below.
+      await sheet.getByRole('button', { name: 'Move Level 94 up' }).click();
+      await expect(rows.first()).toContainText('Level 94');
     });
 
     await test.step('a link-shared build shows each checkpoint as its own stage', async () => {

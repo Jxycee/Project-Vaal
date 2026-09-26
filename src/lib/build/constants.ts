@@ -28,6 +28,17 @@ export const MAX_WEAPON_SET_POINTS = 24;
 export const MAX_NOTES_LENGTH = 4000;
 
 /**
+ * Caps on the short text columns of `builds`, matched by CHECK constraints
+ * since 20260926141500_build_write_guard. The name cap is the 80 renameBuild
+ * and the PoB import already used; the others are headroom over the longest
+ * real value (class and ascendancy ids are under 20 characters, gem names
+ * under 50, league names under 30).
+ */
+export const MAX_BUILD_NAME_LENGTH = 80;
+export const MAX_BUILD_LABEL_LENGTH = 64;
+export const MAX_MAIN_SKILL_LENGTH = 200;
+
+/**
  * Shape-check for a `builds.id` value. `?build=` on /tree and the `id`
  * argument to the Server Functions in `builds/actions.ts` are both UUIDs;
  * /builds/[shareToken] is a separate, 21-char nanoid and does not use this.

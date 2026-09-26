@@ -14,7 +14,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { nanoid } from 'nanoid';
 import { createClient } from '@/lib/supabase/server';
-import { GAME_VERSION, MAX_NOTES_LENGTH, UUID_RE } from '@/lib/build/constants';
+import {
+  GAME_VERSION,
+  MAX_BUILD_LABEL_LENGTH,
+  MAX_BUILD_NAME_LENGTH,
+  MAX_MAIN_SKILL_LENGTH,
+  MAX_NOTES_LENGTH,
+  UUID_RE,
+} from '@/lib/build/constants';
 import type { PassiveState } from '@/lib/build/types';
 import { cleanGearStateInput, cleanGemStateInput, cleanPassiveStateInput } from '@/lib/build/stateInput';
 import type { Database, Json } from '@/types/database';
@@ -99,6 +106,22 @@ export async function POST(request: NextRequest) {
   const className = typeof body.class === 'string' ? body.class.trim() : '';
   if (!className) {
     return NextResponse.json({ error: 'Class is required' }, { status: 400 });
+  }
+
+  // Every build row is listed to other users (the finder, shared pages), so
+  // the short text fields are bounded here and by CHECK constraints alike
+  // (20260926141500_build_write_guard). A 400 here is the readable version of
+  // what the database would refuse anyway.
+  if (name.length > MAX_BUILD_NAME_LENGTH) {
+    return NextResponse.json({ error: `Name must be ${MAX_BUILD_NAME_LENGTH} characters or fewer` }, { status: 400 });
+  }
+  const tooLong =
+    className.length > MAX_BUILD_LABEL_LENGTH ||
+    (typeof body.ascendancy === 'string' && body.ascendancy.length > MAX_BUILD_LABEL_LENGTH) ||
+    (typeof body.league === 'string' && body.league.trim().length > MAX_BUILD_LABEL_LENGTH) ||
+    (typeof body.main_skill === 'string' && body.main_skill.length > MAX_MAIN_SKILL_LENGTH);
+  if (tooLong) {
+    return NextResponse.json({ error: 'A build field is too long' }, { status: 400 });
   }
 
   const level = typeof body.level === 'number' ? Math.trunc(body.level) : 1;

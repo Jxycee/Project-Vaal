@@ -99,6 +99,20 @@ describe('catalogue — lookups', () => {
     expect(tree.ascendancyOf(45969)).toBeNull();
   });
 
+  it('finds a crafted mod by the GGG id PoB writes, however the sync spelled its file', async () => {
+    // Mod files are named slugify(GGG id): '_' becomes '-', trailing '_'s go.
+    // PoB writes the raw id, so 113 real ids (many top tiers) once missed.
+    const { items } = await getCatalogue();
+    const lookups = await items.craftLookupsFor!('stellar-amulet');
+    expect(lookups.modById('LocalIncreasedEvasionRating9___')?.slug).toBe('localincreasedevasionrating9');
+    expect(lookups.modById('AllAttributes9_')?.slug).toBe('allattributes9');
+    expect(lookups.modById('FlaskBleedingAndCorruptedBloodImmunityDuringEffect_1')?.slug).toBe(
+      'flaskbleedingandcorruptedbloodimmunityduringeffect-1',
+    );
+    expect(lookups.modById('IncreasedLife4')?.slug).toBe('increasedlife4');
+    expect(lookups.modById('NotARealMod1')).toBeNull();
+  });
+
   it('finds items by exact name, uniques flagged', async () => {
     const { items } = await getCatalogue();
     expect(items.byName.get('Stellar Amulet')).toMatchObject({ category: 'Amulet', isUnique: false });

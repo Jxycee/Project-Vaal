@@ -86,6 +86,27 @@ describe('mapBuild — every way it can go wrong', () => {
     expect(p.build.level).toBe(100);
   });
 
+  it('gives an untitled tree the build level, not the number in its fallback name', async () => {
+    // PoB omits the title of a tree nobody named. The fallback name
+    // "Checkpoint 1" must not be read as level 1 — the import would then set
+    // a level-94 build to level 1 (the build row mirrors the last checkpoint).
+    const p = await plan(build({ level: 94, specs: [spec(''), spec('  ^7 ')] }));
+    expect(p.checkpoints.map((c) => [c.name, c.level])).toEqual([
+      ['Checkpoint 1', 94],
+      ['Checkpoint 2', 94],
+    ]);
+  });
+
+  it('reads the level, not the act number, from a title that has both', async () => {
+    const p = await plan(
+      build({
+        level: 90,
+        specs: [spec('Act 3 - lvl 40'), spec('Acto 3 - Nivel 37'), spec('Act 2'), spec('Lv.45 act 4'), spec('Level 68')],
+      }),
+    );
+    expect(p.checkpoints.map((c) => c.level)).toEqual([40, 37, 90, 45, 68]);
+  });
+
   it('strips colour codes from titles, falls back when a title is empty, and caps at 80 characters', async () => {
     const long = 'L'.repeat(120);
     const p = await plan(build({ specs: [spec('^5Early ^xADAA47Game'), spec('  ^7 '), spec(long)] }));
@@ -133,7 +154,7 @@ describe('mapBuild — the real build', async () => {
   const { build: row, checkpoints, report } = result.plan;
 
   it('is a Witchhunter build at level 94', () => {
-    expect(row).toMatchObject({ class: 'Mercenary', ascendancy: 'Mercenary2', level: 94, name: 'Witchhunter — imported' });
+    expect(row).toMatchObject({ class: 'Mercenary', ascendancy: 'Witchhunter', level: 94, name: 'Witchhunter — imported' });
     expect(row.notes!.length).toBeGreaterThan(1000);
     expect(row.notes).not.toMatch(/\^(x[0-9A-Fa-f]{6}|\d)/);
   });

@@ -13,7 +13,9 @@
 // - One checkpoint per PoB spec, in spec order, named by its title with
 //   PoB's colour codes stripped. Position 0 is the first spec, so the build
 //   opens on its earliest stage; PoB's activeSpec is reported, not used.
-// - A checkpoint's level is the first integer 1–100 in its title, else the
+// - A checkpoint's level comes from its title — a number marked as the level
+//   ("lvl 40", "Nivel 37"), else the first 1–100 number that is not an act
+//   number — else the build's level; an untitled tree always takes the
 //   build's level. PoB stores no per-spec level, so every one is reported as
 //   inferred.
 // - PoB holds one item set and one skill set, so every checkpoint gets the
@@ -62,10 +64,25 @@ function clampLevel(level: number): number {
   return Math.min(100, Math.max(1, Math.trunc(level)));
 }
 
+/** "lvl 40", "Level 68", "Nivel 37", "Lv.45" — a number a word marks as the level. */
+const LEVEL_NUMBER = /\b(?:level|lvl|lv|nivel|niveau|livello|stufe|poziom)\.?\s*(\d{1,3})\b/i;
+/** Text ending in an act word: the number after it is an act, not a level ("Act 3", "Acto 2"). */
+const ENDS_WITH_ACT = /\b(?:act|acto|atto|acte|akt|ato)\s*$/i;
+
+/**
+ * The level a checkpoint title names. A number marked as the level wins;
+ * otherwise the first 1–100 number that is not an act number. Titles like
+ * "Act 3 - lvl 40" used to read as level 3.
+ */
 function levelInTitle(title: string): number | null {
+  const marked = LEVEL_NUMBER.exec(title);
+  if (marked) {
+    const n = Number(marked[1]);
+    if (n >= 1 && n <= 100) return n;
+  }
   for (const match of title.matchAll(/\d+/g)) {
     const n = Number(match[0]);
-    if (n >= 1 && n <= 100) return n;
+    if (n >= 1 && n <= 100 && !ENDS_WITH_ACT.test(title.slice(0, match.index))) return n;
   }
   return null;
 }
@@ -133,7 +150,11 @@ export async function mapBuild(pob: PobBuild, catalogue: Catalogue, options: { n
   pob.specs.forEach((spec, i) => {
     const number = i + 1;
     let name = stripColourCodes(spec.title).replace(/\s+/g, ' ').trim();
-    if (!name) name = `Checkpoint ${number}`;
+    // PoB omits the title of a tree nobody named. Its fallback name is ours,
+    // so it must never be read for a level: "Checkpoint 1" once made a
+    // level-94 import level 1.
+    const titled = name !== '';
+    if (!titled) name = `Checkpoint ${number}`;
     if (name.length > MAX_CHECKPOINT_NAME_LENGTH) {
       report.push({
         kind: 'dropped',
@@ -144,7 +165,7 @@ export async function mapBuild(pob: PobBuild, catalogue: Catalogue, options: { n
       name = name.slice(0, MAX_CHECKPOINT_NAME_LENGTH);
     }
 
-    const fromTitle = levelInTitle(name);
+    const fromTitle = titled ? levelInTitle(name) : null;
     const level = fromTitle ?? buildLevel;
     report.push({
       kind: 'inferred',
@@ -201,7 +222,11 @@ export async function mapBuild(pob: PobBuild, catalogue: Catalogue, options: { n
   return {
     ok: true,
     plan: {
-      build: { name, class: pob.className, ascendancy: ascendancyId, level: buildLevel, notes },
+      // Stored as the editor stores it: tree-core's normalized ascendancy id,
+      // which is the display name ("Witchhunter"). GGG's raw id
+      // ("Mercenary2") is only for matching tree nodes (mapTree above); stored,
+      // the editor found no ascendancy by it and opened the build without one.
+      build: { name, class: pob.className, ascendancy: ascendancyName, level: buildLevel, notes },
       checkpoints,
       report,
     },

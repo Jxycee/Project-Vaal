@@ -33,6 +33,30 @@ describe('isGearItem', () => {
 });
 
 describe('parseGearState', () => {
+  // Rows can reach the database without passing the write gate (a direct
+  // PostgREST write, or a row written before the gate existed), and every
+  // stored item is rendered for OTHER viewers. So the reader, too, must never
+  // hand an off-origin icon or a path-shaped slug to the UI.
+  it('keeps an item but blanks an icon URL the write gate would refuse', () => {
+    const tracked = { ...boots, iconUrl: 'https://attacker.example/p.gif' };
+    const state = parseGearState({ boots: tracked, jewels: { '1': { ...tracked, category: 'Jewel' } } });
+    expect(state.boots).toEqual({ ...boots, iconUrl: null });
+    expect(state.jewels['1'].iconUrl).toBeNull();
+  });
+
+  it('keeps a same-origin wiki icon as it is', () => {
+    const icon = '/data/wiki/2026-08-25/icons/items/wanderlust.png';
+    expect(parseGearState({ boots: { ...boots, iconUrl: icon } }).boots?.iconUrl).toBe(icon);
+  });
+
+  it('drops an item whose slug could leave the wiki data directory', () => {
+    for (const slug of ['../../api/prices/sync', 'Wanderlust', 'wander lust', '']) {
+      const state = parseGearState({ boots: { ...boots, slug }, jewels: { '1': { ...boots, slug } } });
+      expect(state.boots).toBeNull();
+      expect(state.jewels).toEqual({});
+    }
+  });
+
   it('returns an all-null state (and empty jewels) for non-object input (new build, missing column)', () => {
     for (const raw of [null, undefined, 'garbage', 42, []]) {
       const state = parseGearState(raw);

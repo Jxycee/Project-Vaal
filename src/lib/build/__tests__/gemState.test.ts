@@ -59,6 +59,18 @@ describe('newLoadout', () => {
 });
 
 describe('parseGemState', () => {
+  it('blanks an off-origin icon on a skill or support, and drops a path-shaped slug', () => {
+    const gem = { slug: 'fireball', name: 'Fireball', category: 'Active Skill Gems', isUnique: false, iconUrl: '//attacker.example/p.png' };
+    const state = parseGemState({
+      loadouts: [{ id: 'a', skill: gem, supports: [gem, { ...gem, slug: '../x' }], sets: [1, 2], level: 1, quality: 0 }],
+      primaryId: 'a',
+    });
+    expect(state.loadouts[0].skill?.iconUrl).toBeNull();
+    expect(state.loadouts[0].supports).toHaveLength(1);
+    expect(state.loadouts[0].supports[0].iconUrl).toBeNull();
+    expect(parseGemState({ loadouts: [{ id: 'b', skill: { ...gem, slug: '../x' } }] }).loadouts[0].skill).toBeNull();
+  });
+
   it('returns empty state for non-object input', () => {
     for (const raw of [null, undefined, 'garbage', 42, []]) {
       expect(parseGemState(raw)).toEqual({ loadouts: [], primaryId: null });

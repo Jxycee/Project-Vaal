@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import {
   allocateNodes,
   cleanupWithFreshPage,
+  nodesNearStart,
   openTree,
   saveBuild,
   testBuildName,
@@ -38,6 +39,43 @@ test.describe('draft restore', () => {
 
     await page.getByRole('button', { name: 'Restore' }).click();
     await expect.poll(async () => (await treeState(page)).allocated.length).toBe(before);
+  });
+
+  test('edits made while a save is in flight keep their draft', async ({ page }) => {
+    // The save only carries the state at the moment it was sent. Clearing the
+    // draft on success used to throw away anything allocated while it was in
+    // flight (review 2026-09-26); the prompt must still offer it afterwards.
+    await openTree(page);
+    await allocateNodes(page, await twoNodes(page));
+    await page.route('**/api/builds', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 3_000));
+      await route.continue();
+    });
+
+    const panel = page.getByRole('button', { name: /^(Save build|Saved build)$/ });
+    if (await panel.isVisible().catch(() => false)) await panel.click();
+    await page.locator('#build-name').fill(testBuildName('in-flight'));
+    await page.getByRole('button', { name: /^(Save|Update)$/ }).click();
+
+    // While the save is held back, allocate more. Walk outward rather than
+    // take the start's own neighbours: some class starts have only two, both
+    // already taken above, which made `more` empty and the test vacuous —
+    // nothing changed in flight, so clearing the draft was correct (2026-09-26).
+    const taken = new Set((await treeState(page)).allocated);
+    const more = (await nodesNearStart(page, 6)).filter((id) => !taken.has(id)).slice(0, 2);
+    expect(more.length, 'no unallocated nodes near the start to add in flight').toBe(2);
+    const before = (await treeState(page)).allocated.length;
+    await allocateNodes(page, more);
+    const after = (await treeState(page)).allocated.length;
+    expect(after, 'the in-flight allocation did not change the tree').toBeGreaterThan(before);
+    await expect(page.getByText(/^Saved /)).toBeVisible({ timeout: 30_000 });
+    await page.unroute('**/api/builds');
+
+    await page.reload();
+    await waitForTreeApi(page);
+    await expect(page.getByText(RESTORE)).toBeVisible({ timeout: 30_000 });
+    await page.getByRole('button', { name: 'Restore' }).click();
+    await expect.poll(async () => (await treeState(page)).allocated.length).toBe(after);
   });
 
   test('a tampered draft restores to something that still saves', async ({ page }) => {

@@ -45,8 +45,8 @@ export interface CraftMod {
 }
 
 export interface CraftLookups {
-  /** A mod by its slug (a PoB id lowercased), or null. */
-  modById(slug: string): CraftMod | null;
+  /** A mod by the GGG id PoB writes ("LocalIncreasedEvasionRating9___"), or null. */
+  modById(id: string): CraftMod | null;
   /** Prefix and suffix tiers that can roll on this base, for pasted text. */
   candidates: CraftMod[];
   /** The base's implicit lines and, for a unique, its own lines. */
@@ -134,7 +134,7 @@ export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups):
     if (affix) {
       isCrafted = true;
       if (affix[3] === 'None') continue;
-      const mod = lookups.modById(affix[3].toLowerCase());
+      const mod = lookups.modById(affix[3]);
       if (!mod) {
         notes.push({ kind: 'dropped', message: `The mod ${affix[3]} is not in this patch's data, so it was not kept.` });
         continue;

@@ -88,6 +88,11 @@ test.describe('Path of Building 2 import', () => {
       await expect.poll(async () => (await treeState(page)).allocated.length, { timeout: 30_000 }).toBe(35);
       // Slice 5: spec 1's eleven "+attribute" choices came across and saved.
       expect(Object.keys((await treeState(page)).attributeChoices)).toHaveLength(11);
+      // The editor selects ascendancies by tree-core's normalized id, which
+      // is the display name. An import that stored GGG's raw id
+      // ("Mercenary2") opened with no ascendancy selected (2026-09-26).
+      expect((await treeState(page)).ascendancyId).toBe('Witchhunter');
+      expect((await treeState(page)).ascendancyNodes).toHaveLength(2);
 
       await page.getByRole('button', { name: /^Checkpoints/ }).click();
       const cpSheet = page.getByTestId('checkpoints-sheet');

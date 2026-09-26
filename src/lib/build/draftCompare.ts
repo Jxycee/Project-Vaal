@@ -18,6 +18,7 @@ import type { SavedBuild } from '@/lib/build/types';
 import type { BuildDraftState } from '@/lib/build/draft';
 import { GEAR_SLOTS } from '@/lib/build/gearSlots';
 import type { GearItem } from '@/lib/build/gearSlots';
+import { parseCraft } from '@/lib/build/craft';
 import { parseGearState, type GearState } from '@/lib/build/gearState';
 import { parseGemState, type GemLoadout, type GemState } from '@/lib/build/gemState';
 
@@ -36,6 +37,15 @@ function sameNumberSet(a: number[], b: number[]): boolean {
   return sa.every((n, i) => n === sb[i]);
 }
 
+/**
+ * An item's craft in one canonical form. parseCraft rebuilds it field by
+ * field from emptyCraft, so key order in storage or in the draft never counts
+ * as a difference; an item with no craft is null.
+ */
+function craftKey(item: GearItem): string {
+  return JSON.stringify(parseCraft(item.craft, item.isUnique) ?? null);
+}
+
 function gearItemEqual(a: GearItem | null, b: GearItem | null): boolean {
   if (a === null || b === null) return a === b;
   return (
@@ -43,7 +53,10 @@ function gearItemEqual(a: GearItem | null, b: GearItem | null): boolean {
     a.name === b.name &&
     a.category === b.category &&
     a.isUnique === b.isUnique &&
-    a.iconUrl === b.iconUrl
+    a.iconUrl === b.iconUrl &&
+    // Slice 4: the item editor changes only the craft, so an affix-only edit
+    // must count — or the restore prompt never shows and the edit is lost.
+    craftKey(a) === craftKey(b)
   );
 }
 

@@ -72,6 +72,11 @@ test.describe('POST /api/builds refuses bad requests before writing', () => {
     // A tracking pixel planted on a public build would load for every viewer.
     ['an off-origin icon URL', validBody({ gear_state: { head: { ...HELMET, iconUrl: 'https://attacker.example/p.gif' } } }), 400],
     ['a malformed gear item', validBody({ gear_state: { head: { name: 'no slug' } } }), 400],
+    // A slug becomes part of a fetch path in every viewer's browser.
+    ['a path-shaped item slug', validBody({ gear_state: { head: { ...HELMET, slug: '../../api/wiki/items' } } }), 400],
+    // Build rows are listed to other users; the database bounds these too.
+    ['an 81-character name', validBody({ name: `E2E-${'x'.repeat(77)}` }), 400],
+    ['a 65-character league', validBody({ league: 'x'.repeat(65) }), 400],
     // A non-UUID id answers exactly like a real id that is not yours.
     ['a non-UUID build id', validBody({ id: 'not-a-uuid' }), 404],
     ['a non-UUID checkpoint id', validBody({ id: crypto.randomUUID(), checkpoint_id: 'nope' }), 404],
@@ -148,6 +153,83 @@ test.describe('POST /api/builds keeps what a save did not send', () => {
     const body = (await record(testInfo, 'extra field', res)) as { build: { gear_state: Record<string, object> } };
     expect(res.ok()).toBe(true);
     expect(body.build.gear_state.head).toEqual(HELMET);
+  });
+});
+
+// The write gate runs in our server, but a signed-in user holds the public
+// anon key and their own session token, so they can write to the tables
+// through PostgREST without ever calling POST /api/builds. The database must
+// refuse the same things (20260926141500_build_write_guard). These requests
+// are exactly what such a user would send.
+test.describe('the database refuses what the write gate refuses, from a direct client write', () => {
+  test.afterAll(async ({ browser }) => {
+    await cleanupWithFreshPage(browser);
+  });
+
+  async function accessToken(page: import('@playwright/test').Page): Promise<string> {
+    const parts = (await page.context().cookies())
+      .filter((c) => /^sb-.+-auth-token(\.\d+)?$/.test(c.name))
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    let raw = decodeURIComponent(parts.map((c) => c.value).join(''));
+    if (raw.startsWith('base64-')) raw = Buffer.from(raw.slice('base64-'.length), 'base64url').toString('utf8');
+    return (JSON.parse(raw) as { access_token: string }).access_token;
+  }
+
+  async function rest(page: import('@playwright/test').Page, method: 'PATCH' | 'POST', pathAndQuery: string, data: unknown) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    expect(url && key, 'NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be in .env.local').toBeTruthy();
+    return page.request.fetch(`${url}/rest/v1/${pathAndQuery}`, {
+      method,
+      data: data as never,
+      headers: {
+        apikey: key!,
+        authorization: `Bearer ${await accessToken(page)}`,
+        'content-type': 'application/json',
+        prefer: 'return=representation',
+      },
+    });
+  }
+
+  test('an off-origin icon, a forged view count and an over-long name are refused or ignored', async ({ page }, testInfo) => {
+    await page.goto('/builds');
+    const created = await page.request.post('/api/builds', { data: validBody({ gear_state: { head: HELMET } }) });
+    const { build, checkpoint } = (await record(testInfo, 'create', created)) as {
+      build: { id: string; share_token: string; view_count: number };
+      checkpoint: { id: string };
+    };
+    expect(created.ok()).toBe(true);
+
+    const pixel = { head: { ...HELMET, iconUrl: 'https://attacker.example/p.gif' } };
+    const checkpointWrite = await rest(page, 'PATCH', `build_checkpoints?id=eq.${checkpoint.id}`, { gear_state: pixel });
+    await record(testInfo, 'direct checkpoint write, off-origin icon', checkpointWrite);
+    expect(checkpointWrite.status()).toBe(400);
+
+    const buildWrite = await rest(page, 'PATCH', `builds?id=eq.${build.id}`, { gem_state: { loadouts: [{ id: 'a', skill: { ...HELMET, slug: '../x' }, supports: [] }] } });
+    await record(testInfo, 'direct build write, path-shaped slug', buildWrite);
+    expect(buildWrite.status()).toBe(400);
+
+    const forged = await rest(page, 'PATCH', `builds?id=eq.${build.id}`, { view_count: 1_000_000, share_token: 'A'.repeat(21) });
+    const forgedRows = (await record(testInfo, 'direct build write, forged counters', forged)) as Array<{ view_count: number; share_token: string }>;
+    expect(forged.ok()).toBe(true);
+    expect(forgedRows[0].view_count).toBe(build.view_count);
+    expect(forgedRows[0].share_token).toBe(build.share_token);
+
+    const longName = await rest(page, 'PATCH', `builds?id=eq.${build.id}`, { name: 'x'.repeat(81) });
+    await record(testInfo, 'direct build write, 81-character name', longName);
+    expect(longName.status()).toBe(400);
+
+    const imported = await rest(page, 'POST', 'rpc/import_build', {
+      p_build: { name: testBuildName('api-rpc'), class: 'Witch', level: 1, share_token: 'B'.repeat(21), game_version: '0.5.5' },
+      p_checkpoints: [{ name: 'x', level: 1, passive_state: {}, gear_state: pixel, gem_state: {} }],
+    });
+    await record(testInfo, 'direct import_build call, off-origin icon', imported);
+    expect(imported.status()).toBe(400);
+
+    // And the refused writes changed nothing: the saved helmet still has its own icon.
+    const shared = await page.request.post('/api/builds', { data: validBody({ id: build.id, checkpoint_id: checkpoint.id, gear_state: { head: HELMET } }) });
+    const after = (await record(testInfo, 'resave', shared)) as { build: { gear_state: { head: typeof HELMET } } };
+    expect(after.build.gear_state.head.iconUrl).toBe(HELMET.iconUrl);
   });
 });
 
