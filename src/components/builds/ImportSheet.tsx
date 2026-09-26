@@ -14,7 +14,7 @@
 // which is what e2e/mobile-layout.spec.ts's tap-target scan measures.
 // The scroll body's children are shrink-0: in a flex column, a long preview
 // otherwise squeezes the Preview button to 22px (caught by pob-import.spec.ts).
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
@@ -39,7 +39,11 @@ export default function ImportSheet() {
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<{ summary: ImportSummary; report: ReportEntry[] } | null>(null);
 
+  // The text as it is NOW, for a preview that resolves after it changed.
+  const latestInput = useRef('');
+
   const onInput = (value: string) => {
+    latestInput.current = value;
     setInput(value);
     setPreview(null);
     setError(null);
@@ -47,8 +51,13 @@ export default function ImportSheet() {
 
   const runPreview = () => {
     setError(null);
+    const asked = input;
     startTransition(async () => {
-      const result = await callAction(() => previewPobImport(input));
+      const result = await callAction(() => previewPobImport(asked));
+      // The text changed while this preview was fetched (a link preview goes
+      // to the build site): showing it would pair build A's summary and name
+      // with build B's text, and Import would then write B under A's name.
+      if (latestInput.current !== asked) return;
       if (!result.ok) {
         setPreview(null);
         setError(result.error);

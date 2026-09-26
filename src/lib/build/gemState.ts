@@ -34,8 +34,8 @@ export interface GemLoadout {
    * The SKILL's gem level. Default 1. Its upper bound is per-gem — read from
    * that gem's `scaling[]` max `level` in its wiki detail JSON (see
    * `fetchMaxGemLevel`, `src/lib/wiki/fetchGemScaling.ts`) — 40 for most
-   * Active Skill Gems, lower for some Spirit gems, capped at 1 when that
-   * data is unavailable. This module has no fetch access and does not know
+   * Active Skill Gems, lower for some Spirit gems, and not clamped at all
+   * when that data cannot be loaded. This module has no fetch access and does not know
    * that cap; it only guarantees an integer >= 1 (see `setLevel`). The UI
    * layer is responsible for clamping to the fetched per-gem max before
    * calling `setLevel`.

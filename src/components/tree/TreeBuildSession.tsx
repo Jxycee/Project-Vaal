@@ -259,15 +259,15 @@ export default function TreeBuildSession({
     // GemsSheet clamps the level only on a manual edit, so a swap to a gem
     // with a lower cap (a level-40 active replaced by a Spirit gem capped at
     // 8) would keep, and save, the old level. Clamp once the new gem's cap is
-    // known. Done here, on the swap itself, not as an effect on the card:
-    // fetchMaxGemLevel answers 1 when the data is unavailable (see its doc
-    // comment), and an effect would apply that to every existing loadout the
-    // moment the sheet opened on a bad connection.
+    // known. Done here, on the swap itself, not as an effect on the card, so
+    // opening the sheet never re-clamps loadouts nobody touched. A cap that
+    // could not be loaded is null, and leaves the level alone.
     void fetchMaxGemLevel(item.slug).then((max) =>
       setGemState((prev) => {
         const loadout = prev.loadouts.find((l) => l.id === id);
         // Only if this skill is still the one in the slot.
-        return loadout && loadout.skill?.slug === item.slug && loadout.level > max
+        // null = the cap could not be loaded: leave the level alone.
+        return max !== null && loadout && loadout.skill?.slug === item.slug && loadout.level > max
           ? setGemLevel(prev, id, max)
           : prev;
       }),

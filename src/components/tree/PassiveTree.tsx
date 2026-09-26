@@ -470,6 +470,9 @@ export default function PassiveTree({
   );
 
   const handleClass = useCallback((id: number) => {
+    // The reset below is for a class CHANGE. Tapping the class that is already
+    // selected (a natural way to dismiss the panel) used to wipe the tree too.
+    if (id === classId) return;
     setClassId(id);
     setAscendancyId(undefined);
     setMode(0);
@@ -479,7 +482,7 @@ export default function PassiveTree({
     setHoveredNode(null);
     setHoveredSkill(null);
     setPendingSkill(null);
-  }, []);
+  }, [classId]);
 
   const handleAscendancy = useCallback((id: string | undefined) => {
     setAscendancyId(id);

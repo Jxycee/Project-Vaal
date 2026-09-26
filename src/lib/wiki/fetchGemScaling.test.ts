@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { extractMaxGemLevel, extractReservationScaling } from './fetchGemScaling';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { extractMaxGemLevel, extractReservationScaling, fetchMaxGemLevel } from './fetchGemScaling';
 
 describe('extractMaxGemLevel', () => {
   it('returns the highest level in scaling', () => {
@@ -70,5 +70,35 @@ describe('extractReservationScaling', () => {
     for (const raw of [null, undefined, 'garbage', 42, [], {}, { scaling: 'nope' }, { scaling: [] }, { scaling: [{ nope: 1 }] }]) {
       expect(extractReservationScaling(raw)).toBeNull();
     }
+  });
+});
+
+// A failed load used to answer 1, and every caller took 1 as the gem's real
+// cap: swapping a skill on a flaky connection clamped its level to 1 and saved
+// that, and the level input then refused anything above 1 (review 2026-09-26).
+// "Could not load" is now null, which callers treat as "do not clamp".
+describe('fetchMaxGemLevel — a failed load is unknown, not a cap of 1', () => {
+  const answer = (init: { status?: number; type?: string; body?: string; throws?: boolean }) =>
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        if (init.throws) throw new TypeError('Failed to fetch');
+        return new Response(init.body ?? '{}', { status: init.status ?? 200, headers: { 'content-type': init.type ?? 'application/json' } });
+      }),
+    );
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('reads the cap from a loaded file', async () => {
+    answer({ body: JSON.stringify({ scaling: [{ level: 1 }, { level: 20 }] }) });
+    expect(await fetchMaxGemLevel('fireball')).toBe(20);
+  });
+
+  it('is null for an error status, a non-JSON answer (the /login redirect), or a network failure', async () => {
+    answer({ status: 500 });
+    expect(await fetchMaxGemLevel('fireball')).toBeNull();
+    answer({ type: 'text/html', body: '<html>login</html>' });
+    expect(await fetchMaxGemLevel('fireball')).toBeNull();
+    answer({ throws: true });
+    expect(await fetchMaxGemLevel('fireball')).toBeNull();
   });
 });

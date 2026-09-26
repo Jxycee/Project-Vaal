@@ -29,21 +29,24 @@ export function extractMaxGemLevel(raw: unknown): number {
 }
 
 /**
- * Fetches one skill's max gem level client-side. Never throws — a failed
- * request, non-JSON response, or malformed body all fall back to 1, same as
- * `extractMaxGemLevel` does for a malformed-but-present body. This is the
- * "if the gem's data is unavailable, fall back to allowing 1 only" rule.
+ * Fetches one skill's max gem level client-side. Never throws. A file that
+ * loads reads through `extractMaxGemLevel` (a malformed-but-present body is
+ * 1, as the data says). A load that FAILS — an error status, a non-JSON
+ * answer such as the /login redirect, a network error — is `null`: unknown,
+ * which every caller treats as "do not clamp". It used to answer 1, and
+ * callers took that as the gem's real cap: a skill swapped on a flaky
+ * connection was clamped to level 1 and saved that way (review 2026-09-26).
  */
-export async function fetchMaxGemLevel(slug: string): Promise<number> {
+export async function fetchMaxGemLevel(slug: string): Promise<number | null> {
   try {
     const res = await fetchWikiData(`/data/wiki/${WIKI_DATA_VERSION}/skills/${slug}.json`);
-    if (!res.ok) return 1;
+    if (!res.ok) return null;
     const contentType = res.headers.get('content-type') ?? '';
-    if (!contentType.includes('application/json')) return 1;
+    if (!contentType.includes('application/json')) return null;
     const data: unknown = await res.json();
     return extractMaxGemLevel(data);
   } catch {
-    return 1;
+    return null;
   }
 }
 

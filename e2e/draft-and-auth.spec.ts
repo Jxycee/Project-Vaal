@@ -169,3 +169,26 @@ test.describe('auth gating', () => {
     await expect.poll(() => new URL(page.url()).pathname).toBe('/login');
   });
 });
+
+// The class chips reset the tree on a class CHANGE. Tapping the class that is
+// already selected — the natural way to dismiss the panel — used to run the
+// same reset, with no confirm, and the draft followed it at once
+// (review 2026-09-26).
+test('tapping the class that is already selected keeps the tree', async ({ page }) => {
+  await openTree(page);
+  const nodes = await page.evaluate(() => {
+    const api = window.__vaalTree!;
+    return api.neighbours(api.startNode()).slice(0, 2);
+  });
+  await allocateNodes(page, nodes);
+  const { className, allocated } = await treeState(page);
+  expect(allocated.length).toBeGreaterThan(0);
+
+  // The collapsed chip names the class; opening it lists every class chip.
+  await page.getByRole('button', { name: className, exact: true }).first().click();
+  const classChips = page.getByRole('button', { name: className, exact: true });
+  await expect(classChips).toHaveCount(2);
+  await classChips.last().click();
+
+  await expect.poll(async () => (await treeState(page)).allocated.length).toBe(allocated.length);
+});

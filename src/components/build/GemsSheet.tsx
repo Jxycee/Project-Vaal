@@ -64,7 +64,7 @@ function useMaxGemLevel(slug: string | undefined): number | null {
   // (or cleared it) is recognised as stale and ignored below, rather than
   // requiring a synchronous setState(null) inside the effect body itself
   // (which react-hooks/set-state-in-effect flags) to reset it up front.
-  const [result, setResult] = useState<{ slug: string; max: number } | null>(null);
+  const [result, setResult] = useState<{ slug: string; max: number | null } | null>(null);
 
   useEffect(() => {
     if (!slug) return;
