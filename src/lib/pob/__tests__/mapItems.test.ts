@@ -378,3 +378,24 @@ describe('mapItems — the real build against the real catalogue', async () => {
     }
   });
 });
+
+// A unique our data lacks (15 real ones: Megalomaniac, Grip of Kulemak, …)
+// imports as its base. Its craft used to keep rarity 'unique' and turn the
+// unique's own lines into the base's affixes, so the validator then warned
+// "a unique item can have 0 prefixes" about an item that is not a unique.
+describe('mapItems — a unique missing from our data, against the real catalogue', () => {
+  it('imports the plain base: no unique rarity, no affixes made up from the unique\'s lines, and says so', async () => {
+    const { items } = await getCatalogue();
+    const { value, report } = await mapItems(
+      [item(1, ['Rarity: UNIQUE', 'Imaginary Unique', 'Heroic Armour', 'Quality: 20', 'Implicits: 0', '+100 to maximum Life', '+30% to Fire Resistance'])],
+      [slot('Body Armour', 1)],
+      items,
+    );
+    expect(value.body).toMatchObject({ name: 'Heroic Armour', isUnique: false });
+    expect(value.body?.craft).toMatchObject({ rarity: 'normal', quality: 20, prefixes: [], suffixes: [] });
+    const text = report.map((r) => r.message).join('\n');
+    expect(text).toContain('Imaginary Unique');
+    expect(text).toMatch(/2 lines? of Imaginary Unique/);
+    expect(cleanGearStateInput(value).ok).toBe(true);
+  });
+});

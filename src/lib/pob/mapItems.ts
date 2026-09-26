@@ -100,7 +100,15 @@ function dropped(message: string): ReportEntry {
   return { kind: 'dropped', area: 'items', message };
 }
 
-type Resolved = { found: CatalogueItem; displayName: string; note: ReportEntry | null } | { found: null; reason: string };
+type Resolved =
+  | {
+      found: CatalogueItem;
+      displayName: string;
+      note: ReportEntry | null;
+      /** The unique this base stands in for, when the unique itself is not in our data. */
+      standInFor?: string;
+    }
+  | { found: null; reason: string };
 
 function resolve(read: ReadItem, items: ItemLookup): Resolved {
   const baseByName = (name: string | undefined) => {
@@ -118,6 +126,7 @@ function resolve(read: ReadItem, items: ItemLookup): Resolved {
         found: base,
         displayName: base.name,
         note: dropped(`The unique ${read.line2} is not in this patch's item data, so its base, ${base.name}, was imported instead.`),
+        standInFor: read.line2 ?? 'the unique',
       };
     }
     case 'RARE':
@@ -169,13 +178,14 @@ async function importItem(
   where: string,
   items: ItemLookup,
   report: ReportEntry[],
+  standInFor?: string,
 ): Promise<GearItem> {
   const item = await toGearItem(found, items);
   if (!items.craftLookupsFor) {
     reportLostDetails(read, displayName, where, report);
     return item;
   }
-  const { craft, notes } = mapCraft(raw, found.isUnique, await items.craftLookupsFor(found.slug));
+  const { craft, notes } = mapCraft(raw, found.isUnique, await items.craftLookupsFor(found.slug), { standInFor });
   for (const note of notes) report.push({ kind: note.kind, area: 'items', message: `${displayName} (${where}): ${note.message}` });
   return { ...item, craft };
 }
@@ -257,7 +267,7 @@ export async function mapItems(
     }
 
     if (resolved.note) report.push(resolved.note);
-    value[slot] = await importItem(found, pobItem.raw, read, displayName, GEAR_SLOT_LABELS[slot], items, report);
+    value[slot] = await importItem(found, pobItem.raw, read, displayName, GEAR_SLOT_LABELS[slot], items, report, resolved.standInFor);
   }
 
   return { value, report };
@@ -302,7 +312,7 @@ export async function mapJewels(
     }
 
     if (resolved.note) report.push(resolved.note);
-    value[String(nodeId)] = await importItem(found, pobItem!.raw, read, displayName, where, items, report);
+    value[String(nodeId)] = await importItem(found, pobItem!.raw, read, displayName, where, items, report, resolved.standInFor);
   }
 
   return { value, report };

@@ -116,7 +116,19 @@ function matchLines(lines: string[], templates: string[], notes: CraftNote[], wh
   return rows;
 }
 
-export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups): { craft: ItemCraft; notes: CraftNote[] } {
+/**
+ * @param options.standInFor the unique this base was imported in place of,
+ *   when the unique is not in our data. The item is then the plain base: its
+ *   rarity is normal and the unique's own lines are reported, never turned
+ *   into the base's affixes (they are not affixes, and a "unique" base with
+ *   affixes only produced false affix-limit warnings).
+ */
+export function mapCraft(
+  raw: string,
+  isUnique: boolean,
+  lookups: CraftLookups,
+  options: { standInFor?: string } = {},
+): { craft: ItemCraft; notes: CraftNote[] } {
   const lines = raw
     .split(/\r?\n/)
     .map((l) => l.trim())
@@ -125,7 +137,7 @@ export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups):
   const craft = emptyCraft(isUnique);
 
   const rarityWord = /^Rarity: (\w+)$/.exec(lines[0] ?? '')?.[1] ?? '';
-  craft.rarity = isUnique ? 'unique' : (RARITY[rarityWord] ?? 'normal');
+  craft.rarity = isUnique ? 'unique' : options.standInFor !== undefined ? 'normal' : (RARITY[rarityWord] ?? 'normal');
   if (craft.rarity === 'rare' || craft.rarity === 'magic') craft.name = lines[1] ?? null;
   craft.corrupted = lines.includes('Corrupted') || lines.includes('Twice Corrupted');
 
@@ -192,7 +204,12 @@ export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups):
   }
   craft.implicitValues = matchLines(baseImplicits, lookups.base?.implicitLines ?? [], notes, 'The implicit');
 
-  if (isUnique) {
+  if (options.standInFor !== undefined) {
+    const lost = explicitLines.filter((l) => !l.includes('{rune}')).length;
+    if (lost > 0) {
+      notes.push({ kind: 'dropped', message: `${lost} ${lost === 1 ? 'line' : 'lines'} of ${options.standInFor} ${lost === 1 ? 'was' : 'were'} not kept — only its base is in this patch's data.` });
+    }
+  } else if (isUnique) {
     craft.uniqueValues = matchLines(explicitLines.filter((l) => !l.includes('{rune}')), lookups.base?.uniqueLines ?? [], notes, 'The unique line');
   } else if (isCrafted) {
     craft.prefixes = crafted.prefix;
