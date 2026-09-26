@@ -26,6 +26,7 @@
 
 import {
   bestRolls,
+  rollAt,
   emptyCraft,
   MAX_AFFIXES_PER_KIND,
   MAX_ITEM_QUALITY,
@@ -35,7 +36,7 @@ import {
   type ItemCraft,
   type ItemRarity,
 } from '@/lib/build/craft';
-import { matchTemplate, stripTags, valueAt } from './craftText';
+import { matchTemplate, stripTags } from './craftText';
 
 export interface CraftMod {
   slug: string;
@@ -70,6 +71,19 @@ function rangeFractionOf(line: string): number {
 function sameUnits(mod: CraftMod): boolean {
   const shown = mod.stats.flatMap(rangesIn);
   return shown.length === mod.rolls.length && shown.every((r, i) => r.min === mod.rolls[i].min && r.max === mod.rolls[i].max);
+}
+
+/**
+ * A "reduced"/"less" mod: every displayed range is its roll's magnitude
+ * ("(18-20)% reduced" over rolls -20..-18), so a shown value is its roll negated.
+ */
+function shownAsMagnitudes(mod: CraftMod): boolean {
+  const shown = mod.stats.flatMap(rangesIn);
+  return (
+    shown.length === mod.rolls.length &&
+    mod.rolls.some((r) => r.min < 0 || r.max < 0) &&
+    shown.every((r, i) => r.min === -mod.rolls[i].max && r.max === -mod.rolls[i].min)
+  );
 }
 
 /** Matches lines to template lines, each template used once; rows sized to the templates. */
@@ -140,7 +154,7 @@ export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups):
         continue;
       }
       const fraction = affix[2] === undefined ? 0.5 : Number(affix[2]);
-      crafted[affix[1] === 'Prefix' ? 'prefix' : 'suffix'].push({ slug: mod.slug, values: mod.rolls.map((r) => valueAt(r.min, r.max, fraction)) });
+      crafted[affix[1] === 'Prefix' ? 'prefix' : 'suffix'].push({ slug: mod.slug, values: mod.rolls.map((r) => rollAt(r, fraction)) });
     }
   }
   if (craft.runes.length > MAX_RUNES) craft.runes = craft.runes.slice(0, MAX_RUNES);
@@ -175,7 +189,10 @@ export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups):
       }
       const shown = two ? [...matchTemplate(pasted[i], hit.stats[0])!, ...matchTemplate(pasted[i + 1], hit.stats[1])!] : matchTemplate(pasted[i], hit.stats[0])!;
       let values = shown;
-      if (!sameUnits(hit)) {
+      if (shownAsMagnitudes(hit)) {
+        // "19% reduced" on a roll stored as -20..-18 is a roll of -19.
+        values = shown.map((v) => -v);
+      } else if (!sameUnits(hit)) {
         values = bestRolls(hit.rolls);
         notes.push({ kind: 'inferred', message: `"${pasted[i]}" was kept as its mod at the best roll — its shown value is in different units from the roll.` });
       }

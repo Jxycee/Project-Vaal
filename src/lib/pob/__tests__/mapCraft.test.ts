@@ -11,11 +11,14 @@ const LIFE = mod('increasedlife9');
 const CRIT = mod('localcriticalstrikechance4', { kind: 'suffix', rolls: [{ min: 311, max: 380 }], stats: ['+(3-4)% to Critical Hit Chance'] });
 const ADDED = mod('localaddedphysicaldamagetwohand7', { rolls: [{ min: 23, max: 35 }, { min: 39, max: 59 }], stats: ['Adds (23-35) to (39-59) Physical Damage'] });
 const HYBRID = mod('lifeandarmour3', { rolls: [{ min: 20, max: 30 }, { min: 10, max: 15 }], stats: ['+(20-30) to maximum Life', '(10-15)% increased Armour'] });
+// Our data stores "(18-20)% reduced" as rolls -20..-18 (checked on disk:
+// flaskchargesused2.json).
+const REDUCED = mod('flaskchargesused2', { kind: 'suffix', rolls: [{ min: -20, max: -18 }], stats: ['(18-20)% reduced Charges per use'] });
 const STR = mod('strength5', { kind: 'suffix', rolls: [{ min: 20, max: 24 }], stats: ['+(20-24) to Strength'] });
 
 const lookups = (over: Partial<CraftLookups> = {}): CraftLookups => ({
-  modById: (id) => [LIFE, CRIT, ADDED, HYBRID, STR].find((m) => m.slug === id.toLowerCase()) ?? null,
-  candidates: [HYBRID, LIFE, CRIT, ADDED, STR],
+  modById: (id) => [LIFE, CRIT, ADDED, HYBRID, STR, REDUCED].find((m) => m.slug === id.toLowerCase()) ?? null,
+  candidates: [HYBRID, LIFE, CRIT, ADDED, STR, REDUCED],
   base: { implicitLines: ['+(5-7) to all Attributes'], uniqueLines: [] },
   runeSlugByName: (name) => (name === 'Greater Body Rune' ? 'greater-body-rune' : null),
   ...over,
@@ -161,5 +164,24 @@ describe('mapCraft — uniques and runes', () => {
   it('does not report the rune-granted {rune} line as a lost implicit', () => {
     const { notes } = mapCraft(cloak, true, lookups({ base: uniqueBase }));
     expect(notes.some((n) => n.message.includes('+80 to maximum Life'))).toBe(false);
+  });
+});
+
+// PoB applies {range} to the line as displayed, so {range:1} on
+// "(18-20)% reduced" is 20% reduced — a roll of -20. The importer used to
+// read the fraction from min to max and keep -18, the weakest roll, and the
+// pasted path kept a "reduced" line at a roll it called the best (-18).
+describe('mapCraft — "reduced" mods, whose rolls are negative', () => {
+  it('reads a crafted fraction along the displayed range', () => {
+    const at = (range: string) =>
+      mapCraft(text('Rarity: MAGIC', 'Ultimate Life Flask of the Ample', 'Crafted: true', `Suffix: {range:${range}}FlaskChargesUsed2`, 'Implicits: 0'), false, lookups()).craft.suffixes;
+    expect(at('1')).toEqual([{ slug: 'flaskchargesused2', values: [-20] }]);
+    expect(at('0')).toEqual([{ slug: 'flaskchargesused2', values: [-18] }]);
+  });
+
+  it('keeps a pasted "reduced" line at the value it shows, as a negative roll', () => {
+    const { craft, notes } = mapCraft(text('Rarity: MAGIC', 'Ultimate Life Flask of the Ample', 'Implicits: 0', '19% reduced Charges per use'), false, lookups());
+    expect(craft.suffixes).toEqual([{ slug: 'flaskchargesused2', values: [-19] }]);
+    expect(notes.map((n) => n.message).join('\n')).not.toContain('different units');
   });
 });

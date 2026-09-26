@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bestRolls, clampToRange, craftSummary, emptyCraft, MAX_ITEM_QUALITY, parseCraft, rangesIn } from '../craft';
+import { bestRolls, clampToRange, craftSummary, emptyCraft, MAX_ITEM_QUALITY, parseCraft, rangesIn, rollAt } from '../craft';
 
 // Failure modes first (AGENTS.md). parseCraft READS stored jsonb: it must
 // default every missing field and drop a malformed entry on its own, never
@@ -144,6 +144,40 @@ describe('bestRolls', () => {
 
   it('takes the larger magnitude end of a negative range', () => {
     expect(bestRolls([{ min: -5, max: -10 }])).toEqual([-10]);
+  });
+
+  it('takes the top of a "reduced" roll as our data writes it (min -20, max -18), not its weakest end', () => {
+    // "(18-20)% reduced Charges per use" is stored as rolls -20..-18; its best
+    // roll is 20% reduced. Taking `max` started every such affix at 18%.
+    expect(bestRolls([{ min: -20, max: -18 }])).toEqual([-20]);
+  });
+});
+
+// PoB's {range:x} measures along the line AS DISPLAYED (itemLib.applyRange):
+// "(18-20)% reduced" at 1 is "20% reduced". Our data stores that roll as
+// -20..-18, so a fraction must run from -18 to -20, not from min to max.
+describe('rollAt — a display-order fraction on a stored roll', () => {
+  it('reads a positive roll from min to max, rounding an integer range', () => {
+    expect(rollAt({ min: 120, max: 149 }, 1)).toBe(149);
+    expect(rollAt({ min: 120, max: 149 }, 0)).toBe(120);
+    expect(rollAt({ min: 311, max: 380 }, 0.951)).toBe(377);
+  });
+
+  it('reads a negative ("reduced") roll from its smaller to its larger magnitude, whichever way it is stored', () => {
+    for (const roll of [{ min: -20, max: -18 }, { min: -18, max: -20 }]) {
+      expect(rollAt(roll, 1)).toBe(-20);
+      expect(rollAt(roll, 0)).toBe(-18);
+      expect(rollAt(roll, 0.5)).toBe(-19);
+    }
+  });
+
+  it('reads a range across zero from min to max (Ingenuity\'s "(-10-10)%")', () => {
+    expect(rollAt({ min: -10, max: 10 }, 1)).toBe(10);
+    expect(rollAt({ min: -10, max: 10 }, 0)).toBe(-10);
+  });
+
+  it('keeps a decimal range\'s precision', () => {
+    expect(rollAt({ min: 0.5, max: 1.5 }, 0.25)).toBe(0.75);
   });
 
   it('is empty for a mod with no rolls', () => {

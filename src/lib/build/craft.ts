@@ -88,12 +88,33 @@ export function clampToRange(value: number, range: ValueRange): number {
 }
 
 /**
- * The values a newly added affix starts at: each roll's `max` as the data
- * writes it — the best roll, which is what a planner usually targets. For a
- * negative range the data's `max` is its larger-magnitude end.
+ * A roll at `fraction` of the way along its range AS THE GAME DISPLAYS IT —
+ * PoB's {range:x}, which itemLib.applyRange applies to the displayed line.
+ * Our data stores a "reduced"/"less"/"slower" roll as negative numbers while
+ * the line shows their magnitudes: "(18-20)% reduced" is min -20, max -18, so
+ * the display's low end (18) is the roll's max. A negative range therefore
+ * runs from its smaller magnitude to its larger, whichever way it is stored;
+ * anything else runs from min to max. An integer range rounds as PoB does.
+ *
+ * Not exact for the 9 map and Ultimatum mods whose text shows the negative
+ * numbers themselves ("(-8--6)% maximum Player Resistances"); none rolls on
+ * player gear (checked 2026-09-26).
+ */
+export function rollAt(roll: ValueRange, fraction: number): number {
+  const negative = roll.min <= 0 && roll.max <= 0 && (roll.min < 0 || roll.max < 0);
+  const from = negative ? Math.max(roll.min, roll.max) : roll.min;
+  const to = negative ? Math.min(roll.min, roll.max) : roll.max;
+  const v = from + fraction * (to - from);
+  return Number.isInteger(roll.min) && Number.isInteger(roll.max) ? Math.round(v) : v;
+}
+
+/**
+ * The values a newly added affix starts at: each roll at the top of its
+ * displayed range — the best roll, which is what a planner usually targets.
+ * For a "reduced" roll that is its larger magnitude (-20 of -20..-18).
  */
 export function bestRolls(rolls: readonly ValueRange[]): number[] {
-  return rolls.map((r) => r.max);
+  return rolls.map((r) => rollAt(r, 1));
 }
 
 /** Every "(a-b)" range in a display line, in order. */
