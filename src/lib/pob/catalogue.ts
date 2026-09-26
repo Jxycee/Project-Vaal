@@ -20,6 +20,7 @@ import { GEAR_SLOTS, JEWEL_CATEGORIES, categoriesForSlot } from '@/lib/build/gea
 import { TREE_VERSION } from '@/lib/tree/version';
 import { loadAllSlugs, loadDetail } from '@/lib/wiki/load';
 import { getModCatalogue, type ModCatalogue } from '@/lib/wiki/modCatalogue';
+import { slugify } from '@/lib/wiki/normalize';
 import { canSpawn } from '@/lib/wiki/spawn';
 import type { CraftLookups, CraftMod } from './mapCraft';
 import { loadIndex } from '@/lib/wiki/loadIndex';
@@ -240,7 +241,7 @@ async function craftLookups(slug: string, byName: Map<string, CatalogueItem>): P
   const bySlug = modsBySlug(catalogue);
   const tags = new Set(detail?.tags ?? []);
   return {
-    modById: (id) => bySlug.get(id) ?? null,
+    modById: (id) => modSlugsFor(id).map((slug) => bySlug.get(slug)).find(Boolean) ?? null,
     candidates: catalogue.mods
       .filter((m) => m.domain === detail?.modDomain && canSpawn(m.spawnWeights, tags))
       .sort((a, b) => a.level - b.level)
@@ -260,6 +261,18 @@ function toCraftMod(m: ModCatalogue['mods'][number]): CraftMod {
 const modIndexes = new WeakMap<ModCatalogue, Map<string, CraftMod>>();
 
 /** The mod catalogue keyed by slug, built once per catalogue. */
+/**
+ * The file slugs a GGG mod id can have, most specific first. scripts/sync-wiki.ts
+ * names a mod file slugify(id) — '_' becomes '-', trailing '_'s are dropped —
+ * and, when two ids slugify alike, suffixes the later one with its own
+ * camel-split slug (dedupeSlug). PoB writes the raw id, so a lowercased id
+ * alone missed 113 real mods (review 2026-09-26).
+ */
+export function modSlugsFor(id: string): string[] {
+  const base = slugify(id);
+  return [`${base}-${slugify(id.replace(/([a-z0-9])([A-Z])/g, '$1-$2'))}`, base];
+}
+
 function modsBySlug(catalogue: ModCatalogue): Map<string, CraftMod> {
   let index = modIndexes.get(catalogue);
   if (!index) {
