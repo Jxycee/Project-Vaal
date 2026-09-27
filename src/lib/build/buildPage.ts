@@ -21,9 +21,15 @@ export function parseTab(raw: string | null | undefined): BuildTab {
   return (BUILD_TABS as readonly string[]).includes(raw ?? '') ? (raw as BuildTab) : 'overview';
 }
 
-/** The loadout flagged Main, if it still exists and holds a skill. */
+/**
+ * The main skill's loadout, by deriveMainSkill's rule (gemState.ts, the single
+ * definition of what builds.main_skill means): the primary loadout if it holds
+ * a skill, else the first loadout that does. Null when no loadout has a skill.
+ */
 export function mainSkillLoadout(gems: GemState): GemLoadout | null {
-  return gems.loadouts.find((l) => l.id === gems.primaryId && l.skill !== null) ?? null;
+  const primary = gems.loadouts.find((l) => l.id === gems.primaryId);
+  if (primary?.skill) return primary;
+  return gems.loadouts.find((l) => l.skill !== null) ?? null;
 }
 
 /** Main skill first, everything else in stored order. */

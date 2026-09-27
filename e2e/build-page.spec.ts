@@ -133,10 +133,13 @@ test.describe('build page (read mode)', () => {
     await page.goto(`/builds/${token}`);
     await expect(page.getByRole('heading', { level: 1, name })).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId('header-stats')).toContainText('Stats unavailable', { timeout: 30_000 });
-    await expect(page.getByTestId('overview-tab')).toContainText((await page.getByTestId('build-main-skill').textContent())!.trim());
+    const mainSkill = ((await page.getByTestId('build-main-skill').textContent()) ?? '').trim();
+    expect(mainSkill.length, 'no main skill in the header').toBeGreaterThan(0);
+    await expect(page.getByTestId('overview-tab')).toContainText(mainSkill);
 
     await openTab(page, 'Gear');
     await expect(page.getByTestId('gear-tab')).not.toContainText('No gear recorded.');
+    await expect(page.getByTestId('gear-tab').locator('img').first()).toBeVisible();
     await openTab(page, 'Stats');
     await expect(page.getByTestId('stats-panel').getByRole('alert')).toContainText('Could not load stat data');
     await openTab(page, 'Tree');
