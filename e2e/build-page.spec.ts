@@ -51,6 +51,7 @@ async function horizontalOverflow(page: Page): Promise<number> {
 test.describe('build page (read mode)', () => {
   test.skip(() => test.info().project.name !== 'mobile', 'mobile project only');
   test.describe.configure({ mode: 'serial' });
+  test.use({ viewport: { width: 375, height: 812 } });
   test.setTimeout(300_000);
 
   const name = testBuildName('page');

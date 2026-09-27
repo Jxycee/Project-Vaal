@@ -178,23 +178,21 @@ test.describe('leveling checkpoints', () => {
       const shareHref = (await shareLink.getAttribute('href'))!;
 
       await page.goto(shareHref);
-      const picker = page.getByTestId('shared-checkpoints');
-      await expect(picker).toBeVisible({ timeout: 30_000 });
-      await expect(picker.getByRole('link')).toHaveCount(2);
-
-      // Position 0 after the reorder is Level 94, so that is the default stage.
       const header = page.locator('h1').locator('xpath=following-sibling::p[1]');
-      await expect(header).toContainText('Level 94');
+      // Position 0 after the reorder is Level 94, so that is the default stage.
+      await expect(header).toContainText('Level 94', { timeout: 30_000 });
 
-      await picker.getByRole('link', { name: /^Level 31/ }).click();
+      await page.getByTestId('checkpoint-switcher').click();
+      const options = page.getByTestId('checkpoint-option');
+      await expect(options).toHaveCount(2);
+      const { scanned, tooSmall } = await measureTapTargets(page, '[data-testid="checkpoint-menu"]');
+      expect(scanned, 'no checkpoint options found on the build page').toBe(2);
+      expect(tooSmall, `checkpoint options under ${MIN_TAP_PX}px`).toEqual([]);
+
+      await options.filter({ hasText: 'Lvl 31' }).click();
       await page.waitForURL(/[?&]checkpoint=/, { timeout: 30_000 });
-      // The pair: the same share link now renders a DIFFERENT, populated
-      // stage — not merely "not the first one".
+      // The pair: the same share link now renders a DIFFERENT, populated stage.
       await expect(header).toContainText('Level 31');
-
-      const { scanned, tooSmall } = await measureTapTargets(page, '[data-testid="shared-checkpoints"]');
-      expect(scanned, 'no checkpoint links found on the shared page').toBe(2);
-      expect(tooSmall, `checkpoint links under ${MIN_TAP_PX}px`).toEqual([]);
     });
 
     await test.step('deleting down to one works; deleting the last is refused', async () => {

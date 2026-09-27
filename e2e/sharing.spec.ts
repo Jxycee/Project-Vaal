@@ -101,6 +101,17 @@ test.describe('sharing', () => {
     await expect(shareLink).toBeVisible({ timeout: 30_000 });
     const href = await shareLink.getAttribute('href');
     expect(href, 'the row never rendered a share link after switching to Private').toBeTruthy();
+    const shareToken = href!.split('/').pop()!;
+
+    // ---- Positive control for the revocation proof at the end of this test.
+    // Same PostgREST call, made now while the build is Private (link-shared),
+    // so the empty array asserted later actually means "revoked by the RPC's
+    // own visibility filter" rather than "this call always returns nothing".
+    const whilePrivate = await callShareTokenRpc(page, shareToken);
+    expect(whilePrivate.status()).toBe(200);
+    const privateRows = (await whilePrivate.json()) as Array<{ name: string }>;
+    expect(privateRows).toHaveLength(1);
+    expect(privateRows[0].name).toBe(name);
 
     // ---- The RLS trap this proves: get_build_by_share_token, not a plain
     // select. The "Public builds are readable by anyone" RLS policy only
@@ -111,18 +122,16 @@ test.describe('sharing', () => {
     // than of anything client-cached.
     await page.goto(href!);
     await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
-    await expect(page.getByText(bootsName)).toBeVisible();
-    // .first(): the skill name legitimately appears twice (the header's
-    // "Main skill" field via deriveMainSkill, and the gem loadout card
-    // itself) — either is proof enough that gem_state round-tripped.
-    await expect(page.getByText(skillName).first()).toBeVisible();
+    await page.getByRole('tab', { name: 'Gear', exact: true }).click();
+    await expect(page.getByTestId('gear-tab').getByText(bootsName)).toBeVisible();
+    await page.getByRole('tab', { name: 'Skills', exact: true }).click();
+    await expect(page.getByTestId('skills-tab').getByText(skillName).first()).toBeVisible();
 
-    // Slice 5: the shared page's stats, behind their tap, match the owner's.
-    await page.getByRole('button', { name: 'View stats' }).click();
-    const sharedStats = page.getByTestId('stats-sheet');
+    // Slice 5: the shared page's stats match the owner's. Now a tab, not a tap-to-open sheet.
+    await page.getByRole('tab', { name: 'Stats', exact: true }).click();
+    const sharedStats = page.getByTestId('stats-panel');
     await expect(sharedStats.getByTestId('stat-life')).toHaveText(lifeOnTree!, { timeout: 60_000 });
     await expect(sharedStats.getByTestId('stat-act')).toContainText('Act 2');
-    await sharedStats.getByRole('button', { name: 'Close stats sheet' }).click();
 
     // mobile-layout.spec.ts's "no horizontal page scroll" test sweeps only
     // /builds and /tree (predates this route) — folded in here instead of
@@ -143,7 +152,58 @@ test.describe('sharing', () => {
     await page.getByRole('option', { name: 'Unlisted' }).click();
     await expect(row2.locator('a[href^="/builds/"]')).toBeHidden();
 
+    // ---- Revocation now needs two proofs, not one page load. The build page
+    // has grown an OWNER path (src/app/(dashboard)/builds/[shareToken]/load.ts)
+    // that lets an owner open their own unlisted build by design (see
+    // docs/superpowers/specs/2026-09-27-build-profile-redesign-design.md §7.1),
+    // and this suite has only one seeded test account, which owns this build —
+    // so page.goto(href) alone would still succeed and prove nothing about
+    // revocation. Instead: (1) the owner still sees their own build, via the
+    // owner path, which is expected; (2) the share-token RPC itself, called
+    // exactly as a signed-in non-owner reader would reach it, returns nothing
+    // — that RPC's own visibility filter is what actually revokes the link.
     await page.goto(href!);
-    await expect(page.getByText('That build is not available.')).toBeVisible();
+    await expect(page.getByTestId('build-page')).toBeVisible();
+    await expect(page.getByTestId('build-visibility')).toContainText('Unlisted');
+
+    const whileUnlisted = await callShareTokenRpc(page, shareToken);
+    expect(whileUnlisted.status()).toBe(200);
+    expect(await whileUnlisted.json()).toEqual([]);
   });
 });
+
+/**
+ * Calls the get_build_by_share_token RPC over PostgREST exactly as a
+ * signed-in reader's browser would: anon apikey + the caller's own bearer
+ * token, never anything server-side. Used to prove the RPC's own visibility
+ * filter (not the page) is what gates a share link.
+ */
+async function callShareTokenRpc(page: Page, shareToken: string) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  expect(supabaseUrl && supabaseAnonKey, 'NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be in .env.local').toBeTruthy();
+  return page.request.post(`${supabaseUrl}/rest/v1/rpc/get_build_by_share_token`, {
+    data: { p_token: shareToken },
+    headers: {
+      apikey: supabaseAnonKey!,
+      authorization: `Bearer ${await accessToken(page)}`,
+      'content-type': 'application/json',
+    },
+  });
+}
+
+/**
+ * Reassembles the signed-in session's access token from the Supabase SSR
+ * auth cookie (@supabase/ssr's `sb-<project-ref>-auth-token`, chunked into
+ * `.0`/`.1` parts when large, and optionally `base64-` prefixed + base64url
+ * encoded). Copied from api-contracts.spec.ts's private `accessToken` —
+ * not shared via helpers.ts since it is itself test-local there.
+ */
+async function accessToken(page: Page): Promise<string> {
+  const parts = (await page.context().cookies())
+    .filter((c) => /^sb-.+-auth-token(\.\d+)?$/.test(c.name))
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  let raw = decodeURIComponent(parts.map((c) => c.value).join(''));
+  if (raw.startsWith('base64-')) raw = Buffer.from(raw.slice('base64-'.length), 'base64url').toString('utf8');
+  return (JSON.parse(raw) as { access_token: string }).access_token;
+}
