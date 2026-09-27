@@ -413,9 +413,15 @@ export function parseTab(raw: string | null | undefined): BuildTab {
   return (BUILD_TABS as readonly string[]).includes(raw ?? '') ? (raw as BuildTab) : 'overview';
 }
 
-/** The loadout flagged Main, if it still exists and holds a skill. */
+/**
+ * The main skill's loadout, by deriveMainSkill's rule (gemState.ts, the single
+ * definition of what builds.main_skill means): the primary loadout if it holds
+ * a skill, else the first loadout that does. Null when no loadout has a skill.
+ */
 export function mainSkillLoadout(gems: GemState): GemLoadout | null {
-  return gems.loadouts.find((l) => l.id === gems.primaryId && l.skill !== null) ?? null;
+  const primary = gems.loadouts.find((l) => l.id === gems.primaryId);
+  if (primary?.skill) return primary;
+  return gems.loadouts.find((l) => l.skill !== null) ?? null;
 }
 
 /** Main skill first, everything else in stored order. */
@@ -729,15 +735,27 @@ export function useTreeExport(): { tree: GggTreeJson | null; error: string | nul
 ```
 
 
-- [ ] **Step 2: `ReadOnlyGemList.tsx`**: render main first. Change the import line and the map in the default export:
+- [ ] **Step 2: `ReadOnlyGemList.tsx`**: render main first, and badge the same loadout the header calls the main skill. Add the import, and replace the default export:
 
 ```tsx
-import { loadoutsMainFirst } from '@/lib/build/buildPage';
+import { loadoutsMainFirst, mainSkillLoadout } from '@/lib/build/buildPage';
 ```
 ```tsx
+export default function ReadOnlyGemList({ gemState }: { gemState: GemState }) {
+  if (gemState.loadouts.length === 0) {
+    return <p className="py-6 text-center text-sm text-muted-foreground">No gems recorded.</p>;
+  }
+  // The badge follows mainSkillLoadout (deriveMainSkill's rule: the primary, else the first loadout with a skill),
+  // so it always marks the skill builds.main_skill names.
+  const mainId = mainSkillLoadout(gemState)?.id;
+  return (
+    <ul className="divide-y divide-border rounded-lg border border-border bg-card/40">
       {loadoutsMainFirst(gemState).map((loadout, i) => (
-        <LoadoutCard key={loadout.id} loadout={loadout} index={i} isPrimary={loadout.id === gemState.primaryId} />
+        <LoadoutCard key={loadout.id} loadout={loadout} index={i} isPrimary={loadout.id === mainId} />
       ))}
+    </ul>
+  );
+}
 ```
 
 - [ ] **Step 3: `BuildTabs.tsx`**
