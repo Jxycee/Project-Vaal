@@ -83,7 +83,7 @@ export default function PassiveTree({
   /**
    * The build's character level, for the level-derived basic/shared point
    * budget (see `derivePassiveBudget`). Defaults to 100 (the maximum) when
-   * omitted — SharedTreePanel is the only caller that could omit it, and
+   * omitted — the build page's Tree tab is the only caller that could omit it, and
    * defaulting to the max means a reader who came here just to look at a
    * tree never sees a spurious "over budget" flag for a level the caller
    * simply didn't pass.

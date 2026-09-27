@@ -27,7 +27,7 @@ const PUBLIC_PAGE_SIZE = 30;
 // export. The plan floated sourcing class names from the tree export (the
 // same eight PassiveTree filters to), but that's a 5.1MB fetch+parse for a
 // filter facet list on a page that otherwise needs none — the same class of
-// cost SharedTreePanel exists specifically to defer. builds.class is already
+// cost the build page's Tree tab exists specifically to defer. builds.class is already
 // constrained to real class names in practice (nothing but the tree editor's
 // reported className ever writes it), so deriving the facet from what's
 // actually been saved is both cheaper and can never offer a filter chip with
