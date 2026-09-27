@@ -74,10 +74,20 @@ export default function BuildPage(props: BuildPageProps) {
       <div className="sticky top-20 z-20 bg-background/95 backdrop-blur md:top-0">
         {compact ? (
           <div className="flex min-w-0 items-center justify-between gap-2 py-1">
-            <span className="min-w-0 truncate font-heading text-sm font-semibold text-foreground">{row.name}</span>
+            <span data-testid="compact-build-name" className="min-w-0 flex-1 truncate font-heading text-sm font-semibold text-foreground">
+              {row.name}
+            </span>
             <div className="flex shrink-0 items-center gap-2">
-              <CheckpointSwitcher shareToken={shareToken} checkpoints={checkpoints} activeCheckpointId={activeCheckpointId} fallbackLevel={row.level} />
-              <HeaderActions mode={mode} row={row} shareToken={shareToken} activeCheckpointId={activeCheckpointId} />
+              <CheckpointSwitcher
+                shareToken={shareToken}
+                checkpoints={checkpoints}
+                activeCheckpointId={activeCheckpointId}
+                fallbackLevel={row.level}
+                align="right"
+                compact
+                testId="checkpoint-switcher-compact"
+              />
+              <HeaderActions mode={mode} row={row} shareToken={shareToken} activeCheckpointId={activeCheckpointId} compact />
             </div>
           </div>
         ) : null}

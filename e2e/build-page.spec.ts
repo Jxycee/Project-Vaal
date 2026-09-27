@@ -162,6 +162,38 @@ test.describe('build page (read mode)', () => {
     expect(scanned).toBe(8);
     expect(tooSmall, `checkpoint options under ${MIN_TAP_PX}px`).toEqual([]);
     expect(await horizontalOverflow(page), 'horizontal overflow with the checkpoint menu open').toBeLessThanOrEqual(0);
+
+    // The compact sticky bar (shown once the full header scrolls away) has its
+    // own checkpoint switcher, right-aligned in a narrow trigger — the menu
+    // must still land fully on screen, and the build name must stay visible
+    // rather than being crowded out by the switcher and action buttons. Gear
+    // is the tallest tab (17 slots + jewels), so it is the one guaranteed to
+    // scroll the header out of view on this fixture's first checkpoint.
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('checkpoint-menu')).toBeHidden();
+    await openTab(page, 'Gear');
+
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    const compactName = page.getByTestId('compact-build-name');
+    await expect(compactName).toBeVisible();
+    const nameBox = await compactName.boundingBox();
+    expect(nameBox, 'compact build name has no bounding box').not.toBeNull();
+    expect(nameBox!.width, 'compact build name too narrow').toBeGreaterThanOrEqual(80);
+
+    const compactSwitcher = page.getByTestId('checkpoint-switcher-compact');
+    await expect(compactSwitcher).toBeVisible();
+    await compactSwitcher.click();
+    await expect(page.getByTestId('checkpoint-menu')).toBeVisible();
+    expect(await horizontalOverflow(page), 'horizontal overflow with the compact checkpoint menu open').toBeLessThanOrEqual(0);
+
+    const compactOptions = page.getByTestId('checkpoint-option');
+    const compactOptionCount = await compactOptions.count();
+    for (let i = 0; i < compactOptionCount; i++) {
+      const box = await compactOptions.nth(i).boundingBox();
+      expect(box, `checkpoint option ${i} has no bounding box`).not.toBeNull();
+      expect(box!.x, `checkpoint option ${i} left edge off-screen`).toBeGreaterThanOrEqual(0);
+      expect(box!.x + box!.width, `checkpoint option ${i} right edge off-screen`).toBeLessThanOrEqual(375);
+    }
   });
 
   test('an unknown token is not found', async ({ page }) => {

@@ -32,7 +32,16 @@ function editHref(row: SharedBuildRow, checkpointId: string | undefined): string
   return checkpointId ? `/tree?build=${row.id}&checkpoint=${checkpointId}` : `/tree?build=${row.id}`;
 }
 
-export function HeaderActions({ mode, row, shareToken, activeCheckpointId }: Pick<HeaderProps, 'mode' | 'row' | 'shareToken' | 'activeCheckpointId'>) {
+export function HeaderActions({
+  mode,
+  row,
+  shareToken,
+  activeCheckpointId,
+  compact = false,
+}: Pick<HeaderProps, 'mode' | 'row' | 'shareToken' | 'activeCheckpointId'> & {
+  /** The compact sticky bar has no room for Copy link below `sm` — Edit stays, Copy link hides. */
+  compact?: boolean;
+}) {
   const [copied, setCopied] = useState(false);
   const linkLive = row.visibility !== 'unlisted';
   async function copy() {
@@ -47,7 +56,11 @@ export function HeaderActions({ mode, row, shareToken, activeCheckpointId }: Pic
   return (
     <div className="flex shrink-0 items-center gap-2">
       {linkLive ? (
-        <button type="button" onClick={copy} className="flex h-11 min-w-11 items-center rounded-lg border border-border px-3 text-sm text-foreground">
+        <button
+          type="button"
+          onClick={copy}
+          className={`${compact ? 'hidden sm:flex' : 'flex'} h-11 min-w-11 items-center rounded-lg border border-border px-3 text-sm text-foreground`}
+        >
           {copied ? 'Copied' : 'Copy link'}
         </button>
       ) : null}
@@ -67,7 +80,7 @@ export default function BuildHeader(props: HeaderProps) {
     <header className="flex flex-col gap-3 rounded-lg border border-border bg-card/40 p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="truncate font-heading text-xl font-bold text-foreground">{row.name}</h1>
+          <h1 className="line-clamp-2 break-words font-heading text-xl font-bold text-foreground">{row.name}</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
             {ascendancyLabel(row.class, row.ascendancy)} · Level {row.level} · {row.league}
           </p>
