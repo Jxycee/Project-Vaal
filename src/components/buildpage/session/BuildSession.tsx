@@ -113,6 +113,7 @@ export function useBuildSession(): BuildSessionValue {
 
 export default function BuildSessionProvider({
   canEdit,
+  editing,
   row,
   checkpointId,
   tree,
@@ -121,6 +122,8 @@ export default function BuildSessionProvider({
 }: {
   /** The build's owner. Every write helper below is a no-op for a reader. */
   canEdit: boolean;
+  /** Whether the page is currently in edit mode (`?edit=1`, owner only). Drafts are an edit-mode concern: they are read/written only while `canEdit && editing` — never in view mode, even for the owner. */
+  editing: boolean;
   /** The build AS THE ACTIVE CHECKPOINT sees it — the caller substitutes that checkpoint's tree/gear/gems/level before this component ever sees `row`. */
   row: SharedBuildRow;
   checkpointId: string | undefined;
@@ -169,6 +172,17 @@ export default function BuildSessionProvider({
 
   // ---- Draft read + prompt --------------------------------------------
   //
+  // RULE: drafts are an edit-mode concern. View mode never reads or writes
+  // one, even for the owner — only `canEdit && editing` does. Entering edit
+  // mode (either by opening the page on `?edit=1`, or by an owner toggling
+  // Edit on later via `replaceState`, no remount) reads the draft at most
+  // once per mount; after that first read, every tree/gear/gem change writes
+  // the draft back out (see the write effect below). A reader, or an owner
+  // sitting in view mode, must never touch localStorage at all — that is
+  // exactly the bug this rule fixes: reading (and then echo-writing) a
+  // draft on a view-mode visit used to silently destroy unsaved work with
+  // no restore prompt ever shown, since view mode renders no such prompt.
+  //
   // `storedDraft`/`draftPromptOpen` used to be seeded in a lazy useState
   // initialiser, reading localStorage at render time. That broke as soon as
   // this provider started rendering inside BuildPage, which is
@@ -198,12 +212,15 @@ export default function BuildSessionProvider({
   const [storedDraft, setStoredDraft] = useState<BuildDraftState | null>(null);
   const [draftPromptOpen, setDraftPromptOpen] = useState(false);
   // Guards the one-shot read below: readers never read or write a draft, so
-  // they start "done" and the effect is a no-op for them. Also survives
-  // StrictMode's simulated mount/unmount/remount — the ref (unlike state)
-  // is preserved across it, so the simulated remount does not re-read.
+  // they start "done" and the effect is a no-op for them. Owners start "not
+  // done" and stay that way through any amount of view-mode time in this
+  // mount — the read happens the first time `editing` is true, whether that
+  // is on initial mount (`?edit=1`) or later (Edit toggled on). Also
+  // survives StrictMode's simulated mount/unmount/remount — the ref (unlike
+  // state) is preserved across it, so the simulated remount does not re-read.
   const draftReadDone = useRef(!canEdit);
   useEffect(() => {
-    if (!canEdit || draftReadDone.current) return;
+    if (!canEdit || !editing || draftReadDone.current) return;
     draftReadDone.current = true;
     const d = loadDraft(row.id, checkpointId);
     if (!d) return;
@@ -224,13 +241,16 @@ export default function BuildSessionProvider({
     ) {
       setDraftPromptOpen(true);
     }
-    // Empty deps intentional: runs once per mount, syncing from localStorage
-    // (an external system with no reactive dependency of its own) — the
-    // provider is keyed per checkpoint (see the header comment), so a new
-    // checkpoint always gets a fresh mount rather than this effect
-    // re-running with new props.
+    // Deps intentionally just `[editing]`: this must re-run when edit mode
+    // turns on later in the same mount (no remount happens for that — see
+    // the header comment), but `draftReadDone` still caps it at one real
+    // read per mount. `row`/`checkpointId`/`canEdit` are excluded on
+    // purpose — the provider is keyed per checkpoint (see the file header
+    // comment), so a new checkpoint always gets a fresh mount rather than
+    // this effect re-running with new props, and `canEdit` cannot change
+    // within one mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [editing]);
 
   // Ignore reports while read-only: a read-only PassiveTree still reports
   // its seeded state on mount (its onStateChange effect), and a reader must
@@ -387,7 +407,7 @@ export default function BuildSessionProvider({
     [gemAdd, gemRemove, gemSetSkill, gemAddSupport, gemRemoveSupport, gemSetSets, gemSetPrimary, gemSetLevel, gemSetQuality],
   );
 
-  // ---- Draft write (owner only) ----------------------------------------
+  // ---- Draft write (owner + edit mode only) -----------------------------
   //
   // Writes to localStorage only, never a setState — mirrors
   // TreeBuildSession's effect exactly (including the react-hooks/set-state-
@@ -396,6 +416,13 @@ export default function BuildSessionProvider({
   // dirty and that work would vanish silently on refresh with no restore
   // prompt at all).
   //
+  // Gated on `editing` too, not just `canEdit` — see the RULE at the top of
+  // the draft read effect above. A view-mode visit (owner or not) must never
+  // write a draft: it has no edit UI to generate one, and doing so anyway
+  // was the data-loss bug this rule fixes (an owner's read-only visit would
+  // echo-write the freshly-seeded, saved state straight over an unsaved
+  // draft from an earlier edit-mode session).
+  //
   // Meta is deliberately NOT drafted (see BuildMeta's doc comment in
   // sessionTypes.ts) — the effect's dependency list omits it on purpose.
   //
@@ -403,7 +430,7 @@ export default function BuildSessionProvider({
   // whether anything changed after it sent its snapshot.
   const latestSession = useRef<BuildDraftState | null>(null);
   useEffect(() => {
-    if (!canEdit) return;
+    if (!canEdit || !editing) return;
     // Must not run before the draft read effect above has read whatever
     // localStorage held for the previous session — this effect immediately
     // overwrites it with the freshly-seeded (echo) state.
@@ -411,7 +438,7 @@ export default function BuildSessionProvider({
     const session: BuildDraftState = { tree: treeState, gear, gem: gems };
     latestSession.current = session;
     saveDraft(row.id, session, checkpointId);
-  }, [canEdit, treeState, gear, gems, row.id, checkpointId]);
+  }, [canEdit, editing, treeState, gear, gems, row.id, checkpointId]);
 
   // ---- Structural validation + derived view models ---------------------
   // Exactly as TreeBuildSession derives them: nothing here is stored.

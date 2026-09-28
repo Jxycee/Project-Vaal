@@ -48,8 +48,21 @@ export interface BuildPageProps {
 export default function BuildPage(props: BuildPageProps) {
   const { mode, row, activeCheckpointId } = props;
   const { tree, error: treeError } = useTreeExport();
+  // Computed here (not just inside BuildPageBody) because BuildSessionProvider
+  // needs it too — drafts are an edit-mode concern, so the provider must know
+  // whether the page is in edit mode, not just whether the viewer owns the
+  // build (see BuildSession.tsx's `editing` prop doc comment).
+  const searchParams = useSearchParams();
+  const edit = mode === 'owner' && searchParams.get('edit') === '1';
   return (
-    <BuildSessionProvider canEdit={mode === 'owner'} row={row} checkpointId={activeCheckpointId} tree={tree} treeError={treeError}>
+    <BuildSessionProvider
+      canEdit={mode === 'owner'}
+      editing={edit}
+      row={row}
+      checkpointId={activeCheckpointId}
+      tree={tree}
+      treeError={treeError}
+    >
       <BuildPageBody {...props} />
     </BuildSessionProvider>
   );
