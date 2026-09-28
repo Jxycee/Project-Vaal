@@ -57,7 +57,7 @@ export function useCheckpointActions({
   rename(id: string, name: string, onDone?: () => void): void;
   armedDeleteId: string | null;
   requestDelete(id: string): void;
-  add(name: string, level: number): void;
+  add(name: string, level: number, onDone?: () => void): void;
 } {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -121,7 +121,7 @@ export function useCheckpointActions({
   );
 
   const add = useCallback(
-    (name: string, level: number) => {
+    (name: string, level: number, onDone?: () => void) => {
       if (!buildId) return;
       setError(null);
       startTransition(async () => {
@@ -130,6 +130,15 @@ export function useCheckpointActions({
           setError(result.error);
           return;
         }
+        // Restores CheckpointsSheet's pre-refactor behaviour: it used to
+        // clear its name field itself right here, before navigating. The
+        // hook doesn't own that field (form fields are UI, not this hook's
+        // job — see the file header), so it's the caller's job via `onDone`;
+        // dropped by accident in the original extraction (fix round 1, final
+        // review) because CheckpointManager's own success path (closing the
+        // menu) hid the missed reset, but CheckpointsSheet stays mounted
+        // across opens and would carry a stale name into the next one.
+        onDone?.();
         goTo(result.id);
       });
     },

@@ -184,7 +184,7 @@ export default function CheckpointManager({
           type="button"
           className={ROW_BUTTON}
           disabled={pending}
-          onClick={() => add(newName.trim() || `Level ${newLevel}`, newLevel)}
+          onClick={() => add(newName.trim() || `Level ${newLevel}`, newLevel, () => setNewName(''))}
         >
           Add checkpoint
         </button>

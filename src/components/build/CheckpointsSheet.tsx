@@ -241,7 +241,7 @@ export default function CheckpointsSheet({
                 type="button"
                 className={BUTTON}
                 disabled={pending}
-                onClick={() => add(newName.trim() || `Level ${newLevel}`, newLevel)}
+                onClick={() => add(newName.trim() || `Level ${newLevel}`, newLevel, () => setNewName(''))}
               >
                 Add checkpoint
               </button>
