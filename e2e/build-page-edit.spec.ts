@@ -233,8 +233,24 @@ test.describe('build page edit in place', () => {
       .toBe(savedCount + 1);
 
     await waitForDraft(page, buildId, checkpointId);
+
+    // A draft exists in localStorage going into this reload, which is
+    // exactly the condition that used to trip a React hydration mismatch
+    // (BuildSession read the draft in a lazy useState initialiser — the
+    // server render always saw no localStorage, the client's hydration
+    // render saw the real draft, and the two disagreed). Registered before
+    // the reload so it actually observes it.
+    const hydrationMessages: string[] = [];
+    page.on('console', (msg) => {
+      if (msg.type() === 'error' && /hydrat/i.test(msg.text())) hydrationMessages.push(msg.text());
+    });
+    page.on('pageerror', (err) => {
+      if (/hydrat/i.test(err.message)) hydrationMessages.push(err.message);
+    });
+
     await page.reload();
     await expect(page.getByTestId('draft-notice')).toBeVisible();
+    expect(hydrationMessages, 'hydration mismatch while reloading with an existing draft').toEqual([]);
     await page.getByTestId('draft-notice').getByRole('button', { name: 'Restore' }).click();
 
     await page.getByRole('tab', { name: 'Tree', exact: true }).click();

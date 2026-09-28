@@ -169,27 +169,68 @@ export default function BuildSessionProvider({
 
   // ---- Draft read + prompt --------------------------------------------
   //
-  // Read BEFORE any effect runs, in a lazy useState initialiser — see
-  // draft.ts's header and TreeBuildSession's `storedDraft`/`draftPromptOpen`
-  // comments for why this ordering matters: the draft-write effect below
-  // writes the freshly-seeded state straight over whatever draft
-  // localStorage held, so this is the one point in the component's life
-  // where a previous session's draft still exists untouched.
+  // `storedDraft`/`draftPromptOpen` used to be seeded in a lazy useState
+  // initialiser, reading localStorage at render time. That broke as soon as
+  // this provider started rendering inside BuildPage, which is
+  // server-rendered (unlike the old TreeBuildSession, which only ever
+  // mounted client-side after a fetch): localStorage doesn't exist on the
+  // server, so the server render always produced `null`/`false`, while the
+  // client's hydration render produced whatever the real draft was — server
+  // and client HTML disagreed and React threw a hydration mismatch whenever
+  // a draft existed. Render-time reads of anything outside React's own
+  // state (localStorage, `window`, etc.) can never be SSR-safe for this
+  // reason: both states now start as `null`/`false` on every render path
+  // (server and hydration agree), and the real read happens in an effect
+  // below instead.
+  //
+  // That effect still has to win a race against the draft-write effect
+  // further down: the write effect saves the freshly-seeded (echo) state
+  // straight over whatever draft localStorage held, so the previous
+  // session's draft must be read before that first write. Effects in one
+  // component run in declaration order within a commit (child PassiveTree
+  // effects may run earlier, but only call `setTreeState`, never touch
+  // storage), so declaring this effect above the write effect and gating
+  // the write effect on `draftReadDone` (below) is enough — no lazy
+  // initialiser required.
   //
   // Owner-only: a reader has no edit UI to generate a draft with, and must
   // never write one either (see `setTreeState`/the draft-write effect below).
-  const [storedDraft] = useState<BuildDraftState | null>(() => (canEdit ? loadDraft(row.id, checkpointId) : null));
-  const [draftPromptOpen, setDraftPromptOpen] = useState(
-    () =>
-      storedDraft !== null &&
-      draftDiffersFrom(storedDraft, {
+  const [storedDraft, setStoredDraft] = useState<BuildDraftState | null>(null);
+  const [draftPromptOpen, setDraftPromptOpen] = useState(false);
+  // Guards the one-shot read below: readers never read or write a draft, so
+  // they start "done" and the effect is a no-op for them. Also survives
+  // StrictMode's simulated mount/unmount/remount — the ref (unlike state)
+  // is preserved across it, so the simulated remount does not re-read.
+  const draftReadDone = useRef(!canEdit);
+  useEffect(() => {
+    if (!canEdit || draftReadDone.current) return;
+    draftReadDone.current = true;
+    const d = loadDraft(row.id, checkpointId);
+    if (!d) return;
+    // Syncing local state from an external system (localStorage) on mount —
+    // exactly the case react-hooks/set-state-in-effect exists to allow; see
+    // this effect's header comment for why it can't instead be a lazy
+    // useState initialiser.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setStoredDraft(d);
+    if (
+      draftDiffersFrom(d, {
         class: row.class,
         ascendancy: row.ascendancy,
         passive_state: parsePassiveState(row.passive_state),
         gear_state: row.gear_state,
         gem_state: row.gem_state,
-      }),
-  );
+      })
+    ) {
+      setDraftPromptOpen(true);
+    }
+    // Empty deps intentional: runs once per mount, syncing from localStorage
+    // (an external system with no reactive dependency of its own) — the
+    // provider is keyed per checkpoint (see the header comment), so a new
+    // checkpoint always gets a fresh mount rather than this effect
+    // re-running with new props.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Ignore reports while read-only: a read-only PassiveTree still reports
   // its seeded state on mount (its onStateChange effect), and a reader must
@@ -363,6 +404,10 @@ export default function BuildSessionProvider({
   const latestSession = useRef<BuildDraftState | null>(null);
   useEffect(() => {
     if (!canEdit) return;
+    // Must not run before the draft read effect above has read whatever
+    // localStorage held for the previous session — this effect immediately
+    // overwrites it with the freshly-seeded (echo) state.
+    if (!draftReadDone.current) return;
     const session: BuildDraftState = { tree: treeState, gear, gem: gems };
     latestSession.current = session;
     saveDraft(row.id, session, checkpointId);
