@@ -169,7 +169,16 @@ test.describe('build page edit in place', () => {
     await waitForTreeApi(page);
     const before = (await treeState(page)).allocated.length;
 
-    await allocateNodes(page, await nodesNearStart(page, 3));
+    // nodesNearStart is a pure BFS with no knowledge of what is already
+    // allocated, and allocateNodes drives a real toggle — re-offering an
+    // already-allocated id deallocates it instead of adding it. Request extra
+    // candidates and filter out anything already taken (the pattern
+    // draft-and-auth.spec.ts:65 uses), and assert we actually got 3 before
+    // allocating so this can't go vacuous.
+    const taken = new Set((await treeState(page)).allocated);
+    const toAllocate = (await nodesNearStart(page, 12)).filter((id) => !taken.has(id)).slice(0, 3);
+    expect(toAllocate.length, 'no unallocated nodes near the start to add').toBe(3);
+    await allocateNodes(page, toAllocate);
     const afterAllocate = (await treeState(page)).allocated.length;
     expect(afterAllocate, 'allocating 3 nodes did not change the allocated count').toBe(before + 3);
 
@@ -213,7 +222,11 @@ test.describe('build page edit in place', () => {
     await page.getByRole('tab', { name: 'Tree', exact: true }).click();
     await waitForTreeApi(page);
     const savedCount = (await treeState(page)).allocated.length;
-    const [nodeId] = await nodesNearStart(page, 1);
+    // Same toggle hazard as "tree survives tab switches" above: filter out
+    // anything already allocated before picking the node to add.
+    const alreadyAllocated = new Set((await treeState(page)).allocated);
+    const [nodeId] = (await nodesNearStart(page, 12)).filter((id) => !alreadyAllocated.has(id));
+    expect(nodeId, 'no unallocated node near the start to add').toBeTruthy();
     await allocateNodes(page, [nodeId]);
     await expect
       .poll(async () => (await treeState(page)).allocated.length, { message: 'unsaved allocation never landed' })
