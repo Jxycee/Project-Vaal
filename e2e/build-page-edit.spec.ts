@@ -426,4 +426,53 @@ test.describe('build page edit in place', () => {
     await expect(page.getByTestId('unsaved-choice')).toBeVisible();
     await page.getByTestId('unsaved-choice').getByRole('button', { name: 'Discard' }).click();
   });
+
+  test("unsaved edits survive an owner's visit in view mode", async ({ page }) => {
+    // Regression test for a data-loss bug: BuildSession used to read/write
+    // the localStorage draft whenever `canEdit` was true, regardless of edit
+    // mode. So an owner with an unsaved edit who later opened the SAME build
+    // in VIEW mode (no ?edit=1 -- e.g. following their own share link) would
+    // have the draft read effect load the draft, and then the draft-write
+    // effect immediately overwrite it with the freshly-seeded (saved) state
+    // -- destroying the unsaved work with no notice ever shown (view mode
+    // never renders draft-notice). Self-contained, with its own
+    // reload/discard cycle, so it can't disturb the other tests' build-state
+    // assumptions; last in the serial describe for the same reason.
+    await goto(page, `/builds/${token}?edit=1&tab=tree`);
+    await waitForTreeApi(page);
+    const checkpointId = new URL(page.url()).searchParams.get('checkpoint') ?? undefined;
+
+    const taken = new Set((await treeState(page)).allocated);
+    const [nodeId] = (await nodesNearStart(page, 12)).filter((id) => !taken.has(id));
+    expect(nodeId, 'no unallocated node near the start to add').toBeTruthy();
+    const before = (await treeState(page)).allocated.length;
+    await allocateNodes(page, [nodeId]);
+    await expect
+      .poll(async () => (await treeState(page)).allocated.length, { message: 'unsaved allocation never landed' })
+      .toBe(before + 1);
+    await waitForDraft(page, buildId, checkpointId);
+
+    // View mode: no ?edit=1. Visit the Tree tab first so PassiveTree and the
+    // session fully mount and any effects run, then Overview, waiting for a
+    // real per-page signal rather than a fixed sleep each time.
+    await goto(page, `/builds/${token}?tab=tree`);
+    await waitForTreeApi(page);
+    await goto(page, `/builds/${token}`);
+    await expect(page.getByTestId('header-stats')).toBeVisible({ timeout: 30_000 });
+
+    // Back into edit mode: the draft must still be there, offered back.
+    await goto(page, `/builds/${token}?edit=1&tab=tree`);
+    await expect(page.getByTestId('draft-notice')).toBeVisible({ timeout: 30_000 });
+    await page.getByTestId('draft-notice').getByRole('button', { name: 'Restore' }).click();
+
+    await page.getByRole('tab', { name: 'Tree', exact: true }).click();
+    await waitForTreeApi(page);
+    const restored = await treeState(page);
+    expect(restored.allocated, 'the view-mode visit destroyed the unsaved node').toContain(nodeId);
+
+    // Clean up: leave the build as the earlier tests expect.
+    await page.getByRole('button', { name: 'Done' }).click();
+    await expect(page.getByTestId('unsaved-choice')).toBeVisible();
+    await page.getByTestId('unsaved-choice').getByRole('button', { name: 'Discard' }).click();
+  });
 });
