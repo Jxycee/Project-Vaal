@@ -68,6 +68,18 @@ export function keyItems(gear: GearState, set: WeaponSet): GearItem[] {
   return out;
 }
 
+/**
+ * The checkpoint switcher's trigger label (slice 3): the checkpoint's name,
+ * with `· Lvl N` appended only if the name doesn't already spell out that
+ * level number — otherwise a checkpoint named "Level 20" would show the
+ * redundant "Level 20 · Lvl 20". A word-boundary match so "Level 120" isn't
+ * mistaken for containing "12" at level 12.
+ */
+export function checkpointLabel(name: string, level: number): string {
+  const hasLevel = new RegExp(`(?:^|\\D)${level}(?:\\D|$)`).test(name);
+  return hasLevel ? name : `${name} · Lvl ${level}`;
+}
+
 /** `search` with `patch` applied (null deletes). Returns '' or a string starting with '?'. */
 export function patchQuery(search: string, patch: Record<string, string | null>): string {
   const params = new URLSearchParams(search);

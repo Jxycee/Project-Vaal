@@ -469,10 +469,22 @@ export default function BuildSessionProvider({
   const sheets = useMemo<Sheets>(() => (treeError ? { error: treeError } : defence), [treeError, defence]);
   const reserved = useReservedSpirit(gems);
 
-  // dirty = draftDiffersFrom's tree/gear/gems comparison against baseline,
-  // OR a meta field changed. Meta is compared directly (field by field)
-  // rather than through draftDiffersFrom, because it is not part of
-  // BuildDraftState at all (see the doc comment on BuildMeta).
+  // metaDirty = a name/level/league/notes field changed, compared directly
+  // (field by field) rather than through draftDiffersFrom, because meta is
+  // not part of BuildDraftState at all (see the doc comment on BuildMeta).
+  // Exposed separately from `dirty` below for the checkpoint switcher's dirty
+  // hint (slice 3): meta is not drafted, so a meta-only change needs its own
+  // "save first" message, distinct from "changed content stays as a draft".
+  const metaDirty = useMemo(
+    () =>
+      meta.name !== baseline.meta.name ||
+      meta.level !== baseline.meta.level ||
+      meta.league !== baseline.meta.league ||
+      meta.notes !== baseline.meta.notes,
+    [meta, baseline],
+  );
+
+  // dirty = draftDiffersFrom's tree/gear/gems comparison against baseline, OR metaDirty.
   const dirty = useMemo(() => {
     const changedBelowMeta = draftDiffersFrom(
       { tree: treeState, gear, gem: gems },
@@ -484,14 +496,8 @@ export default function BuildSessionProvider({
         gem_state: baseline.gem_state,
       },
     );
-    if (changedBelowMeta) return true;
-    return (
-      meta.name !== baseline.meta.name ||
-      meta.level !== baseline.meta.level ||
-      meta.league !== baseline.meta.league ||
-      meta.notes !== baseline.meta.notes
-    );
-  }, [treeState, gear, gems, meta, baseline]);
+    return changedBelowMeta || metaDirty;
+  }, [treeState, gear, gems, baseline, metaDirty]);
 
   // ---- Save --------------------------------------------------------------
   const [saving, setSaving] = useState(false);
@@ -628,6 +634,7 @@ export default function BuildSessionProvider({
       sheets,
       reserved,
       dirty,
+      metaDirty,
       saving,
       saveError,
       savedAt,
@@ -659,6 +666,7 @@ export default function BuildSessionProvider({
       sheets,
       reserved,
       dirty,
+      metaDirty,
       saving,
       saveError,
       savedAt,

@@ -67,6 +67,15 @@ export interface BuildSessionValue {
   reserved: ReservedSpiritResult | null;
   // ---- editing ----
   dirty: boolean;
+  /**
+   * True when name/level/league/notes differ from baseline, specifically —
+   * NOT the same as `dirty`, which also covers tree/gear/gems. The checkpoint
+   * switcher (slice 3) needs this split: meta is not drafted (see `BuildMeta`
+   * above), so switching checkpoints loses a meta-only edit that a tree/gear/
+   * gem edit would survive as a draft. The switcher's dirty hint tells the two
+   * apart.
+   */
+  metaDirty: boolean;
   saving: boolean;
   saveError: string | null;
   savedAt: string | null;

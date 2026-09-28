@@ -3,14 +3,54 @@
 // The checkpoint chip: "Lvl 94 · Endgame ▾". Choosing one is a server
 // navigation (<Link>), so the page re-reads that checkpoint's rows and
 // BuildPage remounts (it is keyed by checkpoint). The current tab is kept.
+//
+// Slice 3: management (add/rename/reorder/delete) lives in this menu's
+// "Manage" view now, not the full-screen CheckpointsSheet (still used by the
+// scratch /tree editor only — see CheckpointsSheet.tsx's header comment).
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { ChevronDown } from 'lucide-react';
-import { patchQuery } from '@/lib/build/buildPage';
+import { checkpointLabel, patchQuery } from '@/lib/build/buildPage';
 import type { BuildCheckpoint } from '@/lib/build/checkpointState';
-import CheckpointsSheet from '@/components/build/CheckpointsSheet';
+import type { CheckpointStateInput } from '@/app/(dashboard)/builds/checkpointActions';
+import CheckpointManager from './CheckpointManager';
 import { useBuildSession } from './session/BuildSession';
+
+export interface CheckpointManageProps {
+  buildId: string;
+  /** Full checkpoint rows (tree/gear/gems included) — what the manage view acts on. */
+  fullCheckpoints: BuildCheckpoint[];
+  /** The editor's tree, gear and gems right now, unsaved edits included — what "Add checkpoint" copies. */
+  currentState: CheckpointStateInput | null;
+  /** The session's current level — the add form's default. */
+  currentLevel: number;
+  dirty: boolean;
+  metaDirty: boolean;
+}
+
+/**
+ * Builds the switcher's `manage` prop from the session, for whichever of
+ * BuildHeader (full header) or BuildPage (compact sticky bar) is rendering a
+ * switcher right now. `undefined` outside owner edit mode — a reader, or an
+ * owner in view mode, gets the plain switch list only.
+ */
+export function useCheckpointManage(
+  edit: boolean,
+  buildId: string,
+  fullCheckpoints: BuildCheckpoint[],
+): CheckpointManageProps | undefined {
+  const { gear, gems, livePassive, meta, dirty, metaDirty } = useBuildSession();
+  if (!edit) return undefined;
+  return {
+    buildId,
+    fullCheckpoints,
+    currentState: { passive_state: livePassive, gear_state: gear, gem_state: gems },
+    currentLevel: meta.level,
+    dirty,
+    metaDirty,
+  };
+}
 
 export default function CheckpointSwitcher({
   shareToken,
@@ -20,9 +60,7 @@ export default function CheckpointSwitcher({
   align = 'left',
   compact = false,
   testId = 'checkpoint-switcher',
-  edit = false,
-  buildId,
-  fullCheckpoints,
+  manage,
 }: {
   shareToken: string;
   checkpoints: { id: string; name: string; level: number }[];
@@ -39,28 +77,31 @@ export default function CheckpointSwitcher({
   compact?: boolean;
   /** The two switchers on screen at once (full header + compact bar) must not share a test id, or Playwright's strict mode trips. */
   testId?: string;
-  /** Owner editing right now — adds the "Manage checkpoints" entry and the sheet it opens. */
-  edit?: boolean;
-  /** The build's row id, for CheckpointsSheet. Only meaningful when `edit`. */
-  buildId?: string;
-  /** Full checkpoint rows (tree/gear/gems included) for CheckpointsSheet. Only meaningful when `edit`. */
-  fullCheckpoints?: BuildCheckpoint[];
+  /** Present only in owner edit mode — adds the "Manage"/"Done managing" toggle and its view. See `useCheckpointManage`. */
+  manage?: CheckpointManageProps;
 }) {
   const [open, setOpen] = useState(false);
-  const [checkpointsSheetOpen, setCheckpointsSheetOpen] = useState(false);
+  const [managing, setManaging] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
-  const { gear, gems, livePassive, meta } = useBuildSession();
   const active = checkpoints.find((c) => c.id === activeCheckpointId) ?? checkpoints[0];
-  const label = active ? `Lvl ${active.level} · ${active.name}` : `Lvl ${fallbackLevel}`;
+  const label = active ? checkpointLabel(active.name, active.level) : `Lvl ${fallbackLevel}`;
+
+  const checkpointHref = (id: string | null) =>
+    `/builds/${shareToken}${patchQuery(searchParams.toString(), { checkpoint: id })}`;
+
+  const closeMenu = () => {
+    setOpen(false);
+    setManaging(false);
+  };
 
   useEffect(() => {
     if (!open) return;
     const onDown = (e: PointerEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+      if (!rootRef.current?.contains(e.target as Node)) closeMenu();
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === 'Escape') closeMenu();
     };
     document.addEventListener('pointerdown', onDown);
     document.addEventListener('keydown', onKey);
@@ -89,52 +130,62 @@ export default function CheckpointSwitcher({
         <div
           role="menu"
           data-testid="checkpoint-menu"
-          className={`absolute ${align === 'right' ? 'right-0' : 'left-0'} top-12 z-30 flex max-h-[60dvh] w-[min(18rem,calc(100vw-2rem))] flex-col overflow-y-auto rounded-lg border border-border bg-card p-1 shadow-lg`}
+          className={`absolute ${align === 'right' ? 'right-0' : 'left-0'} top-12 z-30 flex max-h-[70dvh] w-[min(18rem,calc(100vw-2rem))] flex-col overflow-y-auto rounded-lg border border-border bg-card p-1 shadow-lg`}
         >
-          {checkpoints.map((c) => (
-            <Link
-              key={c.id}
-              role="menuitem"
-              data-testid="checkpoint-option"
-              data-checkpoint-id={c.id}
-              aria-current={c.id === active?.id ? 'true' : undefined}
-              href={`/builds/${shareToken}${patchQuery(searchParams.toString(), { checkpoint: c.id })}`}
-              onClick={() => setOpen(false)}
-              className={`flex h-11 min-w-11 items-center justify-between gap-3 rounded-md px-3 text-sm ${
-                c.id === active?.id ? 'bg-accent text-foreground' : 'text-muted-foreground'
-              }`}
-            >
-              <span className="truncate">{c.name}</span>
-              <span className="shrink-0 tabular-nums">Lvl {c.level}</span>
-            </Link>
-          ))}
-          {edit ? (
+          {manage && manage.dirty ? (
+            <p className="shrink-0 px-3 py-1 text-xs text-muted-foreground">
+              Unsaved changes stay as a draft on this checkpoint.
+              {manage.metaDirty ? ' Save first to keep name and notes changes.' : ''}
+            </p>
+          ) : null}
+
+          {manage ? (
+            // shrink-0: this menu overflows past max-h-[70dvh] with 8+
+            // checkpoints (the whole point of overflow-y-auto below it) —
+            // without it, flexbox's default shrink algorithm squashes this
+            // button's cross-size down toward its text's line-height (~20px,
+            // it has no vertical padding) well under the 44px tap-target
+            // floor, since it's a direct child of the flex-col menu that the
+            // scrollable rows list also lives in (2026-09-28 review).
             <button
               type="button"
-              role="menuitem"
-              onClick={() => {
-                setOpen(false);
-                setCheckpointsSheetOpen(true);
-              }}
-              className="flex h-11 min-w-11 items-center justify-start rounded-md px-3 text-sm text-muted-foreground"
+              onClick={() => setManaging((m) => !m)}
+              className="flex h-11 min-w-11 shrink-0 items-center justify-start rounded-md px-3 text-sm text-muted-foreground"
             >
-              Manage checkpoints
+              {managing ? 'Done managing' : 'Manage'}
             </button>
           ) : null}
+
+          {manage && managing ? (
+            <CheckpointManager
+              buildId={manage.buildId}
+              checkpoints={manage.fullCheckpoints}
+              activeId={activeCheckpointId}
+              currentLevel={manage.currentLevel}
+              currentState={manage.currentState}
+              checkpointHref={checkpointHref}
+              onNavigate={closeMenu}
+            />
+          ) : (
+            checkpoints.map((c) => (
+              <Link
+                key={c.id}
+                role="menuitem"
+                data-testid="checkpoint-option"
+                data-checkpoint-id={c.id}
+                aria-current={c.id === active?.id ? 'true' : undefined}
+                href={checkpointHref(c.id)}
+                onClick={closeMenu}
+                className={`flex h-11 min-w-11 shrink-0 items-center justify-between gap-3 rounded-md px-3 text-sm ${
+                  c.id === active?.id ? 'bg-accent text-foreground' : 'text-muted-foreground'
+                }`}
+              >
+                <span className="truncate">{c.name}</span>
+                <span className="shrink-0 tabular-nums">Lvl {c.level}</span>
+              </Link>
+            ))
+          )}
         </div>
-      ) : null}
-      {edit ? (
-        <CheckpointsSheet
-          open={checkpointsSheetOpen}
-          buildId={buildId}
-          loadedWithBuild
-          checkpoints={fullCheckpoints ?? []}
-          activeId={activeCheckpointId}
-          currentLevel={meta.level}
-          currentState={{ passive_state: livePassive, gear_state: gear, gem_state: gems }}
-          checkpointHref={(id) => `/builds/${shareToken}${patchQuery(searchParams.toString(), { checkpoint: id })}`}
-          onClose={() => setCheckpointsSheetOpen(false)}
-        />
       ) : null}
     </div>
   );

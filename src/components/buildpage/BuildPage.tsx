@@ -24,7 +24,7 @@ import { useTreeExport } from './useTreeExport';
 import BuildSessionProvider, { useBuildSession } from './session/BuildSession';
 import BuildHeader, { HeaderActions } from './BuildHeader';
 import BuildTabs from './BuildTabs';
-import CheckpointSwitcher from './CheckpointSwitcher';
+import CheckpointSwitcher, { useCheckpointManage } from './CheckpointSwitcher';
 import EditBar from './EditBar';
 import StatsRail from './StatsRail';
 import OverviewTab from './tabs/OverviewTab';
@@ -80,6 +80,7 @@ function BuildPageBody(props: BuildPageProps) {
   const edit = mode === 'owner' && searchParams.get('edit') === '1';
   const { gems, sheets, reserved, meta, dirty, draftPromptOpen, save, discard, restoreDraft, dismissDraft } = useBuildSession();
   const set = headlineSet(gems);
+  const manage = useCheckpointManage(edit, row.id, fullCheckpoints);
 
   // The Done->Discard/Save/Keep-editing choice, shown under the header
   // instead of window.confirm (never allowed here). Rendering is gated on
@@ -190,9 +191,7 @@ function BuildPageBody(props: BuildPageProps) {
                 align="right"
                 compact
                 testId="checkpoint-switcher-compact"
-                edit={edit}
-                buildId={row.id}
-                fullCheckpoints={fullCheckpoints}
+                manage={manage}
               />
               <HeaderActions
                 mode={mode}

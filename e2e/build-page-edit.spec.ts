@@ -35,8 +35,9 @@ import {
 //     "Close gear sheet"); "Edit jewels" opens the jewels sheet.
 //   - Skills tab (edit): "Edit skills" opens the gems sheet.
 //   - Tree tab (edit): editable PassiveTree (window.__vaalTree).
-//   - Checkpoint switcher (edit): "Manage checkpoints" opens CheckpointsSheet
-//     (data-testid="checkpoints-sheet").
+//   - Checkpoint switcher (edit): a "Manage" toggle opens the manage view
+//     (data-testid="checkpoint-manager") in the switcher's own menu — slice 3,
+//     see build-page-checkpoints.spec.ts for its contract.
 //
 // CONTROLLER RULING for test 3 ("no bogus restore prompt"): drafts hold only
 // tree, gear and gems — name/level/league/notes are NOT in drafts, same as

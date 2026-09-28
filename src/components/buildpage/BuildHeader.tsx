@@ -11,7 +11,7 @@ import { MAX_BUILD_LABEL_LENGTH, MAX_BUILD_NAME_LENGTH } from '@/lib/build/const
 import type { SharedBuildRow, BuildVisibility } from '@/lib/build/types';
 import { VISIBILITY_HINT, VISIBILITY_LABEL, isBuildVisibility } from '@/lib/build/visibility';
 import { ascendancyLabel } from '@/lib/tree/ascendancyNames';
-import CheckpointSwitcher from './CheckpointSwitcher';
+import CheckpointSwitcher, { useCheckpointManage } from './CheckpointSwitcher';
 import HeaderStats from './HeaderStats';
 import { useBuildSession } from './session/BuildSession';
 import type { BuildCheckpoint } from '@/lib/build/checkpointState';
@@ -122,6 +122,7 @@ export default function BuildHeader(props: HeaderProps) {
   const set = headlineSet(gems);
   const visibility: BuildVisibility | null = isBuildVisibility(row.visibility) ? row.visibility : null;
   const ascendancyText = ascendancyLabel(treeState.className, treeState.ascendancyId ?? null);
+  const manage = useCheckpointManage(edit, row.id, fullCheckpoints);
   return (
     <header className="flex flex-col gap-3 rounded-lg border border-border bg-card/40 p-4">
       <div className="flex items-start justify-between gap-3">
@@ -197,9 +198,7 @@ export default function BuildHeader(props: HeaderProps) {
           checkpoints={checkpoints}
           activeCheckpointId={activeCheckpointId}
           fallbackLevel={row.level}
-          edit={edit}
-          buildId={row.id}
-          fullCheckpoints={fullCheckpoints}
+          manage={manage}
         />
         {mainSkill?.skill ? (
           <span className="flex min-w-0 items-center gap-2 text-sm text-foreground">
