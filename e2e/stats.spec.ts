@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { cleanupWithFreshPage, listedBuildNames, openTree, saveBuild, testBuildName, treeState } from './helpers';
+import { cleanupWithFreshPage, listedBuildNames, openEditor, openTree, saveBuild, testBuildName, treeState } from './helpers';
 
 // Slice 5 — attribute choices feed the defence sheet
 // (plans/2026-09-25-slice5-defence-engine.md). Choosing Strength on a
@@ -30,12 +30,20 @@ async function nearestAttributeNode(page: Page): Promise<number> {
   });
 }
 
+/**
+ * Reads a stat cell. Works before AND after a save+reload: a saved build
+ * with a share token reopens on the build page (slice 2's /tree?build=
+ * redirect), where Stats is its own tab (stats-panel, no close button)
+ * rather than a sheet (stats-sheet) opened from a chip.
+ */
 async function readStat(page: Page, id: string): Promise<number> {
-  await page.getByRole('button', { name: 'Stats', exact: true }).click();
-  const cell = page.getByTestId('stats-sheet').getByTestId(id);
+  const onBuildPage = new URL(page.url()).pathname.startsWith('/builds/');
+  await openEditor(page, 'stats');
+  const stats = onBuildPage ? page.getByTestId('stats-panel') : page.getByTestId('stats-sheet');
+  const cell = stats.getByTestId(id);
   await expect(cell).toHaveText(/^\d+$/, { timeout: 30_000 });
   const value = Number(await cell.textContent());
-  await page.getByRole('button', { name: 'Close stats sheet' }).click();
+  if (!onBuildPage) await page.getByRole('button', { name: 'Close stats sheet' }).click();
   return value;
 }
 

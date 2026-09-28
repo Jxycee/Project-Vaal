@@ -164,6 +164,35 @@ describe('parseGemState', () => {
   });
 });
 
+// Same reasoning as parseGearState's idempotence tests
+// (src/lib/build/__tests__/gearState.test.ts) — BuildSession.tsx's
+// `Baseline.gem_state` holds an already-parsed `GemState` and hands it
+// straight back to `draftDiffersFrom`, which re-parses via `parseGemState`.
+// Correct ONLY because parsing an already-parsed `GemState` is a no-op;
+// pinned here so a future change to this parser can't silently break
+// `dirty`/the draft-restore prompt without a test failing.
+describe('parseGemState — idempotence (review 2026-09-27)', () => {
+  it('is idempotent on an empty state', () => {
+    const once = parseGemState(undefined);
+    expect(parseGemState(once)).toEqual(once);
+  });
+
+  it('is idempotent on a state with loadouts, supports, level/quality and a primaryId', () => {
+    const once = parseGemState({
+      loadouts: [
+        { id: 'a', skill: heraldOfAsh, supports: [support(1), support(2)], sets: [1, 2], level: 20, quality: 15 },
+        { id: 'b', skill: spark, supports: [], sets: [1], level: 1, quality: 0 },
+      ],
+      primaryId: 'a',
+    });
+    // Sanity check the fixture actually exercises what it claims to before
+    // trusting the idempotence assertion below.
+    expect(once.loadouts[0].supports).toHaveLength(2);
+    expect(once.primaryId).toBe('a');
+    expect(parseGemState(once)).toEqual(once);
+  });
+});
+
 describe('addLoadout / removeLoadout', () => {
   it('adds a fresh empty loadout', () => {
     const state = addLoadout(emptyGemState());

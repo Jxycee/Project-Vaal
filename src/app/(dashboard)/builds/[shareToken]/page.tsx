@@ -91,6 +91,7 @@ export default async function BuildRoutePage({ params, searchParams }: PageProps
       shareToken={shareToken}
       checkpoints={checkpoints.map(({ id, name, level }) => ({ id, name, level }))}
       activeCheckpointId={active?.id}
+      fullCheckpoints={loaded.mode === 'owner' ? checkpoints : []}
     />
   );
 }

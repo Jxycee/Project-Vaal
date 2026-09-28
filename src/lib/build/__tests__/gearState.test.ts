@@ -135,3 +135,30 @@ describe('parseGearState — item craft (Slice 4)', () => {
     expect(state.ring1?.craft?.rarity).toBe('normal');
   });
 });
+
+// BuildSession.tsx's `Baseline` (src/components/buildpage/session/
+// BuildSession.tsx) stores an already-parsed `GearState` and hands it
+// straight back to `draftDiffersFrom`, which re-parses whatever it's given
+// via `parseGearState`. That shortcut is correct ONLY because parsing an
+// already-parsed `GearState` is a no-op — pinned here so a future change to
+// this parser that breaks that (regenerating a value, or treating a
+// present-but-default key differently from an absent one) fails loudly here
+// instead of silently corrupting `dirty`/the draft-restore prompt.
+describe('parseGearState — idempotence (review 2026-09-27)', () => {
+  it('is idempotent on an empty state', () => {
+    const once = parseGearState(undefined);
+    expect(parseGearState(once)).toEqual(once);
+  });
+
+  it('is idempotent on a state with a crafted item and a jewel', () => {
+    const craft = { rarity: 'rare', prefixes: [{ slug: 'addedcolddamage1', values: [1, 3] }] };
+    const ring = { slug: 'amethyst-ring', name: 'Amethyst Ring', category: 'Ring', isUnique: false, iconUrl: null, craft };
+    const jewelItem = { slug: 'emerald', name: 'Emerald', category: 'Jewel', isUnique: false, iconUrl: null };
+    const once = parseGearState({ boots, ring1: ring, jewels: { '26725': jewelItem } });
+    // Sanity check the fixture actually exercises what it claims to before
+    // trusting the idempotence assertion below.
+    expect(once.ring1?.craft?.rarity).toBe('rare');
+    expect(once.jewels['26725']).toEqual(jewelItem);
+    expect(parseGearState(once)).toEqual(once);
+  });
+});

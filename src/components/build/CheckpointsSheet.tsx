@@ -40,6 +40,7 @@ export default function CheckpointsSheet({
   activeId,
   currentLevel,
   currentState,
+  checkpointHref,
   onClose,
 }: {
   open: boolean;
@@ -56,6 +57,16 @@ export default function CheckpointsSheet({
    * a new checkpoint copies. Null before the tree has reported its state.
    */
   currentState: CheckpointStateInput | null;
+  /**
+   * Where switching to (or opening) a checkpoint navigates. `null` means "the
+   * build without a checkpoint" (only reachable for a scratch session's first
+   * save — `loadedWithBuild` is false then, and this sheet shows the "Open
+   * saved build" link instead of the checkpoint list at all). The build page
+   * passes `/builds/<token>` + the current query with `checkpoint` patched;
+   * the scratch/old `/tree` editor (TreeBuildSession) passes today's
+   * `/tree?build=` URLs unchanged.
+   */
+  checkpointHref: (checkpointId: string | null) => string;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -82,7 +93,7 @@ export default function CheckpointsSheet({
   if (!open || typeof document === 'undefined') return null;
 
   const goTo = (checkpointId: string) => {
-    router.push(`/tree?build=${buildId}&checkpoint=${checkpointId}`);
+    router.push(checkpointHref(checkpointId));
     onClose();
   };
 
@@ -130,7 +141,7 @@ export default function CheckpointsSheet({
           // was not loaded with ?build=, so it has no checkpoint rows to show.
           <div className="flex flex-col gap-2">
             <p className="text-sm text-muted-foreground">Open the saved build to manage its checkpoints.</p>
-            <a href={`/tree?build=${buildId}`} className={BUTTON}>
+            <a href={checkpointHref(null)} className={BUTTON}>
               Open saved build
             </a>
           </div>

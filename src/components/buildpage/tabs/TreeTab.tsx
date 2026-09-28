@@ -1,10 +1,11 @@
 'use client';
 
-// Read-only passive tree, sized to the space under the header and tabs.
+// The passive tree tab. Read-only for a reader or a viewer not in edit mode;
+// editable for the owner with `?edit=1` — same PassiveTree component either
+// way, driven entirely by the BuildSession (tree export, seeded editor
+// state, and the setter it reports allocations back through).
 import dynamic from 'next/dynamic';
-import type { GggTreeJson } from '@poe2-toolkit/tree-core/ggg';
-import { fromPassiveState } from '@/lib/build/passiveState';
-import type { PassiveState } from '@/lib/build/types';
+import { useBuildSession } from '../session/BuildSession';
 
 // Module scope, same reasoning as TreeEditor.tsx: pixi/WebGL is heavy and browser-only.
 const PassiveTree = dynamic(() => import('@/components/tree/PassiveTree'), {
@@ -12,21 +13,8 @@ const PassiveTree = dynamic(() => import('@/components/tree/PassiveTree'), {
   loading: () => <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Loading passive tree…</div>,
 });
 
-export default function TreeTab({
-  tree,
-  error,
-  className,
-  ascendancyId,
-  passiveState,
-  level,
-}: {
-  tree: GggTreeJson | null;
-  error: string | null;
-  className: string;
-  ascendancyId: string | null;
-  passiveState: PassiveState;
-  level: number;
-}) {
+export default function TreeTab({ edit }: { edit: boolean }) {
+  const { tree, treeError, treeState, treeSeedKey, meta, setTreeState } = useBuildSession();
   return (
     <div
       id="tree-tab"
@@ -34,16 +22,24 @@ export default function TreeTab({
       data-testid="tree-tab"
       className="relative h-[calc(100dvh-17rem)] min-h-[22rem] w-full touch-none select-none overflow-hidden rounded-lg border border-border md:h-[calc(100dvh-13rem)]"
     >
-      {error ? (
-        <div className="flex h-full items-center justify-center px-6 text-center text-sm text-destructive">Couldn&apos;t load the passive tree ({error}).</div>
+      {treeError ? (
+        <div className="flex h-full items-center justify-center px-6 text-center text-sm text-destructive">Couldn&apos;t load the passive tree ({treeError}).</div>
       ) : !tree ? (
         <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Loading passive tree…</div>
       ) : (
         <PassiveTree
+          // Bumped by BuildSession's discard()/restoreDraft() to force a
+          // fresh seed from `treeState` — see treeSeedKey's doc comment in
+          // sessionTypes.ts. Switching away from this tab and back already
+          // remounts TreeTab (BuildPage renders it only while active), which
+          // re-seeds from the current `treeState` naturally; this key exists
+          // for the case where Tree stays mounted underneath a discard.
+          key={treeSeedKey}
           raw={tree}
-          initialState={{ className, ascendancyId: ascendancyId ?? undefined, ...fromPassiveState(passiveState) }}
-          readOnly
-          level={level}
+          initialState={treeState}
+          readOnly={!edit}
+          onStateChange={edit ? setTreeState : undefined}
+          level={meta.level}
         />
       )}
     </div>

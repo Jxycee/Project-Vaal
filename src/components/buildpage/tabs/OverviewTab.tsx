@@ -1,8 +1,9 @@
+'use client';
+
 // Overview: what a reader needs in one screen — main skill group, key items, notes.
-import type { WeaponSet } from '@poe2-toolkit/tree-core';
-import { keyItems } from '@/lib/build/buildPage';
-import type { GearState } from '@/lib/build/gearState';
-import type { GemLoadout } from '@/lib/build/gemState';
+import { keyItems, headlineSet, mainSkillLoadout } from '@/lib/build/buildPage';
+import { MAX_NOTES_LENGTH } from '@/lib/build/constants';
+import { useBuildSession } from '../session/BuildSession';
 
 function Icon({ src, size = 'h-9 w-9' }: { src: string | null; size?: string }) {
   return (
@@ -15,7 +16,10 @@ function Icon({ src, size = 'h-9 w-9' }: { src: string | null; size?: string }) 
   );
 }
 
-export default function OverviewTab({ mainSkill, gear, set, notes }: { mainSkill: GemLoadout | null; gear: GearState; set: WeaponSet; notes: string | null }) {
+export default function OverviewTab({ edit }: { edit: boolean }) {
+  const { gear, gems, meta, setMeta } = useBuildSession();
+  const mainSkill = mainSkillLoadout(gems);
+  const set = headlineSet(gems);
   const items = keyItems(gear, set);
   return (
     <div id="overview-tab" role="tabpanel" data-testid="overview-tab" className="flex flex-col gap-4">
@@ -74,8 +78,17 @@ export default function OverviewTab({ mainSkill, gear, set, notes }: { mainSkill
 
       <section className="rounded-lg border border-border bg-card/40 p-3">
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Notes</h2>
-        {notes ? (
-          <p className="whitespace-pre-line break-words text-sm text-foreground">{notes}</p>
+        {edit ? (
+          <textarea
+            id="build-notes"
+            value={meta.notes}
+            onChange={(e) => setMeta({ notes: e.target.value })}
+            maxLength={MAX_NOTES_LENGTH}
+            placeholder="Why this build works, leveling notes, anything a reader would want…"
+            className="min-h-32 w-full resize-y rounded-md border border-input bg-background/60 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-3 focus:ring-ring/50"
+          />
+        ) : meta.notes ? (
+          <p className="whitespace-pre-line break-words text-sm text-foreground">{meta.notes}</p>
         ) : (
           <p className="text-sm text-muted-foreground">No notes yet.</p>
         )}

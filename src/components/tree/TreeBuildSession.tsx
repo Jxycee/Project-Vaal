@@ -617,6 +617,7 @@ export default function TreeBuildSession({
               }
             : null
         }
+        checkpointHref={(id) => (id ? `/tree?build=${activeBuildId}&checkpoint=${id}` : `/tree?build=${activeBuildId}`)}
         onClose={() => setCheckpointsSheetOpen(false)}
       />
     </>

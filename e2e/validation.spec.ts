@@ -4,6 +4,7 @@ import {
   cleanupWithFreshPage,
   listedBuildNames,
   measureTapTargets,
+  openEditor,
   openTree,
   pickByName,
   saveBuild,
@@ -103,7 +104,10 @@ test.describe('structural validation', () => {
     await openTree(page, new URL(href!, 'http://x').searchParams.get('build')!);
 
     // ---- Everything is derived again from what was saved --------------------
-    await page.getByRole('button', { name: 'Gear' }).click();
+    // A saved build with a share token now reopens on the build page (slice
+    // 2's /tree?build= redirect), where gear/gems live behind "Edit gear" /
+    // "Edit skills" rather than the old /tree chips.
+    await openEditor(page, 'gear');
     await expect(gear).toBeVisible();
     await expect(row('Weapon')).toContainText('Siege Crossbow');
     await expect(row('Off-hand')).toContainText('Braced Tower Shield');
@@ -123,7 +127,7 @@ test.describe('structural validation', () => {
     await expect(gear.getByTestId('gear-warning-weapon2_off')).toHaveCount(0);
     await gear.getByRole('button', { name: 'Close gear sheet' }).click();
 
-    await page.getByRole('button', { name: /^Gems/ }).click();
+    await openEditor(page, 'gems');
     await expect(gems.getByTestId('spirit-reserved')).toHaveText('Spirit reserved — Set I: 40 · Set II: 0');
   });
 });
