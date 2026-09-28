@@ -331,4 +331,99 @@ test.describe('build page edit in place', () => {
       expect(tooSmall, `controls under ${MIN_TAP_PX}px on the ${tab} tab while editing`).toEqual([]);
     }
   });
+
+  test('edits during an in-flight save survive on the build page', async ({ page }) => {
+    // Mirrors draft-and-auth.spec.ts's in-flight coverage for the old
+    // scratch editor ("edits made while a save is in flight keep their
+    // draft", ~lines 44-79) on the new build page: BuildSession.save() has
+    // the same latestSession identity check (review 2026-09-26) — a save
+    // only carries the tree state at the moment it was sent, so allocations
+    // made while that request is in flight must survive as a draft rather
+    // than getting cleared out from under the user once the response lands.
+    // Last in this serial describe and self-contained (own reload/discard
+    // cycle) so it can't disturb the other tests' build-state assumptions.
+    await goto(page, `/builds/${token}?edit=1&tab=tree`);
+    await waitForTreeApi(page);
+    const checkpointId = new URL(page.url()).searchParams.get('checkpoint') ?? undefined;
+
+    // EditBar disables Save while the tree isn't dirty, so allocate one node
+    // first just to make Save clickable at all.
+    const takenForDirty = new Set((await treeState(page)).allocated);
+    const [dirtyNode] = (await nodesNearStart(page, 12)).filter((id) => !takenForDirty.has(id));
+    expect(dirtyNode, 'no unallocated node near the start to make the tree dirty').toBeTruthy();
+    await allocateNodes(page, [dirtyNode]);
+    const savedCount = (await treeState(page)).allocated.length;
+
+    // Hold POST /api/builds exactly as draft-and-auth.spec.ts does for its
+    // old-editor equivalent of this test.
+    await page.route('**/api/builds', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 3_000));
+      await route.continue();
+    });
+    const savePromise = page.waitForResponse(
+      (r) => r.url().includes('/api/builds') && r.request().method() === 'POST',
+    );
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+
+    // While the save is held back, allocate more. Filter against whatever is
+    // allocated right now — the same toggle hazard the other tests in this
+    // file guard against: re-offering an id already allocated would
+    // deallocate it instead of adding to the count.
+    const takenInFlight = new Set((await treeState(page)).allocated);
+    const inFlightNodes = (await nodesNearStart(page, 12)).filter((id) => !takenInFlight.has(id)).slice(0, 2);
+    expect(inFlightNodes.length, 'no unallocated nodes near the start to add in flight').toBe(2);
+    const beforeInFlight = (await treeState(page)).allocated.length;
+    await allocateNodes(page, inFlightNodes);
+    const afterInFlight = (await treeState(page)).allocated.length;
+    expect(afterInFlight, 'the in-flight allocation did not change the tree').toBeGreaterThan(beforeInFlight);
+
+    // The response landing is the save completing server-side. The visible
+    // status afterwards is "Unsaved changes", not "Saved …" — the new
+    // baseline is what was SENT (savedCount), and the live tree
+    // (afterInFlight) still differs from it, so `dirty` is correctly true
+    // again. That is the scenario in miniature: the save succeeded, but the
+    // in-flight edits are not in it.
+    const saveResponse = await savePromise;
+    await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes', { timeout: 30_000 });
+    // Let the draft-write effect (which reacts to `dirty`) actually land
+    // before navigating away unmounts it.
+    await waitForDraft(page, buildId, checkpointId);
+    await page.unroute('**/api/builds');
+
+    // Positive: what actually reached the server is the pre-in-flight
+    // state. Asserted straight off the save response body rather than by
+    // navigating to a read-mode reload — `canEdit` on the build page is
+    // ownership-based, not `?edit=`-based, so a plain `?tab=tree` visit as
+    // the owner would mount the very same draft-writing session and
+    // overwrite (and, worse, transiently corrupt with a not-yet-loaded
+    // classId of -1) the in-flight draft we are about to check next.
+    const savePayload = (await saveResponse.json()) as {
+      checkpoint?: { passive_state: { set1: number[] } } | null;
+      build: { passive_state: { set1: number[] } };
+    };
+    const savedIds = new Set((savePayload.checkpoint ?? savePayload.build).passive_state.set1);
+    expect(savedIds.size, 'the save carried edits made after it was sent').toBe(savedCount);
+    for (const id of inFlightNodes) {
+      expect(savedIds.has(id), 'the saved tree should not contain an in-flight node').toBe(false);
+    }
+
+    // The in-flight edits must still be sitting in the draft, offered back.
+    await goto(page, `/builds/${token}?edit=1&tab=tree`);
+    await expect(page.getByTestId('draft-notice')).toBeVisible({ timeout: 30_000 });
+    await page.getByTestId('draft-notice').getByRole('button', { name: 'Restore' }).click();
+
+    await page.getByRole('tab', { name: 'Tree', exact: true }).click();
+    await waitForTreeApi(page);
+    const restored = await treeState(page);
+    for (const id of inFlightNodes) {
+      expect(restored.allocated, 'Restore did not bring back an in-flight node').toContain(id);
+    }
+    expect(restored.allocated.length).toBe(afterInFlight);
+
+    // Leave the build clean: discard the restored draft rather than saving
+    // it, so this test doesn't change what any later run finds.
+    await page.getByRole('button', { name: 'Done' }).click();
+    await expect(page.getByTestId('unsaved-choice')).toBeVisible();
+    await page.getByTestId('unsaved-choice').getByRole('button', { name: 'Discard' }).click();
+  });
 });
