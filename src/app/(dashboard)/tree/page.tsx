@@ -17,6 +17,7 @@ import { createClient, getCachedUser } from '@/lib/supabase/server';
 import type { SavedBuild } from '@/lib/build/types';
 import { UUID_RE } from '@/lib/build/constants';
 import { activeCheckpoint, parseCheckpoints, type BuildCheckpoint } from '@/lib/build/checkpointState';
+import { patchQuery } from '@/lib/build/buildPage';
 import TreeEditor from '@/components/tree/TreeEditor';
 
 export const metadata = { title: 'Passive tree' };
@@ -83,6 +84,25 @@ export default async function TreePage({
         }
       }
     }
+  }
+
+  // The build page (slice 2) is now where owned builds with a share token get
+  // edited — this route becomes purely the redirect to its Tree tab, in edit
+  // mode, on the resolved checkpoint. "Ours" is already established above
+  // (any row that came back but is not ours set loadError instead of
+  // `build`), so the only extra condition is a non-null share_token: a build
+  // saved with a null token (data predating share links, or a state this
+  // codebase does not otherwise produce) keeps behaving exactly as today,
+  // same as "missing" and "bad id".
+  if (build && build.share_token) {
+    const target = checkpoints.length > 0 ? activeCheckpoint(checkpoints, checkpointParam) : null;
+    redirect(
+      `/builds/${encodeURIComponent(build.share_token)}${patchQuery('', {
+        tab: 'tree',
+        edit: '1',
+        checkpoint: target?.id ?? null,
+      })}`,
+    );
   }
 
   // Name the checkpoint in the URL whenever it is not already there. Links to

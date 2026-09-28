@@ -19,7 +19,12 @@ async function importFixture(page: Page, name: string): Promise<void> {
   await expect(sheet.getByTestId('import-preview')).toBeVisible({ timeout: 60_000 });
   await sheet.getByTestId('import-name').fill(name);
   await sheet.getByRole('button', { name: 'Import', exact: true }).click();
-  await page.waitForURL(/\/tree\?build=/, { timeout: 60_000 });
+  // A newly imported build always gets a share token (importActions.ts), so
+  // ImportSheet's router.push('/tree?build=<id>') now redirects straight to
+  // the build page's Tree tab in edit mode — this waits for wherever that
+  // lands rather than the literal /tree?build= URL. Where it lands does not
+  // matter to this helper's callers, who navigate again by share token.
+  await page.waitForURL(/\/(tree\?build=[0-9a-f-]{36}|builds\/)/, { timeout: 60_000 });
 }
 
 /** Imports are owner-only (`unlisted`) and /builds hides the link then, so flip to Private, read it, flip back. */

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { MIN_TAP_PX, cleanupWithFreshPage, listedBuildNames, measureTapTargets, openTree, pickByName, saveBuild, testBuildName } from './helpers';
+import { MIN_TAP_PX, cleanupWithFreshPage, listedBuildNames, measureTapTargets, openEditor, openTree, pickByName, saveBuild, testBuildName } from './helpers';
 
 // Slice 4 — an item carries everything our data backs
 // (plans/2026-09-25-slice4-item-affixes.md). Crafts a rare ring through the
@@ -98,7 +98,10 @@ test.describe('item craft', () => {
     const href = await page.locator(`a:has-text("${name}")`).getAttribute('href');
     await openTree(page, new URL(href!, 'http://x').searchParams.get('build')!);
 
-    await page.getByRole('button', { name: 'Gear' }).click();
+    // A saved build with a share token now reopens on the build page (slice
+    // 2's /tree?build= redirect), where gear lives behind "Edit gear" on the
+    // Gear tab rather than the old /tree "Gear" chip.
+    await openEditor(page, 'gear');
     await expect(gear.getByTestId('gear-craft-ring1')).toHaveText('rare · 3 affixes · 1 rune');
     await gear.getByRole('button', { name: 'Edit Ring 1' }).click();
     await expect(editor.getByTestId('rarity-rare')).toHaveAttribute('aria-pressed', 'true');

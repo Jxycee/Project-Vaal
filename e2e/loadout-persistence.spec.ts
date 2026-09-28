@@ -5,6 +5,7 @@ import {
   gotoBuilds,
   listedBuildNames,
   measureTapTargets,
+  openEditor,
   openTree,
   saveBuild,
   softNavigate,
@@ -183,10 +184,19 @@ test.describe('loadout persistence', () => {
     await softNavigate(page, href!);
 
     // ---- Everything is still there -----------------------------------------
-    await expect(page.getByRole('button', { name: /^Jewels/ })).toContainText('Jewels 1/1');
-    await expect(page.getByRole('button', { name: /^Gems/ })).toContainText('Gems 1');
+    // A saved build with a share token now redirects the /tree?build= link
+    // above to the build page's Tree tab in edit mode — the old chips'
+    // resting labels ("Jewels 1/1", "Gems 1") have no equivalent there, so
+    // this positive check only applies to the old /tree UI. The build page's
+    // equivalent proof is the sheet content asserted below, which is the
+    // same either way.
+    const onBuildPage = new URL(page.url()).pathname.startsWith('/builds/');
+    if (!onBuildPage) {
+      await expect(page.getByRole('button', { name: /^Jewels/ })).toContainText('Jewels 1/1');
+      await expect(page.getByRole('button', { name: /^Gems/ })).toContainText('Gems 1');
+    }
 
-    await page.getByRole('button', { name: 'Gear' }).click();
+    await openEditor(page, 'gear');
     const reopenedGear = page.locator('.z-40');
     await expect(reopenedGear).toBeVisible();
     await expect(reopenedGear.locator('ul li').filter({ hasText: 'Boots' }).first()).toContainText(
@@ -200,13 +210,13 @@ test.describe('loadout persistence', () => {
 
     // The socket row only exists if the passive allocation came back too, so
     // this quietly covers the tree half of the payload as well.
-    await page.getByRole('button', { name: /^Jewels/ }).click();
+    await openEditor(page, 'jewels');
     const reopenedJewels = page.locator('.z-40').filter({ hasText: 'Jewels' });
     await expect(reopenedJewels.locator('ul li').first()).toContainText(jewelName);
     await reopenedJewels.getByRole('button', { name: 'Close jewels sheet' }).click();
     await expect(reopenedJewels).toBeHidden();
 
-    await page.getByRole('button', { name: /^Gems/ }).click();
+    await openEditor(page, 'gems');
     const reopenedGems = page.locator('.z-40').filter({ hasText: 'Gems' });
     const reopenedCard = reopenedGems.locator('ul > li').first();
     await expect(reopenedCard).toContainText(skillName);
@@ -222,9 +232,15 @@ test.describe('loadout persistence', () => {
     await reopenedGems.getByRole('button', { name: 'Close gems sheet' }).click();
     await expect(reopenedGems).toBeHidden();
 
-    // Notes, saved above — the save panel is the metadata surface (name,
-    // level, league) and is collapsed to a chip by default; open it back up.
-    await page.getByRole('button', { name: 'Saved build' }).click();
+    // Notes, saved above. On the old UI the save panel is the metadata
+    // surface (name, level, league) and is collapsed to a chip by default, so
+    // it must be reopened; on the build page notes live on Overview, and
+    // #build-notes is on screen as soon as that tab is selected.
+    if (onBuildPage) {
+      await page.getByRole('tab', { name: 'Overview', exact: true }).click();
+    } else {
+      await page.getByRole('button', { name: 'Saved build' }).click();
+    }
     await expect(page.locator('#build-notes')).toHaveValue(notes);
 
     // Tap targets on a POPULATED /builds. mobile-layout.spec.ts scans that

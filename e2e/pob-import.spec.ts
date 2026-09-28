@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { test, expect } from '@playwright/test';
-import { cleanupWithFreshPage, gotoBuilds, MIN_TAP_PX, measureTapTargets, openTree, testBuildName, treeState, waitForTreeApi } from './helpers';
+import { cleanupWithFreshPage, gotoBuilds, MIN_TAP_PX, measureTapTargets, openEditor, openTree, testBuildName, treeState, waitForTreeApi } from './helpers';
 
 // Path of Building 2 import, end to end through the real UI (the test-grade
 // ImportSheet), the real Server Functions and the real database.
@@ -78,8 +78,17 @@ test.describe('Path of Building 2 import', () => {
     await test.step('import lands on the new build in the editor', async () => {
       await sheet.getByTestId('import-name').fill(name);
       await sheet.getByRole('button', { name: 'Import', exact: true }).click();
-      await page.waitForURL(/\/tree\?build=/, { timeout: 60_000 });
-      buildId = new URL(page.url()).searchParams.get('build')!;
+      // A newly imported build always gets a share token (importActions.ts),
+      // so the sheet's router.push('/tree?build=<id>') now redirects
+      // straight to the build page's Tree tab in edit mode — this waits for
+      // wherever that lands rather than the literal /tree?build= URL, then
+      // reads the build id back off its own /builds row (MyBuildsList still
+      // renders /tree?build=, unchanged this slice).
+      await page.waitForURL(/\/(tree\?build=[0-9a-f-]{36}|builds\/)/, { timeout: 60_000 });
+
+      await gotoBuilds(page);
+      const href = await page.locator(`a[href^="/tree?build="]:has-text("${name}")`).getAttribute('href');
+      buildId = href!.split('build=')[1];
       expect(buildId).toMatch(/^[0-9a-f-]{36}$/);
     });
 
@@ -94,7 +103,7 @@ test.describe('Path of Building 2 import', () => {
       expect((await treeState(page)).ascendancyId).toBe('Witchhunter');
       expect((await treeState(page)).ascendancyNodes).toHaveLength(2);
 
-      await page.getByRole('button', { name: /^Checkpoints/ }).click();
+      await openEditor(page, 'checkpoints');
       const cpSheet = page.getByTestId('checkpoints-sheet');
       await expect(cpSheet).toBeVisible();
       const rows = cpSheet.getByTestId('checkpoint-row');
@@ -113,7 +122,7 @@ test.describe('Path of Building 2 import', () => {
     // pinned in src/lib/pob/__tests__/mapItems.test.ts; this proves they
     // survive the import write, the gate and a full reload into the editor.
     await test.step('imported items keep their crafts through the save and a reload', async () => {
-      await page.getByRole('button', { name: 'Gear' }).click();
+      await openEditor(page, 'gear');
       const gear = page.locator('.fixed.inset-0.z-40');
       await expect(gear.getByTestId('gear-craft-weapon1_main')).toHaveText('rare · 6 affixes · 2 runes');
       await expect(gear.getByTestId('gear-craft-body')).toHaveText('unique · 0 affixes · 2 runes');
@@ -131,8 +140,12 @@ test.describe('Path of Building 2 import', () => {
     // piece in src/lib/build/stats/__tests__/fixture.test.ts; this proves the
     // browser path (data fetches, hook, sheet) produces the same numbers.
     await test.step("the stat sheet shows the engine's numbers for the last checkpoint", async () => {
-      await page.getByRole('button', { name: 'Stats', exact: true }).click();
-      const stats = page.getByTestId('stats-sheet');
+      // A saved build with a share token now reopens on the build page,
+      // where Stats is its own tab (stats-panel) rather than a sheet
+      // (stats-sheet) with its own close button.
+      const onBuildPage = new URL(page.url()).pathname.startsWith('/builds/');
+      await openEditor(page, 'stats');
+      const stats = onBuildPage ? page.getByTestId('stats-panel') : page.getByTestId('stats-sheet');
       await expect(stats.getByTestId('stat-life')).toHaveText('2498', { timeout: 30_000 });
       await expect(stats.getByTestId('stat-mana')).toHaveText('916');
       await expect(stats.getByTestId('stat-energy-shield')).toHaveText('167');
@@ -146,7 +159,7 @@ test.describe('Path of Building 2 import', () => {
       await expect(stats.getByTestId('stat-spirit')).toContainText('100');
       await expect(stats.getByTestId('stat-act')).toContainText('Endgame');
       await expect(stats.getByTestId('stat-not-counted')).toContainText('Siege Crossbow: 2 runes not counted');
-      await stats.getByRole('button', { name: 'Close stats sheet' }).click();
+      if (!onBuildPage) await stats.getByRole('button', { name: 'Close stats sheet' }).click();
     });
 
     await test.step('the build lists under its name', async () => {

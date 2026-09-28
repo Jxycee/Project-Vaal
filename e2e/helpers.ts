@@ -103,9 +103,88 @@ export async function nodesNearStart(page: Page, count: number): Promise<number[
   }, count);
 }
 
+/**
+ * Opens `/tree` (scratch) or `/tree?build=<id>` (a saved build).
+ *
+ * With a `buildId`, an owned build with a share token now redirects here to
+ * the build page's Tree tab in edit mode (slice 2) — `page.goto` follows that
+ * redirect transparently, so this still lands wherever the tree ends up and
+ * waits for the same dev-only hook either way.
+ */
 export async function openTree(page: Page, buildId?: string): Promise<void> {
   await page.goto(buildId ? `/tree?build=${buildId}` : '/tree');
   await waitForTreeApi(page);
+}
+
+/** Which build-page tab a given editor section lives under. */
+const SECTION_TAB = {
+  gear: 'Gear',
+  jewels: 'Gear',
+  gems: 'Skills',
+  stats: 'Stats',
+  checkpoints: null,
+} as const;
+
+export type EditorSection = keyof typeof SECTION_TAB;
+
+/**
+ * Opens an editor sheet (or, for `stats`, just the panel) for `section`.
+ * Works on both UIs a saved build can be reopened on: the old `/tree` chips
+ * (Gear / Jewels… / Gems… / Stats / Checkpoints…) and the build page's tabs +
+ * "Edit gear" / "Edit jewels" / "Edit skills" / "Manage checkpoints".
+ *
+ * `stats` has no sheet on the build page — StatsPanel renders directly in the
+ * tab (`data-testid="stats-panel"`), unlike `/tree`'s `stats-sheet`. Callers
+ * must read the testid that matches wherever they ended up.
+ */
+export async function openEditor(page: Page, section: EditorSection): Promise<void> {
+  const onBuildPage = new URL(page.url()).pathname.startsWith('/builds/');
+
+  if (onBuildPage) {
+    const tab = SECTION_TAB[section];
+    if (tab) await page.getByRole('tab', { name: tab, exact: true }).click();
+    switch (section) {
+      case 'gear':
+        await page.getByRole('button', { name: 'Edit gear' }).click();
+        break;
+      case 'jewels': {
+        const button = page.getByRole('button', { name: /^(Edit jewels|Loading tree…)$/ });
+        await expect(button).toHaveText('Edit jewels', { timeout: 30_000 });
+        await button.click();
+        break;
+      }
+      case 'gems':
+        await page.getByRole('button', { name: 'Edit skills' }).click();
+        break;
+      case 'stats':
+        // Selecting the Stats tab above is the whole job — no sheet to open.
+        break;
+      case 'checkpoints':
+        await page.getByTestId('checkpoint-switcher').click();
+        await page.getByRole('menuitem', { name: 'Manage checkpoints' }).click();
+        break;
+    }
+    return;
+  }
+
+  // Old /tree chips.
+  switch (section) {
+    case 'gear':
+      await page.getByRole('button', { name: 'Gear', exact: true }).click();
+      break;
+    case 'jewels':
+      await page.getByRole('button', { name: /^Jewels/ }).click();
+      break;
+    case 'gems':
+      await page.getByRole('button', { name: /^Gems/ }).click();
+      break;
+    case 'stats':
+      await page.getByRole('button', { name: 'Stats', exact: true }).click();
+      break;
+    case 'checkpoints':
+      await page.getByRole('button', { name: /^Checkpoints/ }).click();
+      break;
+  }
 }
 
 /**
@@ -119,19 +198,60 @@ export async function softNavigate(page: Page, href: string): Promise<void> {
     if (!link) throw new Error(`No <a href="${target}"> on the page to soft-navigate with`);
     link.click();
   }, href);
-  await page.waitForURL((url) => url.pathname + url.search === href, { timeout: 30_000 });
+  // A `/tree?build=<id>` link (still what /builds rows render, this slice)
+  // for an owned build with a share token now redirects — server-side, but
+  // followed by the client router without a full reload — to the build
+  // page's Tree tab in edit mode. So the URL this soft nav lands on can
+  // legitimately differ from `href`. Only that one redirect shape is
+  // tolerated; anything else must still land exactly on `href`.
+  const isTreeBuildLink = /^\/tree\?build=/.test(href);
+  await page.waitForURL(
+    (url) => {
+      const current = url.pathname + url.search;
+      return current === href || (isTreeBuildLink && url.pathname.startsWith('/builds/'));
+    },
+    { timeout: 30_000 },
+  );
   // The URL changing is not the same as the tree being ready. TreeBuildSession
-  // is keyed by build id, so a soft navigation unmounts and remounts it, which
-  // tears the hook down and reinstalls it. Reading state before that finishes
-  // is how this helper produced "Cannot read properties of undefined".
-  if (new URL(page.url()).pathname === '/tree') await waitForTreeApi(page);
+  // (and, for a redirected build-page landing, BuildSession) is keyed by
+  // build id, so a soft navigation unmounts and remounts it, which tears the
+  // hook down and reinstalls it. Reading state before that finishes is how
+  // this helper produced "Cannot read properties of undefined".
+  const landedPath = new URL(page.url()).pathname;
+  if (landedPath === '/tree' || (isTreeBuildLink && landedPath.startsWith('/builds/'))) {
+    await waitForTreeApi(page);
+  }
 }
 
-/** Saves the current editor state through the save panel. */
+/**
+ * Saves the current editor state.
+ *
+ * On the build page (`/builds/…`, slice 2), fields are always on screen in
+ * edit mode: fills the header inputs directly, switches to Overview for
+ * `#build-notes` (it does not exist on the other tabs), clicks the single
+ * Save button, and waits for `save-status` to read `Saved …`. On `/tree`
+ * (scratch editor, unaffected by slice 2) it opens the save panel if
+ * collapsed and behaves exactly as before.
+ */
 export async function saveBuild(
   page: Page,
   opts: { name?: string; level?: number; league?: string; notes?: string } = {},
 ): Promise<void> {
+  const onBuildPage = new URL(page.url()).pathname.startsWith('/builds/');
+
+  if (onBuildPage) {
+    if (opts.name !== undefined) await page.locator('#build-name').fill(opts.name);
+    if (opts.level !== undefined) await page.locator('#build-level').fill(String(opts.level));
+    if (opts.league !== undefined) await page.locator('#build-league').fill(opts.league);
+    if (opts.notes !== undefined) {
+      await page.getByRole('tab', { name: 'Overview', exact: true }).click();
+      await page.locator('#build-notes').fill(opts.notes);
+    }
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(page.getByTestId('save-status')).toHaveText(/^Saved /, { timeout: 30_000 });
+    return;
+  }
+
   const panel = page.getByRole('button', { name: /^(Save build|Saved build)$/ });
   if (await panel.isVisible().catch(() => false)) await panel.click();
 

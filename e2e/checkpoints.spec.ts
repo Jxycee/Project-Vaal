@@ -5,6 +5,7 @@ import {
   MIN_TAP_PX,
   measureTapTargets,
   nodesNearStart,
+  openEditor,
   openTree,
   saveBuild,
   testBuildName,
@@ -50,7 +51,11 @@ test.describe('leveling checkpoints', () => {
     const sheet = page.getByTestId('checkpoints-sheet');
     const rows = sheet.getByTestId('checkpoint-row');
     const openSheet = async () => {
-      await page.getByRole('button', { name: /^Checkpoints/ }).click();
+      // A saved build with a share token now reopens on the build page
+      // (slice 2's /tree?build= redirect); openEditor knows both the old
+      // /tree "Checkpoints" chip and the build page's checkpoint switcher +
+      // "Manage checkpoints" entry.
+      await openEditor(page, 'checkpoints');
       await expect(sheet).toBeVisible();
     };
 
