@@ -2,6 +2,7 @@
 
 // Overview: what a reader needs in one screen — main skill group, key items, notes.
 import { keyItems, headlineSet, mainSkillLoadout } from '@/lib/build/buildPage';
+import { MAX_NOTES_LENGTH } from '@/lib/build/constants';
 import { useBuildSession } from '../session/BuildSession';
 
 function Icon({ src, size = 'h-9 w-9' }: { src: string | null; size?: string }) {
@@ -15,8 +16,8 @@ function Icon({ src, size = 'h-9 w-9' }: { src: string | null; size?: string }) 
   );
 }
 
-export default function OverviewTab() {
-  const { gear, gems, meta } = useBuildSession();
+export default function OverviewTab({ edit }: { edit: boolean }) {
+  const { gear, gems, meta, setMeta } = useBuildSession();
   const mainSkill = mainSkillLoadout(gems);
   const set = headlineSet(gems);
   const items = keyItems(gear, set);
@@ -77,7 +78,16 @@ export default function OverviewTab() {
 
       <section className="rounded-lg border border-border bg-card/40 p-3">
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Notes</h2>
-        {meta.notes ? (
+        {edit ? (
+          <textarea
+            id="build-notes"
+            value={meta.notes}
+            onChange={(e) => setMeta({ notes: e.target.value })}
+            maxLength={MAX_NOTES_LENGTH}
+            placeholder="Why this build works, leveling notes, anything a reader would want…"
+            className="min-h-32 w-full resize-y rounded-md border border-input bg-background/60 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-3 focus:ring-ring/50"
+          />
+        ) : meta.notes ? (
           <p className="whitespace-pre-line break-words text-sm text-foreground">{meta.notes}</p>
         ) : (
           <p className="text-sm text-muted-foreground">No notes yet.</p>

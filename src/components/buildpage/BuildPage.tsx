@@ -7,7 +7,9 @@
 // checkpoint for its whole life. The tab lives only in the URL (?tab=, set by
 // BuildTabs with pushState), so switching tabs re-renders this component and
 // never reaches the server. Edit mode lives in the URL too (?edit=1, owner
-// only), toggled with history.replaceState — see BuildHeader.
+// only), toggled with history.replaceState (not pushState — entering/leaving
+// edit is not something Back should step through) via patchQuery, same
+// helper BuildTabs uses.
 //
 // All build-scoped state (tree, gear, gems, meta, drafts, save) lives one
 // level up, in BuildSessionProvider — this component and everything below it
@@ -15,7 +17,7 @@
 // everywhere at once without any prop threading of its own.
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { headlineSet, parseTab } from '@/lib/build/buildPage';
+import { headlineSet, parseTab, patchQuery } from '@/lib/build/buildPage';
 import type { SharedBuildRow } from '@/lib/build/types';
 import type { BuildCheckpoint } from '@/lib/build/checkpointState';
 import { useTreeExport } from './useTreeExport';
@@ -23,6 +25,7 @@ import BuildSessionProvider, { useBuildSession } from './session/BuildSession';
 import BuildHeader, { HeaderActions } from './BuildHeader';
 import BuildTabs from './BuildTabs';
 import CheckpointSwitcher from './CheckpointSwitcher';
+import EditBar from './EditBar';
 import StatsRail from './StatsRail';
 import OverviewTab from './tabs/OverviewTab';
 import GearTab from './tabs/GearTab';
@@ -52,13 +55,52 @@ export default function BuildPage(props: BuildPageProps) {
   );
 }
 
+function setQuery(patch: Record<string, string | null>) {
+  const query = patchQuery(window.location.search, patch);
+  window.history.replaceState(null, '', `${window.location.pathname}${query}`);
+}
+
 function BuildPageBody(props: BuildPageProps) {
-  const { mode, row, authorName, tags, shareToken, checkpoints, activeCheckpointId } = props;
+  const { mode, row, authorName, tags, shareToken, checkpoints, activeCheckpointId, fullCheckpoints } = props;
   const searchParams = useSearchParams();
   const tab = parseTab(searchParams.get('tab'));
   const edit = mode === 'owner' && searchParams.get('edit') === '1';
-  const { gems, sheets, reserved, meta } = useBuildSession();
+  const { gems, sheets, reserved, meta, dirty, draftPromptOpen, save, discard, restoreDraft, dismissDraft } = useBuildSession();
   const set = headlineSet(gems);
+
+  // The Done->Discard/Save/Keep-editing choice, shown under the header
+  // instead of window.confirm (never allowed here). Rendering is gated on
+  // `edit && showChoice`, so it is invisible whenever edit mode is off
+  // regardless of this flag's value; enterEdit() below also resets it
+  // explicitly (an event handler, not an effect — see react-hooks/set-
+  // state-in-effect) so re-entering edit mode never opens on a stale choice
+  // left over from a previous session (e.g. a browser Back that skipped
+  // Done's own exitEdit reset).
+  const [showChoice, setShowChoice] = useState(false);
+
+  function enterEdit() {
+    setShowChoice(false);
+    setQuery({ edit: '1' });
+  }
+  function exitEdit() {
+    setQuery({ edit: null });
+    setShowChoice(false);
+  }
+  function requestDone() {
+    if (!dirty) {
+      exitEdit();
+      return;
+    }
+    setShowChoice(true);
+  }
+  async function handleChoiceSave() {
+    const ok = await save();
+    if (ok) exitEdit();
+  }
+  function handleChoiceDiscard() {
+    discard();
+    exitEdit();
+  }
 
   // The compact sticky bar appears once the full header has scrolled away.
   const headerRef = useRef<HTMLDivElement>(null);
@@ -82,8 +124,43 @@ function BuildPageBody(props: BuildPageProps) {
           shareToken={shareToken}
           checkpoints={checkpoints}
           activeCheckpointId={activeCheckpointId}
+          fullCheckpoints={fullCheckpoints}
+          edit={edit}
+          onToggleEdit={enterEdit}
+          onRequestDone={requestDone}
         />
       </div>
+
+      {edit && draftPromptOpen ? (
+        <div data-testid="draft-notice" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card/95 px-3 py-2">
+          <p className="text-sm text-foreground">Unsaved changes from last time.</p>
+          <div className="flex gap-2">
+            <button type="button" onClick={restoreDraft} className="h-11 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground">
+              Restore
+            </button>
+            <button type="button" onClick={dismissDraft} className="h-11 rounded-md border border-border px-4 text-sm font-medium text-muted-foreground">
+              Discard
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {edit && showChoice ? (
+        <div data-testid="unsaved-choice" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card/95 px-3 py-2">
+          <p className="text-sm text-foreground">You have unsaved changes.</p>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => void handleChoiceSave()} className="h-11 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground">
+              Save
+            </button>
+            <button type="button" onClick={handleChoiceDiscard} className="h-11 rounded-md border border-border px-4 text-sm font-medium text-muted-foreground">
+              Discard
+            </button>
+            <button type="button" onClick={() => setShowChoice(false)} className="h-11 rounded-md px-4 text-sm text-muted-foreground">
+              Keep editing
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="sticky top-20 z-20 bg-background/95 backdrop-blur md:top-0">
         {compact ? (
@@ -100,19 +177,33 @@ function BuildPageBody(props: BuildPageProps) {
                 align="right"
                 compact
                 testId="checkpoint-switcher-compact"
+                edit={edit}
+                buildId={row.id}
+                fullCheckpoints={fullCheckpoints}
               />
-              <HeaderActions mode={mode} row={row} shareToken={shareToken} activeCheckpointId={activeCheckpointId} compact />
+              <HeaderActions
+                mode={mode}
+                row={row}
+                shareToken={shareToken}
+                compact
+                edit={edit}
+                onToggleEdit={enterEdit}
+                onRequestDone={requestDone}
+              />
             </div>
           </div>
         ) : null}
         <BuildTabs active={tab} />
+        {/* Only ever one Save button in the DOM: hidden here while the
+            Done->unsaved choice above (which has its own Save) is open. */}
+        {edit && !showChoice ? <EditBar /> : null}
       </div>
 
       <div className={tab === 'tree' ? '' : 'md:grid md:grid-cols-[minmax(0,1fr)_16rem] md:gap-6'}>
         <div className="min-w-0">
-          {tab === 'overview' ? <OverviewTab /> : null}
-          {tab === 'gear' ? <GearTab /> : null}
-          {tab === 'skills' ? <SkillsTab /> : null}
+          {tab === 'overview' ? <OverviewTab edit={edit} /> : null}
+          {tab === 'gear' ? <GearTab edit={edit} /> : null}
+          {tab === 'skills' ? <SkillsTab edit={edit} /> : null}
           {tab === 'tree' ? <TreeTab edit={edit} /> : null}
           {tab === 'stats' ? <StatsTab /> : null}
         </div>

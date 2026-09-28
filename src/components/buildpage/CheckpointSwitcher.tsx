@@ -8,6 +8,9 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { ChevronDown } from 'lucide-react';
 import { patchQuery } from '@/lib/build/buildPage';
+import type { BuildCheckpoint } from '@/lib/build/checkpointState';
+import CheckpointsSheet from '@/components/build/CheckpointsSheet';
+import { useBuildSession } from './session/BuildSession';
 
 export default function CheckpointSwitcher({
   shareToken,
@@ -17,6 +20,9 @@ export default function CheckpointSwitcher({
   align = 'left',
   compact = false,
   testId = 'checkpoint-switcher',
+  edit = false,
+  buildId,
+  fullCheckpoints,
 }: {
   shareToken: string;
   checkpoints: { id: string; name: string; level: number }[];
@@ -33,10 +39,18 @@ export default function CheckpointSwitcher({
   compact?: boolean;
   /** The two switchers on screen at once (full header + compact bar) must not share a test id, or Playwright's strict mode trips. */
   testId?: string;
+  /** Owner editing right now — adds the "Manage checkpoints" entry and the sheet it opens. */
+  edit?: boolean;
+  /** The build's row id, for CheckpointsSheet. Only meaningful when `edit`. */
+  buildId?: string;
+  /** Full checkpoint rows (tree/gear/gems included) for CheckpointsSheet. Only meaningful when `edit`. */
+  fullCheckpoints?: BuildCheckpoint[];
 }) {
   const [open, setOpen] = useState(false);
+  const [checkpointsSheetOpen, setCheckpointsSheetOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
+  const { gear, gems, livePassive, meta } = useBuildSession();
   const active = checkpoints.find((c) => c.id === activeCheckpointId) ?? checkpoints[0];
   const label = active ? `Lvl ${active.level} · ${active.name}` : `Lvl ${fallbackLevel}`;
 
@@ -94,7 +108,33 @@ export default function CheckpointSwitcher({
               <span className="shrink-0 tabular-nums">Lvl {c.level}</span>
             </Link>
           ))}
+          {edit ? (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                setCheckpointsSheetOpen(true);
+              }}
+              className="flex h-11 min-w-11 items-center justify-start rounded-md px-3 text-sm text-muted-foreground"
+            >
+              Manage checkpoints
+            </button>
+          ) : null}
         </div>
+      ) : null}
+      {edit ? (
+        <CheckpointsSheet
+          open={checkpointsSheetOpen}
+          buildId={buildId}
+          loadedWithBuild
+          checkpoints={fullCheckpoints ?? []}
+          activeId={activeCheckpointId}
+          currentLevel={meta.level}
+          currentState={{ passive_state: livePassive, gear_state: gear, gem_state: gems }}
+          checkpointHref={(id) => `/builds/${shareToken}${patchQuery(searchParams.toString(), { checkpoint: id })}`}
+          onClose={() => setCheckpointsSheetOpen(false)}
+        />
       ) : null}
     </div>
   );
