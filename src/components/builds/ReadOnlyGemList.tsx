@@ -2,6 +2,7 @@
 // fetch, no portal. See ReadOnlyGearList.tsx's header comment for why this is
 // a separate small component rather than a `readOnly` prop on GemsSheet.
 import { WEAPON_SET_DOT } from '@/lib/build/weaponSetColors';
+import { loadoutsMainFirst, mainSkillLoadout } from '@/lib/build/buildPage';
 import type { GearItem } from '@/lib/build/gearSlots';
 import type { GemLoadout, GemState } from '@/lib/build/gemState';
 
@@ -76,11 +77,13 @@ export default function ReadOnlyGemList({ gemState }: { gemState: GemState }) {
   if (gemState.loadouts.length === 0) {
     return <p className="py-6 text-center text-sm text-muted-foreground">No gems recorded.</p>;
   }
-
+  // The badge follows mainSkillLoadout (deriveMainSkill's rule: the primary, else the first loadout with a skill),
+  // so it always marks the skill builds.main_skill names.
+  const mainId = mainSkillLoadout(gemState)?.id;
   return (
     <ul className="divide-y divide-border rounded-lg border border-border bg-card/40">
-      {gemState.loadouts.map((loadout, i) => (
-        <LoadoutCard key={loadout.id} loadout={loadout} index={i} isPrimary={loadout.id === gemState.primaryId} />
+      {loadoutsMainFirst(gemState).map((loadout, i) => (
+        <LoadoutCard key={loadout.id} loadout={loadout} index={i} isPrimary={loadout.id === mainId} />
       ))}
     </ul>
   );
