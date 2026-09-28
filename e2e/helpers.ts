@@ -131,13 +131,20 @@ export type EditorSection = keyof typeof SECTION_TAB;
  * Opens an editor sheet (or, for `stats`, just the panel) for `section`.
  * Works on both UIs a saved build can be reopened on: the old `/tree` chips
  * (Gear / Jewels… / Gems… / Stats / Checkpoints…) and the build page's tabs +
- * "Edit gear" / "Edit jewels" / "Edit skills" / "Manage checkpoints".
+ * "Edit gear" / "Edit jewels" / "Edit skills" / the checkpoint switcher.
  *
  * `stats` has no sheet on the build page — StatsPanel renders directly in the
  * tab (`data-testid="stats-panel"`), unlike `/tree`'s `stats-sheet`. Callers
  * must read the testid that matches wherever they ended up.
+ *
+ * For `checkpoints` on the build page (slice 3): management moved from a
+ * "Manage checkpoints" sheet entry into the switcher's own "Manage" toggle,
+ * so this opens the switcher, taps Manage, and returns the
+ * `checkpoint-manager` locator — the only case with a return value, since
+ * every other section (and the old `/tree` chips' `checkpoints` case, which
+ * still opens CheckpointsSheet) has nothing worth handing back.
  */
-export async function openEditor(page: Page, section: EditorSection): Promise<void> {
+export async function openEditor(page: Page, section: EditorSection): Promise<Locator | void> {
   const onBuildPage = new URL(page.url()).pathname.startsWith('/builds/');
 
   if (onBuildPage) {
@@ -159,10 +166,15 @@ export async function openEditor(page: Page, section: EditorSection): Promise<vo
       case 'stats':
         // Selecting the Stats tab above is the whole job — no sheet to open.
         break;
-      case 'checkpoints':
+      case 'checkpoints': {
         await page.getByTestId('checkpoint-switcher').click();
-        await page.getByRole('menuitem', { name: 'Manage checkpoints' }).click();
-        break;
+        const menu = page.getByTestId('checkpoint-menu');
+        await expect(menu).toBeVisible();
+        await menu.getByRole('button', { name: 'Manage', exact: true }).click();
+        const manager = page.getByTestId('checkpoint-manager');
+        await expect(manager).toBeVisible();
+        return manager;
+      }
     }
     return;
   }

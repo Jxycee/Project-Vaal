@@ -16,19 +16,18 @@
 //
 // Shell copied from JewelsSheet: a portal at z-40 with a 44px close button,
 // which is also what e2e/mobile-layout.spec.ts's tap-target scan measures.
-import { useState, useTransition } from 'react';
+//
+// The actual mutations (run/move/rename/delete/add) live in
+// useCheckpointActions (slice 3 task 2) — shared with CheckpointSwitcher's
+// manage view so the two never drift. This component is UI only: it owns the
+// rename/add form fields (not part of the hook's job) and renders whatever
+// the hook reports.
+import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
-import {
-  addCheckpoint,
-  deleteCheckpoint,
-  renameCheckpoint,
-  reorderCheckpoints,
-  type CheckpointStateInput,
-} from '@/app/(dashboard)/builds/checkpointActions';
+import type { CheckpointStateInput } from '@/app/(dashboard)/builds/checkpointActions';
 import type { BuildCheckpoint } from '@/lib/build/checkpointState';
-import { callAction } from '@/lib/callAction';
+import { useCheckpointActions } from './useCheckpointActions';
 
 const BUTTON = 'flex h-11 min-w-11 items-center justify-center rounded-md border border-border px-3 text-sm text-foreground disabled:opacity-50';
 
@@ -69,14 +68,19 @@ export default function CheckpointsSheet({
   checkpointHref: (checkpointId: string | null) => string;
   onClose: () => void;
 }) {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
   const [newLevel, setNewLevel] = useState<number>(currentLevel);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
-  const [armedDeleteId, setArmedDeleteId] = useState<string | null>(null);
+
+  const { pending, error, goTo, move, rename, armedDeleteId, requestDelete, add } = useCheckpointActions({
+    buildId,
+    checkpoints,
+    activeId,
+    currentState,
+    checkpointHref,
+    onNavigate: onClose,
+  });
 
   // This component stays mounted while closed (it renders null), so the
   // useState seed above only ever sees the level from the first render.
@@ -91,33 +95,6 @@ export default function CheckpointsSheet({
 
   // Also gates the SSR pass, same reasoning as JewelsSheet.
   if (!open || typeof document === 'undefined') return null;
-
-  const goTo = (checkpointId: string) => {
-    router.push(checkpointHref(checkpointId));
-    onClose();
-  };
-
-  /** Runs one action, shows its error if it fails, and returns whether it succeeded. */
-  const run = (action: () => Promise<{ ok: boolean; error?: string }>, after?: () => void) => {
-    setError(null);
-    startTransition(async () => {
-      const result = await callAction(action);
-      if (!result.ok) {
-        setError(result.error ?? 'Something went wrong.');
-        return;
-      }
-      after?.();
-    });
-  };
-
-  const move = (index: number, delta: -1 | 1) => {
-    if (!buildId) return;
-    const ids = checkpoints.map((c) => c.id);
-    const target = index + delta;
-    if (target < 0 || target >= ids.length) return;
-    [ids[index], ids[target]] = [ids[target], ids[index]];
-    run(() => reorderCheckpoints(buildId, ids));
-  };
 
   return createPortal(
     <div className="fixed inset-0 z-40 flex flex-col bg-background" data-testid="checkpoints-sheet">
@@ -181,9 +158,7 @@ export default function CheckpointsSheet({
                           type="button"
                           className={BUTTON}
                           disabled={pending}
-                          onClick={() =>
-                            run(() => renameCheckpoint(checkpoint.id, renameValue), () => setRenamingId(null))
-                          }
+                          onClick={() => rename(checkpoint.id, renameValue, () => setRenamingId(null))}
                         >
                           Save name
                         </button>
@@ -232,14 +207,7 @@ export default function CheckpointsSheet({
                           type="button"
                           className={BUTTON}
                           disabled={pending}
-                          onClick={() => {
-                            if (armedDeleteId !== checkpoint.id) {
-                              setArmedDeleteId(checkpoint.id);
-                              return;
-                            }
-                            setArmedDeleteId(null);
-                            run(() => deleteCheckpoint(checkpoint.id));
-                          }}
+                          onClick={() => requestDelete(checkpoint.id)}
                         >
                           {armedDeleteId === checkpoint.id ? 'Confirm delete' : 'Delete'}
                         </button>
@@ -273,19 +241,7 @@ export default function CheckpointsSheet({
                 type="button"
                 className={BUTTON}
                 disabled={pending}
-                onClick={() => {
-                  const name = newName.trim() || `Level ${newLevel}`;
-                  setError(null);
-                  startTransition(async () => {
-                    const result = await callAction(() => addCheckpoint(buildId, name, newLevel, activeId, currentState ?? undefined));
-                    if (!result.ok) {
-                      setError(result.error);
-                      return;
-                    }
-                    setNewName('');
-                    goTo(result.id);
-                  });
-                }}
+                onClick={() => add(newName.trim() || `Level ${newLevel}`, newLevel, () => setNewName(''))}
               >
                 Add checkpoint
               </button>

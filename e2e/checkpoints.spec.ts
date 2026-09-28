@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator } from '@playwright/test';
 import {
   allocateNodes,
   cleanupWithFreshPage,
@@ -13,21 +13,31 @@ import {
   waitForTreeApi,
 } from './helpers';
 
-// Leveling checkpoints, end to end through the real UI (the test-grade
-// CheckpointsSheet) and the real database.
+// Leveling checkpoints, end to end through the real UI and the real database.
+//
+// A saved build with a share token reopens on the build page (slice 2's
+// /tree?build= redirect), so every management interaction below — once
+// `buildId` exists — happens through the checkpoint switcher's manage view
+// (data-testid="checkpoint-manager", slice 3), not the full-screen
+// CheckpointsSheet. CheckpointsSheet still exists and is still exercised
+// end-to-end, just by the scratch `/tree` editor, which never appears in this
+// file (see build-page-checkpoints.spec.ts for the manage view's own
+// dedicated contract tests — this file's job is the tree/database mechanics:
+// separate trees per checkpoint, reorder persistence, and the last-checkpoint
+// refusal).
 //
 // Written against the three ways a test on this branch has passed while
 // broken (docs/superpowers/CURRENT-STATE.md, "Three ways a test here has
 // passed while broken"):
 //   1. A tap-target scan that matches nothing is green. So every scan asserts
-//      how many controls it measured — and the sheet is asserted visible first,
+//      how many controls it measured — and the menu is asserted visible first,
 //      because measureTapTargets silently falls back to document.body when its
 //      selector matches nothing.
 //   2. "Reads empty after reload" is equally true of a build that never saved.
 //      So every assertion about one checkpoint is paired with a POPULATED
 //      assertion about the other: two different, non-zero node counts.
 //   3. The state a test runs in is part of the test. The tap-target scan here
-//      runs against a sheet holding two real checkpoints, not an empty one.
+//      runs against a manager holding two real checkpoints, not an empty one.
 //
 // Writes real rows to the production-linked project under the shared test
 // account. Everything created is prefixed E2E- and deleted in afterAll; the
@@ -47,16 +57,20 @@ test.describe('leveling checkpoints', () => {
     let firstAlloc = 0;
     let secondAlloc = 0;
     let secondCheckpointId = '';
+    // The manage view is ephemeral (it closes on navigation, unlike the old
+    // CheckpointsSheet, which stayed mounted once opened) — reassigned by
+    // `openManage` after every navigation that remounts the build page.
+    let manager: Locator;
 
-    const sheet = page.getByTestId('checkpoints-sheet');
-    const rows = sheet.getByTestId('checkpoint-row');
-    const openSheet = async () => {
-      // A saved build with a share token now reopens on the build page
-      // (slice 2's /tree?build= redirect); openEditor knows both the old
-      // /tree "Checkpoints" chip and the build page's checkpoint switcher +
-      // "Manage checkpoints" entry.
-      await openEditor(page, 'checkpoints');
-      await expect(sheet).toBeVisible();
+    // Reopens the switcher and taps Manage. Only ever called once we are on
+    // the build page (every `openTree(page, buildId)` below is, per the
+    // slice-2 redirect) — openEditor's `checkpoints` case only returns a
+    // locator there.
+    const openManage = async () => {
+      const result = await openEditor(page, 'checkpoints');
+      if (!result) throw new Error('openEditor("checkpoints") returned no locator — not on the build page?');
+      manager = result;
+      return manager;
     };
 
     await test.step('save a build — the database gives it checkpoint 0', async () => {
@@ -72,14 +86,17 @@ test.describe('leveling checkpoints', () => {
 
       await openTree(page, buildId);
       await expect.poll(async () => (await treeState(page)).allocated.length).toBe(firstAlloc);
-      await openSheet();
+      await openManage();
+      const rows = manager.getByTestId('checkpoint-row');
       await expect(rows).toHaveCount(1);
       await expect(rows.first()).toContainText('Level 31');
     });
 
     await test.step('add a second checkpoint as a copy, then make it diverge', async () => {
-      await sheet.getByLabel('Checkpoint name').fill('Level 94');
-      await sheet.getByLabel('Checkpoint level').fill('94');
+      // The manager opened by the previous step is still open — no
+      // navigation happened since, so this fills the very same form.
+      await manager.getByLabel('Checkpoint name').fill('Level 94');
+      await manager.getByLabel('Checkpoint level').fill('94');
       // /tree now names the open checkpoint in the URL on load, so the URL
       // already has ?checkpoint= (checkpoint 0's) before the add. Waiting for
       // "any checkpoint=" resolved at once on the old URL, captured checkpoint
@@ -87,7 +104,7 @@ test.describe('leveling checkpoints', () => {
       // for a different id instead.
       const firstCheckpointId = new URL(page.url()).searchParams.get('checkpoint');
       expect(firstCheckpointId, '/tree did not name the open checkpoint in its URL').toBeTruthy();
-      await sheet.getByRole('button', { name: 'Add checkpoint' }).click();
+      await manager.getByRole('button', { name: 'Add checkpoint', exact: true }).click();
 
       await page.waitForURL((url) => {
         const id = url.searchParams.get('checkpoint');
@@ -120,23 +137,25 @@ test.describe('leveling checkpoints', () => {
       expect(secondAlloc).not.toBe(firstAlloc);
     });
 
-    await test.step('the sheet meets the tap-target floor with real checkpoints in it', async () => {
-      await openSheet();
+    await test.step('the manager meets the tap-target floor with real checkpoints in it', async () => {
+      await openManage();
+      const rows = manager.getByTestId('checkpoint-row');
       await expect(rows).toHaveCount(2);
-      await expect(rows.nth(1)).toContainText('level 94');
+      await expect(rows.nth(1)).toContainText('Level 94');
 
-      const { scanned, tooSmall } = await measureTapTargets(page, '[data-testid="checkpoints-sheet"]');
-      expect(scanned, 'no controls found in the checkpoints sheet').toBeGreaterThan(4);
-      expect(tooSmall, `controls under ${MIN_TAP_PX}px in the checkpoints sheet`).toEqual([]);
+      const { scanned, tooSmall } = await measureTapTargets(page, '[data-testid="checkpoint-menu"]');
+      expect(scanned, 'no controls found in the checkpoint menu').toBeGreaterThan(4);
+      expect(tooSmall, `controls under ${MIN_TAP_PX}px in the checkpoint manager`).toEqual([]);
 
       const overflow = await page.evaluate(
         () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
       );
-      expect(overflow, 'horizontal scroll with the checkpoints sheet open').toBeLessThanOrEqual(0);
+      expect(overflow, 'horizontal scroll with the checkpoint manager open').toBeLessThanOrEqual(0);
     });
 
     await test.step('reordering persists: the moved checkpoint becomes the default', async () => {
-      await sheet.getByRole('button', { name: 'Move Level 94 up' }).click();
+      const rows = manager.getByTestId('checkpoint-row');
+      await manager.getByRole('button', { name: 'Move Level 94 up' }).click();
       await expect(rows.first()).toContainText('Level 94');
       await expect(rows.nth(1)).toContainText('Level 31');
 
@@ -155,15 +174,16 @@ test.describe('leveling checkpoints', () => {
       const openedOn = new URL(page.url()).searchParams.get('checkpoint');
       await expect.poll(async () => (await treeState(page)).allocated.length).toBe(secondAlloc);
 
-      await openSheet();
-      await sheet.getByRole('button', { name: 'Move Level 94 down' }).click();
+      await openManage();
+      const rows = manager.getByTestId('checkpoint-row');
+      await manager.getByRole('button', { name: 'Move Level 94 down' }).click();
       await expect(rows.first()).toContainText('Level 31');
 
       expect(new URL(page.url()).searchParams.get('checkpoint')).toBe(openedOn);
       await expect.poll(async () => (await treeState(page)).allocated.length).toBe(secondAlloc);
 
       // Put the order back for the steps below.
-      await sheet.getByRole('button', { name: 'Move Level 94 up' }).click();
+      await manager.getByRole('button', { name: 'Move Level 94 up' }).click();
       await expect(rows.first()).toContainText('Level 94');
     });
 
@@ -202,7 +222,8 @@ test.describe('leveling checkpoints', () => {
 
     await test.step('deleting down to one works; deleting the last is refused', async () => {
       await openTree(page, buildId);
-      await openSheet();
+      await openManage();
+      const rows = manager.getByTestId('checkpoint-row');
       const levelThirtyOne = rows.filter({ hasText: 'Level 31' });
       await levelThirtyOne.getByRole('button', { name: 'Delete' }).click();
       await levelThirtyOne.getByRole('button', { name: 'Confirm delete' }).click();
@@ -211,7 +232,7 @@ test.describe('leveling checkpoints', () => {
       const last = rows.first();
       await last.getByRole('button', { name: 'Delete' }).click();
       await last.getByRole('button', { name: 'Confirm delete' }).click();
-      await expect(sheet.getByRole('alert')).toHaveText('A build must keep at least one checkpoint.');
+      await expect(manager.getByRole('alert')).toHaveText('A build must keep at least one checkpoint.');
       await expect(rows).toHaveCount(1);
     });
   });

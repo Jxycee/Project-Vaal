@@ -103,10 +103,12 @@ test.describe('Path of Building 2 import', () => {
       expect((await treeState(page)).ascendancyId).toBe('Witchhunter');
       expect((await treeState(page)).ascendancyNodes).toHaveLength(2);
 
-      await openEditor(page, 'checkpoints');
-      const cpSheet = page.getByTestId('checkpoints-sheet');
-      await expect(cpSheet).toBeVisible();
-      const rows = cpSheet.getByTestId('checkpoint-row');
+      // A saved build with a share token reopens on the build page (slice 2),
+      // where checkpoint management lives in the switcher's manage view
+      // (slice 3), not a sheet.
+      const manager = await openEditor(page, 'checkpoints');
+      if (!manager) throw new Error('openEditor("checkpoints") returned no locator — not on the build page?');
+      const rows = manager.getByTestId('checkpoint-row');
       await expect(rows).toHaveCount(8);
       await expect(rows.first()).toContainText('Nivel 31 - Empezamos con Balista');
       await expect(rows.last()).toContainText('Nivel 94');
