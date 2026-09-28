@@ -5,14 +5,13 @@
 // takes its place above the tab strip — see BuildPage.
 import { useState } from 'react';
 import Link from 'next/link';
-import type { WeaponSet } from '@poe2-toolkit/tree-core';
-import type { GemLoadout } from '@/lib/build/gemState';
+import { headlineSet, mainSkillLoadout } from '@/lib/build/buildPage';
 import type { SharedBuildRow, BuildVisibility } from '@/lib/build/types';
 import { VISIBILITY_HINT, VISIBILITY_LABEL, isBuildVisibility } from '@/lib/build/visibility';
 import { ascendancyLabel } from '@/lib/tree/ascendancyNames';
-import type { ReservedSpiritResult } from '@/components/build/useReservedSpirit';
 import CheckpointSwitcher from './CheckpointSwitcher';
-import HeaderStats, { type Sheets } from './HeaderStats';
+import HeaderStats from './HeaderStats';
+import { useBuildSession } from './session/BuildSession';
 
 export interface HeaderProps {
   mode: 'owner' | 'reader';
@@ -22,10 +21,6 @@ export interface HeaderProps {
   shareToken: string;
   checkpoints: { id: string; name: string; level: number }[];
   activeCheckpointId: string | undefined;
-  mainSkill: GemLoadout | null;
-  sheets: Sheets;
-  set: WeaponSet;
-  reserved: ReservedSpiritResult | null;
 }
 
 function editHref(row: SharedBuildRow, checkpointId: string | undefined): string {
@@ -74,15 +69,18 @@ export function HeaderActions({
 }
 
 export default function BuildHeader(props: HeaderProps) {
-  const { mode, row, authorName, tags, shareToken, checkpoints, activeCheckpointId, mainSkill, sheets, set, reserved } = props;
+  const { mode, row, authorName, tags, shareToken, checkpoints, activeCheckpointId } = props;
+  const { meta, treeState, gems, sheets, reserved } = useBuildSession();
+  const mainSkill = mainSkillLoadout(gems);
+  const set = headlineSet(gems);
   const visibility: BuildVisibility | null = isBuildVisibility(row.visibility) ? row.visibility : null;
   return (
     <header className="flex flex-col gap-3 rounded-lg border border-border bg-card/40 p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="line-clamp-2 break-words font-heading text-xl font-bold text-foreground">{row.name}</h1>
+          <h1 className="line-clamp-2 break-words font-heading text-xl font-bold text-foreground">{meta.name}</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            {ascendancyLabel(row.class, row.ascendancy)} · Level {row.level} · {row.league}
+            {ascendancyLabel(treeState.className, treeState.ascendancyId ?? null)} · Level {meta.level} · {meta.league}
           </p>
         </div>
         <HeaderActions mode={mode} row={row} shareToken={shareToken} activeCheckpointId={activeCheckpointId} />

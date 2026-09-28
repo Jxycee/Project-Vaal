@@ -1,7 +1,10 @@
-import ReadOnlyGearList from '@/components/builds/ReadOnlyGearList';
-import type { GearState } from '@/lib/build/gearState';
+'use client';
 
-export default function GearTab({ gear }: { gear: GearState }) {
+import ReadOnlyGearList from '@/components/builds/ReadOnlyGearList';
+import { useBuildSession } from '../session/BuildSession';
+
+export default function GearTab() {
+  const { gear } = useBuildSession();
   const jewels = Object.values(gear.jewels);
   return (
     <div id="gear-tab" role="tabpanel" data-testid="gear-tab" className="flex flex-col gap-4">

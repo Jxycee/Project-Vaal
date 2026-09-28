@@ -1,10 +1,12 @@
-import type { WeaponSet } from '@poe2-toolkit/tree-core';
-import ReadOnlyGemList from '@/components/builds/ReadOnlyGemList';
-import type { GemState } from '@/lib/build/gemState';
-import type { ReservedSpiritResult } from '@/components/build/useReservedSpirit';
-import type { Sheets } from '../HeaderStats';
+'use client';
 
-export default function SkillsTab({ gemState, reserved, sheets, set }: { gemState: GemState; reserved: ReservedSpiritResult | null; sheets: Sheets; set: WeaponSet }) {
+import { headlineSet } from '@/lib/build/buildPage';
+import ReadOnlyGemList from '@/components/builds/ReadOnlyGemList';
+import { useBuildSession } from '../session/BuildSession';
+
+export default function SkillsTab() {
+  const { gems, reserved, sheets } = useBuildSession();
+  const set = headlineSet(gems);
   const reservedHere = reserved ? reserved.total[set === 1 ? 'set1' : 'set2'] : null;
   const spirit = sheets && !('error' in sheets) ? sheets[set].sheet.spirit : null;
   return (
@@ -15,7 +17,7 @@ export default function SkillsTab({ gemState, reserved, sheets, set }: { gemStat
           {spirit !== null ? <span className="tabular-nums"> / {spirit}</span> : null}
         </p>
       ) : null}
-      <ReadOnlyGemList gemState={gemState} />
+      <ReadOnlyGemList gemState={gems} />
     </div>
   );
 }
