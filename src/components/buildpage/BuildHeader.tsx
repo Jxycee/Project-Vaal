@@ -97,7 +97,7 @@ export default function BuildHeader(props: HeaderProps) {
             {VISIBILITY_LABEL[visibility]} · {VISIBILITY_HINT[visibility]}
           </span>
         ) : null}
-        {mode === 'reader' && row.visibility === 'public' ? <span>{row.view_count.toLocaleString()} views</span> : null}
+        {row.visibility === 'public' ? <span>{row.view_count.toLocaleString()} views</span> : null}
       </div>
 
       <div className="flex min-w-0 flex-wrap items-center gap-2">
