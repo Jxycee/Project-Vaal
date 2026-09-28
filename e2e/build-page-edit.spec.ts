@@ -321,6 +321,15 @@ test.describe('build page edit in place', () => {
     await goto(page, `/builds/${token}?edit=1`);
     await expect(page.getByTestId('build-page')).toBeVisible({ timeout: 30_000 });
 
+    // Slice 3 task 4: the edit-mode header (name, level+league sharing one
+    // row, ascendancy line, author/visibility, checkpoint switcher,
+    // HeaderStats) must stay compact — most of a 375x812 screen is the tab
+    // content, not the header. Measured once: the header's own size does not
+    // change as the tabs below it switch.
+    const headerBox = await page.getByTestId('build-page').locator('header').boundingBox();
+    expect(headerBox, 'the edit header has no bounding box').not.toBeNull();
+    expect(headerBox!.height, 'edit header exceeds 60% of the 812px viewport').toBeLessThanOrEqual(0.6 * 812);
+
     for (const tab of ['Overview', 'Gear', 'Skills', 'Stats'] as const) {
       await page.getByRole('tab', { name: tab, exact: true }).click();
       await expect(page.getByRole('tab', { name: tab, exact: true })).toHaveAttribute('aria-selected', 'true');

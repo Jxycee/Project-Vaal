@@ -140,14 +140,17 @@ export default function BuildHeader(props: HeaderProps) {
                 className="h-11 w-full rounded-md border border-border bg-background px-2 text-sm"
               />
             </div>
-            <div className="flex flex-wrap gap-2">
-              <div className="flex w-24 flex-col gap-1">
+            {/* Slice 3 task 4: level and league share one row (grid, not
+                flex-wrap) — flex-wrap let League drop to its own line at
+                375px, which was most of this header's height. */}
+            <div className="grid grid-cols-[6rem_1fr] gap-2">
+              <div className="flex flex-col gap-1">
                 <label htmlFor="build-level" className="text-xs text-muted-foreground">
                   Level
                 </label>
                 <LevelInput level={meta.level} onChange={(level) => setMeta({ level })} />
               </div>
-              <div className="flex min-w-[8rem] flex-1 flex-col gap-1">
+              <div className="flex min-w-0 flex-col gap-1">
                 <label htmlFor="build-league" className="text-xs text-muted-foreground">
                   League
                 </label>
