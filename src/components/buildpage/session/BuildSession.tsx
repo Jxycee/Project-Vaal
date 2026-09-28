@@ -68,6 +68,20 @@ import type { BuildMeta, BuildSessionValue } from './sessionTypes';
  * `SavedBuild` never trusts them either, so passing the already-parsed
  * `GearState`/`GemState` objects here is not a type mismatch, just a
  * pre-validated `unknown`.
+ *
+ * LOAD-BEARING ASSUMPTION: `dirty` and `draftPromptOpen` (below) hand this
+ * `gear_state`/`gem_state` — already-parsed `GearState`/`GemState` objects,
+ * not raw jsonb — to `draftDiffersFrom`, which re-parses whatever it's given
+ * via `parseGearState`/`parseGemState`. That is correct ONLY because both
+ * parsers are idempotent on their own output (`parseX(parseX(v)) ===
+ * parseX(v)`, structurally). If either parser ever stops being idempotent —
+ * e.g. a future migration that treats a previously-defaulted field
+ * differently from an explicitly-present one — `dirty`/`draftPromptOpen`
+ * would start computing wrong values with nothing else to catch it, since
+ * this is literally the code deciding whether unsaved work gets flagged.
+ * Pinned by the "idempotence" `describe` blocks in
+ * `src/lib/build/__tests__/gearState.test.ts` and `gemState.test.ts` — those
+ * tests must keep passing for this shortcut to remain safe.
  */
 interface Baseline {
   class: string;
@@ -189,75 +203,133 @@ export default function BuildSessionProvider({
     [canEdit],
   );
 
-  const setMeta = useCallback((patch: Partial<BuildMeta>) => {
-    setMetaState((prev) => ({ ...prev, ...patch }));
-  }, []);
+  // Same defense-in-depth guard as `setTreeState` above, on every remaining
+  // mutator: today the only actual write points (the draft-write effect and
+  // `save()`) are independently `canEdit`-gated, so a reader calling one of
+  // these would only drift in-memory state with nothing to persist it — but
+  // a later task could wire a sheet's `onChange` unconditionally instead of
+  // only in edit mode (an easy copy-paste mistake, since `TreeBuildSession`
+  // never had a reader case to think about), and this guard is what keeps
+  // that mistake a no-op instead of silent drift (review 2026-09-27).
+  const setMeta = useCallback(
+    (patch: Partial<BuildMeta>) => {
+      if (!canEdit) return;
+      setMetaState((prev) => ({ ...prev, ...patch }));
+    },
+    [canEdit],
+  );
 
   // ---- Gear / jewels ----------------------------------------------------
-  const setGearSlot = useCallback((slot: GearSlot, item: GearItem | null) => {
-    setGear((prev) => ({ ...prev, [slot]: item }));
-  }, []);
+  const setGearSlot = useCallback(
+    (slot: GearSlot, item: GearItem | null) => {
+      if (!canEdit) return;
+      setGear((prev) => ({ ...prev, [slot]: item }));
+    },
+    [canEdit],
+  );
 
-  const pickJewel = useCallback((socketId: string, item: GearItem) => {
-    setGear((prev) => ({ ...prev, jewels: { ...prev.jewels, [socketId]: item } }));
-  }, []);
+  const pickJewel = useCallback(
+    (socketId: string, item: GearItem) => {
+      if (!canEdit) return;
+      setGear((prev) => ({ ...prev, jewels: { ...prev.jewels, [socketId]: item } }));
+    },
+    [canEdit],
+  );
 
   // Explicit discard only (a socket row's Clear or an orphan row's Remove) —
   // never a side effect of the tree deallocating a socket. See jewelState.ts's
   // orphan rule: a jewel survives its socket being deallocated until the user
   // explicitly removes it.
-  const clearJewel = useCallback((socketId: string) => {
-    setGear((prev) => {
-      const jewels = { ...prev.jewels };
-      delete jewels[socketId];
-      return { ...prev, jewels };
-    });
-  }, []);
+  const clearJewel = useCallback(
+    (socketId: string) => {
+      if (!canEdit) return;
+      setGear((prev) => {
+        const jewels = { ...prev.jewels };
+        delete jewels[socketId];
+        return { ...prev, jewels };
+      });
+    },
+    [canEdit],
+  );
 
   // ---- Gems ---------------------------------------------------------------
   // Every decision (support cap, set normalisation, primary clearing) lives
   // in gemState.ts's pure, unit-tested reducers; these handlers only route
   // events, exactly as TreeBuildSession's did.
-  const gemAdd = useCallback(() => setGems((prev) => addLoadout(prev)), []);
-  const gemRemove = useCallback((id: string) => setGems((prev) => removeLoadout(prev, id)), []);
-  const gemSetSkill = useCallback((id: string, item: GearItem | null) => {
-    setGems((prev) => setSkill(prev, id, item));
-    if (!item) return;
-    // GemsSheet clamps the level only on a manual edit, so a swap to a gem
-    // with a lower cap (e.g. a level-40 active replaced by a Spirit gem
-    // capped at 8) would otherwise keep, and save, the old level. Clamp once
-    // the new gem's cap is known — ported verbatim from
-    // TreeBuildSession.handleSetSkill, including its "only if this skill is
-    // still the one in the slot" re-check against a possibly-stale fetch.
-    void fetchMaxGemLevel(item.slug).then((max) =>
-      setGems((prev) => {
-        const loadout = prev.loadouts.find((l) => l.id === id);
-        return loadout && loadout.skill?.slug === item.slug && loadout.level > max
-          ? setGemLevel(prev, id, max)
-          : prev;
-      }),
-    );
-  }, []);
+  const gemAdd = useCallback(() => {
+    if (!canEdit) return;
+    setGems((prev) => addLoadout(prev));
+  }, [canEdit]);
+  const gemRemove = useCallback(
+    (id: string) => {
+      if (!canEdit) return;
+      setGems((prev) => removeLoadout(prev, id));
+    },
+    [canEdit],
+  );
+  const gemSetSkill = useCallback(
+    (id: string, item: GearItem | null) => {
+      if (!canEdit) return;
+      setGems((prev) => setSkill(prev, id, item));
+      if (!item) return;
+      // GemsSheet clamps the level only on a manual edit, so a swap to a gem
+      // with a lower cap (e.g. a level-40 active replaced by a Spirit gem
+      // capped at 8) would otherwise keep, and save, the old level. Clamp once
+      // the new gem's cap is known — ported verbatim from
+      // TreeBuildSession.handleSetSkill, including its "only if this skill is
+      // still the one in the slot" re-check against a possibly-stale fetch.
+      void fetchMaxGemLevel(item.slug).then((max) =>
+        setGems((prev) => {
+          const loadout = prev.loadouts.find((l) => l.id === id);
+          return loadout && loadout.skill?.slug === item.slug && loadout.level > max
+            ? setGemLevel(prev, id, max)
+            : prev;
+        }),
+      );
+    },
+    [canEdit],
+  );
   const gemAddSupport = useCallback(
-    (id: string, item: GearItem) => setGems((prev) => addSupport(prev, id, item)),
-    [],
+    (id: string, item: GearItem) => {
+      if (!canEdit) return;
+      setGems((prev) => addSupport(prev, id, item));
+    },
+    [canEdit],
   );
   const gemRemoveSupport = useCallback(
-    (id: string, index: number) => setGems((prev) => removeSupport(prev, id, index)),
-    [],
+    (id: string, index: number) => {
+      if (!canEdit) return;
+      setGems((prev) => removeSupport(prev, id, index));
+    },
+    [canEdit],
   );
   const gemSetSets = useCallback(
-    (id: string, sets: readonly WeaponSet[]) => setGems((prev) => setSets(prev, id, sets)),
-    [],
+    (id: string, sets: readonly WeaponSet[]) => {
+      if (!canEdit) return;
+      setGems((prev) => setSets(prev, id, sets));
+    },
+    [canEdit],
   );
-  const gemSetPrimary = useCallback((id: string) => setGems((prev) => setPrimary(prev, id)), []);
+  const gemSetPrimary = useCallback(
+    (id: string) => {
+      if (!canEdit) return;
+      setGems((prev) => setPrimary(prev, id));
+    },
+    [canEdit],
+  );
   const gemSetLevel = useCallback(
-    (id: string, level: number) => setGems((prev) => setGemLevel(prev, id, level)),
-    [],
+    (id: string, level: number) => {
+      if (!canEdit) return;
+      setGems((prev) => setGemLevel(prev, id, level));
+    },
+    [canEdit],
   );
   const gemSetQuality = useCallback(
-    (id: string, quality: number) => setGems((prev) => setGemQuality(prev, id, quality)),
-    [],
+    (id: string, quality: number) => {
+      if (!canEdit) return;
+      setGems((prev) => setGemQuality(prev, id, quality));
+    },
+    [canEdit],
   );
   const gemActions = useMemo(
     () => ({
@@ -432,6 +504,7 @@ export default function BuildSessionProvider({
 
   // ---- Discard / draft prompt actions -----------------------------------
   const discard = useCallback(() => {
+    if (!canEdit) return;
     setTreeStateRaw((prev) => ({
       // classId is owned by the tree lib, not by this baseline — PassiveTree
       // remounts (treeSeedKey below) and reports the real one again the
@@ -449,21 +522,22 @@ export default function BuildSessionProvider({
     clearDraft(row.id, checkpointId);
     setTreeSeedKey((k) => k + 1);
     setDraftPromptOpen(false);
-  }, [baseline, row.id, checkpointId]);
+  }, [canEdit, baseline, row.id, checkpointId]);
 
   const restoreDraft = useCallback(() => {
-    if (!storedDraft) return;
+    if (!canEdit || !storedDraft) return;
     setTreeStateRaw(storedDraft.tree);
     setGear(storedDraft.gear);
     setGems(storedDraft.gem);
     setTreeSeedKey((k) => k + 1);
     setDraftPromptOpen(false);
-  }, [storedDraft]);
+  }, [canEdit, storedDraft]);
 
   const dismissDraft = useCallback(() => {
+    if (!canEdit) return;
     clearDraft(row.id, checkpointId);
     setDraftPromptOpen(false);
-  }, [row.id, checkpointId]);
+  }, [canEdit, row.id, checkpointId]);
 
   const value = useMemo<BuildSessionValue>(
     () => ({

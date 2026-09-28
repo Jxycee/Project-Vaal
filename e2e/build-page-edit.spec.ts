@@ -197,7 +197,11 @@ test.describe('build page edit in place', () => {
     await expect(page.getByTestId('build-page')).toBeVisible({ timeout: 30_000 });
     const checkpointId = new URL(page.url()).searchParams.get('checkpoint') ?? undefined;
 
-    await page.waitForTimeout(2000);
+    // The mount-time echo draft (BuildSession's draft-write effect firing
+    // once on load) must actually have landed before checking that revisiting
+    // shows no bogus prompt — a fixed sleep here would let this half pass
+    // vacuously if that write effect were slow or entirely broken.
+    await waitForDraft(page, buildId, checkpointId);
     const second = await context.newPage();
     await second.goto(editUrl);
     await expect(second.getByTestId('draft-notice')).toBeHidden();
