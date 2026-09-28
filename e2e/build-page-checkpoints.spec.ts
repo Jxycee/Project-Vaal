@@ -92,12 +92,15 @@ async function rowOrder(page: Page): Promise<string[]> {
 }
 
 /**
- * Opens the (non-compact) checkpoint switcher and taps "Manage", returning
- * the manage view's root locator. Each test does its own fresh `goto`, so the
- * menu always starts closed.
+ * Opens a checkpoint switcher and taps "Manage", returning the manage view's
+ * root locator. Each test does its own fresh `goto`, so the menu always
+ * starts closed. `switcherTestId` defaults to the full header's switcher;
+ * pass `checkpoint-switcher-compact` for the sticky bar's (BuildPage.tsx,
+ * `align="right"`) — the two switchers on screen at once must not share a
+ * test id, or Playwright's strict mode trips.
  */
-async function openManage(page: Page) {
-  await page.getByTestId('checkpoint-switcher').click();
+async function openManage(page: Page, switcherTestId = 'checkpoint-switcher') {
+  await page.getByTestId(switcherTestId).click();
   const menu = page.getByTestId('checkpoint-menu');
   await expect(menu).toBeVisible();
   await menu.getByRole('button', { name: 'Manage', exact: true }).click();
@@ -140,6 +143,37 @@ test.describe('build page checkpoint management (switcher)', () => {
 
     const count = await rows.count();
     for (let i = 0; i < count; i++) {
+      const box = await rows.nth(i).boundingBox();
+      expect(box, `checkpoint row ${i} has no bounding box`).not.toBeNull();
+      expect(box!.x, `checkpoint row ${i} left edge off-screen`).toBeGreaterThanOrEqual(0);
+      expect(box!.x + box!.width, `checkpoint row ${i} right edge off-screen`).toBeLessThanOrEqual(375);
+    }
+  });
+
+  // Fix round 1 (final review): the full header's switcher was covered above,
+  // but nothing exercised the compact sticky bar's own switcher
+  // (align="right", BuildPage.tsx) in manage view. Gear is the tallest tab
+  // (17 slots + jewels — same reasoning as build-page.spec.ts's own compact-bar
+  // test), so it is the one guaranteed to scroll the full header out of view.
+  test('compact-bar manage view fits a phone', async ({ page }) => {
+    await goto(page, `/builds/${token}?edit=1&tab=gear`);
+    await expect(page.getByTestId('build-page')).toBeVisible({ timeout: 30_000 });
+
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    const compactSwitcher = page.getByTestId('checkpoint-switcher-compact');
+    await expect(compactSwitcher).toBeVisible();
+
+    const manager = await openManage(page, 'checkpoint-switcher-compact');
+    const rows = manager.getByTestId('checkpoint-row');
+    await expect(rows).toHaveCount(8);
+
+    expect(
+      await horizontalOverflow(page),
+      'horizontal overflow with the compact-bar manage view open',
+    ).toBeLessThanOrEqual(0);
+
+    const compactCount = await rows.count();
+    for (let i = 0; i < compactCount; i++) {
       const box = await rows.nth(i).boundingBox();
       expect(box, `checkpoint row ${i} has no bounding box`).not.toBeNull();
       expect(box!.x, `checkpoint row ${i} left edge off-screen`).toBeGreaterThanOrEqual(0);
