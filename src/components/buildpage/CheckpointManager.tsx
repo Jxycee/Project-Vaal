@@ -15,6 +15,22 @@ import { useCheckpointActions } from '@/components/build/useCheckpointActions';
 const ROW_BUTTON =
   'flex h-11 min-w-11 items-center justify-center rounded-md border border-border px-3 text-sm text-foreground disabled:opacity-50';
 
+/**
+ * The rename form's state, OWNED BY THE SWITCHER (not this component) — fix
+ * round 1, final review: this view unmounts whenever `managing` goes false
+ * (Done managing, a switch, Escape, an outside click), so state that lived
+ * only in here was unrecoverable the instant any of those fired mid-rename.
+ * Lifting it lets CheckpointSwitcher's Escape/outside-click handlers see and
+ * protect an in-progress rename before deciding whether to close.
+ */
+export interface CheckpointRenameState {
+  id: string | null;
+  value: string;
+  start(id: string, name: string): void;
+  setValue(value: string): void;
+  cancel(): void;
+}
+
 export default function CheckpointManager({
   buildId,
   checkpoints,
@@ -23,6 +39,7 @@ export default function CheckpointManager({
   currentState,
   checkpointHref,
   onNavigate,
+  renaming,
 }: {
   buildId: string;
   /** Full rows (tree/gear/gems included) — what `add` copies from and `move`/`rename`/`requestDelete` act on. */
@@ -34,11 +51,10 @@ export default function CheckpointManager({
   checkpointHref: (checkpointId: string | null) => string;
   /** Closes the menu (and exits manage view) — a switch or a successful add. */
   onNavigate: () => void;
+  renaming: CheckpointRenameState;
 }) {
   const [newName, setNewName] = useState('');
   const [newLevel, setNewLevel] = useState<number>(currentLevel);
-  const [renamingId, setRenamingId] = useState<string | null>(null);
-  const [renameValue, setRenameValue] = useState('');
 
   const { pending, error, move, rename, armedDeleteId, requestDelete, add } = useCheckpointActions({
     buildId,
@@ -65,12 +81,12 @@ export default function CheckpointManager({
             data-checkpoint-id={checkpoint.id}
             className="flex flex-col gap-2 rounded-md border border-border p-2"
           >
-            {renamingId === checkpoint.id ? (
+            {renaming.id === checkpoint.id ? (
               <div className="flex flex-wrap gap-2">
                 <input
                   aria-label="New checkpoint name"
-                  value={renameValue}
-                  onChange={(e) => setRenameValue(e.target.value)}
+                  value={renaming.value}
+                  onChange={(e) => renaming.setValue(e.target.value)}
                   maxLength={80}
                   className="h-11 min-w-0 flex-1 rounded-md border border-border bg-background px-2 text-sm"
                 />
@@ -78,11 +94,11 @@ export default function CheckpointManager({
                   type="button"
                   className={ROW_BUTTON}
                   disabled={pending}
-                  onClick={() => rename(checkpoint.id, renameValue, () => setRenamingId(null))}
+                  onClick={() => rename(checkpoint.id, renaming.value, renaming.cancel)}
                 >
                   Save name
                 </button>
-                <button type="button" className={ROW_BUTTON} onClick={() => setRenamingId(null)}>
+                <button type="button" className={ROW_BUTTON} onClick={renaming.cancel}>
                   Cancel
                 </button>
               </div>
@@ -125,10 +141,7 @@ export default function CheckpointManager({
                     type="button"
                     className={ROW_BUTTON}
                     disabled={pending}
-                    onClick={() => {
-                      setRenamingId(checkpoint.id);
-                      setRenameValue(checkpoint.name);
-                    }}
+                    onClick={() => renaming.start(checkpoint.id, checkpoint.name)}
                   >
                     Rename
                   </button>

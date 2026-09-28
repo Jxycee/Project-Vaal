@@ -41,7 +41,7 @@ export interface BuildPageProps {
   shareToken: string;
   checkpoints: { id: string; name: string; level: number }[];
   activeCheckpointId: string | undefined;
-  /** Full checkpoint rows (tree/gear/gems included), owner only — [] for a reader. What CheckpointsSheet needs; the lightweight `checkpoints` above is only ever enough for the switcher. */
+  /** Full checkpoint rows (tree/gear/gems included), owner only — [] for a reader. What the checkpoint switcher's manage view (CheckpointManager, via useCheckpointManage) needs; the lightweight `checkpoints` above is only ever enough for the switch list. */
   fullCheckpoints: BuildCheckpoint[];
 }
 

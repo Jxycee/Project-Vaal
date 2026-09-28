@@ -206,6 +206,44 @@ test.describe('build page checkpoint management (switcher)', () => {
     await expect(page.getByTestId('checkpoint-row').nth(1)).toContainText('Mapping');
   });
 
+  // Fix round 1 (final review): Escape and outside-click both used to close
+  // the whole menu unconditionally, even mid-rename — unmounting the manage
+  // view and silently dropping whatever had been typed into the rename
+  // input. Escape must now cancel only the rename (menu stays open); an
+  // outside click must not close the menu while the rename input holds text
+  // that differs from the checkpoint's saved name.
+  test('a rename in progress survives Escape and outside clicks', async ({ page }) => {
+    await goto(page, `/builds/${token}?edit=1`);
+    await expect(page.getByTestId('build-page')).toBeVisible({ timeout: 30_000 });
+
+    const manager = await openManage(page);
+    const row = manager.getByTestId('checkpoint-row').first();
+    await row.getByRole('button', { name: 'Rename', exact: true }).click();
+    const input = row.getByLabel('New checkpoint name');
+    await input.fill('Half typed');
+
+    // A real Escape keydown, dispatched on the input itself (bubbles to the
+    // document listener the switcher attaches) — Playwright's keyboard.press
+    // is fine here; the harness's computer tool is not, since this spec
+    // drives a real browser context directly.
+    await input.evaluate((el) => el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+    await expect(page.getByTestId('checkpoint-menu'), 'Escape closed the whole menu, not just the rename').toBeVisible();
+    await expect(row.getByLabel('New checkpoint name'), 'the rename input is still showing after Escape').toBeHidden();
+
+    // Start again, type, then click somewhere else on the page entirely —
+    // #build-name is a sibling higher up in BuildHeader, never under the
+    // dropdown (which only ever renders below its own trigger).
+    await row.getByRole('button', { name: 'Rename', exact: true }).click();
+    await row.getByLabel('New checkpoint name').fill('Half typed');
+    await page.locator('#build-name').click();
+    await expect(page.getByTestId('checkpoint-menu'), 'an outside click closed the menu with unsaved rename text').toBeVisible();
+    await expect(row.getByLabel('New checkpoint name')).toHaveValue('Half typed');
+
+    // Cancel still works normally.
+    await row.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await expect(row.getByLabel('New checkpoint name')).toBeHidden();
+  });
+
   test('add copies unsaved edits', async ({ page }) => {
     await goto(page, `/builds/${token}?edit=1&tab=tree`);
     await expect(page.getByTestId('build-page')).toBeVisible({ timeout: 30_000 });

@@ -7,7 +7,7 @@
 // Slice 3: management (add/rename/reorder/delete) lives in this menu's
 // "Manage" view now, not the full-screen CheckpointsSheet (still used by the
 // scratch /tree editor only — see CheckpointsSheet.tsx's header comment).
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { ChevronDown } from 'lucide-react';
@@ -82,6 +82,14 @@ export default function CheckpointSwitcher({
 }) {
   const [open, setOpen] = useState(false);
   const [managing, setManaging] = useState(false);
+  // Lifted out of CheckpointManager (fix round 1, final review) so Escape and
+  // outside-click handlers below can see whether a rename is in progress
+  // before deciding to close the whole menu — CheckpointManager unmounts
+  // whenever `managing` goes false, and closing the menu always sets
+  // `managing` false too, so state that lived only inside it was unrecoverable
+  // the instant either fired mid-rename.
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
   const rootRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
   const active = checkpoints.find((c) => c.id === activeCheckpointId) ?? checkpoints[0];
@@ -90,18 +98,49 @@ export default function CheckpointSwitcher({
   const checkpointHref = (id: string | null) =>
     `/builds/${shareToken}${patchQuery(searchParams.toString(), { checkpoint: id })}`;
 
-  const closeMenu = () => {
+  const cancelRename = useCallback(() => {
+    setRenamingId(null);
+    setRenameValue('');
+  }, []);
+
+  const closeMenu = useCallback(() => {
     setOpen(false);
     setManaging(false);
+    cancelRename();
+  }, [cancelRename]);
+
+  const renaming = {
+    id: renamingId,
+    value: renameValue,
+    start: (id: string, name: string) => {
+      setRenamingId(id);
+      setRenameValue(name);
+    },
+    setValue: setRenameValue,
+    cancel: cancelRename,
   };
 
   useEffect(() => {
     if (!open) return;
     const onDown = (e: PointerEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) closeMenu();
+      if (rootRef.current?.contains(e.target as Node)) return;
+      // A rename with unsaved text (different from the checkpoint's saved
+      // name it was prefilled with) survives an outside click — only the
+      // click is swallowed, nothing closes. A rename with no edits yet, or no
+      // rename open at all, behaves as before.
+      const original = renamingId ? manage?.fullCheckpoints.find((c) => c.id === renamingId)?.name : undefined;
+      if (renamingId !== null && renameValue !== original) return;
+      closeMenu();
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeMenu();
+      if (e.key !== 'Escape') return;
+      // Escape always cancels an in-progress rename first, whether or not
+      // its text changed — it never also closes the menu in the same press.
+      if (renamingId !== null) {
+        cancelRename();
+        return;
+      }
+      closeMenu();
     };
     document.addEventListener('pointerdown', onDown);
     document.addEventListener('keydown', onKey);
@@ -109,7 +148,7 @@ export default function CheckpointSwitcher({
       document.removeEventListener('pointerdown', onDown);
       document.removeEventListener('keydown', onKey);
     };
-  }, [open]);
+  }, [open, renamingId, renameValue, manage, closeMenu, cancelRename]);
 
   return (
     <div ref={rootRef} className="relative min-w-0">
@@ -165,6 +204,7 @@ export default function CheckpointSwitcher({
               currentState={manage.currentState}
               checkpointHref={checkpointHref}
               onNavigate={closeMenu}
+              renaming={renaming}
             />
           ) : (
             checkpoints.map((c) => (
