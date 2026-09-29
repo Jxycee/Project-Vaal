@@ -39,6 +39,8 @@ export interface BuildPageProps {
   mode: 'owner' | 'reader';
   row: SharedBuildRow;
   authorName: string;
+  /** Owner only: false shows the (i) hint next to "by You". */
+  ownerHasUsername?: boolean;
   tags: string[] | null;
   shareToken: string;
   checkpoints: { id: string; name: string; level: number }[];
@@ -76,7 +78,7 @@ function setQuery(patch: Record<string, string | null>) {
 }
 
 function BuildPageBody(props: BuildPageProps) {
-  const { mode, row, authorName, tags, shareToken, checkpoints, activeCheckpointId, fullCheckpoints } = props;
+  const { mode, row, authorName, ownerHasUsername = true, tags, shareToken, checkpoints, activeCheckpointId, fullCheckpoints } = props;
   const searchParams = useSearchParams();
   const tab = parseTab(searchParams.get('tab'));
   const edit = mode === 'owner' && searchParams.get('edit') === '1';
@@ -136,6 +138,7 @@ function BuildPageBody(props: BuildPageProps) {
           mode={mode}
           row={row}
           authorName={authorName}
+          ownerHasUsername={ownerHasUsername}
           tags={tags}
           shareToken={shareToken}
           checkpoints={checkpoints}

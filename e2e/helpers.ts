@@ -263,8 +263,10 @@ export async function saveBuild(
   const scratch = new URL(page.url()).pathname === '/tree';
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   if (scratch) {
-    await page.waitForURL(/\/builds\/[A-Za-z0-9_-]+/, { timeout: 30_000 });
-    await expect(page.getByTestId('build-page')).toBeVisible({ timeout: 30_000 });
+    // The first save lands on a route the dev server may still be compiling
+    // (webpack, cold cache — seen at 30s+ in a screenshot's "Compiling" badge).
+    await page.waitForURL(/\/builds\/[A-Za-z0-9_-]+/, { timeout: 120_000 });
+    await expect(page.getByTestId('build-page')).toBeVisible({ timeout: 60_000 });
     return;
   }
   await expect(page.getByTestId('save-status')).toHaveText(/^Saved /, { timeout: 30_000 });

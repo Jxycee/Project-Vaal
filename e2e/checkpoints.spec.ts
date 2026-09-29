@@ -89,8 +89,8 @@ test.describe('leveling checkpoints', () => {
       await expect.poll(async () => (await treeState(page)).allocated.length).toBe(firstAlloc);
       await openManage();
       const rows = manager.getByTestId('checkpoint-row');
-      await expect(rows).toHaveCount(1);
-      await expect(rows.first()).toContainText('Level 31');
+      await expect(rows).toHaveCount(1, { timeout: 30_000 });
+      await expect(rows.first()).toContainText('Level 31', { timeout: 30_000 });
     });
 
     await test.step('add a second checkpoint as a copy, then make it diverge', async () => {
@@ -141,8 +141,8 @@ test.describe('leveling checkpoints', () => {
     await test.step('the manager meets the tap-target floor with real checkpoints in it', async () => {
       await openManage();
       const rows = manager.getByTestId('checkpoint-row');
-      await expect(rows).toHaveCount(2);
-      await expect(rows.nth(1)).toContainText('Level 94');
+      await expect(rows).toHaveCount(2, { timeout: 30_000 });
+      await expect(rows.nth(1)).toContainText('Level 94', { timeout: 30_000 });
 
       const { scanned, tooSmall } = await measureTapTargets(page, '[data-testid="checkpoint-menu"]');
       expect(scanned, 'no controls found in the checkpoint menu').toBeGreaterThan(4);
@@ -157,8 +157,8 @@ test.describe('leveling checkpoints', () => {
     await test.step('reordering persists: the moved checkpoint becomes the default', async () => {
       const rows = manager.getByTestId('checkpoint-row');
       await manager.getByRole('button', { name: 'Move Level 94 up' }).click();
-      await expect(rows.first()).toContainText('Level 94');
-      await expect(rows.nth(1)).toContainText('Level 31');
+      await expect(rows.first()).toContainText('Level 94', { timeout: 30_000 });
+      await expect(rows.nth(1)).toContainText('Level 31', { timeout: 30_000 });
 
       // A fresh load with no ?checkpoint= opens position 0 — now Level 94.
       await openTree(page, buildId);
@@ -178,14 +178,14 @@ test.describe('leveling checkpoints', () => {
       await openManage();
       const rows = manager.getByTestId('checkpoint-row');
       await manager.getByRole('button', { name: 'Move Level 94 down' }).click();
-      await expect(rows.first()).toContainText('Level 31');
+      await expect(rows.first()).toContainText('Level 31', { timeout: 30_000 });
 
       expect(new URL(page.url()).searchParams.get('checkpoint')).toBe(openedOn);
       await expect.poll(async () => (await treeState(page)).allocated.length).toBe(secondAlloc);
 
       // Put the order back for the steps below.
       await manager.getByRole('button', { name: 'Move Level 94 up' }).click();
-      await expect(rows.first()).toContainText('Level 94');
+      await expect(rows.first()).toContainText('Level 94', { timeout: 30_000 });
     });
 
     await test.step('a link-shared build shows each checkpoint as its own stage', async () => {
@@ -213,7 +213,7 @@ test.describe('leveling checkpoints', () => {
       await options.filter({ hasText: 'Lvl 31' }).click();
       await page.waitForURL(/[?&]checkpoint=/, { timeout: 30_000 });
       // The pair: the same share link now renders a DIFFERENT, populated stage.
-      await expect(header).toContainText('Level 31');
+      await expect(header).toContainText('Level 31', { timeout: 30_000 });
     });
 
     await test.step('deleting down to one works; deleting the last is refused', async () => {
@@ -223,13 +223,14 @@ test.describe('leveling checkpoints', () => {
       const levelThirtyOne = rows.filter({ hasText: 'Level 31' });
       await levelThirtyOne.getByRole('button', { name: 'Delete' }).click();
       await levelThirtyOne.getByRole('button', { name: 'Confirm delete' }).click();
-      await expect(rows).toHaveCount(1);
+      // Server Function + refresh: under full-suite load this exceeds the 5s default.
+      await expect(rows).toHaveCount(1, { timeout: 30_000 });
 
       const last = rows.first();
       await last.getByRole('button', { name: 'Delete' }).click();
       await last.getByRole('button', { name: 'Confirm delete' }).click();
       await expect(manager.getByRole('alert')).toHaveText('A build must keep at least one checkpoint.');
-      await expect(rows).toHaveCount(1);
+      await expect(rows).toHaveCount(1, { timeout: 30_000 });
     });
   });
 });

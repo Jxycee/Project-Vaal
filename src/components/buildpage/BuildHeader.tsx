@@ -14,6 +14,7 @@ import { ascendancyLabel } from '@/lib/tree/ascendancyNames';
 import CheckpointSwitcher, { useCheckpointManage } from './CheckpointSwitcher';
 import BuildSettings from './BuildSettings';
 import HeaderStats from './HeaderStats';
+import UsernameHint from './UsernameHint';
 import { useBuildSession } from './session/BuildSession';
 import type { BuildCheckpoint } from '@/lib/build/checkpointState';
 
@@ -21,6 +22,7 @@ export interface HeaderProps {
   mode: 'owner' | 'reader';
   row: SharedBuildRow;
   authorName: string;
+  ownerHasUsername?: boolean;
   tags: string[] | null;
   shareToken: string;
   checkpoints: { id: string; name: string; level: number }[];
@@ -216,7 +218,7 @@ export function HeaderActions({
 }
 
 export default function BuildHeader(props: HeaderProps) {
-  const { mode, row, authorName, tags, shareToken, checkpoints, activeCheckpointId, fullCheckpoints, edit, onToggleEdit, onRequestDone } = props;
+  const { mode, row, authorName, ownerHasUsername = true, tags, shareToken, checkpoints, activeCheckpointId, fullCheckpoints, edit, onToggleEdit, onRequestDone } = props;
   const { meta, treeState, gems, sheets, reserved } = useBuildSession();
   const set = headlineSet(gems);
   const visibility: BuildVisibility | null = isBuildVisibility(row.visibility) ? row.visibility : null;
@@ -251,6 +253,7 @@ export default function BuildHeader(props: HeaderProps) {
         <span>
           by <span data-testid="build-author" className="text-foreground">{authorName}</span>
         </span>
+        {mode === 'owner' && !ownerHasUsername ? <UsernameHint /> : null}
         {mode === 'owner' && visibility ? (
           <span data-testid="build-visibility" className="rounded-full border border-border px-2 py-0.5">
             {VISIBILITY_LABEL[visibility]} · {VISIBILITY_HINT[visibility]}

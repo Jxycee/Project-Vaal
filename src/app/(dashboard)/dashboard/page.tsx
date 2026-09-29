@@ -3,6 +3,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { VaalOrbLoader } from '@/components/dashboard/vaal-orb-loader'
+import { UsernameControl } from '@/components/dashboard/UsernameControl'
 import { Icon } from '@/components/ui/icon'
 import { Card } from '@/components/ui/card'
 import { ALL_CHECKPOINT_IDS } from '@/lib/campaign/data'
@@ -55,7 +56,7 @@ export default async function DashboardPage() {
   // Three real, already-stored numbers — no fabricated metrics. Each query
   // is scoped to fail soft (null/0) rather than break the whole page if one
   // table has a hiccup.
-  const [campaignResult, buildsResult, syncResult, recentResult] = await Promise.all([
+  const [campaignResult, buildsResult, syncResult, recentResult, profileResult] = await Promise.all([
     user
       ? supabase
           .from('campaign_progress')
@@ -83,6 +84,15 @@ export default async function DashboardPage() {
           .eq('user_id', user.id)
           .order('updated_at', { ascending: false })
           .limit(RECENT_BUILDS_LIMIT)
+      : Promise.resolve({ data: null }),
+    // The signed-in user's own profile row (RLS: own-row SELECT) for the
+    // username control. Fails soft to "no username yet".
+    user
+      ? supabase
+          .from('user_profiles')
+          .select('display_name, display_name_changed_at')
+          .eq('id', user.id)
+          .maybeSingle()
       : Promise.resolve({ data: null }),
   ])
 
@@ -150,9 +160,11 @@ export default async function DashboardPage() {
             <h1 className="mt-2 font-heading text-3xl font-bold tracking-tight sm:text-4xl">
               Welcome back
             </h1>
-            <p className="mt-2 break-all text-sm text-muted-foreground sm:break-normal">
-              Signed in as {account}
-            </p>
+            <UsernameControl
+              email={account}
+              displayName={profileResult.data?.display_name ?? null}
+              changedAt={profileResult.data?.display_name_changed_at ?? null}
+            />
 
             <Image
               src="/ornaments/divider.png"
