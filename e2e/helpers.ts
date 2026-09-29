@@ -2,6 +2,7 @@ import type { Browser, Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 import path from 'node:path';
 import type { TreeTestApi, TreeTestState } from '../src/lib/tree/testApi';
+import { GEAR_SLOT_LABELS, type GearSlot } from '../src/lib/build/gearSlots';
 import { e2eBaseUrl } from './baseUrl';
 
 /**
@@ -128,10 +129,16 @@ const SECTION_TAB = {
 export type EditorSection = keyof typeof SECTION_TAB;
 
 /**
- * Opens an editor sheet (or, for `stats`, just the panel) for `section`.
- * Works on both UIs a saved build can be reopened on: the old `/tree` chips
- * (Gear / Jewels… / Gems… / Stats / Checkpoints…) and the build page's tabs +
- * "Edit gear" / "Edit jewels" / "Edit skills" / the checkpoint switcher.
+ * Opens an editor sheet (or, for `stats` and `gear`, just the panel) for
+ * `section`. Works on both UIs a saved build can be reopened on: the old
+ * `/tree` chips (Gear / Jewels… / Gems… / Stats / Checkpoints…) and the build
+ * page's tabs + "Edit jewels" / "Edit skills" / the checkpoint switcher.
+ *
+ * `gear` has no sheet on the build page (slice 4): selecting the Gear tab
+ * shows the paper doll, so this returns the `gear-tab` locator (doll, slot
+ * detail and warnings chip) once the doll is on screen. Use `selectGearSlot`,
+ * `pickGearItem`, `openItemEditor` and `gearSlotLocator` below to work on a
+ * slot on either UI.
  *
  * `stats` has no sheet on the build page — StatsPanel renders directly in the
  * tab (`data-testid="stats-panel"`), unlike `/tree`'s `stats-sheet`. Callers
@@ -151,9 +158,11 @@ export async function openEditor(page: Page, section: EditorSection): Promise<Lo
     const tab = SECTION_TAB[section];
     if (tab) await page.getByRole('tab', { name: tab, exact: true }).click();
     switch (section) {
-      case 'gear':
-        await page.getByRole('button', { name: 'Edit gear' }).click();
-        break;
+      case 'gear': {
+        const gearTab = page.getByTestId('gear-tab');
+        await expect(page.getByTestId('paper-doll')).toBeVisible();
+        return gearTab;
+      }
       case 'jewels': {
         const button = page.getByRole('button', { name: /^(Edit jewels|Loading tree…)$/ });
         await expect(button).toHaveText('Edit jewels', { timeout: 30_000 });
@@ -419,4 +428,105 @@ export async function pickByName(page: Page, opener: Locator, name: string): Pro
   await expect(exact).toHaveCount(1, { timeout: 15_000 });
   await exact.click();
   await expect(search).toBeHidden();
+}
+
+// ---- Gear slots, on either UI ------------------------------------------------
+// The scratch /tree editor edits gear in GearSheet (labelled rows in a
+// `.fixed.inset-0.z-40` sheet); the build page edits it on the paper doll (a
+// `doll-slot-<slot>` cell, with a `gear-slot-detail` panel below). These
+// helpers give a spec one vocabulary for both.
+
+function onBuildPage(page: Page): boolean {
+  return new URL(page.url()).pathname.startsWith('/builds/');
+}
+
+const GEAR_SHEET = '.fixed.inset-0.z-40';
+
+/** Shows weapon set `set` (I or II) in whichever gear UI is open. */
+export async function setGearWeaponSet(page: Page, set: 1 | 2): Promise<void> {
+  const scope = onBuildPage(page) ? page.getByTestId('paper-doll') : page.locator(GEAR_SHEET);
+  await scope.getByRole('button', { name: set === 1 ? 'Set I' : 'Set II', exact: true }).click();
+}
+
+/** A slot's on-screen holder: its doll cell (build page) or its sheet row (scratch). Weapon rows are for the set currently showing. */
+export function gearSlotLocator(page: Page, slot: GearSlot): Locator {
+  if (onBuildPage(page)) return page.getByTestId(`doll-slot-${slot}`);
+  return page.locator(GEAR_SHEET).locator('ul li').filter({ hasText: GEAR_SLOT_LABELS[slot] }).first();
+}
+
+/** Makes `slot` the one being looked at: switches to its weapon set, and on the build page taps its doll cell (opening the detail panel). */
+export async function selectGearSlot(page: Page, slot: GearSlot): Promise<void> {
+  if (slot.startsWith('weapon')) await setGearWeaponSet(page, slot.startsWith('weapon1') ? 1 : 2);
+  if (onBuildPage(page)) {
+    await page.getByTestId(`doll-slot-${slot}`).click();
+    await expect(page.getByTestId('gear-slot-detail')).toBeVisible();
+  }
+}
+
+/**
+ * Picks an item into `slot` through the item picker, and returns the picked
+ * name. With `name`, searches for and takes the row named exactly that; with
+ * none, takes the first result (minus the picker's " Unique" suffix). Asserts
+ * the slot's holder then shows the item. Call `openEditor(page, 'gear')` first.
+ */
+export async function pickGearItem(page: Page, slot: GearSlot, name?: string): Promise<string> {
+  await selectGearSlot(page, slot);
+  const holder = gearSlotLocator(page, slot);
+  const opener = onBuildPage(page)
+    ? page.getByTestId('gear-slot-detail').getByRole('button', { name: 'Choose item', exact: true })
+    : holder.getByRole('button').first();
+
+  if (name !== undefined) {
+    await pickByName(page, opener, name);
+    await expect(holder).toContainText(name);
+    return name;
+  }
+
+  await opener.click();
+  const picker = page.locator('.z-50');
+  await expect(picker.getByPlaceholder('Search items…')).toBeVisible();
+  const firstResult = picker.locator('ul li button').first();
+  await expect(firstResult).toBeVisible({ timeout: 15_000 });
+  const raw = (await firstResult.locator('span.truncate').first().textContent()) ?? '';
+  const picked = raw.replace(/\s*Unique\s*$/, '').trim();
+  expect(picked.length, 'the picker returned a result with no name').toBeGreaterThan(0);
+  await firstResult.click();
+  await expect(picker.getByPlaceholder('Search items…')).toBeHidden();
+  await expect(holder).toContainText(picked);
+  return picked;
+}
+
+/** Opens the item editor for the item in `slot` (`item-editor`). */
+export async function openItemEditor(page: Page, slot: GearSlot): Promise<Locator> {
+  await selectGearSlot(page, slot);
+  if (onBuildPage(page)) {
+    await page.getByTestId('gear-slot-detail').getByRole('button', { name: 'Edit affixes', exact: true }).click();
+  } else {
+    await page.locator(GEAR_SHEET).getByRole('button', { name: `Edit ${GEAR_SLOT_LABELS[slot]}` }).first().click();
+  }
+  const editor = page.getByTestId('item-editor');
+  await expect(editor).toBeVisible();
+  return editor;
+}
+
+/** Closes the scratch editor's gear sheet. A no-op on the build page, where gear is a tab, not a sheet. */
+export async function closeGearEditor(page: Page): Promise<void> {
+  if (onBuildPage(page)) return;
+  const sheet = page.locator(GEAR_SHEET);
+  await sheet.getByRole('button', { name: 'Close gear sheet' }).click();
+  await expect(sheet).toBeHidden();
+}
+
+/**
+ * Every structural warning on screen as `build-warning` items. On the build
+ * page they sit behind the collapsed `gear-warnings` chip, so this expands it
+ * (if it is present and closed) first; the scratch sheet lists them inline.
+ */
+export async function gearWarningItems(page: Page): Promise<Locator> {
+  if (onBuildPage(page)) {
+    const chip = page.getByTestId('gear-warnings');
+    if ((await chip.count()) > 0 && (await chip.getAttribute('aria-expanded')) !== 'true') await chip.click();
+    return page.getByTestId('gear-tab').getByTestId('build-warning');
+  }
+  return page.locator(GEAR_SHEET).getByTestId('build-warning');
 }

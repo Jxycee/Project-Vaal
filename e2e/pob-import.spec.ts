@@ -1,7 +1,20 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { test, expect } from '@playwright/test';
-import { cleanupWithFreshPage, gotoBuilds, MIN_TAP_PX, measureTapTargets, openEditor, openTree, testBuildName, treeState, waitForTreeApi } from './helpers';
+import {
+  cleanupWithFreshPage,
+  closeGearEditor,
+  gotoBuilds,
+  MIN_TAP_PX,
+  measureTapTargets,
+  openEditor,
+  openItemEditor,
+  openTree,
+  selectGearSlot,
+  testBuildName,
+  treeState,
+  waitForTreeApi,
+} from './helpers';
 
 // Path of Building 2 import, end to end through the real UI (the test-grade
 // ImportSheet), the real Server Functions and the real database.
@@ -124,17 +137,19 @@ test.describe('Path of Building 2 import', () => {
     // pinned in src/lib/pob/__tests__/mapItems.test.ts; this proves they
     // survive the import write, the gate and a full reload into the editor.
     await test.step('imported items keep their crafts through the save and a reload', async () => {
+      // On the build page gear is the Gear tab's paper doll (slice 4): a
+      // slot's craft shows in its detail panel once its cell is tapped.
       await openEditor(page, 'gear');
-      const gear = page.locator('.fixed.inset-0.z-40');
-      await expect(gear.getByTestId('gear-craft-weapon1_main')).toHaveText('rare · 6 affixes · 2 runes');
-      await expect(gear.getByTestId('gear-craft-body')).toHaveText('unique · 0 affixes · 2 runes');
+      await selectGearSlot(page, 'weapon1_main');
+      await expect(page.getByTestId('gear-craft-weapon1_main')).toHaveText('rare · 6 affixes · 2 runes');
+      await selectGearSlot(page, 'body');
+      await expect(page.getByTestId('gear-craft-body')).toHaveText('unique · 0 affixes · 2 runes');
 
-      await gear.getByRole('button', { name: 'Edit Weapon' }).first().click();
-      const editor = page.getByTestId('item-editor');
+      const editor = await openItemEditor(page, 'weapon1_main');
       await expect(editor.getByTestId('affix-row')).toHaveCount(6);
       await expect(editor.locator('[data-testid="affix-row"][data-slug="localaddedphysicaldamagetwohand7"]')).toBeVisible();
       await editor.getByRole('button', { name: 'Close item editor' }).click();
-      await gear.getByRole('button', { name: 'Close gear sheet' }).click();
+      await closeGearEditor(page);
     });
 
     // Slice 5: the defence sheet for the imported last checkpoint (level 94),

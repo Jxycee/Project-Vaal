@@ -6,6 +6,7 @@ import {
   MIN_TAP_PX,
   nodesNearStart,
   openTree,
+  pickGearItem,
   saveBuild,
   testBuildName,
   treeState,
@@ -31,8 +32,8 @@ import {
 //   - Discard choice (Done while dirty): data-testid="unsaved-choice" with
 //     "Save" / "Discard" / "Keep editing".
 //   - Draft notice: data-testid="draft-notice" with "Restore" / "Discard".
-//   - Gear tab (edit): "Edit gear" opens the existing gear sheet (.z-40,
-//     "Close gear sheet"); "Edit jewels" opens the jewels sheet.
+//   - Gear tab (edit): the paper doll (slice 4) — tap a slot's cell, then
+//     "Choose item" in its detail panel; "Edit jewels" opens the jewels sheet.
 //   - Skills tab (edit): "Edit skills" opens the gems sheet.
 //   - Tree tab (edit): editable PassiveTree (window.__vaalTree).
 //   - Checkpoint switcher (edit): a "Manage" toggle opens the manage view
@@ -44,29 +45,6 @@ import {
 // the old editor (Global Constraints in the plan). So the unsaved change that
 // proves the positive case is a TREE edit made on the Tree tab in edit mode
 // (one node allocated through the dev hook), not a notes edit.
-
-/**
- * Opens the item picker from `opener`, takes the first result, and returns
- * its name (minus the picker's " Unique" suffix). Copied from
- * sharing.spec.ts's private helper of the same name — not shared via
- * helpers.ts since it is itself test-local there.
- */
-async function pickFirstItem(page: Page, opener: Locator, subject: Locator): Promise<string> {
-  await opener.click();
-  const picker = page.locator('.z-50');
-  await expect(picker.getByPlaceholder('Search items…')).toBeVisible();
-  const firstResult = picker.locator('ul li button').first();
-  await expect(firstResult).toBeVisible({ timeout: 15_000 });
-
-  const raw = (await firstResult.locator('span.truncate').first().textContent()) ?? '';
-  const name = raw.replace(/\s*Unique\s*$/, '').trim();
-  expect(name.length, 'the picker returned a result with no name').toBeGreaterThan(0);
-
-  await firstResult.click();
-  await expect(picker.getByPlaceholder('Search items…')).toBeHidden();
-  await expect(subject).toContainText(name);
-  return name;
-}
 
 /** The level/league summary line, exactly as build-page.spec.ts locates it. */
 function levelLine(page: Page): Locator {
@@ -139,16 +117,11 @@ test.describe('build page edit in place', () => {
     await goto(page, `/builds/${token}?edit=1&tab=gear`);
     await expect(page.getByTestId('build-page')).toBeVisible({ timeout: 30_000 });
 
-    const editGear = page.getByRole('button', { name: 'Edit gear' });
-    await expect(editGear).toBeVisible();
-    await editGear.click();
-
-    const gearSheet = page.locator('.z-40');
-    await expect(gearSheet).toBeVisible();
-    const bootsRow = gearSheet.locator('ul li').filter({ hasText: 'Boots' }).first();
-    const bootsName = await pickFirstItem(page, bootsRow.getByRole('button').first(), bootsRow);
-    await gearSheet.getByRole('button', { name: 'Close gear sheet' }).click();
-    await expect(gearSheet).toBeHidden();
+    // Slice 4: gear is the Gear tab's paper doll — tap the boots cell, Choose
+    // item — not a full-screen sheet behind an "Edit gear" button.
+    await expect(page.getByTestId('paper-doll')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Edit gear' })).toHaveCount(0);
+    const bootsName = await pickGearItem(page, 'boots');
 
     await page.getByRole('button', { name: 'Save', exact: true }).click();
     await expect(page.getByTestId('save-status')).toHaveText(/^Saved /, { timeout: 30_000 });

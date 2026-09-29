@@ -1,5 +1,18 @@
 import { test, expect } from '@playwright/test';
-import { MIN_TAP_PX, cleanupWithFreshPage, listedBuildNames, measureTapTargets, openEditor, openTree, pickByName, saveBuild, testBuildName } from './helpers';
+import {
+  MIN_TAP_PX,
+  cleanupWithFreshPage,
+  closeGearEditor,
+  listedBuildNames,
+  measureTapTargets,
+  openEditor,
+  openItemEditor,
+  openTree,
+  pickByName,
+  saveBuild,
+  selectGearSlot,
+  testBuildName,
+} from './helpers';
 
 // Slice 4 — an item carries everything our data backs
 // (plans/2026-09-25-slice4-item-affixes.md). Crafts a rare ring through the
@@ -99,11 +112,13 @@ test.describe('item craft', () => {
     await openTree(page, new URL(href!, 'http://x').searchParams.get('build')!);
 
     // A saved build with a share token now reopens on the build page (slice
-    // 2's /tree?build= redirect), where gear lives behind "Edit gear" on the
-    // Gear tab rather than the old /tree "Gear" chip.
+    // 2's /tree?build= redirect), where gear is the Gear tab's paper doll
+    // (slice 4): tapping the ring's cell shows its craft in the detail panel,
+    // and "Edit affixes" opens the same item editor.
     await openEditor(page, 'gear');
-    await expect(gear.getByTestId('gear-craft-ring1')).toHaveText('rare · 3 affixes · 1 rune');
-    await gear.getByRole('button', { name: 'Edit Ring 1' }).click();
+    await selectGearSlot(page, 'ring1');
+    await expect(page.getByTestId('gear-craft-ring1')).toHaveText('rare · 3 affixes · 1 rune');
+    await openItemEditor(page, 'ring1');
     await expect(editor.getByTestId('rarity-rare')).toHaveAttribute('aria-pressed', 'true');
     await expect(editor.getByLabel('Item level')).toHaveValue('82');
     await expect(editor.getByLabel('Quality')).toHaveValue('20');
@@ -123,7 +138,7 @@ test.describe('item craft', () => {
     await expect(editor.getByTestId('rune-row')).toHaveCount(6);
     await expect(editor.getByTestId('add-rune')).toBeDisabled();
     await editor.getByRole('button', { name: 'Close item editor' }).click();
-    await gear.getByRole('button', { name: 'Close gear sheet' }).click();
+    await closeGearEditor(page);
     await saveBuild(page);
   });
 });

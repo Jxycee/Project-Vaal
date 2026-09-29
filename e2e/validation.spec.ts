@@ -2,12 +2,16 @@ import { test, expect } from '@playwright/test';
 import {
   MIN_TAP_PX,
   cleanupWithFreshPage,
+  closeGearEditor,
+  gearSlotLocator,
+  gearWarningItems,
   listedBuildNames,
   measureTapTargets,
   openEditor,
   openTree,
   pickByName,
   saveBuild,
+  setGearWeaponSet,
   testBuildName,
 } from './helpers';
 
@@ -105,27 +109,28 @@ test.describe('structural validation', () => {
 
     // ---- Everything is derived again from what was saved --------------------
     // A saved build with a share token now reopens on the build page (slice
-    // 2's /tree?build= redirect), where gear/gems live behind "Edit gear" /
-    // "Edit skills" rather than the old /tree chips.
+    // 2's /tree?build= redirect), where gear is the Gear tab's paper doll
+    // (slice 4) and gems live behind "Edit skills" rather than the old /tree
+    // chips. The doll's warning markers are the cells' own, its list is the
+    // collapsed `gear-warnings` chip's (expanded by gearWarningItems).
     await openEditor(page, 'gear');
-    await expect(gear).toBeVisible();
-    await expect(row('Weapon')).toContainText('Siege Crossbow');
-    await expect(row('Off-hand')).toContainText('Braced Tower Shield');
-    await expect(gear.getByTestId('gear-warning-weapon1_off')).toHaveCount(1);
-    await expect(warningsList).toHaveCount(1);
+    await setGearWeaponSet(page, 1);
+    await expect(gearSlotLocator(page, 'weapon1_main')).toContainText('Siege Crossbow');
+    await expect(gearSlotLocator(page, 'weapon1_off')).toContainText('Braced Tower Shield');
+    await expect(page.getByTestId('gear-warning-weapon1_off')).toHaveCount(1);
+    await expect(await gearWarningItems(page)).toHaveCount(1);
 
-    // Tap targets with a warning showing: close, two set toggles, 15 slot rows,
-    // and the Edit and clear buttons of set I's two equipped weapons (Edit
-    // arrived with Slice 4's item editor).
-    const taps = await measureTapTargets(page, '.fixed.inset-0.z-40');
-    expect(taps.scanned).toBe(22);
-    expect(taps.tooSmall, `controls under ${MIN_TAP_PX}px in the gear sheet`).toEqual([]);
+    // Tap targets with a warning showing: the warnings chip, two set toggles,
+    // 15 doll cells and "Edit jewels". No sheet, so nothing else is open.
+    const taps = await measureTapTargets(page, '[data-testid="gear-tab"]');
+    expect(taps.scanned).toBe(19);
+    expect(taps.tooSmall, `controls under ${MIN_TAP_PX}px on the Gear tab`).toEqual([]);
 
-    await gear.getByRole('button', { name: 'Set II' }).click();
-    await expect(row('Weapon')).toContainText('Simple Dagger');
-    await expect(row('Off-hand')).toContainText('Simple Dagger');
-    await expect(gear.getByTestId('gear-warning-weapon2_off')).toHaveCount(0);
-    await gear.getByRole('button', { name: 'Close gear sheet' }).click();
+    await setGearWeaponSet(page, 2);
+    await expect(gearSlotLocator(page, 'weapon2_main')).toContainText('Simple Dagger');
+    await expect(gearSlotLocator(page, 'weapon2_off')).toContainText('Simple Dagger');
+    await expect(page.getByTestId('gear-warning-weapon2_off')).toHaveCount(0);
+    await closeGearEditor(page);
 
     await openEditor(page, 'gems');
     await expect(gems.getByTestId('spirit-reserved')).toHaveText('Spirit reserved — Set I: 40 · Set II: 0');

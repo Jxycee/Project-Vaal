@@ -2,6 +2,8 @@ import { test, expect, type Locator, type Page } from '@playwright/test';
 import {
   MIN_TAP_PX,
   cleanupWithFreshPage,
+  closeGearEditor,
+  gearSlotLocator,
   gotoBuilds,
   listedBuildNames,
   measureTapTargets,
@@ -196,17 +198,12 @@ test.describe('loadout persistence', () => {
       await expect(page.getByRole('button', { name: /^Gems/ })).toContainText('Gems 1');
     }
 
+    // On the build page gear is the Gear tab's paper doll (slice 4), not a
+    // sheet: the slot holders are doll cells, and there is nothing to close.
     await openEditor(page, 'gear');
-    const reopenedGear = page.locator('.z-40');
-    await expect(reopenedGear).toBeVisible();
-    await expect(reopenedGear.locator('ul li').filter({ hasText: 'Boots' }).first()).toContainText(
-      bootsName,
-    );
-    await expect(reopenedGear.locator('ul li').filter({ hasText: 'Belt' }).first()).toContainText(
-      'Empty',
-    );
-    await reopenedGear.getByRole('button', { name: 'Close gear sheet' }).click();
-    await expect(reopenedGear).toBeHidden();
+    await expect(gearSlotLocator(page, 'boots')).toContainText(bootsName);
+    await expect(gearSlotLocator(page, 'belt')).toContainText('Empty');
+    await closeGearEditor(page);
 
     // The socket row only exists if the passive allocation came back too, so
     // this quietly covers the tree half of the payload as well.
