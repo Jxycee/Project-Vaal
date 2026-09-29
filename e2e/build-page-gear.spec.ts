@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { cleanupWithFreshPage, gotoBuilds, testBuildName } from './helpers';
+import { cleanupWithFreshPage, gotoBuilds, measureTapTargets, testBuildName } from './helpers';
 
 // Slice 4 of the build-profile redesign
 // (docs/superpowers/specs/2026-09-27-build-profile-redesign-design.md §3
@@ -13,7 +13,7 @@ import { cleanupWithFreshPage, gotoBuilds, testBuildName } from './helpers';
 // and a collapsed warnings chip. Written FIRST — the app code lands in
 // task 3 of the plan, so every test below is expected to fail until then,
 // starting at the very first `doll-slot-*` assertion, which does not exist
-// yet (today's Gear tab renders ReadOnlyGearList instead).
+// yet (before slice 4 the Gear tab rendered a flat read list instead).
 //
 // Contract this spec pins (task-1-brief.md, plan Global Constraints):
 //   - `doll-slot-<slot>` on each cell button, aria-label
@@ -227,6 +227,46 @@ test.describe('build page gear paper doll', () => {
     await expect(detail.getByRole('button', { name: 'Clear', exact: true })).toHaveCount(0);
   });
 
+  test('tapping the lowest cell brings the detail panel fully into view', async ({ page }) => {
+    await goto(page, `/builds/${token}?checkpoint=${lastCheckpointId}&tab=gear`);
+    await expect(page.getByTestId('gear-tab')).toBeVisible({ timeout: 30_000 });
+    await page.evaluate(() => window.scrollTo(0, 0));
+
+    // charm3 sits on the doll's last row, so the detail panel opens below it.
+    // Park the cell just above the fixed bottom nav, as a thumb reaching for
+    // the last row would find it: the tap needs no scroll of its own, so only
+    // the app can bring the detail panel into view.
+    const charm = page.getByTestId('doll-slot-charm3');
+    await charm.scrollIntoViewIfNeeded();
+    await page.evaluate(() => {
+      const r = document.querySelector('[data-testid="doll-slot-charm3"]')!.getBoundingClientRect();
+      window.scrollBy(0, r.bottom - (window.innerHeight - 80));
+    });
+    const charmBox = await charm.boundingBox();
+    expect(charmBox, 'charm3 has no bounding box').not.toBeNull();
+    expect(charmBox!.y + charmBox!.height, 'charm3 is not near the screen bottom, so this proves nothing').toBeGreaterThanOrEqual(812 - 100);
+    // A raw mouse tap at the cell's centre: locator.click() would scroll the
+    // cell into view first, and mask the very thing under test.
+    await page.mouse.click(charmBox!.x + charmBox!.width / 2, charmBox!.y + charmBox!.height / 2);
+    const detail = page.getByTestId('gear-slot-detail');
+    await expect(detail).toBeVisible();
+    // Fully inside the viewport AND not hidden behind the fixed bottom nav:
+    // the panel's own bottom edge must be what is drawn there.
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const el = document.querySelector('[data-testid="gear-slot-detail"]')!;
+            const r = el.getBoundingClientRect();
+            if (r.top < 0 || r.bottom > window.innerHeight) return false;
+            const hit = document.elementFromPoint(r.left + r.width / 2, r.bottom - 2);
+            return hit !== null && el.contains(hit);
+          }),
+        { message: 'detail panel never came fully into view (inside 375x812 and clear of the bottom nav)', timeout: 10_000 },
+      )
+      .toBe(true);
+  });
+
   test('the warnings chip count matches the expanded list', async ({ page }) => {
     await goto(page, `/builds/${token}?checkpoint=${lastCheckpointId}&tab=gear`);
     await expect(page.getByTestId('gear-tab')).toBeVisible({ timeout: 30_000 });
@@ -257,6 +297,12 @@ test.describe('build page gear paper doll', () => {
 
     const chooseButton = detail.getByRole('button', { name: 'Choose item', exact: true });
     const bootsName = await pickFirstItem(page, chooseButton, page.getByTestId('doll-slot-boots'));
+
+    // With an item in the slot the owner has all three controls (Choose item,
+    // Edit affixes, Clear); each must be a >= 44px tap target.
+    const taps = await measureTapTargets(page, '[data-testid="gear-slot-detail"]');
+    expect(taps.scanned, 'detail panel controls were not measured').toBeGreaterThanOrEqual(3);
+    expect(taps.tooSmall, 'detail panel controls under 44px').toEqual([]);
 
     await detail.getByRole('button', { name: 'Edit affixes', exact: true }).click();
     const editor = page.getByTestId('item-editor');

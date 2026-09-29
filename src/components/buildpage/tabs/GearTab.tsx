@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import JewelsSheet from '@/components/build/JewelsSheet';
 import { headlineSet } from '@/lib/build/buildPage';
 import { dollSlot, type DollSlotKey } from '@/lib/build/paperDoll';
@@ -15,6 +15,9 @@ export default function GearTab({ edit }: { edit: boolean }) {
   const { gear, gems, warnings, offHandOccupied, setGearSlot, jewels, pickJewel, clearJewel } = useBuildSession();
   const [weaponSet, setWeaponSet] = useState<WeaponSet>(() => headlineSet(gems));
   const [selected, setSelected] = useState<DollSlotKey | null>(null);
+  // Bumped on every cell tap, so re-tapping the selected cell also scrolls.
+  const [tapCount, setTapCount] = useState(0);
+  const detailRef = useRef<HTMLDivElement>(null);
   const [warningsOpen, setWarningsOpen] = useState(false);
   const [jewelsSheetOpen, setJewelsSheetOpen] = useState(false);
   const jewelList = Object.values(gear.jewels);
@@ -23,6 +26,16 @@ export default function GearTab({ edit }: { edit: boolean }) {
   const slotWarnings = selectedSlot
     ? warnings.filter((w) => w.target.kind === 'gear' && w.target.slot === selectedSlot)
     : [];
+  // The detail panel sits below the doll, so on a phone a tap on a low cell
+  // opens it off-screen — and it holds the owner's Choose / Edit / Clear.
+  // Bring it into view once it has rendered (`nearest`: no movement if it
+  // already is; its scroll-mb clears the fixed bottom nav).
+  useEffect(() => {
+    if (tapCount === 0) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    detailRef.current?.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
+  }, [tapCount, selected]);
+
   const hasWarning = warnings.some((w) => w.severity === 'warning');
 
   return (
@@ -57,23 +70,28 @@ export default function GearTab({ edit }: { edit: boolean }) {
         weaponSet={weaponSet}
         onWeaponSet={setWeaponSet}
         selected={selected}
-        onSelect={setSelected}
+        onSelect={(key) => {
+          setSelected(key);
+          setTapCount((n) => n + 1);
+        }}
         warnings={warnings}
         offHandOccupied={offHandOccupied}
       />
 
       {selectedSlot ? (
-        <GearSlotDetail
-          // Keyed by slot: a different cell (or the other weapon set) starts
-          // with its picker and editor closed.
-          key={selectedSlot}
-          slot={selectedSlot}
-          item={gear[selectedSlot]}
-          occupiedBy={selectedSlot.endsWith('_off') ? offHandOccupied[weaponSet] : null}
-          warnings={slotWarnings}
-          edit={edit}
-          onChange={setGearSlot}
-        />
+        <div ref={detailRef} className="scroll-mb-24">
+          <GearSlotDetail
+            // Keyed by slot: a different cell (or the other weapon set) starts
+            // with its picker and editor closed.
+            key={selectedSlot}
+            slot={selectedSlot}
+            item={gear[selectedSlot]}
+            occupiedBy={selectedSlot.endsWith('_off') ? offHandOccupied[weaponSet] : null}
+            warnings={slotWarnings}
+            edit={edit}
+            onChange={setGearSlot}
+          />
+        </div>
       ) : (
         <p className="text-center text-sm text-muted-foreground">Tap a slot to see its item.</p>
       )}
