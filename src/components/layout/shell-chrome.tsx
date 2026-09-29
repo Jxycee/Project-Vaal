@@ -15,7 +15,6 @@ type NavItem = { href: string; label: string; icon: string; live: boolean }
 const NAV: NavItem[] = [
   { href: '/', label: 'Home', icon: 'home', live: true },
   { href: '/prices', label: 'Prices', icon: 'prices', live: true },
-  { href: '/tree', label: 'Tree', icon: 'tree', live: true },
   { href: '/campaign', label: 'Campaign', icon: 'campaign', live: true },
   { href: '/builds', label: 'Builds', icon: 'builds', live: true },
   { href: '/wiki', label: 'Wiki', icon: 'wiki', live: true },
@@ -23,6 +22,9 @@ const NAV: NavItem[] = [
 
 function isActive(pathname: string, href: string): boolean {
   if (href === '/') return pathname === '/'
+  // /tree has no nav entry of its own any more (it is the scratch "Quick
+  // plan" editor, reached from Builds), so it counts as part of Builds.
+  if (href === '/builds' && (pathname === '/tree' || pathname.startsWith('/tree/'))) return true
   return pathname === href || pathname.startsWith(href + '/')
 }
 

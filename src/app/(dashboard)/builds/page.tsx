@@ -11,13 +11,12 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient, getCachedUser } from '@/lib/supabase/server';
-import type { PublicBuildRow, SavedBuild } from '@/lib/build/types';
+import type { LibraryBuildRow, PublicBuildRow } from '@/lib/build/types';
 import { normalizeTag } from '@/lib/build/tags';
 import { parseFinderFilters, type BuildFinderFilters } from '@/lib/build/finderFilters';
 import MyBuildsList from '@/components/builds/MyBuildsList';
 import BuildFinder from '@/components/builds/BuildFinder';
-import ImportSheet from '@/components/builds/ImportSheet';
-import { renameBuild, deleteBuild, setBuildVisibility, addBuildTag, removeBuildTag } from './actions';
+import BuildsActions from '@/components/builds/BuildsActions';
 
 export const metadata = { title: 'Builds' };
 
@@ -160,6 +159,7 @@ export default async function BuildsPage({
     return (
       <div className="flex flex-col gap-4">
         <h1 className="text-xl font-semibold">Builds</h1>
+        <BuildsActions />
         {tabsNav}
         <BuildFinder
           filters={filters}
@@ -185,11 +185,13 @@ export default async function BuildsPage({
   // strangers' builds off a page headed "Your builds".
   const { data, error } = await supabase
     .from('builds')
-    .select('*')
+    // Named columns only, never `*`: a card needs none of the three large
+    // jsonb state columns (see loadPublicBuilds' comment).
+    .select('id, name, class, ascendancy, level, league, visibility, share_token, main_skill, updated_at')
     .eq('user_id', user.id)
     .order('updated_at', { ascending: false });
 
-  const builds = error ? null : ((data ?? []) as unknown as SavedBuild[]);
+  const builds = error ? null : ((data ?? []) as unknown as LibraryBuildRow[]);
   const loadError = error ? "Couldn't load your builds." : null;
   if (error) {
     console.error('Failed to load builds:', error);
@@ -221,17 +223,8 @@ export default async function BuildsPage({
     <div className="flex flex-col gap-4">
       <h1 className="text-xl font-semibold">Your builds</h1>
       {tabsNav}
-      <ImportSheet />
-      <MyBuildsList
-        builds={builds}
-        loadError={loadError}
-        tagsByBuildId={tagsByBuildId}
-        renameAction={renameBuild}
-        deleteAction={deleteBuild}
-        setVisibilityAction={setBuildVisibility}
-        addTagAction={addBuildTag}
-        removeTagAction={removeBuildTag}
-      />
+      <BuildsActions />
+      <MyBuildsList builds={builds} loadError={loadError} tagsByBuildId={tagsByBuildId} />
     </div>
   );
 }

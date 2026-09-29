@@ -6,7 +6,7 @@
 import Link from 'next/link';
 import type { BuildFinderFilters } from '@/lib/build/finderFilters';
 import type { PublicBuildRow } from '@/lib/build/types';
-import { ascendancyLabel } from '@/lib/tree/ascendancyNames';
+import BuildCard from './BuildCard';
 
 function hrefFor(base: BuildFinderFilters, overrides: Partial<BuildFinderFilters>): string {
   const merged = { ...base, ...overrides };
@@ -118,37 +118,27 @@ export default function BuildFinder({ filters, classes, leagues, skills, builds,
           {anyFilterActive ? 'No public builds match these filters.' : 'No public builds yet.'}
         </p>
       ) : (
-        <ul className="divide-y divide-border rounded-lg border border-border bg-card/40">
-          {builds.map((b) => {
-            const row = (
-              <>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-foreground">{b.name}</p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {ascendancyLabel(b.class, b.ascendancy)} · Level {b.level} · {b.league}
-                    {b.main_skill ? ` · ${b.main_skill}` : ''}
-                  </p>
-                </div>
-                <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                  {b.view_count.toLocaleString()} views
-                </span>
-              </>
-            );
-            return (
-              <li key={b.id}>
-                {/* share_token is minted on every insert, so a null one
-                    shouldn't exist — but render it non-clickable rather
-                    than crash if it ever does. */}
-                {b.share_token ? (
-                  <Link href={`/builds/${b.share_token}`} className="flex items-center gap-3 px-3 py-2.5">
-                    {row}
-                  </Link>
-                ) : (
-                  <div className="flex items-center gap-3 px-3 py-2.5 opacity-60">{row}</div>
-                )}
-              </li>
-            );
-          })}
+        <ul className="flex flex-col gap-3">
+          {builds.map((b) => (
+            <li key={b.id}>
+              {/* share_token is minted on every insert, so a null one
+                  shouldn't exist — skip the card rather than render a link
+                  that goes nowhere. */}
+              {b.share_token ? (
+                <BuildCard
+                  href={`/builds/${b.share_token}`}
+                  name={b.name}
+                  className={b.class}
+                  ascendancy={b.ascendancy}
+                  level={b.level}
+                  league={b.league}
+                  mainSkill={b.main_skill}
+                  updatedAt={b.updated_at}
+                  badge={`${b.view_count.toLocaleString()} views`}
+                />
+              ) : null}
+            </li>
+          ))}
         </ul>
       )}
     </div>

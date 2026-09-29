@@ -127,9 +127,10 @@ describe('previewPobImport — the real build', () => {
 describe('importPobBuild — the real build', () => {
   it('calls import_build once with gated state for all 8 checkpoints, then refreshes', async () => {
     const result = await importPobBuild(CODE, '  My Witchhunter  ');
-    expect(result).toEqual({ ok: true, id: NEW_BUILD });
     expect(rpcMock).toHaveBeenCalledTimes(1);
     const [fn, args] = rpcMock.mock.calls[0] as [string, { p_build: Record<string, unknown>; p_checkpoints: unknown[] }];
+    // The token handed back is the one that was inserted.
+    expect(result).toEqual({ ok: true, id: NEW_BUILD, share_token: args.p_build.share_token });
     expect(fn).toBe('import_build');
     expect(args.p_build).toMatchObject({
       name: 'My Witchhunter',

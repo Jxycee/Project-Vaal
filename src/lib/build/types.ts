@@ -101,6 +101,20 @@ export interface SavedBuild {
  */
 export type SharedBuildRow = Database['public']['Functions']['get_build_by_share_token']['Returns'][number];
 
+/** One row of the Mine tab's library — named columns only, never `passive_state`/`gear_state`/`gem_state`, like the finder's rows. */
+export interface LibraryBuildRow {
+  id: string;
+  name: string;
+  class: string;
+  ascendancy: string | null;
+  level: number;
+  league: string;
+  visibility: BuildVisibility;
+  share_token: string | null;
+  main_skill: string | null;
+  updated_at: string;
+}
+
 /** One row of the Public tab's finder — named columns only, never `passive_state`/`gear_state`/`gem_state` (see finder query comment in builds/page.tsx). */
 export interface PublicBuildRow {
   id: string;
