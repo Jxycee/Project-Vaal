@@ -13,6 +13,8 @@ import { relativeTime } from '@/lib/prices/format';
 import { ascendancyLabel } from '@/lib/tree/ascendancyNames';
 
 export interface BuildCardProps {
+  /** The build's id. Rendered as `data-build-id` so e2e can find the row by name without a second lookup. */
+  id: string;
   href: string;
   name: string;
   className: string;
@@ -29,6 +31,7 @@ export interface BuildCardProps {
 }
 
 export default function BuildCard({
+  id,
   href,
   name,
   className,
@@ -45,6 +48,7 @@ export default function BuildCard({
     <Link
       href={href}
       data-testid="build-card"
+      data-build-id={id}
       className="flex min-h-11 min-w-0 items-start gap-3 rounded-lg border border-border bg-card/40 p-3 transition-colors hover:bg-accent/40"
     >
       <span

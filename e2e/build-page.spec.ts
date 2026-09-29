@@ -1,47 +1,17 @@
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
 import { test, expect, type Page, type Request } from '@playwright/test';
-import { cleanupWithFreshPage, gotoBuilds, measureTapTargets, MIN_TAP_PX, testBuildName } from './helpers';
+import {
+  cleanupWithFreshPage,
+  importFixture,
+  measureTapTargets,
+  MIN_TAP_PX,
+  testBuildName,
+} from './helpers';
 
 // Slice 1 of the build-profile redesign (specs/2026-09-27-build-profile-
 // redesign-design.md): /builds/[shareToken] becomes one tabbed page for the
 // owner and readers. Seeded with the 8-checkpoint PoB fixture pob-import.spec
 // already proves (first checkpoint level 31, last level 94 with Life 2498).
-const CODE = readFileSync(path.join(__dirname, '..', 'src', 'lib', 'pob', '__fixtures__', 'sample-pob2-code.txt'), 'utf8');
 const TABS = ['Overview', 'Gear', 'Skills', 'Tree', 'Stats'] as const;
-
-async function importFixture(page: Page, name: string): Promise<void> {
-  await gotoBuilds(page);
-  await page.getByTestId('open-import-sheet').click();
-  const sheet = page.getByTestId('import-sheet');
-  await sheet.getByTestId('import-input').fill(CODE);
-  await sheet.getByRole('button', { name: 'Preview', exact: true }).click();
-  await expect(sheet.getByTestId('import-preview')).toBeVisible({ timeout: 60_000 });
-  await sheet.getByTestId('import-name').fill(name);
-  await sheet.getByRole('button', { name: 'Import', exact: true }).click();
-  // A newly imported build always gets a share token (importActions.ts), so
-  // ImportSheet's router.push('/tree?build=<id>') now redirects straight to
-  // the build page's Tree tab in edit mode — this waits for wherever that
-  // lands rather than the literal /tree?build= URL. Where it lands does not
-  // matter to this helper's callers, who navigate again by share token.
-  await page.waitForURL(/\/(tree\?build=[0-9a-f-]{36}|builds\/)/, { timeout: 60_000 });
-}
-
-/** Imports are owner-only (`unlisted`) and /builds hides the link then, so flip to Private, read it, flip back. */
-async function readShareToken(page: Page, name: string): Promise<string> {
-  await page.goto('/builds');
-  const row = page.locator('ul > li').filter({ has: page.locator(`a:has-text("${name}")`) }).first();
-  await expect(row).toBeVisible();
-  await row.getByRole('combobox').click();
-  await page.getByRole('option', { name: 'Private' }).click();
-  const link = row.locator('a[href^="/builds/"]');
-  await expect(link).toBeVisible({ timeout: 30_000 });
-  const href = (await link.getAttribute('href'))!;
-  await row.getByRole('combobox').click();
-  await page.getByRole('option', { name: 'Unlisted' }).click();
-  await expect(link).toBeHidden({ timeout: 30_000 });
-  return href.replace('/builds/', '');
-}
 
 async function openTab(page: Page, tab: (typeof TABS)[number]): Promise<void> {
   await page.getByRole('tab', { name: tab, exact: true }).click();
@@ -67,8 +37,7 @@ test.describe('build page (read mode)', () => {
   });
 
   test('owner opens their own owner-only build, and tabs switch without a server round trip', async ({ page }) => {
-    await importFixture(page, name);
-    token = await readShareToken(page, name);
+    token = await importFixture(page, name);
 
     await page.goto(`/builds/${token}`);
     await expect(page.getByTestId('build-page')).toBeVisible({ timeout: 30_000 });

@@ -48,6 +48,7 @@ export default function MyBuildsList({ builds, loadError, tagsByBuildId }: MyBui
         b.share_token ? (
           <li key={b.id}>
             <BuildCard
+              id={b.id}
               href={`/builds/${b.share_token}`}
               name={b.name}
               className={b.class}

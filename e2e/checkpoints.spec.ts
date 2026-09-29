@@ -2,12 +2,15 @@ import { test, expect, type Locator } from '@playwright/test';
 import {
   allocateNodes,
   cleanupWithFreshPage,
-  MIN_TAP_PX,
   measureTapTargets,
+  MIN_TAP_PX,
   nodesNearStart,
   openEditor,
   openTree,
+  readBuildId,
+  readShareToken,
   saveBuild,
+  setVisibility,
   testBuildName,
   treeState,
   waitForTreeApi,
@@ -80,9 +83,7 @@ test.describe('leveling checkpoints', () => {
       firstAlloc = (await treeState(page)).allocated.length;
       expect(firstAlloc).toBeGreaterThan(0);
 
-      await page.goto('/builds');
-      const href = await page.locator(`a:has-text("${name}")`).getAttribute('href');
-      buildId = href!.split('build=')[1];
+      buildId = await readBuildId(page, name);
 
       await openTree(page, buildId);
       await expect.poll(async () => (await treeState(page)).allocated.length).toBe(firstAlloc);
@@ -193,14 +194,9 @@ test.describe('leveling checkpoints', () => {
       // build is neither the viewer's nor public, so its checkpoints can only
       // arrive through get_build_checkpoints_by_share_token, never a plain
       // select: this is the path that step proves.
-      await page.goto('/builds');
-      const listRow = page.locator('ul > li').filter({ has: page.locator(`a:has-text("${name}")`) }).first();
-      await expect(listRow).toBeVisible();
-      await listRow.getByRole('combobox').click();
-      await page.getByRole('option', { name: 'Private' }).click();
-      const shareLink = listRow.locator('a[href^="/builds/"]');
-      await expect(shareLink).toBeVisible({ timeout: 30_000 });
-      const shareHref = (await shareLink.getAttribute('href'))!;
+      const shareToken = await readShareToken(page, name);
+      await setVisibility(page, shareToken, 'private');
+      const shareHref = `/builds/${shareToken}`;
 
       await page.goto(shareHref);
       const header = page.locator('h1').locator('xpath=following-sibling::p[1]');

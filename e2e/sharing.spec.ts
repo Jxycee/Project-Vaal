@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { cleanupWithFreshPage, openTree, saveBuild, testBuildName } from './helpers';
+import { callShareTokenRpc, cleanupWithFreshPage, openTree, readShareToken, saveBuild, setVisibility, testBuildName } from './helpers';
 
 // Task 4 — sharing, under the AMENDMENT (2026-09-22): the whole of /builds is
 // now protected, so a signed-out visitor never reaches ANY of this — that
@@ -90,18 +90,9 @@ test.describe('sharing', () => {
     // ---- Set visibility to Private (this app's link-shareable state — see
     // src/lib/build/visibility.ts, the vocabulary inverts the usual web
     // meaning on purpose) and read the real share link off the page.
-    await page.goto('/builds');
-    const row = page.locator('ul > li').filter({ has: page.locator(`a:has-text("${name}")`) }).first();
-    await expect(row).toBeVisible();
-
-    await row.getByRole('combobox').click();
-    await page.getByRole('option', { name: 'Private' }).click();
-
-    const shareLink = row.locator('a[href^="/builds/"]');
-    await expect(shareLink).toBeVisible({ timeout: 30_000 });
-    const href = await shareLink.getAttribute('href');
-    expect(href, 'the row never rendered a share link after switching to Private').toBeTruthy();
-    const shareToken = href!.split('/').pop()!;
+    const shareToken = await readShareToken(page, name);
+    const href = `/builds/${shareToken}`;
+    await setVisibility(page, shareToken, 'private');
 
     // ---- Positive control for the revocation proof at the end of this test.
     // Same PostgREST call, made now while the build is Private (link-shared),
@@ -120,7 +111,7 @@ test.describe('sharing', () => {
     // policy. Loading it through a real navigation (not the same session's
     // in-memory state) is what makes this a proof of the RPC path rather
     // than of anything client-cached.
-    await page.goto(href!);
+    await page.goto(href);
     await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
     await page.getByRole('tab', { name: 'Gear', exact: true }).click();
     await expect(page.getByTestId('gear-tab').getByText(bootsName)).toBeVisible();
@@ -145,12 +136,7 @@ test.describe('sharing', () => {
     // ---- Switch to Unlisted (owner only): the share-token RPC checks
     // visibility in its own body, so this must revoke the link with no
     // further code involved.
-    await page.goto('/builds');
-    const row2 = page.locator('ul > li').filter({ has: page.locator(`a:has-text("${name}")`) }).first();
-    await expect(row2).toBeVisible();
-    await row2.getByRole('combobox').click();
-    await page.getByRole('option', { name: 'Unlisted' }).click();
-    await expect(row2.locator('a[href^="/builds/"]')).toBeHidden();
+    await setVisibility(page, shareToken, 'unlisted');
 
     // ---- Revocation now needs two proofs, not one page load. The build page
     // has grown an OWNER path (src/app/(dashboard)/builds/[shareToken]/load.ts)
@@ -162,7 +148,7 @@ test.describe('sharing', () => {
     // owner path, which is expected; (2) the share-token RPC itself, called
     // exactly as a signed-in non-owner reader would reach it, returns nothing
     // — that RPC's own visibility filter is what actually revokes the link.
-    await page.goto(href!);
+    await page.goto(href);
     await expect(page.getByTestId('build-page')).toBeVisible();
     await expect(page.getByTestId('build-visibility')).toContainText('Unlisted');
 
@@ -171,39 +157,3 @@ test.describe('sharing', () => {
     expect(await whileUnlisted.json()).toEqual([]);
   });
 });
-
-/**
- * Calls the get_build_by_share_token RPC over PostgREST exactly as a
- * signed-in reader's browser would: anon apikey + the caller's own bearer
- * token, never anything server-side. Used to prove the RPC's own visibility
- * filter (not the page) is what gates a share link.
- */
-async function callShareTokenRpc(page: Page, shareToken: string) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  expect(supabaseUrl && supabaseAnonKey, 'NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be in .env.local').toBeTruthy();
-  return page.request.post(`${supabaseUrl}/rest/v1/rpc/get_build_by_share_token`, {
-    data: { p_token: shareToken },
-    headers: {
-      apikey: supabaseAnonKey!,
-      authorization: `Bearer ${await accessToken(page)}`,
-      'content-type': 'application/json',
-    },
-  });
-}
-
-/**
- * Reassembles the signed-in session's access token from the Supabase SSR
- * auth cookie (@supabase/ssr's `sb-<project-ref>-auth-token`, chunked into
- * `.0`/`.1` parts when large, and optionally `base64-` prefixed + base64url
- * encoded). Copied from api-contracts.spec.ts's private `accessToken` —
- * not shared via helpers.ts since it is itself test-local there.
- */
-async function accessToken(page: Page): Promise<string> {
-  const parts = (await page.context().cookies())
-    .filter((c) => /^sb-.+-auth-token(\.\d+)?$/.test(c.name))
-    .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
-  let raw = decodeURIComponent(parts.map((c) => c.value).join(''));
-  if (raw.startsWith('base64-')) raw = Buffer.from(raw.slice('base64-'.length), 'base64url').toString('utf8');
-  return (JSON.parse(raw) as { access_token: string }).access_token;
-}

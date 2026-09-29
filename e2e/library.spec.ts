@@ -88,6 +88,10 @@ test.describe('build library, new build and import', () => {
     const { scanned, tooSmall } = await measureTapTargets(page, '[data-testid="my-builds"]');
     expect(scanned, 'the tap-target scan matched nothing').toBeGreaterThanOrEqual(2);
     expect(tooSmall, 'library targets under 44px').toEqual([]);
+    // The whole page, actions and tabs included (what mobile-layout.spec.ts scans as <main>).
+    const whole = await measureTapTargets(page, 'main');
+    expect(whole.scanned, 'the tap-target scan of <main> matched nothing').toBeGreaterThanOrEqual(6);
+    expect(whole.tooSmall, '/builds controls under 44px').toEqual([]);
     expect(await horizontalOverflow(page), 'horizontal overflow on /builds').toBeLessThanOrEqual(0);
 
     // Page actions.

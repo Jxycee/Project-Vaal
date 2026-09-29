@@ -237,10 +237,13 @@ export async function softNavigate(page: Page, href: string): Promise<void> {
   // legitimately differ from `href`. Only that one redirect shape is
   // tolerated; anything else must still land exactly on `href`.
   const isTreeBuildLink = /^\/tree\?build=/.test(href);
+  // The library's cards link to `/builds/<token>`, and the owner's page adds
+  // `?checkpoint=<id>` to that URL with a redirect, so only the path is compared.
+  const isBuildPageLink = /^\/builds\/[A-Za-z0-9_-]+$/.test(href);
   await page.waitForURL(
     (url) => {
       const current = url.pathname + url.search;
-      return current === href || (isTreeBuildLink && url.pathname.startsWith('/builds/'));
+      return current === href || (isTreeBuildLink && url.pathname.startsWith('/builds/')) || (isBuildPageLink && url.pathname === href);
     },
     { timeout: 30_000 },
   );
@@ -372,6 +375,30 @@ export async function listedBuildNames(page: Page): Promise<string[]> {
 /** The card for the build named `name` (exact) on /builds. */
 export function buildCard(page: Page, name: string): Locator {
   return page.getByTestId('build-card').filter({ has: page.getByTestId('build-card-name').getByText(name, { exact: true }) });
+}
+
+/** A build's id, read off its /builds card (`data-build-id`). What `/tree?build=<id>` and the checkpoint URLs need. */
+export async function readBuildId(page: Page, name: string): Promise<string> {
+  await gotoBuilds(page);
+  const card = buildCard(page, name).first();
+  await expect(card).toBeVisible();
+  const id = await card.getAttribute('data-build-id');
+  expect(id, `no data-build-id on the card for ${name}`).toMatch(/^[0-9a-f-]{36}$/);
+  return id!;
+}
+
+/**
+ * Soft-navigates from /builds to a build's page by its card link, then puts it
+ * where the old `/tree?build=<id>` redirect landed: edit mode on the Tree tab,
+ * with the tree hook up. A real client-side route change, which is what the
+ * stale-seed regressions need (see softNavigate).
+ */
+export async function softOpenBuild(page: Page, token: string): Promise<void> {
+  await softNavigate(page, `/builds/${token}`);
+  await expect(page.getByTestId('build-page')).toBeVisible({ timeout: 30_000 });
+  await page.getByRole('button', { name: 'Edit', exact: true }).click();
+  await page.getByRole('tab', { name: 'Tree', exact: true }).click();
+  await waitForTreeApi(page);
 }
 
 /** A build's share token, read off its /builds card link. Works for every visibility: the card links to the owner's page regardless. */

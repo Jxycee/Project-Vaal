@@ -126,6 +126,7 @@ export default function BuildFinder({ filters, classes, leagues, skills, builds,
                   that goes nowhere. */}
               {b.share_token ? (
                 <BuildCard
+                  id={b.id}
                   href={`/builds/${b.share_token}`}
                   name={b.name}
                   className={b.class}

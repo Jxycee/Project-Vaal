@@ -1,15 +1,16 @@
 import { test, expect } from '@playwright/test';
 import {
-  MIN_TAP_PX,
   cleanupWithFreshPage,
   closeGearEditor,
   gearSlotLocator,
   gearWarningItems,
   listedBuildNames,
   measureTapTargets,
+  MIN_TAP_PX,
   openEditor,
   openTree,
   pickByName,
+  readBuildId,
   saveBuild,
   setGearWeaponSet,
   testBuildName,
@@ -104,8 +105,7 @@ test.describe('structural validation', () => {
     const name = testBuildName('validation');
     await saveBuild(page, { name, level: 60 });
     expect(await listedBuildNames(page)).toContain(name);
-    const href = await page.locator(`a:has-text("${name}")`).getAttribute('href');
-    await openTree(page, new URL(href!, 'http://x').searchParams.get('build')!);
+    await openTree(page, await readBuildId(page, name));
 
     // ---- Everything is derived again from what was saved --------------------
     // A saved build with a share token now reopens on the build page (slice
