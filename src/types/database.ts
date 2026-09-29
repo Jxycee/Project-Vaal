@@ -430,6 +430,7 @@ export type Database = {
         Row: {
           created_at: string
           display_name: string | null
+          display_name_changed_at: string | null
           ggg_access_token: string | null
           ggg_account_name: string | null
           ggg_realm: string | null
@@ -442,6 +443,7 @@ export type Database = {
         Insert: {
           created_at?: string
           display_name?: string | null
+          display_name_changed_at?: string | null
           ggg_access_token?: string | null
           ggg_account_name?: string | null
           ggg_realm?: string | null
@@ -454,6 +456,7 @@ export type Database = {
         Update: {
           created_at?: string
           display_name?: string | null
+          display_name_changed_at?: string | null
           ggg_access_token?: string | null
           ggg_account_name?: string | null
           ggg_realm?: string | null
@@ -532,6 +535,13 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      get_public_build_authors: {
+        Args: { p_build_ids: string[] }
+        Returns: {
+          build_id: string
+          display_name: string | null
+        }[]
       }
       import_build: {
         Args: { p_build: Json; p_checkpoints: Json }

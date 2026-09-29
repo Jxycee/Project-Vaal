@@ -3,7 +3,7 @@
 // build page's settings menu, never on a card (spec §8.3).
 //
 // Presentational and server-renderable (no state), used by the Mine tab
-// (MyBuildsList, visibility badge) and the Public tab (BuildFinder, views).
+// (MyBuildsList, visibility badge) and the Public tab (BuildFinder, author).
 //
 // The icon slot is a placeholder: the class initial. `builds.main_skill` is
 // only the skill's NAME, and finding its gem icon would mean loading wiki
@@ -23,10 +23,12 @@ export interface BuildCardProps {
   league: string;
   mainSkill: string | null;
   updatedAt: string;
-  /** Owner flavour: the visibility label. Reader flavour: the view count. */
+  /** Owner flavour: the visibility label. Reader flavour: "by <author>". */
   badge: string;
   /** Explains the badge on hover/long-press; not the only place it is said. */
   badgeTitle?: string;
+  /** Reader flavour: how many times the build has been viewed; shown on the meta line. */
+  views?: number;
   tags?: string[];
 }
 
@@ -42,6 +44,7 @@ export default function BuildCard({
   updatedAt,
   badge,
   badgeTitle,
+  views,
   tags = [],
 }: BuildCardProps) {
   return (
@@ -65,9 +68,10 @@ export default function BuildCard({
         {mainSkill ? <span className="truncate text-xs text-foreground/80">{mainSkill}</span> : null}
         <span className="truncate text-xs text-muted-foreground">
           {league} · updated {relativeTime(updatedAt)}
+          {views !== undefined ? ` · ${views.toLocaleString()} views` : ''}
         </span>
         <span className="mt-1 flex flex-wrap gap-1.5">
-          <span title={badgeTitle} className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
+          <span data-testid="build-card-badge" title={badgeTitle} className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
             {badge}
           </span>
           {tags.map((tag) => (

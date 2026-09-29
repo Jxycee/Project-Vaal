@@ -28,7 +28,7 @@ import { ALLOWED_PROFANITY, USERNAME_RE, isOffensive, validateUsername } from '.
 
 function allOriginalWords(): string[] {
   const words: string[] = [];
-  new DataSet().addAll(englishDataset).removePhrasesIf((p) => {
+  new DataSet<{ originalWord: string }>().addAll(englishDataset).removePhrasesIf((p) => {
     if (p.metadata?.originalWord) words.push(p.metadata.originalWord);
     return false;
   });

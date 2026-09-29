@@ -156,6 +156,17 @@ export default async function BuildsPage({
     }
     const facets = facetRows ?? [];
 
+    // Authors for this whole page in ONE call (public builds only, by design of
+    // the function). A failure just leaves every card reading "Anonymous".
+    const authors: Record<string, string | null> = {};
+    if (builds && builds.length > 0) {
+      const { data: authorRows, error: authorError } = await supabase.rpc('get_public_build_authors', {
+        p_build_ids: builds.map((b) => b.id),
+      });
+      if (authorError) console.error('Failed to load build authors:', authorError);
+      for (const row of authorRows ?? []) authors[row.build_id] = row.display_name;
+    }
+
     return (
       <div className="flex flex-col gap-4">
         <h1 className="text-xl font-semibold">Builds</h1>
@@ -167,6 +178,7 @@ export default async function BuildsPage({
           leagues={uniqueSorted(facets.map((r) => r.league))}
           skills={uniqueSorted(facets.map((r) => r.main_skill))}
           builds={builds}
+          authors={authors}
           loadError={loadError}
         />
       </div>

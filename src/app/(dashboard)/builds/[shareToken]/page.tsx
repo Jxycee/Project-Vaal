@@ -87,6 +87,7 @@ export default async function BuildRoutePage({ params, searchParams }: PageProps
       mode={loaded.mode}
       row={row}
       authorName={loaded.authorName}
+      ownerHasUsername={loaded.ownerHasUsername}
       tags={loaded.tags}
       shareToken={shareToken}
       checkpoints={checkpoints.map(({ id, name, level }) => ({ id, name, level }))}

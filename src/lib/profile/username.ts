@@ -61,7 +61,7 @@ export const ALLOWED_PROFANITY: ReadonlySet<string> = new Set([
 const matcher = new RegExpMatcher({
   // removePhrasesIf MUTATES the dataset it is called on, so work on a copy:
   // englishDataset is a shared module singleton.
-  ...new DataSet()
+  ...new DataSet<{ originalWord: string }>()
     .addAll(englishDataset)
     .removePhrasesIf((p) => ALLOWED_PROFANITY.has(p.metadata?.originalWord ?? '')).build(),
   ...englishRecommendedTransformers,

@@ -61,16 +61,20 @@ function FilterChipRow({
   );
 }
 
+const ANONYMOUS_AUTHOR = 'Anonymous';
+
 export interface BuildFinderProps {
   filters: BuildFinderFilters;
   classes: string[];
   leagues: string[];
   skills: string[];
   builds: PublicBuildRow[] | null;
+  /** build id -> the author's username; a build missing here (or null) reads "Anonymous". */
+  authors: Record<string, string | null>;
   loadError: string | null;
 }
 
-export default function BuildFinder({ filters, classes, leagues, skills, builds, loadError }: BuildFinderProps) {
+export default function BuildFinder({ filters, classes, leagues, skills, builds, authors, loadError }: BuildFinderProps) {
   const anyFilterActive = Boolean(filters.class || filters.league || filters.skill || filters.tag);
 
   return (
@@ -135,7 +139,9 @@ export default function BuildFinder({ filters, classes, leagues, skills, builds,
                   league={b.league}
                   mainSkill={b.main_skill}
                   updatedAt={b.updated_at}
-                  badge={`${b.view_count.toLocaleString()} views`}
+                  badge={`by ${authors[b.id] ?? ANONYMOUS_AUTHOR}`}
+                  badgeTitle="Author"
+                  views={b.view_count}
                 />
               ) : null}
             </li>

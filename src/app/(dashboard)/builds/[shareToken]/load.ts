@@ -18,6 +18,8 @@ export interface LoadedBuild {
   row: SharedBuildRow;
   checkpoints: BuildCheckpoint[];
   authorName: string;
+  /** Owner path only: whether the owner has set a username (else others see "Anonymous"). Always false for a reader — unused there. */
+  ownerHasUsername: boolean;
   /** null = this viewer cannot see tags (a link-shared build); the page omits the section. */
   tags: string[] | null;
 }
@@ -33,10 +35,13 @@ async function loadAsOwner(shareToken: string, userId: string): Promise<LoadedBu
   if (error) console.error('Failed to load own build by share token:', error);
   if (error || !row) return null;
 
-  const [checkpointsResult, tagsResult] = await Promise.all([
+  const [checkpointsResult, tagsResult, profileResult] = await Promise.all([
     supabase.from('build_checkpoints').select('*').eq('build_id', row.id).order('position'),
     supabase.from('build_tags').select('tag').eq('build_id', row.id),
+    // Own-row SELECT. Drives the (i) hint beside "by You"; a failed read just hides it.
+    supabase.from('user_profiles').select('display_name').eq('id', userId).maybeSingle(),
   ]);
+  if (profileResult.error) console.error('Failed to load owner profile:', profileResult.error);
   if (checkpointsResult.error) console.error('Failed to load build checkpoints:', checkpointsResult.error);
   if (tagsResult.error) console.error('Failed to load build tags:', tagsResult.error);
 
@@ -45,6 +50,7 @@ async function loadAsOwner(shareToken: string, userId: string): Promise<LoadedBu
     row: row as SharedBuildRow,
     checkpoints: checkpointsResult.error ? [] : parseCheckpoints(checkpointsResult.data),
     authorName: 'You',
+    ownerHasUsername: profileResult.error ? true : Boolean(profileResult.data?.display_name),
     tags: tagsResult.error ? [] : tagsResult.data.map((r: { tag: string }) => r.tag),
   };
 }
@@ -94,7 +100,7 @@ async function loadAsReader(shareToken: string, userId: string, countView: boole
     console.error('Failed to load build checkpoints:', checkpointsResult.status === 'rejected' ? checkpointsResult.reason : checkpointsResult.value.error);
   }
 
-  return { mode: 'reader', row, checkpoints, authorName, tags };
+  return { mode: 'reader', row, checkpoints, authorName, ownerHasUsername: false, tags };
 }
 
 /**
