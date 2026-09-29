@@ -467,6 +467,10 @@ export default function BuildSessionProvider({
     if (!draftReadDone.current) return;
     const session: BuildDraftState = { tree: treeState, gear, gem: gems };
     latestSession.current = session;
+    // Once the first scratch save has created the build, the scratch key is
+    // retired (save() handed any in-flight edits to the new build's draft):
+    // edits made while the navigation is still in flight must not resurrect it.
+    if (scratchCreated.current) return;
     saveDraft(draftBuildId, session, checkpointId);
   }, [canEdit, editing, treeState, gear, gems, draftBuildId, checkpointId]);
 
@@ -582,7 +586,11 @@ export default function BuildSessionProvider({
           main_skill: deriveMainSkill(sent.gem),
         }),
       });
-      const payload = (await res.json()) as { error?: string; build?: { share_token: string | null } };
+      const payload = (await res.json()) as {
+        error?: string;
+        build?: { id: string; share_token: string | null };
+        checkpoint?: { id: string } | null;
+      };
       if (!res.ok) {
         setSaveError(payload.error ?? 'Could not save this build.');
         return false;
@@ -590,9 +598,12 @@ export default function BuildSessionProvider({
       const createdToken = scratch ? payload.build?.share_token : null;
       if (scratch && !createdToken) {
         // The row was written but cannot be navigated to. Say so instead of
-        // leaving the user on a page that looks saved.
+        // leaving the user on a page that looks saved. `saving` is released
+        // (the finally below skips it once scratchCreated is set) so the
+        // EditBar shows this error rather than "Saving…" forever.
         setSaveError('Saved, but the new build could not be opened. Find it in your builds.');
         scratchCreated.current = true;
+        setSaving(false);
         return false;
       }
       setSavedAt(new Date().toLocaleTimeString());
@@ -609,11 +620,19 @@ export default function BuildSessionProvider({
       // Only clear the draft once the server has the work, and only if the
       // work did not move on while the save was in flight — otherwise the
       // draft holds edits the server never received, and clearing it loses
-      // them on the next reload (TreeBuildSession.handleSave, review
-      // 2026-09-26).
+      // them on the next reload (review 2026-09-26).
       const now = latestSession.current;
-      if (!now || (now.tree === sent.tree && now.gear === sent.gear && now.gem === sent.gem)) {
+      const moved = !!now && !(now.tree === sent.tree && now.gear === sent.gear && now.gem === sent.gem);
+      if (!moved) {
         clearDraft(draftBuildId, checkpointId);
+      } else if (scratch && payload.build) {
+        // First scratch save: the new page reads drafts keyed by the NEW
+        // build and its first checkpoint (the id the POST returned, which is
+        // the one the page's owner URL will name), so hand the in-flight
+        // edits over there — the new page then offers them as Restore — and
+        // retire the scratch key so /tree does not offer them a second time.
+        saveDraft(payload.build.id, now, payload.checkpoint?.id);
+        clearDraft(undefined);
       }
       if (createdToken) {
         // Scratch: the work now lives in a real row, so move to its page
