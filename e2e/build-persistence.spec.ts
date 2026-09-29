@@ -38,8 +38,12 @@ test('saving twice from scratch updates one row instead of creating two', async 
   await allocateNodes(page, await nodesNearStart(page, 3));
 
   await saveBuild(page, { name, level: 42, league: 'Standard' });
-  // The second tap is the actual regression: it must update the row the first
-  // tap created, not insert a duplicate.
+  // The second save is the actual regression: it must update the row the first
+  // one created, not insert a duplicate. The first save now moves to the new
+  // build's page, where Save waits for a change, so make one (on the tree the
+  // redirect kept open) before saving again.
+  const taken = new Set((await treeState(page)).allocated);
+  await allocateNodes(page, (await nodesNearStart(page, 8)).filter((id) => !taken.has(id)).slice(0, 2));
   await saveBuild(page);
 
   const names = await listedBuildNames(page);

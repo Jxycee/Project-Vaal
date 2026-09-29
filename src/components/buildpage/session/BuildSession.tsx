@@ -32,6 +32,7 @@ import { useRouter } from 'next/navigation';
 import type { GggTreeJson } from '@poe2-toolkit/tree-core/ggg';
 import type { WeaponSet } from '@poe2-toolkit/tree-core';
 import type { BuildEditorState, PassiveState, SharedBuildRow } from '@/lib/build/types';
+import { patchQuery } from '@/lib/build/buildPage';
 import { fromPassiveState, toPassiveState, parsePassiveState } from '@/lib/build/passiveState';
 import { saveDraft, loadDraft, clearDraft, type BuildDraftState } from '@/lib/build/draft';
 import { draftDiffersFrom } from '@/lib/build/draftCompare';
@@ -92,7 +93,17 @@ interface Baseline {
   meta: BuildMeta;
 }
 
-function baselineFromRow(row: SharedBuildRow): Baseline {
+/**
+ * What the session needs of a build row. A saved build passes its whole
+ * `SharedBuildRow`; the scratch planner has no row at all, so `id` is absent
+ * (rather than faked) and the session is told so with `scratch`.
+ */
+export type SessionRow = Pick<
+  SharedBuildRow,
+  'name' | 'class' | 'ascendancy' | 'level' | 'league' | 'notes' | 'passive_state' | 'gear_state' | 'gem_state'
+> & { id?: string };
+
+function baselineFromRow(row: SessionRow): Baseline {
   return {
     class: row.class,
     ascendancy: row.ascendancy,
@@ -114,6 +125,7 @@ export function useBuildSession(): BuildSessionValue {
 export default function BuildSessionProvider({
   canEdit,
   editing,
+  scratch = false,
   row,
   checkpointId,
   tree,
@@ -124,14 +136,19 @@ export default function BuildSessionProvider({
   canEdit: boolean;
   /** Whether the page is currently in edit mode (`?edit=1`, owner only). Drafts are an edit-mode concern: they are read/written only while `canEdit && editing` — never in view mode, even for the owner. */
   editing: boolean;
+  /** The scratch planner: `row` is a synthesized empty build with no `id`, drafts use the scratch key, and the first `save()` creates the build and replaces the URL with its page (see `save`). */
+  scratch?: boolean;
   /** The build AS THE ACTIVE CHECKPOINT sees it — the caller substitutes that checkpoint's tree/gear/gems/level before this component ever sees `row`. */
-  row: SharedBuildRow;
+  row: SessionRow;
   checkpointId: string | undefined;
   tree: GggTreeJson | null;
   treeError: string | null;
   children: ReactNode;
 }) {
   const router = useRouter();
+  // The build this session's drafts belong to. Undefined for scratch, which
+  // is what draftKey() turns into the scratch key.
+  const draftBuildId = scratch ? undefined : row.id;
 
   // ---- Seed (lazy useState initialisers, once per mount) --------------
   //
@@ -222,7 +239,7 @@ export default function BuildSessionProvider({
   useEffect(() => {
     if (!canEdit || !editing || draftReadDone.current) return;
     draftReadDone.current = true;
-    const d = loadDraft(row.id, checkpointId);
+    const d = loadDraft(draftBuildId, checkpointId);
     if (!d) return;
     // Syncing local state from an external system (localStorage) on mount —
     // exactly the case react-hooks/set-state-in-effect exists to allow; see
@@ -450,8 +467,8 @@ export default function BuildSessionProvider({
     if (!draftReadDone.current) return;
     const session: BuildDraftState = { tree: treeState, gear, gem: gems };
     latestSession.current = session;
-    saveDraft(row.id, session, checkpointId);
-  }, [canEdit, editing, treeState, gear, gems, row.id, checkpointId]);
+    saveDraft(draftBuildId, session, checkpointId);
+  }, [canEdit, editing, treeState, gear, gems, draftBuildId, checkpointId]);
 
   // ---- Structural validation + derived view models ---------------------
   // Exactly as TreeBuildSession derives them: nothing here is stored.
@@ -516,9 +533,18 @@ export default function BuildSessionProvider({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  // Held in refs, not read from `saving`: a double tap fires both calls
+  // before React re-renders the disabled button, and in scratch each would
+  // POST a build of its own. `scratchCreated` also outlives the request: the
+  // build exists from the moment the POST succeeds, so no later call may
+  // create another while the router.replace below is still in flight.
+  const saveInFlight = useRef(false);
+  const scratchCreated = useRef(false);
 
   const save = useCallback(async (): Promise<boolean> => {
     if (!canEdit) return false;
+    if (saveInFlight.current || scratchCreated.current) return false;
+    saveInFlight.current = true;
     // What this save carries. Edits made while it is in flight are not in
     // it — see the `latestSession` in-flight check below, ported from
     // TreeBuildSession.handleSave.
@@ -531,8 +557,10 @@ export default function BuildSessionProvider({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: row.id,
-          checkpoint_id: checkpointId,
+          // Both undefined in scratch, so JSON.stringify drops the keys and
+          // the route takes its create path (checkpoint_id is invalid there).
+          id: scratch ? undefined : row.id,
+          checkpoint_id: scratch ? undefined : checkpointId,
           name: sentMeta.name,
           class: sent.tree.className,
           ascendancy: sent.tree.ascendancyId ?? null,
@@ -554,9 +582,17 @@ export default function BuildSessionProvider({
           main_skill: deriveMainSkill(sent.gem),
         }),
       });
-      const payload = (await res.json()) as { error?: string };
+      const payload = (await res.json()) as { error?: string; build?: { share_token: string | null } };
       if (!res.ok) {
         setSaveError(payload.error ?? 'Could not save this build.');
+        return false;
+      }
+      const createdToken = scratch ? payload.build?.share_token : null;
+      if (scratch && !createdToken) {
+        // The row was written but cannot be navigated to. Say so instead of
+        // leaving the user on a page that looks saved.
+        setSaveError('Saved, but the new build could not be opened. Find it in your builds.');
+        scratchCreated.current = true;
         return false;
       }
       setSavedAt(new Date().toLocaleTimeString());
@@ -577,7 +613,16 @@ export default function BuildSessionProvider({
       // 2026-09-26).
       const now = latestSession.current;
       if (!now || (now.tree === sent.tree && now.gear === sent.gear && now.gem === sent.gem)) {
-        clearDraft(row.id, checkpointId);
+        clearDraft(draftBuildId, checkpointId);
+      }
+      if (createdToken) {
+        // Scratch: the work now lives in a real row, so move to its page
+        // (same tab, edit mode). The session stays locked (`scratchCreated`,
+        // and `saving` is left set) until the navigation unmounts it.
+        scratchCreated.current = true;
+        const tab = new URLSearchParams(window.location.search).get('tab');
+        router.replace(`/builds/${encodeURIComponent(createdToken)}${patchQuery('', { edit: '1', tab })}`);
+        return true;
       }
       // Re-render the server page so the checkpoint list (and its levels)
       // reflect this save. A Route Handler cannot call next/cache's
@@ -589,9 +634,10 @@ export default function BuildSessionProvider({
       setSaveError('Could not reach the server. Your work is still here.');
       return false;
     } finally {
-      setSaving(false);
+      saveInFlight.current = false;
+      if (!scratchCreated.current) setSaving(false);
     }
-  }, [canEdit, treeState, gear, gems, meta, row.id, checkpointId, router]);
+  }, [canEdit, scratch, treeState, gear, gems, meta, row.id, draftBuildId, checkpointId, router]);
 
   // ---- Discard / draft prompt actions -----------------------------------
   const discard = useCallback(() => {
@@ -610,10 +656,10 @@ export default function BuildSessionProvider({
     setGear(baseline.gear_state);
     setGems(baseline.gem_state);
     setMetaState(baseline.meta);
-    clearDraft(row.id, checkpointId);
+    clearDraft(draftBuildId, checkpointId);
     setTreeSeedKey((k) => k + 1);
     setDraftPromptOpen(false);
-  }, [canEdit, baseline, row.id, checkpointId]);
+  }, [canEdit, baseline, draftBuildId, checkpointId]);
 
   const restoreDraft = useCallback(() => {
     if (!canEdit || !storedDraft) return;
@@ -626,13 +672,14 @@ export default function BuildSessionProvider({
 
   const dismissDraft = useCallback(() => {
     if (!canEdit) return;
-    clearDraft(row.id, checkpointId);
+    clearDraft(draftBuildId, checkpointId);
     setDraftPromptOpen(false);
-  }, [canEdit, row.id, checkpointId]);
+  }, [canEdit, draftBuildId, checkpointId]);
 
   const value = useMemo<BuildSessionValue>(
     () => ({
       canEdit,
+      scratch,
       tree,
       treeError,
       treeState,
@@ -666,6 +713,7 @@ export default function BuildSessionProvider({
     }),
     [
       canEdit,
+      scratch,
       tree,
       treeError,
       treeState,

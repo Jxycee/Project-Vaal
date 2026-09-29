@@ -26,6 +26,7 @@ import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
 import { addBuildTag, deleteBuild, removeBuildTag, renameBuild, setBuildVisibility } from '@/app/(dashboard)/builds/actions';
 import { MAX_BUILD_NAME_LENGTH } from '@/lib/build/constants';
+import { clearDraft } from '@/lib/build/draft';
 import { normalizeTag } from '@/lib/build/tags';
 import type { BuildVisibility } from '@/lib/build/types';
 import { BUILD_VISIBILITIES, VISIBILITY_HINT, VISIBILITY_LABEL, isBuildVisibility } from '@/lib/build/visibility';
@@ -42,9 +43,11 @@ export interface BuildSettingsProps {
   tags: string[] | null;
   /** Whether edit mode is on. With unsaved changes, rename edits the session instead of the database. */
   edit: boolean;
+  /** Every checkpoint id of this build, so deleting it can clear each checkpoint's local draft (drafts are keyed per checkpoint). */
+  checkpointIds: readonly string[];
 }
 
-export default function BuildSettings({ buildId, visibility, tags, edit }: BuildSettingsProps) {
+export default function BuildSettings({ buildId, visibility, tags, edit, checkpointIds }: BuildSettingsProps) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -61,7 +64,7 @@ export default function BuildSettings({ buildId, visibility, tags, edit }: Build
           its fields are seeded from the current props every time it opens. */}
       {open && typeof document !== 'undefined'
         ? createPortal(
-            <SettingsSheet buildId={buildId} visibility={visibility} tags={tags} edit={edit} onClose={() => setOpen(false)} />,
+            <SettingsSheet buildId={buildId} visibility={visibility} tags={tags} edit={edit} checkpointIds={checkpointIds} onClose={() => setOpen(false)} />,
             document.body,
           )
         : null}
@@ -69,7 +72,7 @@ export default function BuildSettings({ buildId, visibility, tags, edit }: Build
   );
 }
 
-function SettingsSheet({ buildId, visibility, tags, edit, onClose }: BuildSettingsProps & { onClose: () => void }) {
+function SettingsSheet({ buildId, visibility, tags, edit, checkpointIds, onClose }: BuildSettingsProps & { onClose: () => void }) {
   const router = useRouter();
   const { meta, dirty, setMeta, applySavedName } = useBuildSession();
   const [pending, startTransition] = useTransition();
@@ -168,6 +171,10 @@ function SettingsSheet({ buildId, visibility, tags, edit, onClose }: BuildSettin
     run(
       () => deleteBuild(buildId),
       () => {
+        // The build is gone, so its local drafts are unreachable garbage: one per
+        // checkpoint (draftKey scopes them that way) plus the bare pre-checkpoint key.
+        clearDraft(buildId);
+        for (const checkpointId of checkpointIds) clearDraft(buildId, checkpointId);
         onClose();
         router.push('/builds');
       },

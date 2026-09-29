@@ -69,16 +69,107 @@ function LevelInput({ level, onChange }: { level: number; onChange: (level: numb
   );
 }
 
+/** Edit-mode name / level / league inputs plus the read-only class line. Shared by the saved-build header and the scratch one. */
+function MetaFields({ ascendancyText }: { ascendancyText: string }) {
+  const { meta, setMeta } = useBuildSession();
+  return (
+    <div className="flex min-w-0 flex-1 flex-col gap-2">
+      <div className="flex flex-col gap-1">
+        <label htmlFor="build-name" className="text-xs text-muted-foreground">
+          Name
+        </label>
+        <input
+          id="build-name"
+          value={meta.name}
+          onChange={(e) => setMeta({ name: e.target.value })}
+          maxLength={MAX_BUILD_NAME_LENGTH}
+          className="h-11 w-full rounded-md border border-border bg-background px-2 text-sm"
+        />
+      </div>
+      {/* Slice 3 task 4: level and league share one row (grid, not
+          flex-wrap) — flex-wrap let League drop to its own line at
+          375px, which was most of this header's height. */}
+      <div className="grid grid-cols-[6rem_1fr] gap-2">
+        <div className="flex flex-col gap-1">
+          <label htmlFor="build-level" className="text-xs text-muted-foreground">
+            Level
+          </label>
+          <LevelInput level={meta.level} onChange={(level) => setMeta({ level })} />
+        </div>
+        <div className="flex min-w-0 flex-col gap-1">
+          <label htmlFor="build-league" className="text-xs text-muted-foreground">
+            League
+          </label>
+          <input
+            id="build-league"
+            value={meta.league}
+            onChange={(e) => setMeta({ league: e.target.value })}
+            maxLength={MAX_BUILD_LABEL_LENGTH}
+            className="h-11 w-full rounded-md border border-border bg-background px-2 text-sm"
+          />
+        </div>
+      </div>
+      <p className="text-sm text-muted-foreground">{ascendancyText}</p>
+    </div>
+  );
+}
+
+/** The main skill's icon and name, when one is set. */
+function MainSkillChip() {
+  const { gems } = useBuildSession();
+  const mainSkill = mainSkillLoadout(gems);
+  if (!mainSkill?.skill) return null;
+  return (
+    <span className="flex min-w-0 items-center gap-2 text-sm text-foreground">
+      <span className="h-7 w-7 shrink-0 overflow-hidden rounded border border-border bg-card/60">
+        {mainSkill.skill.iconUrl ? (
+          // Plain <img>: /data/wiki/ is auth-gated, which next/image's optimizer cannot follow.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={mainSkill.skill.iconUrl} alt="" className="h-full w-full object-contain" />
+        ) : null}
+      </span>
+      <span data-testid="build-main-skill" className="truncate">
+        {mainSkill.skill.name}
+      </span>
+    </span>
+  );
+}
+
+/**
+ * The scratch planner's header (`/tree`, spec 7.3): the same card as
+ * BuildHeader in edit mode, minus everything that needs a saved row (author,
+ * visibility, checkpoint switcher, Copy link, settings, Edit/Done, tags).
+ * The title reads "Untitled build" until a name is typed.
+ */
+export function ScratchHeader() {
+  const { meta, treeState, gems, sheets, reserved } = useBuildSession();
+  const set = headlineSet(gems);
+  const ascendancyText = ascendancyLabel(treeState.className, treeState.ascendancyId ?? null);
+  return (
+    <header className="flex flex-col gap-3 rounded-lg border border-border bg-card/40 p-4">
+      <h1 data-testid="scratch-title" className="line-clamp-2 break-words font-heading text-xl font-bold text-foreground">
+        {meta.name.trim() || 'Untitled build'}
+      </h1>
+      <MetaFields ascendancyText={ascendancyText} />
+      <MainSkillChip />
+      <HeaderStats sheets={sheets} set={set} reserved={reserved} />
+    </header>
+  );
+}
+
 export function HeaderActions({
   mode,
   row,
   shareToken,
   tags = null,
+  checkpointIds = [],
   compact = false,
   edit,
   onToggleEdit,
   onRequestDone,
 }: Pick<HeaderProps, 'mode' | 'row' | 'shareToken' | 'edit' | 'onToggleEdit' | 'onRequestDone'> & {
+  /** Every checkpoint id of the build, for the settings menu's delete (which clears each one's draft). */
+  checkpointIds?: readonly string[];
   /** The owner's tags, for the settings menu. Not needed by the compact bar, which has no settings button. */
   tags?: string[] | null;
   /** The compact sticky bar has no room for Copy link below `sm` — Edit stays, Copy link hides; the settings button lives in the full header only. */
@@ -109,7 +200,7 @@ export function HeaderActions({
         </button>
       ) : null}
       {mode === 'owner' && !compact ? (
-        <BuildSettings buildId={row.id} visibility={row.visibility} tags={tags} edit={edit} />
+        <BuildSettings buildId={row.id} visibility={row.visibility} tags={tags} edit={edit} checkpointIds={checkpointIds} />
       ) : null}
       {mode === 'owner' ? (
         <button
@@ -126,8 +217,7 @@ export function HeaderActions({
 
 export default function BuildHeader(props: HeaderProps) {
   const { mode, row, authorName, tags, shareToken, checkpoints, activeCheckpointId, fullCheckpoints, edit, onToggleEdit, onRequestDone } = props;
-  const { meta, treeState, gems, sheets, reserved, setMeta } = useBuildSession();
-  const mainSkill = mainSkillLoadout(gems);
+  const { meta, treeState, gems, sheets, reserved } = useBuildSession();
   const set = headlineSet(gems);
   const visibility: BuildVisibility | null = isBuildVisibility(row.visibility) ? row.visibility : null;
   const ascendancyText = ascendancyLabel(treeState.className, treeState.ascendancyId ?? null);
@@ -136,44 +226,7 @@ export default function BuildHeader(props: HeaderProps) {
     <header className="flex flex-col gap-3 rounded-lg border border-border bg-card/40 p-4">
       <div className="flex items-start justify-between gap-3">
         {edit ? (
-          <div className="flex min-w-0 flex-1 flex-col gap-2">
-            <div className="flex flex-col gap-1">
-              <label htmlFor="build-name" className="text-xs text-muted-foreground">
-                Name
-              </label>
-              <input
-                id="build-name"
-                value={meta.name}
-                onChange={(e) => setMeta({ name: e.target.value })}
-                maxLength={MAX_BUILD_NAME_LENGTH}
-                className="h-11 w-full rounded-md border border-border bg-background px-2 text-sm"
-              />
-            </div>
-            {/* Slice 3 task 4: level and league share one row (grid, not
-                flex-wrap) — flex-wrap let League drop to its own line at
-                375px, which was most of this header's height. */}
-            <div className="grid grid-cols-[6rem_1fr] gap-2">
-              <div className="flex flex-col gap-1">
-                <label htmlFor="build-level" className="text-xs text-muted-foreground">
-                  Level
-                </label>
-                <LevelInput level={meta.level} onChange={(level) => setMeta({ level })} />
-              </div>
-              <div className="flex min-w-0 flex-col gap-1">
-                <label htmlFor="build-league" className="text-xs text-muted-foreground">
-                  League
-                </label>
-                <input
-                  id="build-league"
-                  value={meta.league}
-                  onChange={(e) => setMeta({ league: e.target.value })}
-                  maxLength={MAX_BUILD_LABEL_LENGTH}
-                  className="h-11 w-full rounded-md border border-border bg-background px-2 text-sm"
-                />
-              </div>
-            </div>
-            <p className="text-sm text-muted-foreground">{ascendancyText}</p>
-          </div>
+          <MetaFields ascendancyText={ascendancyText} />
         ) : (
           <div className="min-w-0">
             <h1 className="line-clamp-2 break-words font-heading text-xl font-bold text-foreground">{meta.name}</h1>
@@ -187,6 +240,7 @@ export default function BuildHeader(props: HeaderProps) {
           row={row}
           shareToken={shareToken}
           tags={tags}
+          checkpointIds={checkpoints.map((c) => c.id)}
           edit={edit}
           onToggleEdit={onToggleEdit}
           onRequestDone={onRequestDone}
@@ -213,20 +267,7 @@ export default function BuildHeader(props: HeaderProps) {
           fallbackLevel={row.level}
           manage={manage}
         />
-        {mainSkill?.skill ? (
-          <span className="flex min-w-0 items-center gap-2 text-sm text-foreground">
-            <span className="h-7 w-7 shrink-0 overflow-hidden rounded border border-border bg-card/60">
-              {mainSkill.skill.iconUrl ? (
-                // Plain <img>: /data/wiki/ is auth-gated, which next/image's optimizer cannot follow.
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={mainSkill.skill.iconUrl} alt="" className="h-full w-full object-contain" />
-              ) : null}
-            </span>
-            <span data-testid="build-main-skill" className="truncate">
-              {mainSkill.skill.name}
-            </span>
-          </span>
-        ) : null}
+        <MainSkillChip />
       </div>
 
       <HeaderStats sheets={sheets} set={set} reserved={reserved} />

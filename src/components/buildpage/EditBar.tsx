@@ -9,11 +9,14 @@
 import { useBuildSession } from './session/BuildSession';
 
 export default function EditBar() {
-  const { saving, saveError, savedAt, dirty, save } = useBuildSession();
+  const { scratch, meta, saving, saveError, savedAt, dirty, save } = useBuildSession();
+  // Scratch has no build to name yet, and the server refuses a nameless one.
+  const needsName = scratch && meta.name.trim().length === 0;
 
   let status = '';
   if (saving) status = 'Saving…';
   else if (saveError) status = saveError;
+  else if (needsName) status = 'Name your build to save it';
   else if (dirty) status = 'Unsaved changes';
   else if (savedAt) status = `Saved ${savedAt}`;
 
@@ -25,7 +28,7 @@ export default function EditBar() {
       <button
         type="button"
         onClick={() => void save()}
-        disabled={saving || !dirty}
+        disabled={saving || !dirty || needsName}
         className="flex h-11 shrink-0 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-50"
       >
         Save

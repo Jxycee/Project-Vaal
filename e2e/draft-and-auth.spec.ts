@@ -52,10 +52,8 @@ test.describe('draft restore', () => {
       await route.continue();
     });
 
-    const panel = page.getByRole('button', { name: /^(Save build|Saved build)$/ });
-    if (await panel.isVisible().catch(() => false)) await panel.click();
     await page.locator('#build-name').fill(testBuildName('in-flight'));
-    await page.getByRole('button', { name: /^(Save|Update)$/ }).click();
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
 
     // While the save is held back, allocate more. Walk outward rather than
     // take the start's own neighbours: some class starts have only two, both
@@ -68,11 +66,14 @@ test.describe('draft restore', () => {
     await allocateNodes(page, more);
     const after = (await treeState(page)).allocated.length;
     expect(after, 'the in-flight allocation did not change the tree').toBeGreaterThan(before);
-    await expect(page.getByText(/^Saved /)).toBeVisible({ timeout: 30_000 });
+    // A scratch save ends on the new build's page (the first save replaces the
+    // URL), not on a "Saved" line.
+    await page.waitForURL(/\/builds\/[A-Za-z0-9_-]+/, { timeout: 30_000 });
     await page.unroute('**/api/builds');
 
-    await page.reload();
-    await waitForTreeApi(page);
+    // The in-flight edits never reached that row, so they must still be offered
+    // where they were made: the scratch planner.
+    await openTree(page);
     await expect(page.getByText(RESTORE)).toBeVisible({ timeout: 30_000 });
     await page.getByRole('button', { name: 'Restore' }).click();
     await expect.poll(async () => (await treeState(page)).allocated.length).toBe(after);

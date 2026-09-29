@@ -47,6 +47,8 @@ export interface BuildMeta {
 export interface BuildSessionValue {
   /** True for the build's owner. False makes every write helper below a no-op. */
   canEdit: boolean;
+  /** The scratch planner (`/tree`): no saved row behind the session, so the first `save()` creates one and replaces the URL with its page. */
+  scratch: boolean;
   /** The tree export, once the shared page's lazy fetch resolves. */
   tree: GggTreeJson | null;
   treeError: string | null;

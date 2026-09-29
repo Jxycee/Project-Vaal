@@ -246,10 +246,18 @@ export async function softNavigate(page: Page, href: string): Promise<void> {
   // The library's cards link to `/builds/<token>`, and the owner's page adds
   // `?checkpoint=<id>` to that URL with a redirect, so only the path is compared.
   const isBuildPageLink = /^\/builds\/[A-Za-z0-9_-]+$/.test(href);
+  // Plain /tree (Quick plan) redirects, server-side, to /tree?tab=tree: the
+  // scratch planner opens on the Tree tab.
+  const isScratchLink = href === '/tree';
   await page.waitForURL(
     (url) => {
       const current = url.pathname + url.search;
-      return current === href || (isTreeBuildLink && url.pathname.startsWith('/builds/')) || (isBuildPageLink && url.pathname === href);
+      return (
+        current === href ||
+        (isTreeBuildLink && url.pathname.startsWith('/builds/')) ||
+        (isBuildPageLink && url.pathname === href) ||
+        (isScratchLink && url.pathname === '/tree')
+      );
     },
     { timeout: 30_000 },
   );
