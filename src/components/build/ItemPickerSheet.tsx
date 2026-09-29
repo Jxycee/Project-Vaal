@@ -2,7 +2,7 @@
 
 // Full-screen, single-column, search-first item picker.
 //
-// Mounted for one slot at a time by GearSheet, and — per the jewels task —
+// Mounted for one slot at a time by the gear tab (GearSlotDetail), and — per the jewels task —
 // will be mounted a second way with `slot="jewels"` once that feature lands;
 // nothing here is gear-specific beyond the slot prop itself, which
 // GET /api/wiki/items already accepts for both cases (see that route's
@@ -11,11 +11,11 @@
 // planner-recon.md, "the single most copyable failure mode."
 //
 // Rendered through a portal into document.body — same reasoning as
-// GearSheet.tsx's header comment: /tree's canvas wrapper is `position:
+// JewelsSheet.tsx's header comment: the tree canvas wrapper is `position:
 // fixed`, which always creates its own stacking context, so a plain `fixed
 // inset-0 z-50` here would be capped below the shell's `sticky z-20` mobile
 // header no matter how high the z-index reads. Portaling here directly
-// (rather than relying on GearSheet's own portal) keeps this component
+// (rather than relying on a caller's own portal) keeps this component
 // correct if the jewels task — or anything else — ever mounts it somewhere
 // that doesn't already portal for it.
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -62,7 +62,7 @@ export default function ItemPickerSheet({
   onPick: (item: GearItem) => void;
   onClose: () => void;
 }) {
-  // Starts empty on every mount. The caller (GearSheet) keys this component
+  // Starts empty on every mount. The caller (GearSlotDetail) keys this component
   // by slot each time it opens a picker, so switching slots remounts this
   // component and resets `query` for free — no effect needed to clear a
   // stale query left over from the previous slot.

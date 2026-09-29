@@ -27,7 +27,7 @@ import { isAllowedIconUrl, isSafeItemSlug } from './iconUrl';
  * docs/superpowers/specs/2026-09-20-jewels-design.md: respeccing must never
  * silently discard a chosen item. Neither this module nor jewelState.ts's
  * `summarizeJewels` ever prunes an entry; only an explicit user action
- * (JewelsSheet's Clear/Remove, wired in TreeBuildSession) does.
+ * (JewelsSheet's Clear/Remove, wired in BuildSession) does.
  */
 export type GearState = Record<GearSlot, GearItem | null> & {
   jewels: Record<string, GearItem>;

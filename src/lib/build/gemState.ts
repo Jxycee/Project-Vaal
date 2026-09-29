@@ -203,7 +203,7 @@ export function setPrimary(state: GemState, id: string): GemState {
  * primary is set, or the primary loadout has no skill, falls back to the
  * first loadout (insertion order) that has one. `null` when nothing in the
  * state has a skill at all. The single definition of what `main_skill`
- * means — TreeBuildSession only calls this, it never re-derives the rule.
+ * means — BuildSession only calls this, it never re-derives the rule.
  */
 export function deriveMainSkill(state: GemState): string | null {
   const primary = state.primaryId ? state.loadouts.find((l) => l.id === state.primaryId) : undefined;

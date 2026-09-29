@@ -8,6 +8,7 @@ import {
   saveBuild,
   testBuildName,
   treeState,
+  waitForTreeApi,
 } from './helpers';
 
 // Slice 5 — attribute choices feed the defence sheet
@@ -40,19 +41,18 @@ async function nearestAttributeNode(page: Page): Promise<number> {
 }
 
 /**
- * Reads a stat cell. Works before AND after a save+reload: a saved build
- * with a share token reopens on the build page (slice 2's /tree?build=
- * redirect), where Stats is its own tab (stats-panel, no close button)
- * rather than a sheet (stats-sheet) opened from a chip.
+ * Reads a stat cell. Works before AND after a save+reload, on the scratch
+ * planner and on a saved build: Stats is its own tab (stats-panel). The tree
+ * hook lives only while the Tree tab shows, so this returns to that tab (and
+ * waits for the hook) before handing back, leaving the caller where it was.
  */
 async function readStat(page: Page, id: string): Promise<number> {
-  const onBuildPage = new URL(page.url()).pathname.startsWith('/builds/');
   await openEditor(page, 'stats');
-  const stats = onBuildPage ? page.getByTestId('stats-panel') : page.getByTestId('stats-sheet');
-  const cell = stats.getByTestId(id);
+  const cell = page.getByTestId('stats-panel').getByTestId(id);
   await expect(cell).toHaveText(/^\d+$/, { timeout: 30_000 });
   const value = Number(await cell.textContent());
-  if (!onBuildPage) await page.getByRole('button', { name: 'Close stats sheet' }).click();
+  await page.getByRole('tab', { name: 'Tree', exact: true }).click();
+  await waitForTreeApi(page);
   return value;
 }
 

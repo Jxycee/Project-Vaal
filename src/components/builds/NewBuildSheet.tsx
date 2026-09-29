@@ -12,7 +12,7 @@
 // saved is the display name, which is what the tree editor itself saves.
 //
 // Shell copied from ImportSheet: a portal at z-40 with 44px controls.
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
@@ -27,6 +27,10 @@ export default function NewBuildSheet({ onClose, onImport }: { onClose: () => vo
   const [ascendancy, setAscendancy] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [creating, setCreating] = useState(false);
+  // Held in a ref, not read from `creating`: a double Enter (or a double tap)
+  // fires both handlers before React re-renders the disabled state, and each
+  // would POST a build of its own.
+  const creatingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
   if (typeof document === 'undefined') return null;
@@ -35,7 +39,8 @@ export default function NewBuildSheet({ onClose, onImport }: { onClose: () => vo
   const canCreate = className !== null && name.trim().length > 0 && !creating;
 
   async function create() {
-    if (!className) return;
+    if (!className || creatingRef.current) return;
+    creatingRef.current = true;
     setCreating(true);
     setError(null);
     try {
@@ -56,12 +61,14 @@ export default function NewBuildSheet({ onClose, onImport }: { onClose: () => vo
       const token = payload.build?.share_token;
       if (!res.ok || !token) {
         setError(payload.error ?? "Couldn't create that build.");
+        creatingRef.current = false;
         setCreating(false);
         return;
       }
       router.push(`/builds/${token}?tab=overview&edit=1`);
     } catch {
       setError("Couldn't reach the server. Try again.");
+      creatingRef.current = false;
       setCreating(false);
     }
   }

@@ -5,8 +5,7 @@
 // BuildPage remounts (it is keyed by checkpoint). The current tab is kept.
 //
 // Slice 3: management (add/rename/reorder/delete) lives in this menu's
-// "Manage" view now, not the full-screen CheckpointsSheet (still used by the
-// scratch /tree editor only — see CheckpointsSheet.tsx's header comment).
+// "Manage" view (the scratch planner has no checkpoints, so no manage view).
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';

@@ -5,7 +5,7 @@ import { NextRequest } from 'next/server';
 //
 // POST /api/builds is the only write path the build editor has, and until now
 // the only thing exercising it was the e2e suite — which always saves through
-// BuildSavePanel, and therefore always sends a complete body. The branch that
+// the build page, and therefore always sends a complete body. The branch that
 // matters most is the one a complete body never reaches: on update, gear_state,
 // gem_state and main_skill are written ONLY when the request actually carried
 // that key, precisely so a save that omits them cannot wipe what is already

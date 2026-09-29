@@ -25,6 +25,7 @@ import BuildSessionProvider, { useBuildSession } from './session/BuildSession';
 import BuildHeader, { HeaderActions } from './BuildHeader';
 import BuildTabs from './BuildTabs';
 import CheckpointSwitcher, { useCheckpointManage } from './CheckpointSwitcher';
+import DraftNotice from './DraftNotice';
 import EditBar from './EditBar';
 import { enterEdit as enterEditMode } from './tabNav';
 import StatsRail from './StatsRail';
@@ -79,7 +80,7 @@ function BuildPageBody(props: BuildPageProps) {
   const searchParams = useSearchParams();
   const tab = parseTab(searchParams.get('tab'));
   const edit = mode === 'owner' && searchParams.get('edit') === '1';
-  const { gems, sheets, reserved, meta, dirty, draftPromptOpen, save, discard, restoreDraft, dismissDraft } = useBuildSession();
+  const { gems, sheets, reserved, meta, dirty, save, discard } = useBuildSession();
   const set = headlineSet(gems);
   const manage = useCheckpointManage(edit, row.id, fullCheckpoints);
 
@@ -146,19 +147,7 @@ function BuildPageBody(props: BuildPageProps) {
         />
       </div>
 
-      {edit && draftPromptOpen ? (
-        <div data-testid="draft-notice" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card/95 px-3 py-2">
-          <p className="text-sm text-foreground">Unsaved changes from last time.</p>
-          <div className="flex gap-2">
-            <button type="button" onClick={restoreDraft} className="h-11 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground">
-              Restore
-            </button>
-            <button type="button" onClick={dismissDraft} className="h-11 rounded-md border border-border px-4 text-sm font-medium text-muted-foreground">
-              Discard
-            </button>
-          </div>
-        </div>
-      ) : null}
+      <DraftNotice edit={edit} />
 
       {edit && showChoice ? (
         <div data-testid="unsaved-choice" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card/95 px-3 py-2">

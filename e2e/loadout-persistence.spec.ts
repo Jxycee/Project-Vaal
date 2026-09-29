@@ -1,7 +1,6 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
 import {
   cleanupWithFreshPage,
-  closeGearEditor,
   closeGemEditor,
   gearSlotLocator,
   gotoBuilds,
@@ -11,10 +10,13 @@ import {
   openEditor,
   openGemGroup,
   openTree,
+  pickGearItem,
   readShareToken,
   saveBuild,
+  selectGearSlot,
   softOpenBuild,
   testBuildName,
+  waitForTreeApi,
 } from './helpers';
 
 // Regression cover for everything the build editor hangs off the tree — gear,
@@ -87,65 +89,64 @@ test.describe('loadout persistence', () => {
   }, testInfo) => {
     await openTree(page);
 
-    const gearChip = page.getByRole('button', { name: 'Gear' });
-    const jewelsChip = page.getByRole('button', { name: /^Jewels/ });
-    const gemsChip = page.getByRole('button', { name: /^Gems/ });
-
-    // ---- Resting state on a fresh tree ------------------------------------
-    // Each chip is always rendered, even with nothing in it, so that the user
-    // can see the section exists at all — these labels are that promise.
-    await expect(jewelsChip).toContainText('allocate a socket on the tree');
-    await expect(gemsChip).toContainText('add a skill');
+    // ---- Resting state on a fresh build -----------------------------------
+    // Each tab shows its section even with nothing in it, so that the user can
+    // see it exists at all — these are that promise.
+    await openEditor(page, 'gear');
+    await expect(page.getByText('No jewels recorded.')).toBeVisible();
+    await openEditor(page, 'gems');
+    await expect(page.getByTestId('skill-row')).toHaveCount(0);
 
     // ---- Gear: equip boots, and equip-then-clear a belt --------------------
-    await gearChip.click();
-    const gearSheet = page.locator('.z-40');
-    await expect(gearSheet).toBeVisible();
-
-    const bootsRow = gearSheet.locator('ul li').filter({ hasText: 'Boots' }).first();
-    await expect(bootsRow).toContainText('Empty');
-    const bootsName = await pickFirstItem(page, bootsRow.getByRole('button').first(), bootsRow);
+    await openEditor(page, 'gear');
+    await expect(gearSlotLocator(page, 'boots')).toContainText('Empty');
+    const bootsName = await pickGearItem(page, 'boots');
 
     // The belt is deliberately equipped and then cleared. Asserting only "the
     // belt comes back Empty" after the reload would pass just as happily if
     // gear had not been saved at all — an unsaved build has an empty belt too.
     // It is the boots assertion further down that makes this one mean
     // "clearing persisted" rather than "nothing persisted".
-    const beltRow = gearSheet.locator('ul li').filter({ hasText: 'Belt' }).first();
-    await pickFirstItem(page, beltRow.getByRole('button').first(), beltRow);
-    // The clear ("x") button only renders once a slot is equipped.
-    await beltRow.getByRole('button', { name: /^Clear/ }).click();
-    await expect(beltRow).toContainText('Empty');
-
-    await gearSheet.getByRole('button', { name: 'Close gear sheet' }).click();
-    await expect(gearSheet).toBeHidden();
+    await pickGearItem(page, 'belt');
+    // The clear button only renders once a slot is equipped.
+    await page.getByTestId('gear-slot-detail').getByRole('button', { name: 'Clear', exact: true }).click();
+    await expect(gearSlotLocator(page, 'belt')).toContainText('Empty');
 
     // ---- Jewels: allocate a socket on the canvas, then fill it -------------
     // The tree is a WebGL canvas with no DOM per node, so allocation goes
-    // through the dev-only hook (see src/lib/tree/testApi.ts).
+    // through the dev-only hook (see src/lib/tree/testApi.ts), which exists
+    // only while the Tree tab is showing.
+    await page.getByRole('tab', { name: 'Tree', exact: true }).click();
+    await waitForTreeApi(page);
     const socketId = await page.evaluate(() => window.__vaalTree!.jewelSockets()[0]);
     expect(typeof socketId, 'the tree export exposed no jewel sockets').toBe('number');
     await page.evaluate((id) => window.__vaalTree!.allocate(id), socketId);
-    await expect(jewelsChip).toContainText('Jewels 0/1');
 
-    await jewelsChip.click();
+    await openEditor(page, 'jewels');
     const jewelsSheet = page.locator('.z-40').filter({ hasText: 'Jewels' });
     await expect(jewelsSheet).toBeVisible();
+    // One allocated socket, nothing in it: the sheet's "0 of 1 filled".
+    await expect(jewelsSheet.locator('ul li')).toHaveCount(1);
     const socketRow = jewelsSheet.locator('ul li').first();
     await expect(socketRow).toContainText('Empty');
+    await expect(page.getByTestId('gear-tab')).toContainText('No jewels recorded.');
     const jewelName = await pickFirstItem(page, socketRow.getByRole('button').first(), socketRow);
+
+    // ...and now "1 of 1 filled": the same single socket, holding the jewel.
+    await expect(jewelsSheet.locator('ul li')).toHaveCount(1);
+    await expect(socketRow).toContainText(jewelName);
+    await expect(socketRow).not.toContainText('Empty');
 
     await jewelsSheet.getByRole('button', { name: 'Close jewels sheet' }).click();
     await expect(jewelsSheet).toBeHidden();
-    await expect(jewelsChip).toContainText('Jewels 1/1');
+    await expect(page.getByTestId('gear-tab')).toContainText(jewelName);
+    await expect(page.getByTestId('gear-tab')).not.toContainText('No jewels recorded.');
 
     // ---- Gems: a loadout with a support, marked as the main skill ----------
-    await gemsChip.click();
-    const gemsSheet = page.locator('.z-40').filter({ hasText: 'Gems' });
+    await openEditor(page, 'gems');
+    await page.getByRole('button', { name: '+ Add skill group' }).click();
+    const gemsSheet = page.getByTestId('gem-group-sheet');
     await expect(gemsSheet).toBeVisible();
-    await expect(gemsSheet).toContainText('No skills yet.');
-
-    await gemsSheet.getByRole('button', { name: '+ Add skill' }).click();
     const card = gemsSheet.locator('ul > li').first();
     await expect(card).toBeVisible();
 
@@ -171,9 +172,8 @@ test.describe('loadout persistence', () => {
     await levelInput.fill('5');
     await expect(levelInput).toHaveValue('5');
 
-    await gemsSheet.getByRole('button', { name: 'Close gems sheet' }).click();
-    await expect(gemsSheet).toBeHidden();
-    await expect(gemsChip).toContainText('Gems 1');
+    await closeGemEditor(page);
+    await expect(page.getByTestId('skill-row')).toHaveCount(1);
 
     // ---- Save once, with notes ----------------------------------------------
     const name = testBuildName('loadout');
@@ -188,36 +188,26 @@ test.describe('loadout persistence', () => {
     await softOpenBuild(page, await readShareToken(page, name));
 
     // ---- Everything is still there -----------------------------------------
-    // A saved build with a share token now redirects the /tree?build= link
-    // above to the build page's Tree tab in edit mode — the old chips'
-    // resting labels ("Jewels 1/1", "Gems 1") have no equivalent there, so
-    // this positive check only applies to the old /tree UI. The build page's
-    // equivalent proof is the sheet content asserted below, which is the
-    // same either way.
-    const onBuildPage = new URL(page.url()).pathname.startsWith('/builds/');
-    if (!onBuildPage) {
-      await expect(page.getByRole('button', { name: /^Jewels/ })).toContainText('Jewels 1/1');
-      await expect(page.getByRole('button', { name: /^Gems/ })).toContainText('Gems 1');
-    }
-
-    // On the build page gear is the Gear tab's paper doll (slice 4), not a
-    // sheet: the slot holders are doll cells, and there is nothing to close.
+    // Gear is the Gear tab's paper doll (slice 4): the slot holders are doll
+    // cells, and there is no sheet to close.
     await openEditor(page, 'gear');
     await expect(gearSlotLocator(page, 'boots')).toContainText(bootsName);
     await expect(gearSlotLocator(page, 'belt')).toContainText('Empty');
-    await closeGearEditor(page);
 
     // The socket row only exists if the passive allocation came back too, so
     // this quietly covers the tree half of the payload as well.
     await openEditor(page, 'jewels');
     const reopenedJewels = page.locator('.z-40').filter({ hasText: 'Jewels' });
+    // Still one allocated socket, still filled ("1 of 1"), after a reload.
+    await expect(reopenedJewels.locator('ul li')).toHaveCount(1);
     await expect(reopenedJewels.locator('ul li').first()).toContainText(jewelName);
+    await expect(reopenedJewels.locator('ul li').first()).not.toContainText('Empty');
     await reopenedJewels.getByRole('button', { name: 'Close jewels sheet' }).click();
     await expect(reopenedJewels).toBeHidden();
 
     await openEditor(page, 'gems');
-    // On the build page the groups are compact rows and the editor is a
-    // one-group sheet (slice 5); the card inside is the same GemLoadoutEditor.
+    // The groups are compact rows and the editor is a one-group sheet
+    // (slice 5); the card inside is the GemLoadoutEditor.
     const reopenedCard = await openGemGroup(page, 0);
     await expect(reopenedCard).toContainText(skillName);
     await expect(reopenedCard).toContainText(supportName);
@@ -231,15 +221,9 @@ test.describe('loadout persistence', () => {
 
     await closeGemEditor(page);
 
-    // Notes, saved above. On the old UI the save panel is the metadata
-    // surface (name, level, league) and is collapsed to a chip by default, so
-    // it must be reopened; on the build page notes live on Overview, and
-    // #build-notes is on screen as soon as that tab is selected.
-    if (onBuildPage) {
-      await page.getByRole('tab', { name: 'Overview', exact: true }).click();
-    } else {
-      await page.getByRole('button', { name: 'Saved build' }).click();
-    }
+    // Notes, saved above: they live on Overview, and #build-notes is on screen
+    // as soon as that tab is selected.
+    await page.getByRole('tab', { name: 'Overview', exact: true }).click();
     await expect(page.locator('#build-notes')).toHaveValue(notes);
 
     // Tap targets on a POPULATED /builds. mobile-layout.spec.ts scans that
@@ -269,25 +253,24 @@ test('a pick cancelled while its icon loads never lands, and closes nothing else
     await route.continue();
   });
 
-  await page.getByRole('button', { name: 'Gear' }).click();
-  const gearSheet = page.locator('.z-40');
-  const beltRow = gearSheet.locator('ul li').filter({ hasText: 'Belt' }).first();
-  const glovesRow = gearSheet.locator('ul li').filter({ hasText: 'Gloves' }).first();
-  await expect(beltRow).toContainText('Empty');
+  await openEditor(page, 'gear');
+  await expect(gearSlotLocator(page, 'belt')).toContainText('Empty');
 
   const picker = page.locator('.z-50');
-  await beltRow.getByRole('button').first().click();
+  await selectGearSlot(page, 'belt');
+  await page.getByTestId('gear-slot-detail').getByRole('button', { name: 'Choose item', exact: true }).click();
   const firstResult = picker.locator('ul li button').first();
   await expect(firstResult).toBeVisible({ timeout: 15_000 });
   await firstResult.click();
   await page.getByRole('button', { name: 'Close item picker' }).click();
 
   // Open another picker while the cancelled pick's icon is still loading.
-  await glovesRow.getByRole('button').first().click();
+  await selectGearSlot(page, 'gloves');
+  await page.getByTestId('gear-slot-detail').getByRole('button', { name: 'Choose item', exact: true }).click();
   await expect(picker.getByPlaceholder('Search items…')).toBeVisible();
 
   // Past the held-back fetch: the belt is still empty and the gloves picker still open.
   await page.waitForTimeout(4_500);
   await expect(picker.getByPlaceholder('Search items…')).toBeVisible();
-  await expect(beltRow).toContainText('Empty');
+  await expect(gearSlotLocator(page, 'belt')).toContainText('Empty');
 });

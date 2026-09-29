@@ -28,7 +28,7 @@ export const QUEST_PASSIVE_POINTS = 24;
  * Levels outside 1-100 are clamped first — `builds.level` is validated to
  * 1-100 by POST /api/builds, but this is also called from client state that
  * can transiently hold something else (an in-progress edit in
- * BuildSavePanel), so clamping here (rather than trusting the caller) keeps
+ * the level field), so clamping here (rather than trusting the caller) keeps
  * the budget always meaningful.
  */
 export function derivePassiveBudget(level: number): number {

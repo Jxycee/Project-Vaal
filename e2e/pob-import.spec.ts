@@ -4,7 +4,6 @@ import { test, expect } from '@playwright/test';
 import {
   buildCard,
   cleanupWithFreshPage,
-  closeGearEditor,
   gotoBuilds,
   measureTapTargets,
   MIN_TAP_PX,
@@ -148,7 +147,6 @@ test.describe('Path of Building 2 import', () => {
       await expect(editor.getByTestId('affix-row')).toHaveCount(6);
       await expect(editor.locator('[data-testid="affix-row"][data-slug="localaddedphysicaldamagetwohand7"]')).toBeVisible();
       await editor.getByRole('button', { name: 'Close item editor' }).click();
-      await closeGearEditor(page);
     });
 
     // Slice 5: the defence sheet for the imported last checkpoint (level 94),
@@ -156,12 +154,9 @@ test.describe('Path of Building 2 import', () => {
     // piece in src/lib/build/stats/__tests__/fixture.test.ts; this proves the
     // browser path (data fetches, hook, sheet) produces the same numbers.
     await test.step("the stat sheet shows the engine's numbers for the last checkpoint", async () => {
-      // A saved build with a share token now reopens on the build page,
-      // where Stats is its own tab (stats-panel) rather than a sheet
-      // (stats-sheet) with its own close button.
-      const onBuildPage = new URL(page.url()).pathname.startsWith('/builds/');
+      // Stats is its own tab (stats-panel) on the build page.
       await openEditor(page, 'stats');
-      const stats = onBuildPage ? page.getByTestId('stats-panel') : page.getByTestId('stats-sheet');
+      const stats = page.getByTestId('stats-panel');
       await expect(stats.getByTestId('stat-life')).toHaveText('2498', { timeout: 30_000 });
       await expect(stats.getByTestId('stat-mana')).toHaveText('916');
       await expect(stats.getByTestId('stat-energy-shield')).toHaveText('167');
@@ -175,7 +170,6 @@ test.describe('Path of Building 2 import', () => {
       await expect(stats.getByTestId('stat-spirit')).toContainText('100');
       await expect(stats.getByTestId('stat-act')).toContainText('Endgame');
       await expect(stats.getByTestId('stat-not-counted')).toContainText('Siege Crossbow: 2 runes not counted');
-      if (!onBuildPage) await stats.getByRole('button', { name: 'Close stats sheet' }).click();
     });
 
     await test.step('the build lists under its name', async () => {

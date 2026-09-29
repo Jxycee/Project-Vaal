@@ -14,7 +14,7 @@
 // and the full report sit behind "Show details". On success it lands on the
 // new build's Overview in edit mode, by share token.
 //
-// Shell copied from CheckpointsSheet: a portal at z-40 with 44px controls,
+// Shell: a portal at z-40 with 44px controls,
 // which is what e2e/mobile-layout.spec.ts's tap-target scan measures.
 // The scroll body's children are shrink-0: in a flex column, a long preview
 // otherwise squeezes the Preview button to 22px (caught by pob-import.spec.ts).
@@ -76,7 +76,7 @@ export default function ImportSheet({ onClose }: { onClose: () => void }) {
     });
   };
 
-  // Also gates the SSR pass, same reasoning as CheckpointsSheet.
+  // Also gates the SSR pass, same reasoning as the other sheets.
   if (typeof document === 'undefined') return null;
 
   const count = (kind: ReportEntry['kind']) => (preview ? preview.report.filter((r) => r.kind === kind).length : 0);

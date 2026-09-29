@@ -1,5 +1,16 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { callShareTokenRpc, cleanupWithFreshPage, openTree, readShareToken, saveBuild, setVisibility, testBuildName } from './helpers';
+import {
+  callShareTokenRpc,
+  cleanupWithFreshPage,
+  closeGemEditor,
+  openEditor,
+  openTree,
+  pickGearItem,
+  readShareToken,
+  saveBuild,
+  setVisibility,
+  testBuildName,
+} from './helpers';
 
 // Task 4 — sharing, under the AMENDMENT (2026-09-22): the whole of /builds is
 // now protected, so a signed-out visitor never reaches ANY of this — that
@@ -56,36 +67,27 @@ test.describe('sharing', () => {
     // One gear item and one gem skill — enough for the shared page to have
     // real content beyond its header, without the extra cost of a jewel
     // socket too (loadout-persistence.spec.ts already proves that wiring).
-    await page.getByRole('button', { name: 'Gear' }).click();
-    const gearSheet = page.locator('.z-40');
-    await expect(gearSheet).toBeVisible();
-    const bootsRow = gearSheet.locator('ul li').filter({ hasText: 'Boots' }).first();
-    const bootsName = await pickFirstItem(page, bootsRow.getByRole('button').first(), bootsRow);
-    await gearSheet.getByRole('button', { name: 'Close gear sheet' }).click();
-    await expect(gearSheet).toBeHidden();
+    await openEditor(page, 'gear');
+    const bootsName = await pickGearItem(page, 'boots');
 
-    await page.getByRole('button', { name: /^Gems/ }).click();
-    const gemsSheet = page.locator('.z-40').filter({ hasText: 'Gems' });
+    await openEditor(page, 'gems');
+    await page.getByRole('button', { name: '+ Add skill group' }).click();
+    const gemsSheet = page.getByTestId('gem-group-sheet');
     await expect(gemsSheet).toBeVisible();
-    await gemsSheet.getByRole('button', { name: '+ Add skill' }).click();
     const card = gemsSheet.locator('ul > li').first();
     const skillName = await pickFirstItem(page, card.getByRole('button', { name: /Empty/ }), card);
-    await gemsSheet.getByRole('button', { name: 'Close gems sheet' }).click();
-    await expect(gemsSheet).toBeHidden();
+    await closeGemEditor(page);
 
     const name = testBuildName('share');
     await saveBuild(page, { name, level: 20, league: 'Standard' });
 
     // Slice 5: the owner's own Life for this level-20 build, to compare with
-    // what a share-link reader sees below. The save panel stays expanded after
-    // a save and, at 375px, covers the chip row — collapse it first.
-    await page.getByRole('button', { name: 'Close save panel' }).click();
-    await expect(page.locator('#build-level')).toBeHidden();
-    await page.getByRole('button', { name: 'Stats', exact: true }).click();
-    const ownerLife = page.getByTestId('stats-sheet').getByTestId('stat-life');
+    // what a share-link reader sees below. The save landed on the new build's
+    // page, where Stats is its own tab.
+    await openEditor(page, 'stats');
+    const ownerLife = page.getByTestId('stats-panel').getByTestId('stat-life');
     await expect(ownerLife).toHaveText(/^\d+$/, { timeout: 30_000 });
     const lifeOnTree = await ownerLife.textContent();
-    await page.getByRole('button', { name: 'Close stats sheet' }).click();
 
     // ---- Set visibility to Private (this app's link-shareable state — see
     // src/lib/build/visibility.ts, the vocabulary inverts the usual web

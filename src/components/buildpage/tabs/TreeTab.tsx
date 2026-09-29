@@ -7,7 +7,7 @@
 import dynamic from 'next/dynamic';
 import { useBuildSession } from '../session/BuildSession';
 
-// Module scope, same reasoning as TreeEditor.tsx: pixi/WebGL is heavy and browser-only.
+// Module scope, pixi/WebGL is heavy and browser-only.
 const PassiveTree = dynamic(() => import('@/components/tree/PassiveTree'), {
   ssr: false,
   loading: () => <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Loading passive tree…</div>,

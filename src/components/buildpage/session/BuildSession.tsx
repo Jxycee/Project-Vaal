@@ -2,8 +2,7 @@
 
 // src/components/buildpage/session/BuildSession.tsx
 //
-// The build-page analogue of TreeBuildSession (src/components/tree/
-// TreeBuildSession.tsx): owns everything derived from one build+checkpoint —
+// The build page's session provider: owns everything derived from one build+checkpoint —
 // the live editor state, the draft-to-localStorage safety net (and its
 // restore prompt), and the save call — behind a context instead of rendering
 // the editor UI itself. BuildPage.tsx renders this provider keyed by
@@ -11,8 +10,7 @@
 // subtree on every checkpoint switch. That is what makes the lazy
 // one-shot-per-mount seeding below correct: there is no checkpoint-derived
 // state here that can outlive the checkpoint it belongs to, and no stale-
-// props problem for it to guard against (see TreeBuildSession's header
-// comment for the fuller version of this argument — the same reasoning
+// props problem for it to guard against (the same reasoning
 // applies verbatim, just at the checkpoint granularity instead of buildId).
 //
 // This file is state-and-derivation only. It renders no UI of its own
@@ -32,6 +30,7 @@ import { useRouter } from 'next/navigation';
 import type { GggTreeJson } from '@poe2-toolkit/tree-core/ggg';
 import type { WeaponSet } from '@poe2-toolkit/tree-core';
 import type { BuildEditorState, PassiveState, SharedBuildRow } from '@/lib/build/types';
+import { patchQuery } from '@/lib/build/buildPage';
 import { fromPassiveState, toPassiveState, parsePassiveState } from '@/lib/build/passiveState';
 import { saveDraft, loadDraft, clearDraft, type BuildDraftState } from '@/lib/build/draft';
 import { draftDiffersFrom } from '@/lib/build/draftCompare';
@@ -92,7 +91,17 @@ interface Baseline {
   meta: BuildMeta;
 }
 
-function baselineFromRow(row: SharedBuildRow): Baseline {
+/**
+ * What the session needs of a build row. A saved build passes its whole
+ * `SharedBuildRow`; the scratch planner has no row at all, so `id` is absent
+ * (rather than faked) and the session is told so with `scratch`.
+ */
+export type SessionRow = Pick<
+  SharedBuildRow,
+  'name' | 'class' | 'ascendancy' | 'level' | 'league' | 'notes' | 'passive_state' | 'gear_state' | 'gem_state'
+> & { id?: string };
+
+function baselineFromRow(row: SessionRow): Baseline {
   return {
     class: row.class,
     ascendancy: row.ascendancy,
@@ -114,6 +123,7 @@ export function useBuildSession(): BuildSessionValue {
 export default function BuildSessionProvider({
   canEdit,
   editing,
+  scratch = false,
   row,
   checkpointId,
   tree,
@@ -124,14 +134,19 @@ export default function BuildSessionProvider({
   canEdit: boolean;
   /** Whether the page is currently in edit mode (`?edit=1`, owner only). Drafts are an edit-mode concern: they are read/written only while `canEdit && editing` — never in view mode, even for the owner. */
   editing: boolean;
+  /** The scratch planner: `row` is a synthesized empty build with no `id`, drafts use the scratch key, and the first `save()` creates the build and replaces the URL with its page (see `save`). */
+  scratch?: boolean;
   /** The build AS THE ACTIVE CHECKPOINT sees it — the caller substitutes that checkpoint's tree/gear/gems/level before this component ever sees `row`. */
-  row: SharedBuildRow;
+  row: SessionRow;
   checkpointId: string | undefined;
   tree: GggTreeJson | null;
   treeError: string | null;
   children: ReactNode;
 }) {
   const router = useRouter();
+  // The build this session's drafts belong to. Undefined for scratch, which
+  // is what draftKey() turns into the scratch key.
+  const draftBuildId = scratch ? undefined : row.id;
 
   // ---- Seed (lazy useState initialisers, once per mount) --------------
   //
@@ -186,7 +201,7 @@ export default function BuildSessionProvider({
   // `storedDraft`/`draftPromptOpen` used to be seeded in a lazy useState
   // initialiser, reading localStorage at render time. That broke as soon as
   // this provider started rendering inside BuildPage, which is
-  // server-rendered (unlike the old TreeBuildSession, which only ever
+  // server-rendered (unlike the retired tree editor, which only ever
   // mounted client-side after a fetch): localStorage doesn't exist on the
   // server, so the server render always produced `null`/`false`, while the
   // client's hydration render produced whatever the real draft was — server
@@ -222,7 +237,7 @@ export default function BuildSessionProvider({
   useEffect(() => {
     if (!canEdit || !editing || draftReadDone.current) return;
     draftReadDone.current = true;
-    const d = loadDraft(row.id, checkpointId);
+    const d = loadDraft(draftBuildId, checkpointId);
     if (!d) return;
     // Syncing local state from an external system (localStorage) on mount —
     // exactly the case react-hooks/set-state-in-effect exists to allow; see
@@ -269,7 +284,7 @@ export default function BuildSessionProvider({
   // `save()`) are independently `canEdit`-gated, so a reader calling one of
   // these would only drift in-memory state with nothing to persist it — but
   // a later task could wire a sheet's `onChange` unconditionally instead of
-  // only in edit mode (an easy copy-paste mistake, since `TreeBuildSession`
+  // only in edit mode (an easy copy-paste mistake, since the retired editor
   // never had a reader case to think about), and this guard is what keeps
   // that mistake a no-op instead of silent drift (review 2026-09-27).
   const setMeta = useCallback(
@@ -329,7 +344,7 @@ export default function BuildSessionProvider({
   // ---- Gems ---------------------------------------------------------------
   // Every decision (support cap, set normalisation, primary clearing) lives
   // in gemState.ts's pure, unit-tested reducers; these handlers only route
-  // events, exactly as TreeBuildSession's did.
+  // events.
   const gemAdd = useCallback(() => {
     if (!canEdit) return;
     setGems((prev) => addLoadout(prev));
@@ -346,11 +361,11 @@ export default function BuildSessionProvider({
       if (!canEdit) return;
       setGems((prev) => setSkill(prev, id, item));
       if (!item) return;
-      // GemsSheet clamps the level only on a manual edit, so a swap to a gem
+      // The gem loadout editor clamps the level only on a manual edit, so a swap to a gem
       // with a lower cap (e.g. a level-40 active replaced by a Spirit gem
       // capped at 8) would otherwise keep, and save, the old level. Clamp once
-      // the new gem's cap is known — ported verbatim from
-      // TreeBuildSession.handleSetSkill, including its "only if this skill is
+      // the new gem's cap is known — carried over from the
+      // retired editor's set-skill handler, including its "only if this skill is
       // still the one in the slot" re-check against a possibly-stale fetch.
       void fetchMaxGemLevel(item.slug).then((max) =>
         setGems((prev) => {
@@ -422,9 +437,9 @@ export default function BuildSessionProvider({
 
   // ---- Draft write (owner + edit mode only) -----------------------------
   //
-  // Writes to localStorage only, never a setState — mirrors
-  // TreeBuildSession's effect exactly (including the react-hooks/set-state-
-  // in-effect reasoning in its comment: this depends on gear/gems too, not
+  // Writes to localStorage only, never a setState — follows
+  // the retired editor's effect (including the react-hooks/set-state-
+  // in-effect reasoning: this depends on gear/gems too, not
   // just the tree, or a gear/gem-only edit would never mark the session
   // dirty and that work would vanish silently on refresh with no restore
   // prompt at all).
@@ -439,6 +454,14 @@ export default function BuildSessionProvider({
   // Meta is deliberately NOT drafted (see BuildMeta's doc comment in
   // sessionTypes.ts) — the effect's dependency list omits it on purpose.
   //
+  // Held in refs, not read from `saving`: a double tap fires both calls
+  // before React re-renders the disabled button, and in scratch each would
+  // POST a build of its own. `scratchCreated` also outlives the request: the
+  // build exists from the moment the POST succeeds, so no later call may
+  // create another while the router.replace below is still in flight.
+  const saveInFlight = useRef(false);
+  const scratchCreated = useRef(false);
+
   // `latestSession` mirrors what the draft now holds, so save() can tell
   // whether anything changed after it sent its snapshot.
   const latestSession = useRef<BuildDraftState | null>(null);
@@ -450,11 +473,15 @@ export default function BuildSessionProvider({
     if (!draftReadDone.current) return;
     const session: BuildDraftState = { tree: treeState, gear, gem: gems };
     latestSession.current = session;
-    saveDraft(row.id, session, checkpointId);
-  }, [canEdit, editing, treeState, gear, gems, row.id, checkpointId]);
+    // Once the first scratch save has created the build, the scratch key is
+    // retired (save() handed any in-flight edits to the new build's draft):
+    // edits made while the navigation is still in flight must not resurrect it.
+    if (scratchCreated.current) return;
+    saveDraft(draftBuildId, session, checkpointId);
+  }, [canEdit, editing, treeState, gear, gems, draftBuildId, checkpointId]);
 
   // ---- Structural validation + derived view models ---------------------
-  // Exactly as TreeBuildSession derives them: nothing here is stored.
+  // Derived, nothing here is stored.
   const livePassive = useMemo(
     () => toPassiveState(treeState.main, treeState.ascendancyNodes, treeState.attributeChoices),
     [treeState],
@@ -519,9 +546,10 @@ export default function BuildSessionProvider({
 
   const save = useCallback(async (): Promise<boolean> => {
     if (!canEdit) return false;
+    if (saveInFlight.current || scratchCreated.current) return false;
+    saveInFlight.current = true;
     // What this save carries. Edits made while it is in flight are not in
-    // it — see the `latestSession` in-flight check below, ported from
-    // TreeBuildSession.handleSave.
+    // it — see the `latestSession` in-flight check below.
     const sent: BuildDraftState = { tree: treeState, gear, gem: gems };
     const sentMeta = meta;
     setSaving(true);
@@ -531,8 +559,10 @@ export default function BuildSessionProvider({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: row.id,
-          checkpoint_id: checkpointId,
+          // Both undefined in scratch, so JSON.stringify drops the keys and
+          // the route takes its create path (checkpoint_id is invalid there).
+          id: scratch ? undefined : row.id,
+          checkpoint_id: scratch ? undefined : checkpointId,
           name: sentMeta.name,
           class: sent.tree.className,
           ascendancy: sent.tree.ascendancyId ?? null,
@@ -554,9 +584,24 @@ export default function BuildSessionProvider({
           main_skill: deriveMainSkill(sent.gem),
         }),
       });
-      const payload = (await res.json()) as { error?: string };
+      const payload = (await res.json()) as {
+        error?: string;
+        build?: { id: string; share_token: string | null };
+        checkpoint?: { id: string } | null;
+      };
       if (!res.ok) {
         setSaveError(payload.error ?? 'Could not save this build.');
+        return false;
+      }
+      const createdToken = scratch ? payload.build?.share_token : null;
+      if (scratch && !createdToken) {
+        // The row was written but cannot be navigated to. Say so instead of
+        // leaving the user on a page that looks saved. `saving` is released
+        // (the finally below skips it once scratchCreated is set) so the
+        // EditBar shows this error rather than "Saving…" forever.
+        setSaveError('Saved, but the new build could not be opened. Find it in your builds.');
+        scratchCreated.current = true;
+        setSaving(false);
         return false;
       }
       setSavedAt(new Date().toLocaleTimeString());
@@ -573,25 +618,42 @@ export default function BuildSessionProvider({
       // Only clear the draft once the server has the work, and only if the
       // work did not move on while the save was in flight — otherwise the
       // draft holds edits the server never received, and clearing it loses
-      // them on the next reload (TreeBuildSession.handleSave, review
-      // 2026-09-26).
+      // them on the next reload (review 2026-09-26).
       const now = latestSession.current;
-      if (!now || (now.tree === sent.tree && now.gear === sent.gear && now.gem === sent.gem)) {
-        clearDraft(row.id, checkpointId);
+      const moved = !!now && !(now.tree === sent.tree && now.gear === sent.gear && now.gem === sent.gem);
+      if (!moved) {
+        clearDraft(draftBuildId, checkpointId);
+      } else if (scratch && payload.build) {
+        // First scratch save: the new page reads drafts keyed by the NEW
+        // build and its first checkpoint (the id the POST returned, which is
+        // the one the page's owner URL will name), so hand the in-flight
+        // edits over there — the new page then offers them as Restore — and
+        // retire the scratch key so /tree does not offer them a second time.
+        saveDraft(payload.build.id, now, payload.checkpoint?.id);
+        clearDraft(undefined);
+      }
+      if (createdToken) {
+        // Scratch: the work now lives in a real row, so move to its page
+        // (same tab, edit mode). The session stays locked (`scratchCreated`,
+        // and `saving` is left set) until the navigation unmounts it.
+        scratchCreated.current = true;
+        const tab = new URLSearchParams(window.location.search).get('tab');
+        router.replace(`/builds/${encodeURIComponent(createdToken)}${patchQuery('', { edit: '1', tab })}`);
+        return true;
       }
       // Re-render the server page so the checkpoint list (and its levels)
       // reflect this save. A Route Handler cannot call next/cache's
-      // refresh() itself — Server-Action only — so the client does it here,
-      // same as TreeBuildSession.
+      // refresh() itself — Server-Action only — so the client does it here.
       router.refresh();
       return true;
     } catch {
       setSaveError('Could not reach the server. Your work is still here.');
       return false;
     } finally {
-      setSaving(false);
+      saveInFlight.current = false;
+      if (!scratchCreated.current) setSaving(false);
     }
-  }, [canEdit, treeState, gear, gems, meta, row.id, checkpointId, router]);
+  }, [canEdit, scratch, treeState, gear, gems, meta, row.id, draftBuildId, checkpointId, router]);
 
   // ---- Discard / draft prompt actions -----------------------------------
   const discard = useCallback(() => {
@@ -610,10 +672,10 @@ export default function BuildSessionProvider({
     setGear(baseline.gear_state);
     setGems(baseline.gem_state);
     setMetaState(baseline.meta);
-    clearDraft(row.id, checkpointId);
+    clearDraft(draftBuildId, checkpointId);
     setTreeSeedKey((k) => k + 1);
     setDraftPromptOpen(false);
-  }, [canEdit, baseline, row.id, checkpointId]);
+  }, [canEdit, baseline, draftBuildId, checkpointId]);
 
   const restoreDraft = useCallback(() => {
     if (!canEdit || !storedDraft) return;
@@ -626,13 +688,14 @@ export default function BuildSessionProvider({
 
   const dismissDraft = useCallback(() => {
     if (!canEdit) return;
-    clearDraft(row.id, checkpointId);
+    clearDraft(draftBuildId, checkpointId);
     setDraftPromptOpen(false);
-  }, [canEdit, row.id, checkpointId]);
+  }, [canEdit, draftBuildId, checkpointId]);
 
   const value = useMemo<BuildSessionValue>(
     () => ({
       canEdit,
+      scratch,
       tree,
       treeError,
       treeState,
@@ -666,6 +729,7 @@ export default function BuildSessionProvider({
     }),
     [
       canEdit,
+      scratch,
       tree,
       treeError,
       treeState,

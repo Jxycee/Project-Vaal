@@ -1,10 +1,9 @@
 'use client';
 
-// Edit-mode sheet for ONE gem group — the build page's replacement for the
-// full-screen all-groups GemsSheet. Holds the same per-group editor
+// Edit-mode sheet for ONE gem group — the build page's group editor. Holds the per-group editor
 // (GemLoadoutEditor) with every control and label unchanged, wired to the
 // session's gemActions. Portaled to document.body at z-40 for the same reason
-// as JewelsSheet/GemsSheet: an ancestor stacking context would otherwise sit
+// as JewelsSheet: an ancestor stacking context would otherwise sit
 // this under the shell's sticky header.
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
@@ -25,7 +24,7 @@ export default function GemGroupSheet({
   onClose: () => void;
 }) {
   const { gems, gemActions } = useBuildSession();
-  // Also gates the SSR pass, same reasoning as GearSheet/JewelsSheet.
+  // Also gates the SSR pass, same reasoning as JewelsSheet.
   if (!loadout || typeof document === 'undefined') return null;
   const id = loadout.id;
   const isPrimary = mainSkillLoadout(gems)?.id === id;

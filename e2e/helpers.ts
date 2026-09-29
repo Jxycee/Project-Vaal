@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { TreeTestApi, TreeTestState } from '../src/lib/tree/testApi';
-import { GEAR_SLOT_LABELS, type GearSlot } from '../src/lib/build/gearSlots';
+import type { GearSlot } from '../src/lib/build/gearSlots';
 import type { BuildVisibility } from '../src/lib/build/types';
 import { VISIBILITY_LABEL } from '../src/lib/build/visibility';
 import { e2eBaseUrl } from './baseUrl';
@@ -110,12 +110,13 @@ export async function nodesNearStart(page: Page, count: number): Promise<number[
 }
 
 /**
- * Opens `/tree` (scratch) or `/tree?build=<id>` (a saved build).
+ * Opens `/tree` (the scratch planner, on its Tree tab) or `/tree?build=<id>`
+ * (a saved build).
  *
- * With a `buildId`, an owned build with a share token now redirects here to
- * the build page's Tree tab in edit mode (slice 2) — `page.goto` follows that
- * redirect transparently, so this still lands wherever the tree ends up and
- * waits for the same dev-only hook either way.
+ * With a `buildId`, an owned build with a share token redirects to the build
+ * page's Tree tab in edit mode (slice 2) — `page.goto` follows that redirect
+ * transparently, so this lands wherever the tree ends up and waits for the
+ * same dev-only hook either way.
  */
 export async function openTree(page: Page, buildId?: string): Promise<void> {
   await page.goto(buildId ? `/tree?build=${buildId}` : '/tree');
@@ -134,88 +135,60 @@ const SECTION_TAB = {
 export type EditorSection = keyof typeof SECTION_TAB;
 
 /**
- * Opens an editor sheet (or, for `stats` and `gear`, just the panel) for
- * `section`. Works on both UIs a saved build can be reopened on: the old
- * `/tree` chips (Gear / Jewels… / Gems… / Stats / Checkpoints…) and the build
- * page's tabs + "Edit jewels" / the skill rows / the checkpoint switcher.
+ * Opens the part of the build page that edits `section`: selects its tab and,
+ * where there is one, opens its sheet. The same on a saved build and on the
+ * scratch planner (`/tree`), which is the same page.
  *
- * `gear` has no sheet on the build page (slice 4): selecting the Gear tab
- * shows the paper doll, so this returns the `gear-tab` locator (doll, slot
- * detail and warnings chip) once the doll is on screen. Use `selectGearSlot`,
- * `pickGearItem`, `openItemEditor` and `gearSlotLocator` below to work on a
- * slot on either UI.
+ * `gear` has no sheet (slice 4): selecting the Gear tab shows the paper doll,
+ * so this returns the `gear-tab` locator (doll, slot detail and warnings chip)
+ * once the doll is on screen. Use `selectGearSlot`, `pickGearItem`,
+ * `openItemEditor` and `gearSlotLocator` below to work on a slot.
  *
- * `stats` has no sheet on the build page — StatsPanel renders directly in the
- * tab (`data-testid="stats-panel"`), unlike `/tree`'s `stats-sheet`. Callers
- * must read the testid that matches wherever they ended up.
+ * `stats` has no sheet either: StatsPanel renders directly in the tab
+ * (`data-testid="stats-panel"`).
  *
- * `gems` has no sheet on the build page either (slice 5): selecting the Skills
- * tab shows the compact skill rows, so this returns the `skills-tab` locator.
- * Use `openGemGroup` / `closeGemEditor` below to edit one group on either UI.
+ * `gems` has no sheet (slice 5): selecting the Skills tab shows the compact
+ * skill rows, so this returns the `skills-tab` locator. Use `openGemGroup` /
+ * `closeGemEditor` below to edit one group.
  *
- * For `checkpoints` on the build page (slice 3): management moved from a
- * "Manage checkpoints" sheet entry into the switcher's own "Manage" toggle,
- * so this opens the switcher, taps Manage, and returns the
- * `checkpoint-manager` locator — the only case with a return value, since
- * every other section (and the old `/tree` chips' `checkpoints` case, which
- * still opens CheckpointsSheet) has nothing worth handing back.
+ * `jewels` opens the Gear tab's "Edit jewels" sheet.
+ *
+ * `checkpoints` (slice 3): management lives in the switcher's own "Manage"
+ * toggle, so this opens the switcher, taps Manage, and returns the
+ * `checkpoint-manager` locator. Saved builds only: scratch has no checkpoints.
  */
 export async function openEditor(page: Page, section: EditorSection): Promise<Locator | void> {
-  const onBuildPage = new URL(page.url()).pathname.startsWith('/builds/');
-
-  if (onBuildPage) {
-    const tab = SECTION_TAB[section];
-    if (tab) await page.getByRole('tab', { name: tab, exact: true }).click();
-    switch (section) {
-      case 'gear': {
-        const gearTab = page.getByTestId('gear-tab');
-        await expect(page.getByTestId('paper-doll')).toBeVisible();
-        return gearTab;
-      }
-      case 'jewels': {
-        const button = page.getByRole('button', { name: /^(Edit jewels|Loading tree…)$/ });
-        await expect(button).toHaveText('Edit jewels', { timeout: 30_000 });
-        await button.click();
-        break;
-      }
-      case 'gems': {
-        const skillsTab = page.getByTestId('skills-tab');
-        await expect(skillsTab).toBeVisible();
-        return skillsTab;
-      }
-      case 'stats':
-        // Selecting the Stats tab above is the whole job — no sheet to open.
-        break;
-      case 'checkpoints': {
-        await page.getByTestId('checkpoint-switcher').click();
-        const menu = page.getByTestId('checkpoint-menu');
-        await expect(menu).toBeVisible();
-        await menu.getByRole('button', { name: 'Manage', exact: true }).click();
-        const manager = page.getByTestId('checkpoint-manager');
-        await expect(manager).toBeVisible();
-        return manager;
-      }
-    }
-    return;
-  }
-
-  // Old /tree chips.
+  const tab = SECTION_TAB[section];
+  if (tab) await page.getByRole('tab', { name: tab, exact: true }).click();
   switch (section) {
-    case 'gear':
-      await page.getByRole('button', { name: 'Gear', exact: true }).click();
+    case 'gear': {
+      const gearTab = page.getByTestId('gear-tab');
+      await expect(page.getByTestId('paper-doll')).toBeVisible();
+      return gearTab;
+    }
+    case 'jewels': {
+      const button = page.getByRole('button', { name: /^(Edit jewels|Loading tree…)$/ });
+      await expect(button).toHaveText('Edit jewels', { timeout: 30_000 });
+      await button.click();
       break;
-    case 'jewels':
-      await page.getByRole('button', { name: /^Jewels/ }).click();
-      break;
-    case 'gems':
-      await page.getByRole('button', { name: /^Gems/ }).click();
-      break;
+    }
+    case 'gems': {
+      const skillsTab = page.getByTestId('skills-tab');
+      await expect(skillsTab).toBeVisible();
+      return skillsTab;
+    }
     case 'stats':
-      await page.getByRole('button', { name: 'Stats', exact: true }).click();
+      // Selecting the Stats tab above is the whole job — no sheet to open.
       break;
-    case 'checkpoints':
-      await page.getByRole('button', { name: /^Checkpoints/ }).click();
-      break;
+    case 'checkpoints': {
+      await page.getByTestId('checkpoint-switcher').click();
+      const menu = page.getByTestId('checkpoint-menu');
+      await expect(menu).toBeVisible();
+      await menu.getByRole('button', { name: 'Manage', exact: true }).click();
+      const manager = page.getByTestId('checkpoint-manager');
+      await expect(manager).toBeVisible();
+      return manager;
+    }
   }
 }
 
@@ -240,18 +213,25 @@ export async function softNavigate(page: Page, href: string): Promise<void> {
   // The library's cards link to `/builds/<token>`, and the owner's page adds
   // `?checkpoint=<id>` to that URL with a redirect, so only the path is compared.
   const isBuildPageLink = /^\/builds\/[A-Za-z0-9_-]+$/.test(href);
+  // Plain /tree (Quick plan) redirects, server-side, to /tree?tab=tree: the
+  // scratch planner opens on the Tree tab.
+  const isScratchLink = href === '/tree';
   await page.waitForURL(
     (url) => {
       const current = url.pathname + url.search;
-      return current === href || (isTreeBuildLink && url.pathname.startsWith('/builds/')) || (isBuildPageLink && url.pathname === href);
+      return (
+        current === href ||
+        (isTreeBuildLink && url.pathname.startsWith('/builds/')) ||
+        (isBuildPageLink && url.pathname === href) ||
+        (isScratchLink && url.pathname === '/tree')
+      );
     },
     { timeout: 30_000 },
   );
-  // The URL changing is not the same as the tree being ready. TreeBuildSession
-  // (and, for a redirected build-page landing, BuildSession) is keyed by
-  // build id, so a soft navigation unmounts and remounts it, which tears the
-  // hook down and reinstalls it. Reading state before that finishes is how
-  // this helper produced "Cannot read properties of undefined".
+  // The URL changing is not the same as the tree being ready. The build
+  // page's session (and the scratch planner's) remounts on a soft navigation,
+  // which tears the hook down and reinstalls it. Reading state before that
+  // finishes is how this helper produced "Cannot read properties of undefined".
   const landedPath = new URL(page.url()).pathname;
   if (landedPath === '/tree' || (isTreeBuildLink && landedPath.startsWith('/builds/'))) {
     await waitForTreeApi(page);
@@ -259,44 +239,35 @@ export async function softNavigate(page: Page, href: string): Promise<void> {
 }
 
 /**
- * Saves the current editor state.
+ * Saves the current editor state, on a saved build's page or on the scratch
+ * planner (`/tree`).
  *
- * On the build page (`/builds/…`, slice 2), fields are always on screen in
- * edit mode: fills the header inputs directly, switches to Overview for
- * `#build-notes` (it does not exist on the other tabs), clicks the single
- * Save button, and waits for `save-status` to read `Saved …`. On `/tree`
- * (scratch editor, unaffected by slice 2) it opens the save panel if
- * collapsed and behaves exactly as before.
+ * Fields are always on screen in edit mode: fills the header inputs directly,
+ * switches to Overview for `#build-notes` (it does not exist on the other
+ * tabs), clicks the single Save button, and waits for `save-status` to read
+ * `Saved ...`. On the scratch planner the first save creates the build and
+ * replaces the URL with its page, so "saved" there is that landing: the
+ * helper waits for `/builds/<token>` and the build page.
  */
 export async function saveBuild(
   page: Page,
   opts: { name?: string; level?: number; league?: string; notes?: string } = {},
 ): Promise<void> {
-  const onBuildPage = new URL(page.url()).pathname.startsWith('/builds/');
-
-  if (onBuildPage) {
-    if (opts.name !== undefined) await page.locator('#build-name').fill(opts.name);
-    if (opts.level !== undefined) await page.locator('#build-level').fill(String(opts.level));
-    if (opts.league !== undefined) await page.locator('#build-league').fill(opts.league);
-    if (opts.notes !== undefined) {
-      await page.getByRole('tab', { name: 'Overview', exact: true }).click();
-      await page.locator('#build-notes').fill(opts.notes);
-    }
-    await page.getByRole('button', { name: 'Save', exact: true }).click();
-    await expect(page.getByTestId('save-status')).toHaveText(/^Saved /, { timeout: 30_000 });
-    return;
-  }
-
-  const panel = page.getByRole('button', { name: /^(Save build|Saved build)$/ });
-  if (await panel.isVisible().catch(() => false)) await panel.click();
-
   if (opts.name !== undefined) await page.locator('#build-name').fill(opts.name);
   if (opts.level !== undefined) await page.locator('#build-level').fill(String(opts.level));
   if (opts.league !== undefined) await page.locator('#build-league').fill(opts.league);
-  if (opts.notes !== undefined) await page.locator('#build-notes').fill(opts.notes);
-
-  await page.getByRole('button', { name: /^(Save|Update)$/ }).click();
-  await expect(page.getByText(/^Saved /)).toBeVisible({ timeout: 30_000 });
+  if (opts.notes !== undefined) {
+    await page.getByRole('tab', { name: 'Overview', exact: true }).click();
+    await page.locator('#build-notes').fill(opts.notes);
+  }
+  const scratch = new URL(page.url()).pathname === '/tree';
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  if (scratch) {
+    await page.waitForURL(/\/builds\/[A-Za-z0-9_-]+/, { timeout: 30_000 });
+    await expect(page.getByTestId('build-page')).toBeVisible({ timeout: 30_000 });
+    return;
+  }
+  await expect(page.getByTestId('save-status')).toHaveText(/^Saved /, { timeout: 30_000 });
 }
 
 /** iOS/Android guidance both land on ~44px as the minimum comfortable target. */
@@ -508,47 +479,26 @@ export async function cleanupWithFreshPage(browser: Browser): Promise<void> {
   }
 }
 
-// ---- Gem groups, on either UI ------------------------------------------------
-// The scratch /tree editor edits gems in GemsSheet (one stacked card per group
-// in a `.z-40` sheet headed "Gems"); the build page (slice 5) shows compact
-// `skill-row`s and, in edit mode, opens a `gem-group-sheet` for the tapped one.
-// Both render the same GemLoadoutEditor card, so the locator these return
-// behaves the same on either UI.
-
-const GEMS_SHEET = '.z-40';
+// ---- Gem groups -------------------------------------------------------------
+// The build page shows compact `skill-row`s (slice 5) and, in edit mode, opens
+// a `gem-group-sheet` for the tapped one. It renders the GemLoadoutEditor card.
 
 /**
- * Opens gem group `index` and returns its editor card (the `<li>` holding the
- * skill button, level input, supports, set toggles and Main skill). On the
- * build page `index` is the row's position (main skill first) and needs edit
- * mode; on the scratch editor GemsSheet must already be open and `index` is
- * the card's position in stored order (the two agree until a Main skill is
- * chosen off the first group).
+ * Opens gem group `index` (the row's position, main skill first; needs edit
+ * mode) and returns its editor card: the `<li>` holding the skill button,
+ * level input, supports, set toggles and Main skill.
  */
 export async function openGemGroup(page: Page, index: number): Promise<Locator> {
-  if (onBuildPage(page)) {
-    await page.getByTestId('skill-row').nth(index).click();
-    const sheet = page.getByTestId('gem-group-sheet');
-    await expect(sheet).toBeVisible();
-    return sheet.locator('ul > li').first();
-  }
-  const sheet = page.locator(GEMS_SHEET).filter({ hasText: 'Gems' });
+  await page.getByTestId('skill-row').nth(index).click();
+  const sheet = page.getByTestId('gem-group-sheet');
   await expect(sheet).toBeVisible();
-  const card = sheet.locator('ul > li').nth(index);
-  await expect(card).toBeVisible();
-  return card;
+  return sheet.locator('ul > li').first();
 }
 
-/** Closes whichever gem editor is open: the build page's group sheet, or the scratch editor's gems sheet. */
+/** Closes the open gem group sheet. */
 export async function closeGemEditor(page: Page): Promise<void> {
-  if (onBuildPage(page)) {
-    const sheet = page.getByTestId('gem-group-sheet');
-    await sheet.getByRole('button', { name: 'Close skill group' }).click();
-    await expect(sheet).toBeHidden();
-    return;
-  }
-  const sheet = page.locator(GEMS_SHEET).filter({ hasText: 'Gems' });
-  await sheet.getByRole('button', { name: 'Close gems sheet' }).click();
+  const sheet = page.getByTestId('gem-group-sheet');
+  await sheet.getByRole('button', { name: 'Close skill group' }).click();
   await expect(sheet).toBeHidden();
 }
 
@@ -567,37 +517,25 @@ export async function pickByName(page: Page, opener: Locator, name: string): Pro
   await expect(search).toBeHidden();
 }
 
-// ---- Gear slots, on either UI ------------------------------------------------
-// The scratch /tree editor edits gear in GearSheet (labelled rows in a
-// `.fixed.inset-0.z-40` sheet); the build page edits it on the paper doll (a
-// `doll-slot-<slot>` cell, with a `gear-slot-detail` panel below). These
-// helpers give a spec one vocabulary for both.
+// ---- Gear slots ---------------------------------------------------------------
+// The build page edits gear on the paper doll: a `doll-slot-<slot>` cell, with
+// a `gear-slot-detail` panel below.
 
-function onBuildPage(page: Page): boolean {
-  return new URL(page.url()).pathname.startsWith('/builds/');
-}
-
-const GEAR_SHEET = '.fixed.inset-0.z-40';
-
-/** Shows weapon set `set` (I or II) in whichever gear UI is open. */
+/** Shows weapon set `set` (I or II) on the paper doll. */
 export async function setGearWeaponSet(page: Page, set: 1 | 2): Promise<void> {
-  const scope = onBuildPage(page) ? page.getByTestId('paper-doll') : page.locator(GEAR_SHEET);
-  await scope.getByRole('button', { name: set === 1 ? 'Set I' : 'Set II', exact: true }).click();
+  await page.getByTestId('paper-doll').getByRole('button', { name: set === 1 ? 'Set I' : 'Set II', exact: true }).click();
 }
 
-/** A slot's on-screen holder: its doll cell (build page) or its sheet row (scratch). Weapon rows are for the set currently showing. */
+/** A slot's doll cell. Weapon cells are for the set currently showing. */
 export function gearSlotLocator(page: Page, slot: GearSlot): Locator {
-  if (onBuildPage(page)) return page.getByTestId(`doll-slot-${slot}`);
-  return page.locator(GEAR_SHEET).locator('ul li').filter({ hasText: GEAR_SLOT_LABELS[slot] }).first();
+  return page.getByTestId(`doll-slot-${slot}`);
 }
 
-/** Makes `slot` the one being looked at: switches to its weapon set, and on the build page taps its doll cell (opening the detail panel). */
+/** Makes `slot` the one being looked at: switches to its weapon set and taps its doll cell (opening the detail panel). */
 export async function selectGearSlot(page: Page, slot: GearSlot): Promise<void> {
   if (slot.startsWith('weapon')) await setGearWeaponSet(page, slot.startsWith('weapon1') ? 1 : 2);
-  if (onBuildPage(page)) {
-    await page.getByTestId(`doll-slot-${slot}`).click();
-    await expect(page.getByTestId('gear-slot-detail')).toBeVisible();
-  }
+  await page.getByTestId(`doll-slot-${slot}`).click();
+  await expect(page.getByTestId('gear-slot-detail')).toBeVisible();
 }
 
 /**
@@ -609,9 +547,7 @@ export async function selectGearSlot(page: Page, slot: GearSlot): Promise<void> 
 export async function pickGearItem(page: Page, slot: GearSlot, name?: string): Promise<string> {
   await selectGearSlot(page, slot);
   const holder = gearSlotLocator(page, slot);
-  const opener = onBuildPage(page)
-    ? page.getByTestId('gear-slot-detail').getByRole('button', { name: 'Choose item', exact: true })
-    : holder.getByRole('button').first();
+  const opener = page.getByTestId('gear-slot-detail').getByRole('button', { name: 'Choose item', exact: true });
 
   if (name !== undefined) {
     await pickByName(page, opener, name);
@@ -636,36 +572,21 @@ export async function pickGearItem(page: Page, slot: GearSlot, name?: string): P
 /** Opens the item editor for the item in `slot` (`item-editor`). */
 export async function openItemEditor(page: Page, slot: GearSlot): Promise<Locator> {
   await selectGearSlot(page, slot);
-  if (onBuildPage(page)) {
-    await page.getByTestId('gear-slot-detail').getByRole('button', { name: 'Edit affixes', exact: true }).click();
-  } else {
-    await page.locator(GEAR_SHEET).getByRole('button', { name: `Edit ${GEAR_SLOT_LABELS[slot]}` }).first().click();
-  }
+  await page.getByTestId('gear-slot-detail').getByRole('button', { name: 'Edit affixes', exact: true }).click();
   const editor = page.getByTestId('item-editor');
   await expect(editor).toBeVisible();
   return editor;
 }
 
-/** Closes the scratch editor's gear sheet. A no-op on the build page, where gear is a tab, not a sheet. */
-export async function closeGearEditor(page: Page): Promise<void> {
-  if (onBuildPage(page)) return;
-  const sheet = page.locator(GEAR_SHEET);
-  await sheet.getByRole('button', { name: 'Close gear sheet' }).click();
-  await expect(sheet).toBeHidden();
-}
-
 /**
- * Every structural warning on screen as `build-warning` items. On the build
- * page they sit behind the collapsed `gear-warnings` chip, so this expands it
- * (if it is present and closed) first; the scratch sheet lists them inline.
+ * Every structural warning on screen as `build-warning` items. They sit behind
+ * the collapsed `gear-warnings` chip, so this expands it (if it is present and
+ * closed) first.
  */
 export async function gearWarningItems(page: Page): Promise<Locator> {
-  if (onBuildPage(page)) {
-    const chip = page.getByTestId('gear-warnings');
-    if ((await chip.count()) > 0 && (await chip.getAttribute('aria-expanded')) !== 'true') await chip.click();
-    return page.getByTestId('gear-tab').getByTestId('build-warning');
-  }
-  return page.locator(GEAR_SHEET).getByTestId('build-warning');
+  const chip = page.getByTestId('gear-warnings');
+  if ((await chip.count()) > 0 && (await chip.getAttribute('aria-expanded')) !== 'true') await chip.click();
+  return page.getByTestId('gear-tab').getByTestId('build-warning');
 }
 
 // ---- Seeding and share-link proofs, without the UI ----------------------------

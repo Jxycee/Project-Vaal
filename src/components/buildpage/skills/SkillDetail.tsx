@@ -28,7 +28,7 @@ export default function SkillDetail({ loadout }: { loadout: GemLoadout }) {
               <span className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded border border-border/60">
                 {support.iconUrl ? (
                   // Plain <img>, not next/image: wiki icons live under a session-cookie-protected prefix
-                  // that next/image's server-side optimizer cannot carry (see GearSheet.tsx's SlotRow comment).
+                  // that next/image's server-side optimizer cannot carry (see PaperDoll.tsx's icon comment).
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={support.iconUrl} alt="" loading="lazy" className="h-full w-full object-contain" />
                 ) : null}

@@ -1,26 +1,23 @@
-// /tree — passive skill tree editor.
+// /tree — "Quick plan" (the scratch planner) and the old-link redirect.
 //
-// Server Component. It awaits ?build=<uuid>, fetches and VERIFIES the row,
-// and hands the result down as props. Nothing about the loaded build is
-// client state any more, which is what makes the stale-state class of bug
-// (this route survives soft navigation; PassiveTree seeds initialState
-// exactly once) unreachable rather than merely defended against.
-//
-// Checkpoints follow the same rule. The build's checkpoints are fetched here,
-// and the one being edited is chosen by ?checkpoint=<uuid> — so switching
-// checkpoint is a navigation the server answers with fresh rows, never a piece
-// of client state that could outlive a save. (Holding the list client-side
-// would mean: save checkpoint A, switch to B, switch back, and A re-seeds from
-// the stale props it was first given.)
+// Server Component. With no ?build= it renders the scratch planner: the build
+// page shell in edit mode with no saved row (ScratchBuildPage, spec 7.3).
+// With ?build=<uuid> it awaits and VERIFIES the row, and for its owner
+// redirects to the build page's Tree tab in edit mode (old links, bookmarks
+// and the dashboard's recent-builds links keep working). Anything else — a
+// malformed id, a build that does not exist, one that is not ours — renders
+// the scratch planner under "That build could not be found.".
 import { redirect } from 'next/navigation';
 import { createClient, getCachedUser } from '@/lib/supabase/server';
 import type { SavedBuild } from '@/lib/build/types';
 import { UUID_RE } from '@/lib/build/constants';
 import { activeCheckpoint, parseCheckpoints, type BuildCheckpoint } from '@/lib/build/checkpointState';
 import { patchQuery } from '@/lib/build/buildPage';
-import TreeEditor from '@/components/tree/TreeEditor';
+import ScratchBuildPage from '@/components/buildpage/ScratchBuildPage';
 
-export const metadata = { title: 'Passive tree' };
+export const metadata = { title: 'Quick plan' };
+
+const NOT_FOUND = 'That build could not be found.';
 
 export default async function TreePage({
   searchParams,
@@ -31,8 +28,7 @@ export default async function TreePage({
   const raw = params.build;
   const buildId = typeof raw === 'string' ? raw : undefined;
   // An unknown or malformed ?checkpoint= is not an error: activeCheckpoint
-  // (checkpointState.ts) falls back to the first checkpoint, which is also the
-  // ordinary case right after the active one is deleted.
+  // (checkpointState.ts) falls back to the first checkpoint.
   const checkpointParam = typeof params.checkpoint === 'string' ? params.checkpoint : null;
 
   let build: SavedBuild | null = null;
@@ -41,7 +37,7 @@ export default async function TreePage({
 
   if (buildId) {
     if (!UUID_RE.test(buildId)) {
-      loadError = 'That build could not be found.';
+      loadError = NOT_FOUND;
     } else {
       const supabase = await createClient();
       // All three alongside each other so neither the ownership check nor the
@@ -54,30 +50,21 @@ export default async function TreePage({
         ]);
       if (error) {
         console.error('Failed to load build:', error);
-        loadError = 'That build could not be found.';
+        loadError = NOT_FOUND;
       } else if (!data || data.user_id !== userData.user?.id) {
         // A row can come back that is NOT ours: the "Public builds are
         // readable by signed-in users" RLS policy is permissive and applies to
         // role `authenticated`, which this user has. Postgres ORs it with
         // the owner policy. So ownership is checked here, on the server.
-        //
-        // This is a RELOCATION of the old in-component check, not a deletion
-        // of it — removing it entirely would hydrate a stranger's build as
-        // editable, with every Update 404ing. "Exists but not ours" and
-        // "does not exist" deliberately produce the same message so the UI
-        // cannot be used to probe which build ids exist.
-        //
-        // The checkpoints fetched alongside are discarded with it: the
-        // checkpoints' own read policy would also have returned a stranger's
-        // PUBLIC build's rows.
-        loadError = 'That build could not be found.';
+        // "Exists but not ours" and "does not exist" deliberately produce the
+        // same message so the UI cannot be used to probe which build ids
+        // exist. The checkpoints fetched alongside are discarded with it.
+        loadError = NOT_FOUND;
       } else {
         build = data as unknown as SavedBuild;
         if (checkpointError) {
-          // Degrade rather than fail: the builds row mirrors the checkpoint
-          // last saved, so the editor still opens on real data, and a save
-          // without a checkpoint_id resolves by POST /api/builds' "exactly one
-          // checkpoint" rule. What is lost is the checkpoint list itself.
+          // Degrade rather than fail: the redirect below simply names no
+          // checkpoint, and the build page falls back to the first.
           console.error('Failed to load checkpoints:', checkpointError);
         } else {
           checkpoints = parseCheckpoints(checkpointRows);
@@ -86,46 +73,34 @@ export default async function TreePage({
     }
   }
 
-  // The build page (slice 2) is now where owned builds with a share token get
-  // edited — this route becomes purely the redirect to its Tree tab, in edit
-  // mode, on the resolved checkpoint. "Ours" is already established above
-  // (any row that came back but is not ours set loadError instead of
-  // `build`), so the only extra condition is a non-null share_token: a build
-  // saved with a null token (data predating share links, or a state this
-  // codebase does not otherwise produce) keeps behaving exactly as today,
-  // same as "missing" and "bad id".
-  if (build && build.share_token) {
-    const target = checkpoints.length > 0 ? activeCheckpoint(checkpoints, checkpointParam) : null;
-    redirect(
-      `/builds/${encodeURIComponent(build.share_token)}${patchQuery('', {
-        tab: 'tree',
-        edit: '1',
-        checkpoint: target?.id ?? null,
-      })}`,
-    );
+  if (build) {
+    // "Ours" is already established above (any row that came back but is not
+    // ours set loadError instead of `build`). Only a build with a share token
+    // has a page to go to; one without (data predating share links, a state
+    // this codebase does not otherwise produce) has nowhere left to be edited
+    // now that the old editor is gone, so it reads as not found.
+    if (build.share_token) {
+      const target = checkpoints.length > 0 ? activeCheckpoint(checkpoints, checkpointParam) : null;
+      redirect(
+        `/builds/${encodeURIComponent(build.share_token)}${patchQuery('', {
+          tab: 'tree',
+          edit: '1',
+          checkpoint: target?.id ?? null,
+        })}`,
+      );
+    }
+    loadError = NOT_FOUND;
   }
 
-  // Name the checkpoint in the URL whenever it is not already there. Links to
-  // a build (My Builds, Import, Edit) carry no ?checkpoint=, and "the first
-  // by position" is not a stable answer: moving another checkpoint above it
-  // re-rendered this page on a different checkpoint and remounted the editor
-  // there, unsaved level and all (review 2026-09-26). An id in the URL keeps
-  // the editor where it is through reorders, renames and adds. An unknown id
-  // (e.g. the one just deleted) is replaced the same way.
-  if (build && checkpoints.length > 0 && !checkpoints.some((c) => c.id === checkpointParam)) {
-    const target = activeCheckpoint(checkpoints, checkpointParam)!;
-    redirect(`/tree?build=${encodeURIComponent(build.id)}&checkpoint=${encodeURIComponent(target.id)}`);
+  // Quick plan opens on the Tree tab, as the tree editor always did. The tab
+  // is a URL parameter (BuildTabs pushes it), so the default is a redirect
+  // rather than a special case in the client: Overview stays "no ?tab=" on
+  // every other page, and choosing it here must not bounce back to Tree.
+  if (typeof params.tab !== 'string') {
+    redirect(`/tree${patchQuery('', { build: buildId ?? null, checkpoint: checkpointParam, tab: 'tree' })}`);
   }
 
   // Scratch mode (no ?build=) makes zero database calls above — buildId is
   // undefined, so the `if (buildId)` block never runs.
-  return (
-    <TreeEditor
-      buildId={buildId}
-      build={build}
-      checkpoints={checkpoints}
-      checkpointParam={checkpointParam}
-      loadError={loadError}
-    />
-  );
+  return <ScratchBuildPage notice={loadError} />;
 }
