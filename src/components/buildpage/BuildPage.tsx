@@ -26,6 +26,7 @@ import BuildHeader, { HeaderActions } from './BuildHeader';
 import BuildTabs from './BuildTabs';
 import CheckpointSwitcher, { useCheckpointManage } from './CheckpointSwitcher';
 import EditBar from './EditBar';
+import { enterEdit as enterEditMode } from './tabNav';
 import StatsRail from './StatsRail';
 import OverviewTab from './tabs/OverviewTab';
 import GearTab from './tabs/GearTab';
@@ -94,7 +95,7 @@ function BuildPageBody(props: BuildPageProps) {
 
   function enterEdit() {
     setShowChoice(false);
-    setQuery({ edit: '1' });
+    enterEditMode();
   }
   function exitEdit() {
     setQuery({ edit: null });
@@ -213,7 +214,9 @@ function BuildPageBody(props: BuildPageProps) {
 
       <div className={tab === 'tree' ? '' : 'md:grid md:grid-cols-[minmax(0,1fr)_16rem] md:gap-6'}>
         <div className="min-w-0">
-          {tab === 'overview' ? <OverviewTab edit={edit} /> : null}
+          {tab === 'overview' ? (
+            <OverviewTab edit={edit} shareToken={shareToken} checkpoints={checkpoints} activeCheckpointId={activeCheckpointId} />
+          ) : null}
           {tab === 'gear' ? <GearTab edit={edit} /> : null}
           {/* Keyed by mode: leaving edit mode drops the tab's sheet/detail UI state (it holds nothing else). */}
           {tab === 'skills' ? <SkillsTab key={edit ? 'edit' : 'read'} edit={edit} /> : null}

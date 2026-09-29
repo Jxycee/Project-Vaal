@@ -1,9 +1,17 @@
 'use client';
 
-// Overview: what a reader needs in one screen — main skill group, key items, notes.
-import { keyItems, headlineSet, mainSkillLoadout } from '@/lib/build/buildPage';
+// Overview: the build's front page. Main skill card, key items as an icon
+// grid, the checkpoints at a glance, notes. Cards and tiles are buttons that
+// open the tab that holds the detail (in-page, via tabNav's pushState). An
+// empty build shows plain "No skills yet" / "No gear yet" text, and its owner
+// (only) gets a button that opens the right tab in edit mode — in-page too
+// (pushState + replaceState, no remount), so an unsaved edit survives the tap.
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { keyItems, headlineSet, mainSkillLoadout, patchQuery } from '@/lib/build/buildPage';
 import { MAX_NOTES_LENGTH } from '@/lib/build/constants';
 import { useBuildSession } from '../session/BuildSession';
+import { enterEdit, selectTab } from '../tabNav';
 
 function Icon({ src, size = 'h-9 w-9' }: { src: string | null; size?: string }) {
   return (
@@ -16,68 +24,147 @@ function Icon({ src, size = 'h-9 w-9' }: { src: string | null; size?: string }) 
   );
 }
 
-export default function OverviewTab({ edit }: { edit: boolean }) {
-  const { gear, gems, meta, setMeta } = useBuildSession();
+const SECTION = 'rounded-lg border border-border bg-card/40 p-3';
+const HEADING = 'mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground';
+
+export default function OverviewTab({
+  edit,
+  shareToken,
+  checkpoints,
+  activeCheckpointId,
+}: {
+  edit: boolean;
+  shareToken: string;
+  checkpoints: { id: string; name: string; level: number }[];
+  activeCheckpointId: string | undefined;
+}) {
+  const { gear, gems, meta, setMeta, canEdit } = useBuildSession();
+  const searchParams = useSearchParams();
   const mainSkill = mainSkillLoadout(gems);
   const set = headlineSet(gems);
   const items = keyItems(gear, set);
+  const activeId = checkpoints.find((c) => c.id === activeCheckpointId)?.id ?? checkpoints[0]?.id;
+
+  // Owner-only CTA target: open `tab` in edit mode. Both calls are History API
+  // only — no server request, no remount — so nothing unsaved is lost.
+  function openForEditing(tab: 'skills' | 'gear') {
+    selectTab(tab);
+    if (!edit) enterEdit();
+  }
+
   return (
-    <div id="overview-tab" role="tabpanel" data-testid="overview-tab" className="flex flex-col gap-4">
-      <section className="rounded-lg border border-border bg-card/40 p-3">
-        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Main skill</h2>
+    <div id="overview-tab" role="tabpanel" data-testid="overview-tab" className="flex min-w-0 flex-col gap-3">
+      <section className={SECTION}>
+        <h2 className={HEADING}>Main skill</h2>
         {mainSkill?.skill ? (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-3">
+          <button
+            type="button"
+            data-testid="overview-main-skill"
+            onClick={() => selectTab('skills')}
+            className="flex min-h-11 w-full min-w-0 flex-col gap-2 rounded-md text-left"
+          >
+            <span className="flex min-w-0 items-center gap-3">
               <Icon src={mainSkill.skill.iconUrl} size="h-11 w-11" />
-              <div className="min-w-0">
-                <p className="truncate text-base font-medium text-foreground">{mainSkill.skill.name}</p>
-                <p className="text-xs text-muted-foreground">
+              <span className="min-w-0">
+                <span className="block truncate text-base font-medium text-foreground">{mainSkill.skill.name}</span>
+                <span className="block text-xs text-muted-foreground">
                   Level {mainSkill.level}
                   {mainSkill.quality > 0 ? ` · ${mainSkill.quality}% quality` : ''}
-                </p>
-              </div>
-            </div>
+                </span>
+              </span>
+            </span>
             {mainSkill.supports.length > 0 ? (
-              <ul className="flex flex-col gap-1.5 pl-14">
+              <span className="flex flex-col gap-1.5 pl-14">
                 {mainSkill.supports.map((s, i) => (
-                  <li key={`${s.slug}-${i}`} className="flex min-w-0 items-center gap-2 text-sm text-foreground">
+                  <span key={`${s.slug}-${i}`} className="flex min-w-0 items-center gap-2 text-sm text-foreground">
                     <Icon src={s.iconUrl} size="h-6 w-6" />
                     <span className="truncate">{s.name}</span>
-                  </li>
+                  </span>
                 ))}
-              </ul>
+              </span>
+            ) : null}
+          </button>
+        ) : (
+          <div className="flex flex-col items-start gap-2">
+            <p className="text-sm text-muted-foreground">No skills yet</p>
+            {canEdit ? (
+              <button
+                type="button"
+                data-testid="overview-cta-skills"
+                onClick={() => openForEditing('skills')}
+                className="h-11 min-w-11 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
+              >
+                Pick your main skill
+              </button>
+            ) : null}
+          </div>
+        )}
+      </section>
+
+      <section className={SECTION}>
+        <h2 className={HEADING}>Key items</h2>
+        {items.length === 0 ? (
+          <div className="flex flex-col items-start gap-2">
+            <p className="text-sm text-muted-foreground">No gear yet</p>
+            {canEdit ? (
+              <button
+                type="button"
+                data-testid="overview-cta-gear"
+                onClick={() => openForEditing('gear')}
+                className="h-11 min-w-11 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
+              >
+                Add gear
+              </button>
             ) : null}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">No main skill set.</p>
+          <div data-testid="overview-key-items" className="grid grid-cols-4 gap-2 md:grid-cols-6">
+            {items.map((item, i) => (
+              <button
+                key={`${item.slug}-${i}`}
+                type="button"
+                data-testid="overview-key-item"
+                aria-label={item.name}
+                onClick={() => selectTab('gear')}
+                className="flex min-h-11 min-w-11 flex-col items-center gap-1 rounded-md"
+              >
+                <Icon src={item.iconUrl} size="h-11 w-11" />
+                <span
+                  className="w-full truncate text-center text-[11px] leading-tight text-foreground"
+                  style={item.isUnique ? { color: 'var(--wiki-unique)' } : undefined}
+                >
+                  {item.name}
+                </span>
+              </button>
+            ))}
+          </div>
         )}
       </section>
 
-      <section className="rounded-lg border border-border bg-card/40 p-3">
-        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Key items</h2>
-        {items.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No key items yet.</p>
-        ) : (
-          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {items.map((item, i) => (
-              <li key={`${item.slug}-${i}`} className="flex min-w-0 items-center gap-3">
-                <Icon src={item.iconUrl} />
-                <span className="truncate text-sm text-foreground">
-                  {item.name}
-                  {item.isUnique ? (
-                    <span className="ml-1.5 text-xs font-medium" style={{ color: 'var(--wiki-unique)' }}>
-                      Unique
-                    </span>
-                  ) : null}
-                </span>
+      {checkpoints.length >= 2 ? (
+        <section className={SECTION}>
+          <h2 className={HEADING}>Checkpoints</h2>
+          <ul data-testid="overview-checkpoints" className="flex flex-col">
+            {checkpoints.map((c) => (
+              <li key={c.id}>
+                <Link
+                  href={`/builds/${shareToken}${patchQuery(searchParams.toString(), { checkpoint: c.id })}`}
+                  aria-current={c.id === activeId ? 'true' : undefined}
+                  className={`flex h-11 min-w-11 items-center justify-between gap-3 rounded-md px-2 text-sm ${
+                    c.id === activeId ? 'bg-accent font-medium text-foreground' : 'text-muted-foreground'
+                  }`}
+                >
+                  <span className="truncate">{c.name}</span>
+                  <span className="shrink-0 tabular-nums">Lvl {c.level}</span>
+                </Link>
               </li>
             ))}
           </ul>
-        )}
-      </section>
+        </section>
+      ) : null}
 
-      <section className="rounded-lg border border-border bg-card/40 p-3">
-        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Notes</h2>
+      <section data-testid="overview-notes" className={SECTION}>
+        <h2 className={HEADING}>Notes</h2>
         {edit ? (
           <textarea
             id="build-notes"
