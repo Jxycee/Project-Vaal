@@ -11,16 +11,17 @@ import {
 //
 // It used to re-run every persistence spec at 1280px. That bought nothing: the
 // whole app carries 43 `md:` utilities, and the part of it those specs drive —
-// the tree, the save panel, the gear/jewels/gems sheets — accounts for five of
+// the tree, the save bar, the gear/jewels/gems editors — accounts for five of
 // them. Every assertion in those specs is about server state, not pixels, so
 // the desktop pass re-proved mobile's result at the cost of ~17 extra full
 // /tree loads, each one a 5.1MB export fetch and parse.
 //
-// What IS desktop-only is the shell's sidebar: `md:w-60` in shell-chrome.tsx
-// and the matching `md:left-60` that offsets the tree canvas in TreeEditor.tsx.
-// Two numbers, in two files, that have to agree, with nothing to notice when
-// they stop — the tree would simply render underneath the sidebar. That is what
-// this file is for, and playwright.config.ts scopes the desktop project to it.
+// What IS desktop-only is the shell's sidebar (`md:w-60` in shell-chrome.tsx).
+// The tree used to be a fixed-position canvas offset by a matching `md:left-60`
+// in the old TreeEditor; it now sits in flow in the shell's main column (the
+// Tree tab), so this guards the same thing from the other side: the tree must
+// not render underneath the sidebar. playwright.config.ts scopes the desktop
+// project to this file.
 
 test.describe('desktop layout', () => {
   test.skip(() => test.info().project.name !== 'desktop', 'desktop project only');

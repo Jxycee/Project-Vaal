@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import {
   cleanupWithFreshPage,
-  closeGearEditor,
+  closeGemEditor,
   gearSlotLocator,
   gearWarningItems,
   listedBuildNames,
@@ -10,6 +10,7 @@ import {
   openEditor,
   openTree,
   pickByName,
+  pickGearItem,
   readBuildId,
   saveBuild,
   setGearWeaponSet,
@@ -36,70 +37,66 @@ test.describe('structural validation', () => {
     await openTree(page);
 
     // ---- Gear, set I: a crossbow fills both hands ---------------------------
-    await page.getByRole('button', { name: 'Gear' }).click();
-    const gear = page.locator('.fixed.inset-0.z-40');
-    await expect(gear).toBeVisible();
-    const row = (label: string) => gear.locator('ul li').filter({ hasText: label }).first();
-    const warningsList = gear.getByTestId('build-warning');
+    await openEditor(page, 'gear');
 
-    await pickByName(page, row('Weapon').getByRole('button').first(), 'Siege Crossbow');
-    await expect(row('Weapon')).toContainText('Siege Crossbow');
+    await pickGearItem(page, 'weapon1_main', 'Siege Crossbow');
     // The game draws a two-hander in both slots; an empty off-hand says so.
-    await expect(gear.getByTestId('gear-occupied-weapon1_off')).toHaveText('Occupied by Siege Crossbow');
-    await expect(warningsList).toHaveCount(0);
+    await expect(page.getByTestId('gear-occupied-weapon1_off')).toHaveText('Occupied by Siege Crossbow');
+    await expect(await gearWarningItems(page)).toHaveCount(0);
 
-    await pickByName(page, row('Off-hand').getByRole('button').first(), 'Braced Tower Shield');
-    await expect(row('Off-hand')).toContainText('Braced Tower Shield');
-    await expect(gear.getByTestId('gear-warning-weapon1_off')).toHaveCount(1);
-    await expect(gear.getByTestId('gear-warning-weapon1_main')).toHaveCount(0);
-    await expect(warningsList).toHaveCount(1);
-    await expect(warningsList.first()).toContainText('Siege Crossbow is two-handed');
+    await pickGearItem(page, 'weapon1_off', 'Braced Tower Shield');
+    await expect(page.getByTestId('gear-warning-weapon1_off')).toHaveCount(1);
+    await expect(page.getByTestId('gear-warning-weapon1_main')).toHaveCount(0);
+    await expect(await gearWarningItems(page)).toHaveCount(1);
+    await expect((await gearWarningItems(page)).first()).toContainText('Siege Crossbow is two-handed');
 
     // ---- Gear, set II: the other set is free --------------------------------
-    await gear.getByRole('button', { name: 'Set II' }).click();
-    // Paired positive: set II's two rows are really the ones on screen, empty
+    await setGearWeaponSet(page, 2);
+    // Paired positive: set II's two cells are really the ones on screen, empty
     // and NOT occupied — a two-hander in set I says nothing about set II.
-    await expect(row('Weapon')).toContainText('Empty');
-    await expect(row('Off-hand')).toContainText('Empty');
-    await expect(gear.getByTestId('gear-occupied-weapon2_off')).toHaveCount(0);
+    await expect(gearSlotLocator(page, 'weapon2_main')).toContainText('Empty');
+    await expect(gearSlotLocator(page, 'weapon2_off')).toContainText('Empty');
+    await expect(page.getByTestId('gear-occupied-weapon2_off')).toHaveCount(0);
 
     // Bow + quiver is legal.
-    await pickByName(page, row('Weapon').getByRole('button').first(), 'Crude Bow');
-    await pickByName(page, row('Off-hand').getByRole('button').first(), 'Blunt Quiver');
-    await expect(row('Off-hand')).toContainText('Blunt Quiver');
-    await expect(gear.getByTestId('gear-warning-weapon2_off')).toHaveCount(0);
-    await expect(warningsList).toHaveCount(1);
+    await pickGearItem(page, 'weapon2_main', 'Crude Bow');
+    await pickGearItem(page, 'weapon2_off', 'Blunt Quiver');
+    await expect(page.getByTestId('gear-warning-weapon2_off')).toHaveCount(0);
+    await expect(await gearWarningItems(page)).toHaveCount(1);
 
     // A quiver without a bow is not — swap the bow for a dagger.
-    await pickByName(page, row('Weapon').getByRole('button').first(), 'Simple Dagger');
-    await expect(row('Weapon')).toContainText('Simple Dagger');
-    await expect(gear.getByTestId('gear-warning-weapon2_off')).toHaveCount(1);
-    await expect(warningsList).toHaveCount(2);
-    await expect(warningsList.nth(1)).toContainText('needs a bow');
+    await pickGearItem(page, 'weapon2_main', 'Simple Dagger');
+    await expect(page.getByTestId('gear-warning-weapon2_off')).toHaveCount(1);
+    await expect(await gearWarningItems(page)).toHaveCount(2);
+    await expect((await gearWarningItems(page)).nth(1)).toContainText('needs a bow');
 
     // Dual wielding: the widened off-hand offers a dagger, and it is legal.
-    await pickByName(page, row('Off-hand').getByRole('button').first(), 'Simple Dagger');
-    await expect(row('Off-hand')).toContainText('Simple Dagger');
-    await expect(gear.getByTestId('gear-warning-weapon2_off')).toHaveCount(0);
-    await expect(warningsList).toHaveCount(1);
-
-    await gear.getByRole('button', { name: 'Close gear sheet' }).click();
-    await expect(gear).toBeHidden();
+    await pickGearItem(page, 'weapon2_off', 'Simple Dagger');
+    await expect(page.getByTestId('gear-warning-weapon2_off')).toHaveCount(0);
+    await expect(await gearWarningItems(page)).toHaveCount(1);
 
     // ---- Gems: reserved Spirit, set I only ----------------------------------
-    await page.getByRole('button', { name: /^Gems/ }).click();
-    const gems = page.locator('.fixed.inset-0.z-40').filter({ hasText: 'Gems' });
-    await gems.getByRole('button', { name: '+ Add skill' }).click();
+    await openEditor(page, 'gems');
+    await page.getByRole('button', { name: '+ Add skill group' }).click();
+    const gems = page.getByTestId('gem-group-sheet');
+    await expect(gems).toBeVisible();
     const card = gems.locator('ul > li').first();
     await pickByName(page, card.getByRole('button', { name: /Empty/ }), "Alchemist's Boon");
     await pickByName(page, card.getByRole('button', { name: 'Add support' }), 'Clarity I');
     await expect(card).toContainText('1 / 5 supports');
     // A new loadout is tagged to both sets; untag set II.
     await card.getByRole('button', { name: 'Set II' }).click();
-    // 30 (Alchemist's Boon) + 10 (Clarity I), verified against the skill files.
-    await expect(gems.getByTestId('spirit-reserved')).toHaveText('Spirit reserved — Set I: 40 · Set II: 0');
-    await gems.getByRole('button', { name: 'Close gems sheet' }).click();
-    await expect(gems).toBeHidden();
+    await closeGemEditor(page);
+    // 30 (Alchemist's Boon) + 10 (Clarity I), verified against the skill files:
+    // Set I reserves 40 and Set II nothing, on the Skills tab's line and on the
+    // Stats tab's per-set view.
+    await expect(page.getByTestId('skills-tab')).toContainText('Spirit reserved (Set I): 40');
+    await openEditor(page, 'stats');
+    const draftStats = page.getByTestId('stats-panel');
+    await draftStats.getByRole('button', { name: 'Set I', exact: true }).click();
+    await expect(draftStats.getByTestId('stat-spirit')).toContainText('(40 reserved)', { timeout: 30_000 });
+    await draftStats.getByRole('button', { name: 'Set II', exact: true }).click();
+    await expect(draftStats.getByTestId('stat-spirit')).toContainText('(0 reserved)');
 
     // ---- Save, then a FULL reload -------------------------------------------
     const name = testBuildName('validation');
@@ -130,7 +127,6 @@ test.describe('structural validation', () => {
     await expect(gearSlotLocator(page, 'weapon2_main')).toContainText('Simple Dagger');
     await expect(gearSlotLocator(page, 'weapon2_off')).toContainText('Simple Dagger');
     await expect(page.getByTestId('gear-warning-weapon2_off')).toHaveCount(0);
-    await closeGearEditor(page);
 
     // Gems: the Skills tab's spirit line reads the headline set (the main
     // skill's first tagged set, here Set I) — 40 reserved, and the one group

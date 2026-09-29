@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoBuilds, openTree } from './helpers';
+import { closeGemEditor, gotoBuilds, openEditor, openTree } from './helpers';
 
 declare global {
   interface Window {
@@ -81,65 +81,67 @@ test.describe('mobile layout', () => {
     expect(result.tooSmall, `controls under ${MIN_TAP_PX}px on /builds`).toEqual([]);
   });
 
-  test('the tree sheets meet the minimum tap target size', async ({ page }) => {
-    // The /builds check above cannot see any of this: the gear, jewels and gem
-    // sheets live on /tree and render through a portal to document.body, well
-    // outside <main>. That blind spot shipped a ~20px-wide support-remove
-    // button that passed review precisely because the old check measured only
-    // height, never width.
+  test('the build page editors meet the minimum tap target size', async ({ page }) => {
+    // The /builds check above cannot see any of this: the jewels and gem-group
+    // sheets render through a portal to document.body, well outside <main>,
+    // and the Gear tab is on the scratch planner at /tree. That blind spot
+    // shipped a ~20px-wide support-remove button that passed review precisely
+    // because the old check measured only height, never width.
     await openTree(page);
 
-    for (const chip of ['Gear', 'Jewels', 'Gems'] as const) {
-      // Prefix match, not exact: these chips carry a state suffix in their
-      // accessible name (e.g. "Jewels — allocate a socket on the tree").
-      await page.getByRole('button', { name: new RegExp(`^${chip}`) }).click();
-      const sheet = page.locator('.z-40');
-      await expect(sheet).toBeVisible();
-
+    const measure = async (selector: string, label: string) => {
       const result = await page.evaluate(
-        (min) => window.__measureTapTargets!('.z-40', min),
-        MIN_TAP_PX,
+        ({ sel, min }) => window.__measureTapTargets!(sel, min),
+        { sel: selector, min: MIN_TAP_PX },
       );
-      expect(result.scanned, `no controls found in the ${chip} sheet`).toBeGreaterThan(0);
-      expect(result.tooSmall, `controls under ${MIN_TAP_PX}px in the ${chip} sheet`).toEqual([]);
+      expect(result.scanned, `no controls found in the ${label}`).toBeGreaterThan(0);
+      expect(result.tooSmall, `controls under ${MIN_TAP_PX}px in the ${label}`).toEqual([]);
+    };
 
-      await sheet.getByRole('button', { name: /^Close/ }).click();
-      await expect(sheet).toBeHidden();
-    }
+    // Gear tab: paper doll, slot detail, jewels section.
+    await openEditor(page, 'gear');
+    await measure('[data-testid="gear-tab"]', 'Gear tab');
+
+    // Jewels sheet.
+    await openEditor(page, 'jewels');
+    const jewels = page.locator('.z-40');
+    await expect(jewels).toBeVisible();
+    await measure('.z-40', 'jewels sheet');
+    await jewels.getByRole('button', { name: /^Close/ }).click();
+    await expect(jewels).toBeHidden();
+
+    // Gem group sheet, on a fresh group.
+    await openEditor(page, 'gems');
+    await page.getByRole('button', { name: '+ Add skill group' }).click();
+    await expect(page.getByTestId('gem-group-sheet')).toBeVisible();
+    await measure('[data-testid="gem-group-sheet"]', 'gem group sheet');
+    await closeGemEditor(page);
   });
 
-  test('tree overlays do not overlap each other at 375px', async ({ page }) => {
+  test('tree overlays stay inside the canvas at 375px', async ({ page }) => {
     await openTree(page);
 
-    // TreeControls (left-3 top-3), BuildSavePanel (right-3 top-3) and the draft
-    // prompt all live as absolute overlays on the same canvas. Their resting
-    // positions must not collide, or one silently covers another on a phone.
-    const { measured, overlaps } = await page.evaluate(() => {
-      const rects = [...document.querySelectorAll<HTMLElement>('.absolute.z-10')]
-        .map((el) => ({
-          label: (el.innerText || '').trim().slice(0, 30),
-          r: el.getBoundingClientRect(),
-        }))
+    // TreeControls (left-3 top-3) is an absolute overlay on the canvas. It has
+    // to sit fully inside the tree tab's own box, or it is covering (or hanging
+    // off) the page chrome around it. It used to be compared against
+    // BuildSavePanel and the chip row, the other overlays of the old editor,
+    // which no longer exist; the build page's controls are ordinary flow
+    // content above the canvas.
+    const { measured, outside } = await page.evaluate(() => {
+      const canvas = document.querySelector<HTMLElement>('[data-testid="tree-tab"]')!.getBoundingClientRect();
+      const rects = [...document.querySelectorAll<HTMLElement>('[data-testid="tree-tab"] .absolute.z-10')]
+        .map((el) => ({ label: (el.innerText || '').trim().slice(0, 30), r: el.getBoundingClientRect() }))
         .filter((x) => x.r.width > 0 && x.r.height > 0);
-
-      const hits: string[] = [];
-      for (let i = 0; i < rects.length; i += 1) {
-        for (let j = i + 1; j < rects.length; j += 1) {
-          const a = rects[i].r;
-          const b = rects[j].r;
-          const intersects =
-            a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
-          if (intersects) hits.push(`${rects[i].label} ↔ ${rects[j].label}`);
-        }
-      }
-      return { measured: rects.length, overlaps: hits };
+      const bad = rects
+        .filter(({ r }) => r.left < canvas.left - 1 || r.right > canvas.right + 1 || r.top < canvas.top - 1 || r.bottom > canvas.bottom + 1)
+        .map((x) => x.label);
+      return { measured: rects.length, outside: bad };
     });
 
-    // At rest /tree always shows TreeControls, BuildSavePanel and the chip row.
-    // Fewer than two means the `.absolute.z-10` convention moved and this test
+    // Fewer than one means the `.absolute.z-10` convention moved and this test
     // is now comparing an empty list against an empty list.
-    expect(measured, 'expected at least two z-10 overlays on /tree').toBeGreaterThanOrEqual(2);
-    expect(overlaps, 'overlapping tree overlays').toEqual([]);
+    expect(measured, 'expected at least one z-10 overlay on the tree').toBeGreaterThanOrEqual(1);
+    expect(outside, 'tree overlays outside the canvas').toEqual([]);
   });
 
   test('no horizontal page scroll', async ({ page }) => {

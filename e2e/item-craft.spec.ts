@@ -1,7 +1,6 @@
 import { test, expect } from '@playwright/test';
 import {
   cleanupWithFreshPage,
-  closeGearEditor,
   listedBuildNames,
   measureTapTargets,
   MIN_TAP_PX,
@@ -9,6 +8,7 @@ import {
   openItemEditor,
   openTree,
   pickByName,
+  pickGearItem,
   readBuildId,
   saveBuild,
   selectGearSlot,
@@ -32,15 +32,9 @@ test.describe('item craft', () => {
 
   test('a crafted rare ring: warning at four prefixes, clamped values, everything back after a reload', async ({ page }) => {
     await openTree(page);
-    await page.getByRole('button', { name: 'Gear' }).click();
-    const gear = page.locator('.fixed.inset-0.z-40');
-    const ringRow = gear.locator('ul li').filter({ hasText: 'Ring 1' }).first();
-    await pickByName(page, ringRow.getByRole('button').first(), 'Amethyst Ring');
-    await expect(ringRow).toContainText('Amethyst Ring');
-
-    await gear.getByRole('button', { name: 'Edit Ring 1' }).click();
-    const editor = page.getByTestId('item-editor');
-    await expect(editor).toBeVisible();
+    await openEditor(page, 'gear');
+    await pickGearItem(page, 'ring1', 'Amethyst Ring');
+    const editor = await openItemEditor(page, 'ring1');
 
     await editor.getByTestId('rarity-rare').click();
     await expect(editor.getByTestId('rarity-rare')).toHaveAttribute('aria-pressed', 'true');
@@ -102,8 +96,7 @@ test.describe('item craft', () => {
     expect(taps.tooSmall, `controls under ${MIN_TAP_PX}px in the item editor`).toEqual([]);
 
     await editor.getByRole('button', { name: 'Close item editor' }).click();
-    await expect(gear.getByTestId('gear-craft-ring1')).toHaveText('rare · 3 affixes · 1 rune');
-    await gear.getByRole('button', { name: 'Close gear sheet' }).click();
+    await expect(page.getByTestId('gear-craft-ring1')).toHaveText('rare · 3 affixes · 1 rune');
 
     // ---- Save, then a FULL reload -----------------------------------------
     const name = testBuildName('craft');
@@ -138,7 +131,6 @@ test.describe('item craft', () => {
     await expect(editor.getByTestId('rune-row')).toHaveCount(6);
     await expect(editor.getByTestId('add-rune')).toBeDisabled();
     await editor.getByRole('button', { name: 'Close item editor' }).click();
-    await closeGearEditor(page);
     await saveBuild(page);
   });
 });
