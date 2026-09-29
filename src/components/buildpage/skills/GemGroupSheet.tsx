@@ -52,7 +52,12 @@ export default function GemGroupSheet({
             onSetSkill={(item) => gemActions.setSkill(id, item)}
             onAddSupport={(item) => gemActions.addSupport(id, item)}
             onRemoveSupport={(supportIndex) => gemActions.removeSupport(id, supportIndex)}
-            onRemove={() => gemActions.remove(id)}
+            // Removing the group also closes its sheet, so the tab drops its remembered id
+            // rather than reopening this group if it ever comes back (e.g. after a Discard).
+            onRemove={() => {
+              gemActions.remove(id);
+              onClose();
+            }}
             onSetSets={(sets) => gemActions.setSets(id, sets)}
             onSetPrimary={() => gemActions.setPrimary(id)}
             onSetLevel={(level) => gemActions.setLevel(id, level)}

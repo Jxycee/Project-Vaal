@@ -10,9 +10,8 @@ import { cleanupWithFreshPage, gotoBuilds, measureTapTargets, testBuildName } fr
 // Skills tab's stacked LoadoutCards (and the full-screen GemsSheet behind
 // "Edit skills") are replaced by compact one-line rows, main skill first.
 // Tapping a row shows its supports inline (read mode) or opens an editor for
-// just that group (edit mode). Written FIRST — the app code lands in task 3 of
-// the plan, so every test below is expected to fail until then, starting at
-// the very first `skill-row` assertion, which does not exist yet.
+// just that group (edit mode). Written FIRST, before the app code, and failing
+// at the very first `skill-row` assertion; it passes now that the rows exist.
 //
 // Contract this spec pins (plan Global Constraints):
 //   - `skill-row` on one <button> per gem group, <= 64px tall at 375px, fully
@@ -284,5 +283,34 @@ test.describe('build page skill rows', () => {
     await expect(rows.first()).toContainText(newMain);
     expect(await rowName(rows.first()), 'the first row is not the header main skill').toBe(newMain);
     await expect(page.getByTestId('skills-tab').getByText('Main', { exact: true })).toHaveCount(1);
+  });
+
+  test('a group removed from its own sheet does not reopen it after Done, Discard and Edit', async ({ page }) => {
+    await goto(page, editUrl());
+    await expect(page.getByTestId('skills-tab')).toBeVisible({ timeout: 30_000 });
+    const rows = page.getByTestId('skill-row');
+    await expect(rows).toHaveCount(5);
+    const labelsBefore = await rows.evaluateAll((els) => els.map((el) => el.getAttribute('aria-label') ?? ''));
+    const removedLabel = labelsBefore[0];
+
+    await rows.first().click();
+    const sheet = page.getByTestId('gem-group-sheet');
+    await expect(sheet).toBeVisible();
+    await sheet.getByRole('button', { name: /^Remove skill \d+$/ }).click();
+    await expect(sheet).toBeHidden();
+    await expect(rows).toHaveCount(4);
+
+    // Done with unsaved changes -> Discard leaves edit mode and restores the saved groups.
+    await page.getByRole('button', { name: 'Done' }).click();
+    await page.getByTestId('unsaved-choice').getByRole('button', { name: 'Discard' }).click();
+    await expect(page.getByRole('button', { name: 'Edit', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Edit', exact: true }).click();
+    await expect(page.getByRole('button', { name: '+ Add skill group' })).toBeVisible();
+
+    // Positive: the discarded removal is undone — the removed group's row is back.
+    await expect(rows).toHaveCount(5);
+    await expect(page.locator(`[data-testid="skill-row"][aria-label="${removedLabel}"]`)).toHaveCount(1);
+    // Negative: no sheet reopens by itself for the group that was removed.
+    await expect(page.getByTestId('gem-group-sheet')).toHaveCount(0);
   });
 });

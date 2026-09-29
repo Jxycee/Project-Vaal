@@ -21,7 +21,7 @@ import type { GemLoadout } from '@/lib/build/gemState';
 /**
  * Fetches the currently-picked skill's per-gem level cap (see
  * fetchGemScaling.ts) and keeps it in sync as the skill changes. `null`
- * while loading or when no skill is picked — LoadoutCard treats that as
+ * while loading or when no skill is picked — GemLoadoutEditor treats that as
  * "don't clamp yet" rather than "cap is 1", so a level typed just after
  * picking a new skill isn't clobbered by a cap that hasn't arrived yet.
  */
