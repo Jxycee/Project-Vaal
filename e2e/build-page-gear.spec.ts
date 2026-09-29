@@ -1,7 +1,10 @@
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { cleanupWithFreshPage, gotoBuilds, measureTapTargets, testBuildName } from './helpers';
+import {
+  cleanupWithFreshPage,
+  importFixture,
+  measureTapTargets,
+  testBuildName,
+} from './helpers';
 
 // Slice 4 of the build-profile redesign
 // (docs/superpowers/specs/2026-09-27-build-profile-redesign-design.md §3
@@ -41,36 +44,6 @@ import { cleanupWithFreshPage, gotoBuilds, measureTapTargets, testBuildName } fr
 // gear-craft-body reads "unique · 0 affixes · 2 runes" there, which is also
 // why the weapon set toggle's default (the build's headlineSet) is expected
 // to show Set I / weapon1_* on this fixture.
-const CODE = readFileSync(path.join(__dirname, '..', 'src', 'lib', 'pob', '__fixtures__', 'sample-pob2-code.txt'), 'utf8');
-
-/** Copied from build-page.spec.ts — imports now land on the build page (slice 2). */
-async function importFixture(page: Page, name: string): Promise<void> {
-  await gotoBuilds(page);
-  await page.getByTestId('open-import-sheet').click();
-  const sheet = page.getByTestId('import-sheet');
-  await sheet.getByTestId('import-input').fill(CODE);
-  await sheet.getByRole('button', { name: 'Preview', exact: true }).click();
-  await expect(sheet.getByTestId('import-preview')).toBeVisible({ timeout: 60_000 });
-  await sheet.getByTestId('import-name').fill(name);
-  await sheet.getByRole('button', { name: 'Import', exact: true }).click();
-  await page.waitForURL(/\/(tree\?build=[0-9a-f-]{36}|builds\/)/, { timeout: 60_000 });
-}
-
-/** Copied from build-page.spec.ts — imports are owner-only (unlisted), so flip to Private, read it, flip back. */
-async function readShareToken(page: Page, name: string): Promise<string> {
-  await page.goto('/builds');
-  const row = page.locator('ul > li').filter({ has: page.locator(`a:has-text("${name}")`) }).first();
-  await expect(row).toBeVisible();
-  await row.getByRole('combobox').click();
-  await page.getByRole('option', { name: 'Private' }).click();
-  const link = row.locator('a[href^="/builds/"]');
-  await expect(link).toBeVisible({ timeout: 30_000 });
-  const href = (await link.getAttribute('href'))!;
-  await row.getByRole('combobox').click();
-  await page.getByRole('option', { name: 'Unlisted' }).click();
-  await expect(link).toBeHidden({ timeout: 30_000 });
-  return href.replace('/builds/', '');
-}
 
 /**
  * `page.goto`, tolerant of one `net::ERR_ABORTED`. Copied from
@@ -140,8 +113,7 @@ test.describe('build page gear paper doll', () => {
   });
 
   test('the doll fits a phone', async ({ page }) => {
-    await importFixture(page, name);
-    token = await readShareToken(page, name);
+    token = await importFixture(page, name);
 
     await goto(page, `/builds/${token}`);
     await expect(page.getByTestId('build-page')).toBeVisible({ timeout: 30_000 });

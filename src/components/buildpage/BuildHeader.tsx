@@ -12,6 +12,7 @@ import type { SharedBuildRow, BuildVisibility } from '@/lib/build/types';
 import { VISIBILITY_HINT, VISIBILITY_LABEL, isBuildVisibility } from '@/lib/build/visibility';
 import { ascendancyLabel } from '@/lib/tree/ascendancyNames';
 import CheckpointSwitcher, { useCheckpointManage } from './CheckpointSwitcher';
+import BuildSettings from './BuildSettings';
 import HeaderStats from './HeaderStats';
 import { useBuildSession } from './session/BuildSession';
 import type { BuildCheckpoint } from '@/lib/build/checkpointState';
@@ -72,12 +73,15 @@ export function HeaderActions({
   mode,
   row,
   shareToken,
+  tags = null,
   compact = false,
   edit,
   onToggleEdit,
   onRequestDone,
 }: Pick<HeaderProps, 'mode' | 'row' | 'shareToken' | 'edit' | 'onToggleEdit' | 'onRequestDone'> & {
-  /** The compact sticky bar has no room for Copy link below `sm` — Edit stays, Copy link hides. */
+  /** The owner's tags, for the settings menu. Not needed by the compact bar, which has no settings button. */
+  tags?: string[] | null;
+  /** The compact sticky bar has no room for Copy link below `sm` — Edit stays, Copy link hides; the settings button lives in the full header only. */
   compact?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
@@ -92,7 +96,9 @@ export function HeaderActions({
     }
   }
   return (
-    <div className="flex shrink-0 items-center gap-2">
+    // flex-wrap + a max width below `sm`: with Copy link, settings and Edit
+    // side by side the name column would be squeezed to a sliver at 375px.
+    <div className="flex max-w-[11.5rem] shrink-0 flex-wrap items-center justify-end gap-2 sm:max-w-none">
       {linkLive ? (
         <button
           type="button"
@@ -101,6 +107,9 @@ export function HeaderActions({
         >
           {copied ? 'Copied' : 'Copy link'}
         </button>
+      ) : null}
+      {mode === 'owner' && !compact ? (
+        <BuildSettings buildId={row.id} visibility={row.visibility} tags={tags} edit={edit} />
       ) : null}
       {mode === 'owner' ? (
         <button
@@ -177,6 +186,7 @@ export default function BuildHeader(props: HeaderProps) {
           mode={mode}
           row={row}
           shareToken={shareToken}
+          tags={tags}
           edit={edit}
           onToggleEdit={onToggleEdit}
           onRequestDone={onRequestDone}

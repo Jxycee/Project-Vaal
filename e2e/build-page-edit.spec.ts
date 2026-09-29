@@ -8,6 +8,7 @@ import {
   openTree,
   pickGearItem,
   saveBuild,
+  setVisibility,
   testBuildName,
   treeState,
   waitForDraft,
@@ -251,11 +252,7 @@ test.describe('build page edit in place', () => {
     // Positive: the owner still gets edit controls after switching the build
     // to Public — Public/Private/Unlisted is a link-sharing setting, not an
     // ownership one, and edit=1 must still work for the owner regardless.
-    await goto(page, '/builds');
-    const row = page.locator('ul > li').filter({ has: page.locator(`a:has-text("${name}")`) }).first();
-    await expect(row).toBeVisible();
-    await row.getByRole('combobox').click();
-    await page.getByRole('option', { name: 'Public' }).click();
+    await setVisibility(page, token, 'public');
 
     await goto(page, `/builds/${token}?edit=1`);
     await expect(page.getByTestId('build-page')).toBeVisible({ timeout: 30_000 });

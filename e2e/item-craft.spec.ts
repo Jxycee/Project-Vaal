@@ -1,14 +1,15 @@
 import { test, expect } from '@playwright/test';
 import {
-  MIN_TAP_PX,
   cleanupWithFreshPage,
   closeGearEditor,
   listedBuildNames,
   measureTapTargets,
+  MIN_TAP_PX,
   openEditor,
   openItemEditor,
   openTree,
   pickByName,
+  readBuildId,
   saveBuild,
   selectGearSlot,
   testBuildName,
@@ -108,8 +109,7 @@ test.describe('item craft', () => {
     const name = testBuildName('craft');
     await saveBuild(page, { name });
     expect(await listedBuildNames(page)).toContain(name);
-    const href = await page.locator(`a:has-text("${name}")`).getAttribute('href');
-    await openTree(page, new URL(href!, 'http://x').searchParams.get('build')!);
+    await openTree(page, await readBuildId(page, name));
 
     // A saved build with a share token now reopens on the build page (slice
     // 2's /tree?build= redirect), where gear is the Gear tab's paper doll

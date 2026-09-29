@@ -56,3 +56,26 @@ export function ascendancyLabel(className: string, ascendancy: string | null | u
   if (!RAW_ID_NAMES.has(ascendancy)) return ascendancy;
   return RAW_ID_NAMES.get(ascendancy) ?? className;
 }
+
+/**
+ * The eight playable classes, in the tree export's order, for the "+ New
+ * build" sheet. Derived from the same static table above (which the drift
+ * guard in `ascendancyNames.test.ts` checks against the vendored export), so
+ * choosing a class needs no read of the 5.1MB tree.
+ */
+export const BUILD_CLASSES: readonly string[] = [
+  ...new Set([...RAW_ID_NAMES.keys()].map((id) => id.replace(/\d+b?$/, ''))),
+];
+
+/**
+ * The ascendancy names a class offers, in the form the tree editor saves
+ * (tree-core's normalized id, which is the display name). Ascendancies GGG has
+ * not named yet are left out, as the editor's own picker leaves them out.
+ */
+export function ascendanciesFor(className: string): string[] {
+  const names: string[] = [];
+  for (const [id, name] of RAW_ID_NAMES) {
+    if (name !== null && id.replace(/\d+b?$/, '') === className) names.push(name);
+  }
+  return names;
+}

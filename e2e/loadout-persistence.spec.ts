@@ -1,6 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
 import {
-  MIN_TAP_PX,
   cleanupWithFreshPage,
   closeGearEditor,
   closeGemEditor,
@@ -8,11 +7,13 @@ import {
   gotoBuilds,
   listedBuildNames,
   measureTapTargets,
+  MIN_TAP_PX,
   openEditor,
   openGemGroup,
   openTree,
+  readShareToken,
   saveBuild,
-  softNavigate,
+  softOpenBuild,
   testBuildName,
 } from './helpers';
 
@@ -184,8 +185,7 @@ test.describe('loadout persistence', () => {
     // state: this is the /api/builds round trip plus the server-component load
     // path, and both have to carry gear_state and gem_state for any of the
     // assertions below to mean anything.
-    const href = await page.locator(`a:has-text("${name}")`).getAttribute('href');
-    await softNavigate(page, href!);
+    await softOpenBuild(page, await readShareToken(page, name));
 
     // ---- Everything is still there -----------------------------------------
     // A saved build with a share token now redirects the /tree?build= link

@@ -1,9 +1,14 @@
-import type { Browser, Locator, Page } from '@playwright/test';
+import type { Browser, Locator, Page, Route } from '@playwright/test';
 import { expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { TreeTestApi, TreeTestState } from '../src/lib/tree/testApi';
 import { GEAR_SLOT_LABELS, type GearSlot } from '../src/lib/build/gearSlots';
+import type { BuildVisibility } from '../src/lib/build/types';
+import { VISIBILITY_LABEL } from '../src/lib/build/visibility';
 import { e2eBaseUrl } from './baseUrl';
+
+const POB_FIXTURE_CODE = readFileSync(path.join(__dirname, '..', 'src', 'lib', 'pob', '__fixtures__', 'sample-pob2-code.txt'), 'utf8');
 
 /**
  * Every row these specs create is named with this prefix so cleanup can find
@@ -232,10 +237,13 @@ export async function softNavigate(page: Page, href: string): Promise<void> {
   // legitimately differ from `href`. Only that one redirect shape is
   // tolerated; anything else must still land exactly on `href`.
   const isTreeBuildLink = /^\/tree\?build=/.test(href);
+  // The library's cards link to `/builds/<token>`, and the owner's page adds
+  // `?checkpoint=<id>` to that URL with a redirect, so only the path is compared.
+  const isBuildPageLink = /^\/builds\/[A-Za-z0-9_-]+$/.test(href);
   await page.waitForURL(
     (url) => {
       const current = url.pathname + url.search;
-      return current === href || (isTreeBuildLink && url.pathname.startsWith('/builds/'));
+      return current === href || (isTreeBuildLink && url.pathname.startsWith('/builds/')) || (isBuildPageLink && url.pathname === href);
     },
     { timeout: 30_000 },
   );
@@ -351,52 +359,131 @@ export async function gotoBuilds(page: Page): Promise<void> {
   } else {
     await page.goto('/builds');
   }
-  const ready = page
-    .locator('ul > li a[href^="/tree?build="]')
-    .or(page.getByText('You have not saved a build yet.'));
+  const ready = page.getByTestId('build-card').or(page.getByText('You have not saved a build yet.'));
   await expect(ready.first()).toBeVisible({ timeout: 30_000 });
 }
 
-/** Names currently shown on /builds. */
+/** Names currently shown on /builds (the library cards). */
 export async function listedBuildNames(page: Page): Promise<string[]> {
   await gotoBuilds(page);
   if (await page.getByText('You have not saved a build yet.').isVisible().catch(() => false)) {
     return [];
   }
-  return page.locator('ul > li a[href^="/tree?build="]').allInnerTexts();
+  return page.getByTestId('build-card-name').allInnerTexts();
+}
+
+/** The card for the build named `name` (exact) on /builds. */
+export function buildCard(page: Page, name: string): Locator {
+  return page.getByTestId('build-card').filter({ has: page.getByTestId('build-card-name').getByText(name, { exact: true }) });
+}
+
+/** A build's id, read off its /builds card (`data-build-id`). What `/tree?build=<id>` and the checkpoint URLs need. */
+export async function readBuildId(page: Page, name: string): Promise<string> {
+  await gotoBuilds(page);
+  const card = buildCard(page, name).first();
+  await expect(card).toBeVisible();
+  const id = await card.getAttribute('data-build-id');
+  expect(id, `no data-build-id on the card for ${name}`).toMatch(/^[0-9a-f-]{36}$/);
+  return id!;
+}
+
+/**
+ * Soft-navigates from /builds to a build's page by its card link, then puts it
+ * where the old `/tree?build=<id>` redirect landed: edit mode on the Tree tab,
+ * with the tree hook up. A real client-side route change, which is what the
+ * stale-seed regressions need (see softNavigate).
+ */
+export async function softOpenBuild(page: Page, token: string): Promise<void> {
+  await softNavigate(page, `/builds/${token}`);
+  await expect(page.getByTestId('build-page')).toBeVisible({ timeout: 30_000 });
+  await page.getByRole('button', { name: 'Edit', exact: true }).click();
+  await page.getByRole('tab', { name: 'Tree', exact: true }).click();
+  await waitForTreeApi(page);
+}
+
+/** A build's share token, read off its /builds card link. Works for every visibility: the card links to the owner's page regardless. */
+export async function readShareToken(page: Page, name: string): Promise<string> {
+  await gotoBuilds(page);
+  const card = buildCard(page, name).first();
+  await expect(card).toBeVisible();
+  const href = await card.getAttribute('href');
+  expect(href, `no /builds/<token> link on the card for ${name}`).toMatch(/^\/builds\/[A-Za-z0-9_-]+$/);
+  return href!.replace('/builds/', '');
+}
+
+/** Opens the build page's settings menu (owner only) and returns it. */
+export async function openBuildSettings(page: Page): Promise<Locator> {
+  await page.getByRole('button', { name: 'Build settings', exact: true }).click();
+  const menu = page.getByTestId('build-settings');
+  await expect(menu).toBeVisible({ timeout: 30_000 });
+  return menu;
+}
+
+/** Sets a build's visibility through its settings menu, and leaves the menu closed. */
+export async function setVisibility(page: Page, token: string, visibility: BuildVisibility): Promise<void> {
+  await page.goto(`/builds/${token}`);
+  await expect(page.getByTestId('build-page')).toBeVisible({ timeout: 30_000 });
+  const menu = await openBuildSettings(page);
+  const radio = menu.getByRole('radio', { name: new RegExp(`^${VISIBILITY_LABEL[visibility]}`) });
+  await radio.click();
+  await expect(radio).toHaveAttribute('aria-checked', 'true', { timeout: 30_000 });
+  await page.getByRole('button', { name: 'Close build settings', exact: true }).click();
+  await expect(menu).toBeHidden();
+}
+
+/**
+ * Imports the vendored PoB2 fixture through the real Import sheet and returns
+ * the new build's share token, read off the URL the import lands on
+ * (`/builds/<token>?...edit=1`, slice 7a).
+ */
+export async function importFixture(page: Page, name: string): Promise<string> {
+  await gotoBuilds(page);
+  await page.getByTestId('open-import-sheet').click();
+  const sheet = page.getByTestId('import-sheet');
+  await sheet.getByTestId('import-input').fill(POB_FIXTURE_CODE);
+  await sheet.getByRole('button', { name: 'Preview', exact: true }).click();
+  await expect(sheet.getByTestId('import-preview')).toBeVisible({ timeout: 60_000 });
+  await sheet.getByTestId('import-name').fill(name);
+  await sheet.getByRole('button', { name: 'Import', exact: true }).click();
+  await page.waitForURL(/\/builds\/[A-Za-z0-9_-]+/, { timeout: 60_000 });
+  return new URL(page.url()).pathname.split('/').pop()!;
 }
 
 /**
  * Deletes every row this suite created. Runs through the real UI rather than
- * the database, both because delete is a Server Function with no direct HTTP
- * shape and because it exercises the delete path on the way past.
+ * the database: each E2E- card -> its page -> Build settings -> Delete ->
+ * Confirm delete, which exercises the delete path on the way past.
+ *
+ * The 5.1MB tree export the build page fetches after paint is aborted here:
+ * nothing in this loop looks at the tree.
  */
 export async function cleanupTestBuilds(page: Page): Promise<void> {
   await gotoBuilds(page);
 
-  const rows = page
-    .locator('ul > li')
-    .filter({ has: page.locator(`a[href^="/tree?build="]:has-text("${TEST_PREFIX}")`) });
+  const cards = page.getByTestId('build-card').filter({ has: page.getByTestId('build-card-name').getByText(TEST_PREFIX) });
+  const skipTree = (route: Route) => route.abort();
+  await page.route(/\/data\/tree\/.*data\.json/, skipTree);
+  try {
+    for (let pass = 0; pass < 50; pass += 1) {
+      const remaining = await cards.count();
+      if (remaining === 0) return;
 
-  for (let pass = 0; pass < 50; pass += 1) {
-    const remaining = await rows.count();
-    if (remaining === 0) return;
+      const href = await cards.first().getAttribute('href');
+      await page.goto(href!);
+      const menu = await openBuildSettings(page);
+      await menu.getByRole('button', { name: 'Delete build', exact: true }).click();
+      await menu.getByRole('button', { name: 'Confirm delete', exact: true }).click();
+      await page.waitForURL((url) => url.pathname === '/builds', { timeout: 30_000 });
 
-    const row = rows.first();
-    // Two taps: the first arms the row's confirm state, the second commits.
-    // Waiting for Cancel in between is what makes that reliable — without it
-    // the second click can land before React has swapped the row's buttons,
-    // re-arming the same confirm and leaving the row undeleted.
-    await row.getByRole('button', { name: 'Delete' }).click();
-    await expect(row.getByRole('button', { name: 'Cancel' })).toBeVisible();
-    await row.getByRole('button', { name: 'Delete' }).click();
-
-    // deleteBuild revalidates /builds, so the row detaches in place and no
-    // reload is needed. Asserting the count actually fell is also what proves
-    // the delete landed, rather than failing silently and looping to the cap.
-    await expect(rows).toHaveCount(remaining - 1, { timeout: 30_000 });
+      // deleteBuild revalidates /builds. Asserting the count actually fell is
+      // what proves the delete landed, rather than failing silently and
+      // looping to the cap.
+      await expect(cards).toHaveCount(remaining - 1, { timeout: 30_000 });
+    }
+    throw new Error('Gave up deleting E2E- builds after 50 passes — check /builds by hand.');
+  } finally {
+    await page.unroute(/\/data\/tree\/.*data\.json/, skipTree);
   }
-  throw new Error('Gave up deleting E2E- builds after 50 passes — check /builds by hand.');
 }
 
 /**
@@ -579,4 +666,70 @@ export async function gearWarningItems(page: Page): Promise<Locator> {
     return page.getByTestId('gear-tab').getByTestId('build-warning');
   }
   return page.locator(GEAR_SHEET).getByTestId('build-warning');
+}
+
+// ---- Seeding and share-link proofs, without the UI ----------------------------
+
+/**
+ * Creates a build through POST /api/builds (the same route the editor saves
+ * through) and returns its id and share token. Far cheaper than the UI for a
+ * spec whose subject is not creation, and it never mounts the tree. New builds
+ * are `unlisted` (owner only), the column default.
+ */
+export async function createBuildViaApi(
+  page: Page,
+  name: string,
+  overrides: Record<string, unknown> = {},
+): Promise<{ id: string; token: string }> {
+  const res = await page.request.post('/api/builds', {
+    data: {
+      name,
+      class: 'Witch',
+      level: 12,
+      league: 'Standard',
+      passive_state: { set1: [], set2: [], ascendancyNodes: [] },
+      ...overrides,
+    },
+  });
+  expect(res.status(), `POST /api/builds for ${name}`).toBe(200);
+  const { build } = (await res.json()) as { build: { id: string; share_token: string } };
+  return { id: build.id, token: build.share_token };
+}
+
+/**
+ * Reassembles the signed-in session's access token from the Supabase SSR auth
+ * cookie (`sb-<project-ref>-auth-token`, chunked into `.0`/`.1` parts when
+ * large, optionally `base64-` prefixed and base64url encoded).
+ */
+export async function accessToken(page: Page): Promise<string> {
+  const parts = (await page.context().cookies())
+    .filter((c) => /^sb-.+-auth-token(\.\d+)?$/.test(c.name))
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  let raw = decodeURIComponent(parts.map((c) => c.value).join(''));
+  if (raw.startsWith('base64-')) raw = Buffer.from(raw.slice('base64-'.length), 'base64url').toString('utf8');
+  return (JSON.parse(raw) as { access_token: string }).access_token;
+}
+
+/**
+ * Calls the get_build_by_share_token RPC over PostgREST exactly as a signed-in
+ * reader's browser would: anon apikey plus the caller's own bearer token.
+ * Its empty result for an `unlisted` build is what proves a share link is
+ * revoked (the owner can still open the page through the owner path, so a page
+ * load alone proves nothing about a reader).
+ */
+export async function callShareTokenRpc(page: Page, shareToken: string) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  expect(
+    supabaseUrl && supabaseAnonKey,
+    'NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be in .env.local',
+  ).toBeTruthy();
+  return page.request.post(`${supabaseUrl}/rest/v1/rpc/get_build_by_share_token`, {
+    data: { p_token: shareToken },
+    headers: {
+      apikey: supabaseAnonKey!,
+      authorization: `Bearer ${await accessToken(page)}`,
+      'content-type': 'application/json',
+    },
+  });
 }

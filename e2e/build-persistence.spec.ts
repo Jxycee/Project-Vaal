@@ -5,8 +5,11 @@ import {
   listedBuildNames,
   nodesNearStart,
   openTree,
+  readBuildId,
+  readShareToken,
   saveBuild,
   softNavigate,
+  softOpenBuild,
   testBuildName,
   treeState,
 } from './helpers';
@@ -62,24 +65,23 @@ test('switching between two builds shows the second one, not the first', async (
   // Open A, then soft-navigate straight to B. PassiveTree seeds its state
   // exactly once, so if the route component survives with A's data in hand, B
   // renders A's allocation — silently and permanently.
-  await page.goto('/builds');
-  const idA = await page.locator(`a:has-text("${nameA}")`).getAttribute('href');
-  const idB = await page.locator(`a:has-text("${nameB}")`).getAttribute('href');
+  const tokenA = await readShareToken(page, nameA);
+  const tokenB = await readShareToken(page, nameB);
 
   // Route A -> /builds -> B, every hop a real <Link> click. There is no link
   // from one build straight to another, so this is also what a user actually
   // does; going via /builds is what exercises the client router cache that
   // made the route component outlive its URL in the first place.
-  await softNavigate(page, idA!);
+  await softOpenBuild(page, tokenA);
   await expect.poll(async () => (await treeState(page)).allocated.length).toBe(allocA);
 
   await softNavigate(page, '/builds');
-  await softNavigate(page, idB!);
+  await softOpenBuild(page, tokenB);
   await expect.poll(async () => (await treeState(page)).allocated.length).toBe(allocB);
 
   // And back again, to catch a stale seed in the other direction.
   await softNavigate(page, '/builds');
-  await softNavigate(page, idA!);
+  await softOpenBuild(page, tokenA);
   await expect.poll(async () => (await treeState(page)).allocated.length).toBe(allocA);
 });
 
@@ -91,14 +93,16 @@ test('leaving a build for scratch mode does not overwrite that build', async ({ 
   await saveBuild(page, { name, level: 33, league: 'Standard' });
   const saved = (await treeState(page)).allocated.length;
 
-  await page.goto('/builds');
-  const href = await page.locator(`a:has-text("${name}")`).getAttribute('href');
-  await softNavigate(page, href!);
+  const token = await readShareToken(page, name);
+  await softOpenBuild(page, token);
   await expect.poll(async () => (await treeState(page)).allocated.length).toBe(saved);
 
   // Soft-navigate to plain /tree. This must be an empty scratch editor, and a
   // save here must create a NEW row rather than silently overwriting the one
   // above with whatever scratch happens to hold.
+  // The nav no longer has a Tree entry: scratch is reached from the library's
+  // "Quick plan" link, so the soft navigation goes build -> /builds -> /tree.
+  await softNavigate(page, '/builds');
   await softNavigate(page, '/tree');
   await expect.poll(async () => (await treeState(page)).allocated.length).toBe(0);
 
@@ -111,7 +115,7 @@ test('leaving a build for scratch mode does not overwrite that build', async ({ 
   expect(names).toContain(scratchName);
 
   // And the original is untouched.
-  await openTree(page, href!.split('build=')[1]);
+  await openTree(page, await readBuildId(page, name));
   await expect.poll(async () => (await treeState(page)).allocated.length).toBe(saved);
 });
 

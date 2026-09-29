@@ -2,14 +2,16 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { test, expect } from '@playwright/test';
 import {
+  buildCard,
   cleanupWithFreshPage,
   closeGearEditor,
   gotoBuilds,
-  MIN_TAP_PX,
   measureTapTargets,
+  MIN_TAP_PX,
   openEditor,
   openItemEditor,
   openTree,
+  readBuildId,
   selectGearSlot,
   testBuildName,
   treeState,
@@ -60,6 +62,9 @@ test.describe('Path of Building 2 import', () => {
       const preview = sheet.getByTestId('import-preview');
       await expect(preview).toBeVisible({ timeout: 60_000 });
       await expect(sheet.getByTestId('import-summary')).toContainText('8 checkpoints, 5 skills with 20 gems, 12 items, 2 jewels');
+      // The per-checkpoint list and the report sit behind "Show details".
+      await expect(sheet.getByTestId('import-details')).toBeHidden();
+      await sheet.getByRole('button', { name: 'Show details', exact: true }).click();
       await expect(sheet.getByTestId('import-checkpoints').locator('li')).toHaveCount(8);
       await expect(sheet.getByTestId('import-checkpoints').locator('li').first()).toContainText('level 31, 35 passives, 2 ascendancy');
       await expect(sheet.getByTestId('import-checkpoints').locator('li').last()).toContainText('level 94, 116 passives, 8 ascendancy');
@@ -81,8 +86,9 @@ test.describe('Path of Building 2 import', () => {
 
     await test.step('the sheet meets the tap-target floor with a real preview in it', async () => {
       const { scanned, tooSmall } = await measureTapTargets(page, '[data-testid="import-sheet"]');
-      // Buttons and links only (measureTapTargets): close, Preview, Import.
-      expect(scanned, 'controls measured in the import sheet').toBe(3);
+      // Buttons and links only (measureTapTargets): close, Preview, Import, and
+      // the details toggle (Hide details, while the report is open).
+      expect(scanned, 'controls measured in the import sheet').toBe(4);
       expect(tooSmall, `controls under ${MIN_TAP_PX}px in the import sheet`).toEqual([]);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       expect(overflow, 'horizontal scroll with the import sheet open').toBeLessThanOrEqual(0);
@@ -91,17 +97,10 @@ test.describe('Path of Building 2 import', () => {
     await test.step('import lands on the new build in the editor', async () => {
       await sheet.getByTestId('import-name').fill(name);
       await sheet.getByRole('button', { name: 'Import', exact: true }).click();
-      // A newly imported build always gets a share token (importActions.ts),
-      // so the sheet's router.push('/tree?build=<id>') now redirects
-      // straight to the build page's Tree tab in edit mode — this waits for
-      // wherever that lands rather than the literal /tree?build= URL, then
-      // reads the build id back off its own /builds row (MyBuildsList still
-      // renders /tree?build=, unchanged this slice).
-      await page.waitForURL(/\/(tree\?build=[0-9a-f-]{36}|builds\/)/, { timeout: 60_000 });
+      // Import lands on the new build's page (slice 7a): /builds/<token>?...edit=1.
+      await page.waitForURL(/\/builds\/[A-Za-z0-9_-]+\?.*edit=1/, { timeout: 60_000 });
 
-      await gotoBuilds(page);
-      const href = await page.locator(`a[href^="/tree?build="]:has-text("${name}")`).getAttribute('href');
-      buildId = href!.split('build=')[1];
+      buildId = await readBuildId(page, name);
       expect(buildId).toMatch(/^[0-9a-f-]{36}$/);
     });
 
@@ -181,7 +180,7 @@ test.describe('Path of Building 2 import', () => {
 
     await test.step('the build lists under its name', async () => {
       await gotoBuilds(page);
-      await expect(page.locator(`a:has-text("${name}")`)).toBeVisible();
+      await expect(buildCard(page, name)).toBeVisible();
     });
   });
 

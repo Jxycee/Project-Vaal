@@ -1,38 +1,11 @@
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
-import { test, expect, type Page } from '@playwright/test';
-import { cleanupWithFreshPage, gotoBuilds, openTree, testBuildName } from './helpers';
-
-// Copied from build-page.spec.ts — helpers stay test-local here by convention.
-const CODE = readFileSync(path.join(__dirname, '..', 'src', 'lib', 'pob', '__fixtures__', 'sample-pob2-code.txt'), 'utf8');
-
-async function importFixture(page: Page, name: string): Promise<void> {
-  await gotoBuilds(page);
-  await page.getByTestId('open-import-sheet').click();
-  const sheet = page.getByTestId('import-sheet');
-  await sheet.getByTestId('import-input').fill(CODE);
-  await sheet.getByRole('button', { name: 'Preview', exact: true }).click();
-  await expect(sheet.getByTestId('import-preview')).toBeVisible({ timeout: 60_000 });
-  await sheet.getByTestId('import-name').fill(name);
-  await sheet.getByRole('button', { name: 'Import', exact: true }).click();
-  await page.waitForURL(/\/tree\?build=/, { timeout: 60_000 });
-}
-
-/** Imports are owner-only (`unlisted`) and /builds hides the link then, so flip to Private, read it, flip back. */
-async function readShareToken(page: Page, name: string): Promise<string> {
-  await page.goto('/builds');
-  const row = page.locator('ul > li').filter({ has: page.locator(`a:has-text("${name}")`) }).first();
-  await expect(row).toBeVisible();
-  await row.getByRole('combobox').click();
-  await page.getByRole('option', { name: 'Private' }).click();
-  const link = row.locator('a[href^="/builds/"]');
-  await expect(link).toBeVisible({ timeout: 30_000 });
-  const href = (await link.getAttribute('href'))!;
-  await row.getByRole('combobox').click();
-  await page.getByRole('option', { name: 'Unlisted' }).click();
-  await expect(link).toBeHidden({ timeout: 30_000 });
-  return href.replace('/builds/', '');
-}
+import { test, expect } from '@playwright/test';
+import {
+  cleanupWithFreshPage,
+  gotoBuilds,
+  importFixture,
+  openTree,
+  testBuildName,
+} from './helpers';
 
 // The reason the `desktop` Playwright project still exists at all.
 //
@@ -105,8 +78,7 @@ test.describe('desktop layout', () => {
 
   test('the build page shows the stats rail beside the tab content, with no horizontal scroll', async ({ page }) => {
     const name = testBuildName('page-desktop');
-    await importFixture(page, name);
-    const token = await readShareToken(page, name);
+    const token = await importFixture(page, name);
     await page.goto(`/builds/${token}`);
     const rail = page.getByTestId('stats-rail');
     await expect(rail).toBeVisible({ timeout: 30_000 });

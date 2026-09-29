@@ -1,5 +1,5 @@
 import { test, expect, type Page, type TestInfo } from '@playwright/test';
-import { cleanupWithFreshPage, measureTapTargets, testBuildName } from './helpers';
+import { buildCard, cleanupWithFreshPage, gotoBuilds, measureTapTargets, setVisibility, testBuildName } from './helpers';
 
 // Cross-site build data (handoff 2026-09-26-cross-site-build-data-handoff.md,
 // §3 D and F): the dashboard lists the Build Planner as a live tool and shows
@@ -115,17 +115,14 @@ test.describe('cross-site build data', () => {
     // ---- Shared page header. Private = link-shareable here (the vocabulary
     // is inverted on purpose — src/lib/build/visibility.ts). Set through the
     // real /builds control, as sharing.spec.ts does.
-    await page.goto('/builds');
-    const listRow = page.locator('ul > li').filter({ has: page.locator(`a:has-text("${importerName}")`) }).first();
+    await gotoBuilds(page);
+    const listRow = buildCard(page, importerName);
     await expect(listRow).toBeVisible({ timeout: 30_000 });
     await expect(listRow).toContainText('Witchhunter · Level 42');
     await expect(listRow).not.toContainText('Mercenary2');
-    await listRow.getByRole('combobox').click();
-    await page.getByRole('option', { name: 'Private' }).click();
-    const shareLink = listRow.locator('a[href^="/builds/"]');
-    await expect(shareLink).toBeVisible({ timeout: 30_000 });
-    const href = await shareLink.getAttribute('href');
+    const href = await listRow.getAttribute('href');
     expect(href).toBe(`/builds/${importerBuild.share_token}`);
+    await setVisibility(page, importerBuild.share_token!, 'private');
 
     await page.goto(href!);
     await expect(page.getByRole('heading', { level: 1, name: importerName })).toBeVisible();

@@ -83,6 +83,13 @@ export interface BuildSessionValue {
   /** Ignored while `!canEdit` — a read-only PassiveTree still reports its seeded state on mount. */
   setTreeState(next: BuildEditorState): void;
   setMeta(patch: Partial<BuildMeta>): void;
+  /**
+   * The build's name was just saved to the database by something other than
+   * `save()` (the settings menu's rename, which calls `renameBuild`). Sets the
+   * live name AND the saved baseline to it, so the header shows it and the
+   * session does not count it as an unsaved edit. Ignored while `!canEdit`.
+   */
+  applySavedName(name: string): void;
   setGearSlot(slot: GearSlot, item: GearItem | null): void;
   pickJewel(socketId: string, item: GearItem): void;
   clearJewel(socketId: string): void;

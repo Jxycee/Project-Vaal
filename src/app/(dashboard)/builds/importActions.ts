@@ -118,7 +118,7 @@ export async function previewPobImport(input: string): Promise<PreviewResult> {
 export async function importPobBuild(
   input: string,
   name?: string,
-): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; id: string; share_token: string } | { ok: false; error: string }> {
   const { data: userData } = await getCachedUser();
   if (!userData.user) return SIGNED_OUT;
 
@@ -154,6 +154,9 @@ export async function importPobBuild(
     });
   }
 
+  // Minted here and inserted by import_build as-is (p_build ->> 'share_token'),
+  // so this IS the stored token; the client lands on /builds/<share_token>.
+  const shareToken = nanoid();
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('import_build', {
     p_build: {
@@ -163,7 +166,7 @@ export async function importPobBuild(
       level: build.level,
       notes: build.notes,
       main_skill: deriveMainSkill(checkpoints[checkpoints.length - 1].gem_state),
-      share_token: nanoid(),
+      share_token: shareToken,
       game_version: GAME_VERSION,
     },
     p_checkpoints: gated,
@@ -175,5 +178,5 @@ export async function importPobBuild(
   }
 
   refresh();
-  return { ok: true, id: data };
+  return { ok: true, id: data, share_token: shareToken };
 }

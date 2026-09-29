@@ -1,5 +1,14 @@
 import { test, expect, type Page } from '@playwright/test';
-import { cleanupWithFreshPage, listedBuildNames, openEditor, openTree, saveBuild, testBuildName, treeState } from './helpers';
+import {
+  cleanupWithFreshPage,
+  listedBuildNames,
+  openEditor,
+  openTree,
+  readBuildId,
+  saveBuild,
+  testBuildName,
+  treeState,
+} from './helpers';
 
 // Slice 5 — attribute choices feed the defence sheet
 // (plans/2026-09-25-slice5-defence-engine.md). Choosing Strength on a
@@ -69,8 +78,7 @@ test.describe('defence stats', () => {
     const name = testBuildName('stats');
     await saveBuild(page, { name });
     expect(await listedBuildNames(page)).toContain(name);
-    const href = await page.locator(`a:has-text("${name}")`).getAttribute('href');
-    await openTree(page, new URL(href!, 'http://x').searchParams.get('build')!);
+    await openTree(page, await readBuildId(page, name));
 
     expect((await treeState(page)).attributeChoices[node]).toBe('str');
     expect(await readStat(page, 'stat-life')).toBe(lifeBefore + 10);
