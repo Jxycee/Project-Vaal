@@ -132,7 +132,7 @@ export type EditorSection = keyof typeof SECTION_TAB;
  * Opens an editor sheet (or, for `stats` and `gear`, just the panel) for
  * `section`. Works on both UIs a saved build can be reopened on: the old
  * `/tree` chips (Gear / Jewels… / Gems… / Stats / Checkpoints…) and the build
- * page's tabs + "Edit jewels" / "Edit skills" / the checkpoint switcher.
+ * page's tabs + "Edit jewels" / the skill rows / the checkpoint switcher.
  *
  * `gear` has no sheet on the build page (slice 4): selecting the Gear tab
  * shows the paper doll, so this returns the `gear-tab` locator (doll, slot
@@ -143,6 +143,10 @@ export type EditorSection = keyof typeof SECTION_TAB;
  * `stats` has no sheet on the build page — StatsPanel renders directly in the
  * tab (`data-testid="stats-panel"`), unlike `/tree`'s `stats-sheet`. Callers
  * must read the testid that matches wherever they ended up.
+ *
+ * `gems` has no sheet on the build page either (slice 5): selecting the Skills
+ * tab shows the compact skill rows, so this returns the `skills-tab` locator.
+ * Use `openGemGroup` / `closeGemEditor` below to edit one group on either UI.
  *
  * For `checkpoints` on the build page (slice 3): management moved from a
  * "Manage checkpoints" sheet entry into the switcher's own "Manage" toggle,
@@ -169,9 +173,11 @@ export async function openEditor(page: Page, section: EditorSection): Promise<Lo
         await button.click();
         break;
       }
-      case 'gems':
-        await page.getByRole('button', { name: 'Edit skills' }).click();
-        break;
+      case 'gems': {
+        const skillsTab = page.getByTestId('skills-tab');
+        await expect(skillsTab).toBeVisible();
+        return skillsTab;
+      }
       case 'stats':
         // Selecting the Stats tab above is the whole job — no sheet to open.
         break;
@@ -413,6 +419,50 @@ export async function cleanupWithFreshPage(browser: Browser): Promise<void> {
   } finally {
     await context.close();
   }
+}
+
+// ---- Gem groups, on either UI ------------------------------------------------
+// The scratch /tree editor edits gems in GemsSheet (one stacked card per group
+// in a `.z-40` sheet headed "Gems"); the build page (slice 5) shows compact
+// `skill-row`s and, in edit mode, opens a `gem-group-sheet` for the tapped one.
+// Both render the same GemLoadoutEditor card, so the locator these return
+// behaves the same on either UI.
+
+const GEMS_SHEET = '.z-40';
+
+/**
+ * Opens gem group `index` and returns its editor card (the `<li>` holding the
+ * skill button, level input, supports, set toggles and Main skill). On the
+ * build page `index` is the row's position (main skill first) and needs edit
+ * mode; on the scratch editor GemsSheet must already be open and `index` is
+ * the card's position in stored order (the two agree until a Main skill is
+ * chosen off the first group).
+ */
+export async function openGemGroup(page: Page, index: number): Promise<Locator> {
+  if (onBuildPage(page)) {
+    await page.getByTestId('skill-row').nth(index).click();
+    const sheet = page.getByTestId('gem-group-sheet');
+    await expect(sheet).toBeVisible();
+    return sheet.locator('ul > li').first();
+  }
+  const sheet = page.locator(GEMS_SHEET).filter({ hasText: 'Gems' });
+  await expect(sheet).toBeVisible();
+  const card = sheet.locator('ul > li').nth(index);
+  await expect(card).toBeVisible();
+  return card;
+}
+
+/** Closes whichever gem editor is open: the build page's group sheet, or the scratch editor's gems sheet. */
+export async function closeGemEditor(page: Page): Promise<void> {
+  if (onBuildPage(page)) {
+    const sheet = page.getByTestId('gem-group-sheet');
+    await sheet.getByRole('button', { name: 'Close skill group' }).click();
+    await expect(sheet).toBeHidden();
+    return;
+  }
+  const sheet = page.locator(GEMS_SHEET).filter({ hasText: 'Gems' });
+  await sheet.getByRole('button', { name: 'Close gems sheet' }).click();
+  await expect(sheet).toBeHidden();
 }
 
 /** Opens the picker from `opener`, searches for `name`, and picks the row whose name is exactly `name`. */

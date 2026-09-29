@@ -110,7 +110,7 @@ test.describe('structural validation', () => {
     // ---- Everything is derived again from what was saved --------------------
     // A saved build with a share token now reopens on the build page (slice
     // 2's /tree?build= redirect), where gear is the Gear tab's paper doll
-    // (slice 4) and gems live behind "Edit skills" rather than the old /tree
+    // (slice 4) and gems are the Skills tab's compact rows (slice 5) rather than the old /tree
     // chips. The doll's warning markers are the cells' own, its list is the
     // collapsed `gear-warnings` chip's (expanded by gearWarningItems).
     await openEditor(page, 'gear');
@@ -132,7 +132,14 @@ test.describe('structural validation', () => {
     await expect(page.getByTestId('gear-warning-weapon2_off')).toHaveCount(0);
     await closeGearEditor(page);
 
-    await openEditor(page, 'gems');
-    await expect(gems.getByTestId('spirit-reserved')).toHaveText('Spirit reserved — Set I: 40 · Set II: 0');
+    // Gems: the Skills tab's spirit line reads the headline set (the main
+    // skill's first tagged set, here Set I) — 40 reserved, and the one group
+    // carries only the Set I dot, so Set II reserves nothing.
+    const skills = await openEditor(page, 'gems');
+    if (!skills) throw new Error('openEditor("gems") returned no locator — not on the build page?');
+    await expect(skills).toContainText('Spirit reserved (Set I): 40');
+    await expect(skills.getByTestId('skill-row')).toHaveCount(1);
+    await expect(skills.getByTestId('skill-set-dot')).toHaveCount(1);
+    await expect(skills.getByTestId('skill-set-dot')).toHaveAttribute('data-set', '1');
   });
 });

@@ -34,7 +34,7 @@ import {
 //   - Draft notice: data-testid="draft-notice" with "Restore" / "Discard".
 //   - Gear tab (edit): the paper doll (slice 4) — tap a slot's cell, then
 //     "Choose item" in its detail panel; "Edit jewels" opens the jewels sheet.
-//   - Skills tab (edit): "Edit skills" opens the gems sheet.
+//   - Skills tab (edit): tapping a skill row opens that group's sheet.
 //   - Tree tab (edit): editable PassiveTree (window.__vaalTree).
 //   - Checkpoint switcher (edit): a "Manage" toggle opens the manage view
 //     (data-testid="checkpoint-manager") in the switcher's own menu — slice 3,
