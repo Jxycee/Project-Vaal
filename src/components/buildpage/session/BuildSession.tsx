@@ -454,6 +454,14 @@ export default function BuildSessionProvider({
   // Meta is deliberately NOT drafted (see BuildMeta's doc comment in
   // sessionTypes.ts) — the effect's dependency list omits it on purpose.
   //
+  // Held in refs, not read from `saving`: a double tap fires both calls
+  // before React re-renders the disabled button, and in scratch each would
+  // POST a build of its own. `scratchCreated` also outlives the request: the
+  // build exists from the moment the POST succeeds, so no later call may
+  // create another while the router.replace below is still in flight.
+  const saveInFlight = useRef(false);
+  const scratchCreated = useRef(false);
+
   // `latestSession` mirrors what the draft now holds, so save() can tell
   // whether anything changed after it sent its snapshot.
   const latestSession = useRef<BuildDraftState | null>(null);
@@ -535,13 +543,6 @@ export default function BuildSessionProvider({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
-  // Held in refs, not read from `saving`: a double tap fires both calls
-  // before React re-renders the disabled button, and in scratch each would
-  // POST a build of its own. `scratchCreated` also outlives the request: the
-  // build exists from the moment the POST succeeds, so no later call may
-  // create another while the router.replace below is still in flight.
-  const saveInFlight = useRef(false);
-  const scratchCreated = useRef(false);
 
   const save = useCallback(async (): Promise<boolean> => {
     if (!canEdit) return false;
