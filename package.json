@@ -33,6 +33,7 @@
     "lucide-react": "^1.18.0",
     "nanoid": "^5.1.11",
     "next": "16.2.9",
+    "obscenity": "^0.4.6",
     "pixi.js": "^8.19.0",
     "radix-ui": "^1.5.0",
     "react": "19.2.4",
