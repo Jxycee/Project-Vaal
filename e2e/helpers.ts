@@ -122,6 +122,12 @@ export async function openTree(page: Page, buildId?: string): Promise<void> {
   await waitForTreeApi(page);
 }
 
+/** The build page shell serves both a saved build (/builds/<token>) and the scratch planner (/tree). */
+function isBuildPage(page: Page): boolean {
+  const { pathname } = new URL(page.url());
+  return pathname.startsWith('/builds/') || pathname === '/tree';
+}
+
 /** Which build-page tab a given editor section lives under. */
 const SECTION_TAB = {
   gear: 'Gear',
@@ -161,7 +167,7 @@ export type EditorSection = keyof typeof SECTION_TAB;
  * still opens CheckpointsSheet) has nothing worth handing back.
  */
 export async function openEditor(page: Page, section: EditorSection): Promise<Locator | void> {
-  const onBuildPage = new URL(page.url()).pathname.startsWith('/builds/');
+  const onBuildPage = isBuildPage(page);
 
   if (onBuildPage) {
     const tab = SECTION_TAB[section];
@@ -272,7 +278,7 @@ export async function saveBuild(
   page: Page,
   opts: { name?: string; level?: number; league?: string; notes?: string } = {},
 ): Promise<void> {
-  const onBuildPage = new URL(page.url()).pathname.startsWith('/builds/');
+  const onBuildPage = isBuildPage(page);
 
   if (onBuildPage) {
     if (opts.name !== undefined) await page.locator('#build-name').fill(opts.name);
@@ -282,7 +288,15 @@ export async function saveBuild(
       await page.getByRole('tab', { name: 'Overview', exact: true }).click();
       await page.locator('#build-notes').fill(opts.notes);
     }
+    // Scratch (/tree): the first save creates the build and replaces the URL
+    // with its own page, so "saved" is that landing, not a status line.
+    const scratch = new URL(page.url()).pathname === '/tree';
     await page.getByRole('button', { name: 'Save', exact: true }).click();
+    if (scratch) {
+      await page.waitForURL(/\/builds\/[A-Za-z0-9_-]+/, { timeout: 30_000 });
+      await expect(page.getByTestId('build-page')).toBeVisible({ timeout: 30_000 });
+      return;
+    }
     await expect(page.getByTestId('save-status')).toHaveText(/^Saved /, { timeout: 30_000 });
     return;
   }
@@ -574,7 +588,7 @@ export async function pickByName(page: Page, opener: Locator, name: string): Pro
 // helpers give a spec one vocabulary for both.
 
 function onBuildPage(page: Page): boolean {
-  return new URL(page.url()).pathname.startsWith('/builds/');
+  return isBuildPage(page);
 }
 
 const GEAR_SHEET = '.fixed.inset-0.z-40';
