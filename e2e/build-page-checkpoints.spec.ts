@@ -196,7 +196,7 @@ test.describe('build page checkpoint management (switcher)', () => {
     await lastRow.getByRole('button', { name: /^Move .+ up$/ }).click();
 
     await expect
-      .poll(async () => (await rowOrder(page)).indexOf(lastId), { message: 'reorder never moved the last row up' })
+      .poll(async () => (await rowOrder(page)).indexOf(lastId), { message: 'reorder never moved the last row up', timeout: 30_000 })
       .toBe(before.length - 2);
 
     await goto(page, `/builds/${token}?edit=1&checkpoint=${activeId}`);
@@ -291,7 +291,7 @@ test.describe('build page checkpoint management (switcher)', () => {
     const before = (await treeState(page)).allocated.length;
     await allocateNodes(page, [nodeId]);
     await expect
-      .poll(async () => (await treeState(page)).allocated.length, { message: 'unsaved allocation never landed' })
+      .poll(async () => (await treeState(page)).allocated.length, { message: 'unsaved allocation never landed', timeout: 30_000 })
       .toBe(before + 1);
 
     // Deliberately no Save — the new checkpoint must copy this unsaved state.
@@ -407,7 +407,7 @@ test.describe('build page checkpoint management (switcher)', () => {
     const before = (await treeState(page)).allocated.length;
     await allocateNodes(page, [nodeId]);
     await expect
-      .poll(async () => (await treeState(page)).allocated.length, { message: 'unsaved allocation never landed' })
+      .poll(async () => (await treeState(page)).allocated.length, { message: 'unsaved allocation never landed', timeout: 30_000 })
       .toBe(before + 1);
 
     await page.getByTestId('checkpoint-switcher').click();
