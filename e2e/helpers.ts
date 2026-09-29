@@ -580,3 +580,69 @@ export async function gearWarningItems(page: Page): Promise<Locator> {
   }
   return page.locator(GEAR_SHEET).getByTestId('build-warning');
 }
+
+// ---- Seeding and share-link proofs, without the UI ----------------------------
+
+/**
+ * Creates a build through POST /api/builds (the same route the editor saves
+ * through) and returns its id and share token. Far cheaper than the UI for a
+ * spec whose subject is not creation, and it never mounts the tree. New builds
+ * are `unlisted` (owner only), the column default.
+ */
+export async function createBuildViaApi(
+  page: Page,
+  name: string,
+  overrides: Record<string, unknown> = {},
+): Promise<{ id: string; token: string }> {
+  const res = await page.request.post('/api/builds', {
+    data: {
+      name,
+      class: 'Witch',
+      level: 12,
+      league: 'Standard',
+      passive_state: { set1: [], set2: [], ascendancyNodes: [] },
+      ...overrides,
+    },
+  });
+  expect(res.status(), `POST /api/builds for ${name}`).toBe(200);
+  const { build } = (await res.json()) as { build: { id: string; share_token: string } };
+  return { id: build.id, token: build.share_token };
+}
+
+/**
+ * Reassembles the signed-in session's access token from the Supabase SSR auth
+ * cookie (`sb-<project-ref>-auth-token`, chunked into `.0`/`.1` parts when
+ * large, optionally `base64-` prefixed and base64url encoded).
+ */
+export async function accessToken(page: Page): Promise<string> {
+  const parts = (await page.context().cookies())
+    .filter((c) => /^sb-.+-auth-token(\.\d+)?$/.test(c.name))
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  let raw = decodeURIComponent(parts.map((c) => c.value).join(''));
+  if (raw.startsWith('base64-')) raw = Buffer.from(raw.slice('base64-'.length), 'base64url').toString('utf8');
+  return (JSON.parse(raw) as { access_token: string }).access_token;
+}
+
+/**
+ * Calls the get_build_by_share_token RPC over PostgREST exactly as a signed-in
+ * reader's browser would: anon apikey plus the caller's own bearer token.
+ * Its empty result for an `unlisted` build is what proves a share link is
+ * revoked (the owner can still open the page through the owner path, so a page
+ * load alone proves nothing about a reader).
+ */
+export async function callShareTokenRpc(page: Page, shareToken: string) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  expect(
+    supabaseUrl && supabaseAnonKey,
+    'NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be in .env.local',
+  ).toBeTruthy();
+  return page.request.post(`${supabaseUrl}/rest/v1/rpc/get_build_by_share_token`, {
+    data: { p_token: shareToken },
+    headers: {
+      apikey: supabaseAnonKey!,
+      authorization: `Bearer ${await accessToken(page)}`,
+      'content-type': 'application/json',
+    },
+  });
+}
