@@ -76,11 +76,15 @@ const rand = (bytes: number) => randomBytes(bytes).toString('hex');
 
 async function openEditor(page: Page): Promise<void> {
   const edit = page.getByRole('button', { name: 'Edit username', exact: true });
-  // Clicking before hydration does nothing; retry until the form appears.
+  const input = page.getByRole('textbox', { name: 'Username', exact: true });
+  // Clicking before hydration does nothing, so retry — but only while the
+  // editor has not opened. A click that DID open it disables the ✎ (edit mode),
+  // so blindly re-clicking would wait on a disabled button forever.
   await expect(async () => {
-    await edit.click({ timeout: 3_000 });
-    await expect(page.getByRole('textbox', { name: 'Username', exact: true })).toBeVisible({ timeout: 1_500 });
-  }).toPass({ timeout: 30_000 });
+    if (await input.isVisible()) return;
+    if (await edit.isEnabled()) await edit.click({ timeout: 3_000 });
+    await expect(input).toBeVisible({ timeout: 5_000 });
+  }).toPass({ timeout: 45_000 });
 }
 
 async function fillAndSave(page: Page, name: string): Promise<void> {
@@ -105,12 +109,23 @@ test.describe('usernames', () => {
   test.skip(() => test.info().project.name !== 'mobile', 'mobile project only');
   test.describe.configure({ mode: 'serial' });
   test.setTimeout(180_000);
-  test.use({ viewport: { width: 375, height: 812 } });
+  // Reduced motion: the dashboard's VaalOrb is WebGL, which headless Chromium
+  // renders in software; its continuous spin starved the page (blank frames,
+  // clicks timing out) under load. The orb stops spinning under this setting.
+  test.use({ viewport: { width: 375, height: 812 }, contextOptions: { reducedMotion: 'reduce' } });
 
   let buildName = '';
   let token = '';
   let firstName = '';
   let secondName = '';
+
+  // The dashboard's VaalOrb (WebGL, software-rendered in headless Chromium)
+  // can freeze the page's main thread under load: blank frames, clicks hanging
+  // at "scrolling into view". This spec is about the username control, not
+  // the orb, so its model file is not served here. The orb itself is untouched.
+  test.beforeEach(async ({ context }) => {
+    await context.route('**/models/vaal-orb.glb', (route) => route.abort());
+  });
 
   test.beforeAll(async ({ browser }) => {
     await resetUsername(browser);
@@ -214,7 +229,14 @@ test.describe('usernames', () => {
     secondName = `Bitch_${rand(2)}`;
     await page.goto('/dashboard');
     await expect(page.getByTestId('signed-in-as')).toHaveText(firstName);
-    // This page now goes stale: it will not know the lock below.
+    // This page goes stale: it opens its confirm step BEFORE the other tab
+    // changes the name, so a background refresh of this page (Next may refetch
+    // it) cannot pre-empt the attempt. Its Confirm then reaches the real
+    // Server Function after the lock exists, and the database refuses.
+    const staleName = `E2E_${rand(3)}`;
+    await openEditor(page);
+    await fillAndSave(page, staleName);
+    await expect(page.getByTestId('username-confirm')).toBeVisible();
 
     const other = await context.newPage();
     await other.goto('/dashboard');
@@ -232,9 +254,7 @@ test.describe('usernames', () => {
     await expect(other.getByTestId('username-locked')).toHaveText(`You can change your username again on ${expected}.`);
     await other.close();
 
-    // Stale page: still enabled, the server function refuses.
-    await openEditor(page);
-    await fillAndSave(page, `E2E_${rand(3)}`);
+    // Stale page: its confirm step is still open; the server function refuses.
     await page.getByTestId('username-confirm').getByRole('button', { name: 'Confirm', exact: true }).click();
     await expect(page.getByTestId('username-control').getByRole('alert')).toContainText('You can change your username again on', { timeout: 30_000 });
     await expect(page.getByTestId('username-locked')).toContainText(expected);
