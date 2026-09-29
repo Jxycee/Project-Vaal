@@ -129,8 +129,8 @@ test.describe('build page (read mode)', () => {
     await page.goto(`/builds/${token}?tab=skills`);
     const main = (await page.getByTestId('build-main-skill').textContent())?.trim() ?? '';
     expect(main.length, 'the imported fixture has no main skill in the header').toBeGreaterThan(0);
-    const first = page.getByTestId('skills-tab').locator('ul > li').first();
-    await expect(first).toContainText('Main skill');
+    const first = page.getByTestId('skills-tab').getByTestId('skill-row').first();
+    await expect(first.getByTestId('skill-main-badge')).toHaveText('Main');
     await expect(first).toContainText(main);
   });
 

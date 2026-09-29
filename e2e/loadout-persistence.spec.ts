@@ -3,11 +3,13 @@ import {
   MIN_TAP_PX,
   cleanupWithFreshPage,
   closeGearEditor,
+  closeGemEditor,
   gearSlotLocator,
   gotoBuilds,
   listedBuildNames,
   measureTapTargets,
   openEditor,
+  openGemGroup,
   openTree,
   saveBuild,
   softNavigate,
@@ -214,8 +216,9 @@ test.describe('loadout persistence', () => {
     await expect(reopenedJewels).toBeHidden();
 
     await openEditor(page, 'gems');
-    const reopenedGems = page.locator('.z-40').filter({ hasText: 'Gems' });
-    const reopenedCard = reopenedGems.locator('ul > li').first();
+    // On the build page the groups are compact rows and the editor is a
+    // one-group sheet (slice 5); the card inside is the same GemLoadoutEditor.
+    const reopenedCard = await openGemGroup(page, 0);
     await expect(reopenedCard).toContainText(skillName);
     await expect(reopenedCard).toContainText(supportName);
     await expect(reopenedCard.getByRole('button', { name: 'Main skill' })).toHaveAttribute(
@@ -226,8 +229,7 @@ test.describe('loadout persistence', () => {
     // gemState.ts — so this proves the round trip, not just the default).
     await expect(reopenedCard.getByRole('spinbutton').first()).toHaveValue('5');
 
-    await reopenedGems.getByRole('button', { name: 'Close gems sheet' }).click();
-    await expect(reopenedGems).toBeHidden();
+    await closeGemEditor(page);
 
     // Notes, saved above. On the old UI the save panel is the metadata
     // surface (name, level, league) and is collapsed to a chip by default, so
