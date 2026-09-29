@@ -1,6 +1,8 @@
 // Presentational, read-only rendering of a saved GemState — no state, no
-// fetch, no portal. See ReadOnlyGearList.tsx's header comment for why this is
-// a separate small component rather than a `readOnly` prop on GemsSheet.
+// fetch, no portal. A separate small component rather than a `readOnly` prop
+// on GemsSheet: the sheets exist to solve a stacking-context problem (portal
+// escaping /tree's `position: fixed` canvas) and an editing-state problem
+// (ItemPickerSheet 401s with no session) that a static page has neither of.
 import { WEAPON_SET_DOT } from '@/lib/build/weaponSetColors';
 import { loadoutsMainFirst, mainSkillLoadout } from '@/lib/build/buildPage';
 import type { GearItem } from '@/lib/build/gearSlots';
