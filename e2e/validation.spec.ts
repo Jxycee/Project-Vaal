@@ -141,5 +141,13 @@ test.describe('structural validation', () => {
     await expect(skills.getByTestId('skill-row')).toHaveCount(1);
     await expect(skills.getByTestId('skill-set-dot')).toHaveCount(1);
     await expect(skills.getByTestId('skill-set-dot')).toHaveAttribute('data-set', '1');
+
+    // Exact per-set check through the Stats tab: Set I reserves 40, Set II nothing.
+    await openEditor(page, 'stats');
+    const statsPanel = page.getByTestId('stats-panel');
+    await statsPanel.getByRole('button', { name: 'Set I', exact: true }).click();
+    await expect(statsPanel.getByTestId('stat-spirit')).toContainText('(40 reserved)', { timeout: 30_000 });
+    await statsPanel.getByRole('button', { name: 'Set II', exact: true }).click();
+    await expect(statsPanel.getByTestId('stat-spirit')).toContainText('(0 reserved)');
   });
 });
