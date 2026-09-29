@@ -280,6 +280,19 @@ export default function BuildSessionProvider({
     [canEdit],
   );
 
+  // The name was saved outside save() (settings menu -> renameBuild). The
+  // session seeds `meta` once per mount, so a router.refresh() alone would
+  // leave the header on the old name; this moves the live value and the saved
+  // baseline together, so it is not an unsaved change either.
+  const applySavedName = useCallback(
+    (name: string) => {
+      if (!canEdit) return;
+      setMetaState((prev) => ({ ...prev, name }));
+      setBaseline((prev) => ({ ...prev, meta: { ...prev.meta, name } }));
+    },
+    [canEdit],
+  );
+
   // ---- Gear / jewels ----------------------------------------------------
   const setGearSlot = useCallback(
     (slot: GearSlot, item: GearItem | null) => {
@@ -641,6 +654,7 @@ export default function BuildSessionProvider({
       draftPromptOpen,
       setTreeState,
       setMeta,
+      applySavedName,
       setGearSlot,
       pickJewel,
       clearJewel,
@@ -673,6 +687,7 @@ export default function BuildSessionProvider({
       draftPromptOpen,
       setTreeState,
       setMeta,
+      applySavedName,
       setGearSlot,
       pickJewel,
       clearJewel,
