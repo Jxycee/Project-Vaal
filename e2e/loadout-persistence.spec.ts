@@ -125,13 +125,22 @@ test.describe('loadout persistence', () => {
     await openEditor(page, 'jewels');
     const jewelsSheet = page.locator('.z-40').filter({ hasText: 'Jewels' });
     await expect(jewelsSheet).toBeVisible();
+    // One allocated socket, nothing in it: the sheet's "0 of 1 filled".
+    await expect(jewelsSheet.locator('ul li')).toHaveCount(1);
     const socketRow = jewelsSheet.locator('ul li').first();
     await expect(socketRow).toContainText('Empty');
+    await expect(page.getByTestId('gear-tab')).toContainText('No jewels recorded.');
     const jewelName = await pickFirstItem(page, socketRow.getByRole('button').first(), socketRow);
+
+    // ...and now "1 of 1 filled": the same single socket, holding the jewel.
+    await expect(jewelsSheet.locator('ul li')).toHaveCount(1);
+    await expect(socketRow).toContainText(jewelName);
+    await expect(socketRow).not.toContainText('Empty');
 
     await jewelsSheet.getByRole('button', { name: 'Close jewels sheet' }).click();
     await expect(jewelsSheet).toBeHidden();
     await expect(page.getByTestId('gear-tab')).toContainText(jewelName);
+    await expect(page.getByTestId('gear-tab')).not.toContainText('No jewels recorded.');
 
     // ---- Gems: a loadout with a support, marked as the main skill ----------
     await openEditor(page, 'gems');
@@ -189,7 +198,10 @@ test.describe('loadout persistence', () => {
     // this quietly covers the tree half of the payload as well.
     await openEditor(page, 'jewels');
     const reopenedJewels = page.locator('.z-40').filter({ hasText: 'Jewels' });
+    // Still one allocated socket, still filled ("1 of 1"), after a reload.
+    await expect(reopenedJewels.locator('ul li')).toHaveCount(1);
     await expect(reopenedJewels.locator('ul li').first()).toContainText(jewelName);
+    await expect(reopenedJewels.locator('ul li').first()).not.toContainText('Empty');
     await reopenedJewels.getByRole('button', { name: 'Close jewels sheet' }).click();
     await expect(reopenedJewels).toBeHidden();
 

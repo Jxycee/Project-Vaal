@@ -10,8 +10,8 @@
 // can be wrong is only WARNED about, by src/lib/build/validate — this sheet
 // never refuses an edit.
 //
-// Portaled to document.body at z-50, above GearSheet's z-40, for the same
-// stacking-context reason GearSheet's header comment gives. The mod picker
+// Portaled to document.body at z-50, above the gear tab's own z-40 sheets, for the same
+// stacking-context reason JewelsSheet's header comment gives. The mod picker
 // sits at z-[60]; the rune picker is ItemPickerSheet, which portals itself
 // later in the document and so lands on top.
 
@@ -40,7 +40,7 @@ import type { AffixKind, ModGroup } from '@/lib/wiki/modCatalogue';
 const INPUT = 'h-11 w-20 rounded-md border border-input bg-background/60 px-2 text-sm text-foreground';
 const BUTTON = 'flex h-11 min-w-11 items-center justify-center rounded-md border border-border px-3 text-xs font-medium disabled:opacity-50';
 
-/** One base's detail, keyed by the slug it is FOR so a stale response is ignored (same pattern as GemsSheet's hooks). */
+/** One base's detail, keyed by the slug it is FOR so a stale response is ignored (same pattern as the gem loadout's hooks). */
 function useBase(slug: string): BaseData | null | undefined {
   const [result, setResult] = useState<{ slug: string; data: BaseData | null | undefined } | null>(null);
   useEffect(() => {

@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
   };
 
   // Fields every save (insert or update) always writes in full — the caller
-  // always supplies these via BuildSavePanel/handleSave, so omission is not
+  // always supplies these (the build page session's save), so omission is not
   // meaningful for them the way it is for gear/gem/main_skill below.
   const shared = {
     name,

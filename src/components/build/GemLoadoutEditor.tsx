@@ -2,8 +2,7 @@
 
 // One gem group's editor: the skill + supports + level/quality + weapon-set
 // tags + Main skill toggle + Remove, and the skill/support pickers those
-// open. Extracted from GemsSheet so the scratch /tree editor's full-screen
-// sheet and the build page's one-group sheet (GemGroupSheet) render exactly
+// open. Shared editor body: the build page's one-group sheet (GemGroupSheet) renders exactly
 // the same controls with the same labels. Renders an <li> — callers wrap it
 // in a <ul>. The pickers are ItemPickerSheet portals, so they escape any
 // ancestor stacking context.
@@ -52,7 +51,7 @@ function GemIcon({ item }: { item: GearItem | null }) {
   return (
     <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-card/60">
       {item?.iconUrl ? (
-        // Plain <img>, not next/image — see GearSheet.tsx's SlotRow comment
+        // Plain <img>, not next/image — see PaperDoll.tsx's icon comment
         // (this icon is under /data/wiki/, a session-cookie-protected prefix
         // next/image's server-side optimizer fetch can't carry, so it would
         // get redirected to /login instead of the image).
@@ -97,8 +96,8 @@ export default function GemLoadoutEditor({
   onSetLevel: (level: number) => void;
   onSetQuality: (quality: number) => void;
 }) {
-  // Which picker is open, if any. One at a time — same pattern as GearSheet's
-  // pickerSlot / JewelsSheet's pickerSocketId.
+  // Which picker is open, if any. One at a time — same pattern as GearSlotDetail's
+  // picker state / JewelsSheet's pickerSocketId.
   const [pickerKind, setPickerKind] = useState<'skill' | 'support' | null>(null);
   const atCap = loadout.supports.length >= MAX_SUPPORTS_PER_SKILL;
   // Per-gem cap (see gemState.ts's GemLoadout.level doc comment) — not
@@ -254,7 +253,7 @@ export default function GemLoadoutEditor({
       </div>
       <ItemPickerSheet
         // Keyed by kind: opening the other picker remounts it, resetting its
-        // internal search query for free (same reasoning as GearSheet's own
+        // internal search query for free (same reasoning as GearSlotDetail's own
         // keyed ItemPickerSheet).
         key={pickerKind ?? 'closed'}
         slot={pickerKind === 'support' ? GEM_SUPPORT_PSEUDO_SLOT : GEM_SKILL_PSEUDO_SLOT}

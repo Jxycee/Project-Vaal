@@ -89,7 +89,7 @@ function DollCell({
         // Plain <img>, not next/image: this icon comes from /data/wiki/
         // (PROTECTED_PREFIXES in src/proxy.ts), so next/image's server-side
         // optimizer fetch would not carry the viewer's session cookie and
-        // would be redirected to /login. Same reasoning as GearSheet's rows.
+        // would be redirected to /login. Same reasoning for every wiki icon in the build page.
         // eslint-disable-next-line @next/next/no-img-element
         <img src={item.iconUrl} alt="" loading="lazy" className="min-h-0 w-full flex-1 object-contain" />
       ) : null}

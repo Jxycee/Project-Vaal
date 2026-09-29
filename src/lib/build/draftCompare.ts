@@ -3,7 +3,7 @@
 //
 // Without this, EVERY visit to a saved build shows a bogus "unsaved changes"
 // prompt: PassiveTree's mount effect reports its freshly-seeded state
-// upward, TreeBuildSession's draft-save effect writes that straight into
+// upward, the session's draft-save effect writes that straight into
 // localStorage, and the next load-check finds a draft that is byte-for-byte
 // what the build itself already holds. A pure comparison, run once against
 // the draft read at mount, is what tells "genuinely unsaved work" apart from

@@ -10,14 +10,14 @@
 //
 // - `jewels` uses the actual `JewelsSummary` (from jewelState.ts), not the
 //   brief's inline `{ sockets, orphans }` — `summarizeJewels` also returns
-//   `filledCount`, which `JewelsChip` needs (see TreeBuildSession's
-//   `jewelsSummary` usage). Dropping it would force a second call to
+//   `filledCount`, which the jewels section needs (see the session's
+//   `jewels` usage). Dropping it would force a second call to
 //   `summarizeJewels` just to recover a field the first call already
 //   computed.
 // - `BuildWarning` is imported from `@/lib/build/validate` (its declared
 //   export point — see validate/index.ts's `export type { BuildWarning, ... }
 //   from './types'`), matching the brief's own instruction to use
-//   `GearSheet`'s real prop type.
+//   the gear editor's real prop type.
 // =============================================================================
 import type { GggTreeJson } from '@poe2-toolkit/tree-core/ggg';
 import type { WeaponSet } from '@poe2-toolkit/tree-core';
@@ -34,7 +34,7 @@ import type { Sheets } from '../HeaderStats';
  * The header/save-panel fields. Deliberately NOT part of `BuildDraftState`
  * (drafts hold only tree/gear/gems) — see the controller ruling in the plan:
  * name/level/league/notes have the same protection the old editor gave them
- * (BuildSavePanel's fields were never drafted either), which is the `dirty`
+ * (the old save panel's fields were never drafted either), which is the `dirty`
  * guard alone, not a localStorage safety net.
  */
 export interface BuildMeta {

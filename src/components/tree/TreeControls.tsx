@@ -81,7 +81,7 @@ export default function TreeControls({
 }: TreeControlsProps) {
   // Collapsed by default. On a phone the canvas IS the interface and drag
   // surface is scarce: expanded, this panel covers roughly half a 375px screen
-  // and extends underneath BuildSavePanel's chip in the opposite corner (caught
+  // and extends underneath the opposite corner's overlay (caught
   // by e2e/mobile-layout.spec.ts, which asserts the resting overlays never
   // intersect). The chip still shows the active class, so nothing is hidden —
   // only folded away until asked for.

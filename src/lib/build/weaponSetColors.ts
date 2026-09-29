@@ -1,7 +1,7 @@
 // src/lib/build/weaponSetColors.ts
 // =============================================================================
 // Single source of truth for the Set I / Set II colour language, shared by
-// TreeControls' weapon-set paint mode and GearSheet's weapon-set switch. The
+// TreeControls' weapon-set paint mode and the gear tab's weapon-set switch. The
 // gear design doc requires the gear sheet reuse "the tree's existing colour
 // language for sets rather than inventing a second vocabulary" — pulling the
 // two literals out to one module is what keeps that true if either one ever

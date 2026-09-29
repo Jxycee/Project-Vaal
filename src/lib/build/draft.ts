@@ -9,7 +9,7 @@
 // onStateChange — and that first report fires on MOUNT, before any restore
 // logic could run, immediately overwriting whatever draft was stored under
 // the key it was about to compute. buildId is known at mount (it's a prop),
-// so TreeBuildSession reads the draft in a lazy `useState` initialiser during
+// so a session can read the draft in a lazy `useState` initialiser during
 // the first render, before PassiveTree's mount effect ever fires.
 //
 // The draft carries the WHOLE editing session — tree allocation, gear and

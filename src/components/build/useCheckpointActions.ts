@@ -1,10 +1,9 @@
 'use client';
 
 // Checkpoint mutations (switch, reorder, rename, two-tap delete, add), shared
-// between CheckpointsSheet (the test-grade full-screen editor the scratch
-// `/tree` editor still uses) and CheckpointSwitcher's manage view (the build
-// page, slice 3). Extracted verbatim from CheckpointsSheet's `run`, `move`,
-// rename and delete handlers, plus its Add button's inline logic — no
+// by CheckpointSwitcher's manage view (the build page, slice 3). Extracted
+// from the old full-screen checkpoint editor's `run`, `move`, rename and
+// delete handlers, plus its Add button's inline logic — no
 // behaviour change, just one implementation instead of two that could drift.
 //
 // Every write goes through checkpointActions.ts's Server Functions via
@@ -12,7 +11,7 @@
 // header comment). Those Server Functions call next/cache's refresh()
 // themselves on success (they are Server Actions, so they can), which is what
 // re-renders the current route with fresh checkpoint rows — this hook does
-// NOT also call the client router's refresh(): CheckpointsSheet never did
+// NOT also call the client router's refresh(): the old editor never did
 // either, and the two would be redundant.
 import { useCallback, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
@@ -35,7 +34,7 @@ export function useCheckpointActions({
   onNavigate,
 }: {
   /**
-   * Undefined for a scratch session that has never saved (CheckpointsSheet's
+   * Undefined for a scratch session that has never saved (the old editor's
    * only caller with no build yet — its own `!buildId` branch keeps the
    * content that would call into this hook from ever rendering in that case,
    * so `move`/`add` below only need to no-op defensively, not throw).
@@ -130,13 +129,13 @@ export function useCheckpointActions({
           setError(result.error);
           return;
         }
-        // Restores CheckpointsSheet's pre-refactor behaviour: it used to
+        // Restores the old checkpoint editor's pre-refactor behaviour: it used to
         // clear its name field itself right here, before navigating. The
         // hook doesn't own that field (form fields are UI, not this hook's
         // job — see the file header), so it's the caller's job via `onDone`;
         // dropped by accident in the original extraction (fix round 1, final
         // review) because CheckpointManager's own success path (closing the
-        // menu) hid the missed reset, but CheckpointsSheet stays mounted
+        // menu) hid the missed reset, but the old sheet stayed mounted
         // across opens and would carry a stale name into the next one.
         onDone?.();
         goTo(result.id);

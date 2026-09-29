@@ -1,8 +1,7 @@
 'use client';
 
 // The defence sheet's content — set toggle, the 13 rows, and what the numbers
-// do not count or assume. Inline, so the build page's Stats tab and the
-// editor's StatsSheet (a portal around this) show the same thing.
+// do not count or assume. Rendered inline by the build page's Stats tab.
 import { useState } from 'react';
 import type { WeaponSet } from '@poe2-toolkit/tree-core';
 import type { Resistance } from '@/lib/build/stats/engine';

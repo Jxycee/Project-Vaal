@@ -2,7 +2,7 @@
 // =============================================================================
 // Jewel socket resolution from the raw GGG tree export.
 //
-// TreeBuildSession derives which passive-tree sockets exist directly from
+// BuildSession derives which passive-tree sockets exist directly from
 // `raw` (the GGG export it already holds as a prop) rather than from
 // PassiveTree's normalized TreeData, so this feature never has to touch
 // PassiveTree's onStateChange contract — see

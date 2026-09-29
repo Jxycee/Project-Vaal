@@ -40,7 +40,7 @@ export function isGearSlot(value: string): value is GearSlot {
   return (GEAR_SLOTS as readonly string[]).includes(value);
 }
 
-/** Display label per slot — used by GearSheet's rows and ItemPickerSheet's header. UI vocabulary, not a second source of truth for the category mapping above. */
+/** Display label per slot — used by the gear tab's slots and ItemPickerSheet's header. UI vocabulary, not a second source of truth for the category mapping above. */
 export const GEAR_SLOT_LABELS: Record<GearSlot, string> = {
   head: 'Helmet',
   body: 'Body Armour',

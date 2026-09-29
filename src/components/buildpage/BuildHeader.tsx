@@ -35,7 +35,7 @@ export interface HeaderProps {
 /**
  * Buffers the level field as a string so a user can clear it or type a
  * partial number without it snapping back — clamped to 1-100 only once the
- * field loses focus, same shape as BuildSavePanel's level handling.
+ * field loses focus, same shape as the old save panel's level handling.
  *
  * Seeded once (lazy initial state), not re-synced from `level` on every
  * render: the only way `level` changes while this input is mounted is this

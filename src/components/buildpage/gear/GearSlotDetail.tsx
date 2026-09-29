@@ -112,7 +112,7 @@ export default function GearSlotDetail({
             onClose={() => setEditing(false)}
           />
           <ItemPickerSheet
-            // Keyed by slot, as GearSheet does: a different slot remounts the
+            // Keyed by slot: a different slot remounts the
             // picker, which resets its search query without an effect.
             key={slot}
             slot={slot}

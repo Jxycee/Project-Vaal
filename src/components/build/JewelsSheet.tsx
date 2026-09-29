@@ -5,8 +5,8 @@
 // below with a Remove action — never silently dropped. See
 // docs/superpowers/specs/2026-09-20-jewels-design.md.
 //
-// Portaled to document.body for the same reason as GearSheet.tsx (read its
-// header comment): /tree's canvas wrapper is `position: fixed`, which always
+// Portaled to document.body for the same reason as the other build-page
+// sheets: the tree canvas wrapper is `position: fixed`, which always
 // creates its own stacking context, so a plain `fixed inset-0 z-*` here would
 // sit under the shell's `sticky z-20` mobile header no matter its z-index.
 import { useState } from 'react';
@@ -21,7 +21,7 @@ function JewelIcon({ item }: { item: GearItem | null }) {
   return (
     <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-card/60">
       {item?.iconUrl ? (
-        // Plain <img>, not next/image — see GearSheet.tsx's SlotRow comment
+        // Plain <img>, not next/image — see PaperDoll.tsx's icon comment
         // (this icon is under /data/wiki/, a session-cookie-protected prefix
         // next/image's server-side optimizer fetch can't carry, so it would
         // get redirected to /login instead of the image).
@@ -49,7 +49,7 @@ function SocketRow({
         <button
           type="button"
           onClick={onOpenPicker}
-          // h-full for the same reason as GearSheet's row button: the row is
+          // h-full for the same reason as the gear doll's cell button: the row is
           // h-14 but a heightless button collapses to its content.
           className="flex h-full min-w-0 flex-1 items-center gap-3 text-left"
         >
@@ -137,7 +137,7 @@ export default function JewelsSheet({
   // a GearSlot — the jewel picker isn't slot-shaped, see JEWEL_PSEUDO_SLOT.
   const [pickerSocketId, setPickerSocketId] = useState<string | null>(null);
 
-  // Also gates the SSR pass, same reasoning as GearSheet/ItemPickerSheet.
+  // Also gates the SSR pass, same reasoning as GearSlotDetail/ItemPickerSheet.
   if (!open || typeof document === 'undefined') return null;
 
   return createPortal(
@@ -192,7 +192,7 @@ export default function JewelsSheet({
       <ItemPickerSheet
         // Keyed by socket id: opening the picker for a different socket
         // remounts it, resetting its internal search query for free (same
-        // reasoning as GearSheet's own keyed ItemPickerSheet).
+        // reasoning as GearSlotDetail's own keyed ItemPickerSheet).
         key={pickerSocketId ?? 'closed'}
         slot={JEWEL_PSEUDO_SLOT}
         open={pickerSocketId !== null}

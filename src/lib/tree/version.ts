@@ -2,7 +2,7 @@
  * The vendored passive-tree export version (see
  * public/data/tree/<version>/SOURCE.md). The one place it is written.
  *
- * Lives here rather than in TreeEditor.tsx, where it used to: that file is a
+ * Lives here rather than in a component file, where it used to: that file is a
  * 'use client' module, and server code importing a value from one receives a
  * client-reference proxy, not the string. The PoB importer's catalogue is
  * server code that needs the real value.

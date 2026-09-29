@@ -22,7 +22,7 @@ export const MAX_WEAPON_SET_POINTS = 24;
  * an application-level sanity bound, not a data-backed one, picked as
  * "several paragraphs of build reasoning" without being large enough to make
  * a build row unreasonably big. Shared between POST /api/builds (server
- * validation) and BuildSavePanel (client-side counter/truncation) so the two
+ * validation) and the build page's notes field (client-side counter/truncation) so the two
  * never disagree about the limit.
  */
 export const MAX_NOTES_LENGTH = 4000;

@@ -2,8 +2,7 @@
 
 // src/components/buildpage/session/BuildSession.tsx
 //
-// The build-page analogue of TreeBuildSession (src/components/tree/
-// TreeBuildSession.tsx): owns everything derived from one build+checkpoint —
+// The build page's session provider: owns everything derived from one build+checkpoint —
 // the live editor state, the draft-to-localStorage safety net (and its
 // restore prompt), and the save call — behind a context instead of rendering
 // the editor UI itself. BuildPage.tsx renders this provider keyed by
@@ -11,8 +10,7 @@
 // subtree on every checkpoint switch. That is what makes the lazy
 // one-shot-per-mount seeding below correct: there is no checkpoint-derived
 // state here that can outlive the checkpoint it belongs to, and no stale-
-// props problem for it to guard against (see TreeBuildSession's header
-// comment for the fuller version of this argument — the same reasoning
+// props problem for it to guard against (the same reasoning
 // applies verbatim, just at the checkpoint granularity instead of buildId).
 //
 // This file is state-and-derivation only. It renders no UI of its own
@@ -203,7 +201,7 @@ export default function BuildSessionProvider({
   // `storedDraft`/`draftPromptOpen` used to be seeded in a lazy useState
   // initialiser, reading localStorage at render time. That broke as soon as
   // this provider started rendering inside BuildPage, which is
-  // server-rendered (unlike the old TreeBuildSession, which only ever
+  // server-rendered (unlike the retired tree editor, which only ever
   // mounted client-side after a fetch): localStorage doesn't exist on the
   // server, so the server render always produced `null`/`false`, while the
   // client's hydration render produced whatever the real draft was — server
@@ -286,7 +284,7 @@ export default function BuildSessionProvider({
   // `save()`) are independently `canEdit`-gated, so a reader calling one of
   // these would only drift in-memory state with nothing to persist it — but
   // a later task could wire a sheet's `onChange` unconditionally instead of
-  // only in edit mode (an easy copy-paste mistake, since `TreeBuildSession`
+  // only in edit mode (an easy copy-paste mistake, since the retired editor
   // never had a reader case to think about), and this guard is what keeps
   // that mistake a no-op instead of silent drift (review 2026-09-27).
   const setMeta = useCallback(
@@ -346,7 +344,7 @@ export default function BuildSessionProvider({
   // ---- Gems ---------------------------------------------------------------
   // Every decision (support cap, set normalisation, primary clearing) lives
   // in gemState.ts's pure, unit-tested reducers; these handlers only route
-  // events, exactly as TreeBuildSession's did.
+  // events.
   const gemAdd = useCallback(() => {
     if (!canEdit) return;
     setGems((prev) => addLoadout(prev));
@@ -363,11 +361,11 @@ export default function BuildSessionProvider({
       if (!canEdit) return;
       setGems((prev) => setSkill(prev, id, item));
       if (!item) return;
-      // GemsSheet clamps the level only on a manual edit, so a swap to a gem
+      // The gem loadout editor clamps the level only on a manual edit, so a swap to a gem
       // with a lower cap (e.g. a level-40 active replaced by a Spirit gem
       // capped at 8) would otherwise keep, and save, the old level. Clamp once
-      // the new gem's cap is known — ported verbatim from
-      // TreeBuildSession.handleSetSkill, including its "only if this skill is
+      // the new gem's cap is known — carried over from the
+      // retired editor's set-skill handler, including its "only if this skill is
       // still the one in the slot" re-check against a possibly-stale fetch.
       void fetchMaxGemLevel(item.slug).then((max) =>
         setGems((prev) => {
@@ -439,9 +437,9 @@ export default function BuildSessionProvider({
 
   // ---- Draft write (owner + edit mode only) -----------------------------
   //
-  // Writes to localStorage only, never a setState — mirrors
-  // TreeBuildSession's effect exactly (including the react-hooks/set-state-
-  // in-effect reasoning in its comment: this depends on gear/gems too, not
+  // Writes to localStorage only, never a setState — follows
+  // the retired editor's effect (including the react-hooks/set-state-
+  // in-effect reasoning: this depends on gear/gems too, not
   // just the tree, or a gear/gem-only edit would never mark the session
   // dirty and that work would vanish silently on refresh with no restore
   // prompt at all).
@@ -475,7 +473,7 @@ export default function BuildSessionProvider({
   }, [canEdit, editing, treeState, gear, gems, draftBuildId, checkpointId]);
 
   // ---- Structural validation + derived view models ---------------------
-  // Exactly as TreeBuildSession derives them: nothing here is stored.
+  // Derived, nothing here is stored.
   const livePassive = useMemo(
     () => toPassiveState(treeState.main, treeState.ascendancyNodes, treeState.attributeChoices),
     [treeState],
@@ -550,8 +548,7 @@ export default function BuildSessionProvider({
     if (saveInFlight.current || scratchCreated.current) return false;
     saveInFlight.current = true;
     // What this save carries. Edits made while it is in flight are not in
-    // it — see the `latestSession` in-flight check below, ported from
-    // TreeBuildSession.handleSave.
+    // it — see the `latestSession` in-flight check below.
     const sent: BuildDraftState = { tree: treeState, gear, gem: gems };
     const sentMeta = meta;
     setSaving(true);
@@ -645,8 +642,7 @@ export default function BuildSessionProvider({
       }
       // Re-render the server page so the checkpoint list (and its levels)
       // reflect this save. A Route Handler cannot call next/cache's
-      // refresh() itself — Server-Action only — so the client does it here,
-      // same as TreeBuildSession.
+      // refresh() itself — Server-Action only — so the client does it here.
       router.refresh();
       return true;
     } catch {

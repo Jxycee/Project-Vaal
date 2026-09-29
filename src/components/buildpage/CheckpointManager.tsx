@@ -1,11 +1,11 @@
 'use client';
 
 // The checkpoint switcher's manage view (slice 3, task 3): add/rename/
-// reorder/two-tap-delete, moved out of the full-screen CheckpointsSheet into
+// reorder/two-tap-delete, moved out of a full-screen sheet into
 // the header's menu. Owner edit mode only — CheckpointSwitcher never mounts
 // this without a `manage` bundle. Every mutation goes through
-// useCheckpointActions (task 2), the same hook CheckpointsSheet uses, so the
-// two views can never drift on behaviour.
+// useCheckpointActions (task 2), the hook that owns the checkpoint mutations, so
+// behaviour lives in one place.
 import { useState } from 'react';
 import Link from 'next/link';
 import type { CheckpointStateInput } from '@/app/(dashboard)/builds/checkpointActions';
