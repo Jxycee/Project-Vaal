@@ -10,8 +10,7 @@
 // docs/superpowers/specs/2026-09-20-jewels-design.md.
 // =============================================================================
 
-import type { GggTreeJson } from '@poe2-toolkit/tree-core/ggg';
-import { resolvableJewelSockets } from '@/lib/tree/jewelSockets';
+import { resolvableJewelSockets, type JewelSocketSource } from '@/lib/tree/jewelSockets';
 import type { GearItem } from './gearSlots';
 
 export interface JewelSocketView {
@@ -49,7 +48,7 @@ export interface JewelsSummary {
  * different, caller-owned code path entirely.
  */
 export function summarizeJewels(
-  raw: GggTreeJson,
+  raw: JewelSocketSource,
   allocated: readonly number[],
   jewels: Record<string, GearItem>,
 ): JewelsSummary {

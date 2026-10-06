@@ -49,9 +49,12 @@ export interface BuildSessionValue {
   canEdit: boolean;
   /** The scratch planner (`/tree`): no saved row behind the session, so the first `save()` creates one and replaces the URL with its page. */
   scratch: boolean;
-  /** The tree export, once the shared page's lazy fetch resolves. */
+  /** The FULL tree export (5 MB), null until the Tree tab calls `requestFullTree`. Only the canvas reads it; everything else uses the lite file inside the session. */
   tree: GggTreeJson | null;
+  /** Error from the full-export fetch; never affects the stats rail or warnings. */
   treeError: string | null;
+  /** Starts the full-export fetch (idempotent). TreeTab calls it on mount. */
+  requestFullTree: () => void;
   /** Always present — seeded from the checkpoint on mount, never null. */
   treeState: BuildEditorState;
   /** Bump to force whatever `PassiveTree` a consumer renders (keyed by this) to remount and re-seed. */
@@ -65,7 +68,7 @@ export interface BuildSessionValue {
   // ---- derived ----
   warnings: readonly BuildWarning[];
   offHandOccupied: Record<WeaponSet, GearItem | null>;
-  /** null until the tree export loads (summarizeJewels needs it). */
+  /** null until the lite tree file loads (summarizeJewels needs it). */
   jewels: JewelsSummary | null;
   sheets: Sheets;
   reserved: ReservedSpiritResult | null;

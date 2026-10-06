@@ -25,7 +25,11 @@
 //    here rather than writing a second parser for the same markup.
 // =============================================================================
 
-import type { GggTreeJson } from '@poe2-toolkit/tree-core/ggg';
+/** The slice of the tree export this reads; `GggTreeJson` and `TreeLite` both satisfy it. */
+export interface JewelSocketSource {
+  nodes: Record<string, { name?: string } | undefined>;
+  jewelSlots?: (string | number)[];
+}
 import { parseStatText } from './statText';
 
 export interface JewelSocketDef {
@@ -41,7 +45,7 @@ export interface JewelSocketDef {
  * hypothetical edge case — this is the one place that filter is applied, so
  * every caller (the chip, the sheet, the dev test hook) sees the same 19.
  */
-export function resolvableJewelSockets(raw: GggTreeJson): JewelSocketDef[] {
+export function resolvableJewelSockets(raw: JewelSocketSource): JewelSocketDef[] {
   const slots = raw.jewelSlots ?? [];
   const seen = new Set<number>();
   const result: JewelSocketDef[] = [];

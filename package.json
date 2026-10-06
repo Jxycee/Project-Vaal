@@ -16,6 +16,7 @@
     "postinstall": "patch-package",
     "sync:wiki": "tsx scripts/sync-wiki.ts",
     "sync:stats": "tsx scripts/sync-stats.ts",
+    "sync:tree-lite": "tsx scripts/sync-tree-lite.ts",
     "db:types": "npx supabase gen types typescript --project-id mjxadehorflhncendqiy > src/types/database.ts",
     "db:schema": "tsx scripts/dump-schema.ts"
   },

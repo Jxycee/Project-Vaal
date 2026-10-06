@@ -104,7 +104,7 @@ test.describe('build page (read mode)', () => {
   });
 
   test('without the tree export, the page still reads; stats and tree say why they are missing', async ({ page }) => {
-    await page.route('**/data/tree/*/data.json', (route) => route.abort());
+    await page.route(/\/data\/tree\/[^/]+\/(lite|data)\.json$/, (route) => route.abort());
     await page.goto(`/builds/${token}`);
     await expect(page.getByRole('heading', { level: 1, name })).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId('header-stats')).toContainText('Stats unavailable', { timeout: 30_000 });
