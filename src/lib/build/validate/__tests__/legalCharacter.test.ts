@@ -60,9 +60,10 @@ describe('a legal level-98 Deadeye raises no false structural warning', () => {
     expect(treeWarnings(passive, false).map((w) => w.code)).toEqual(['ascendancy-points-over']);
   });
 
-  it('122 passives are not over the level-98 budget', () => {
+  it('122 passives fit a level-99 budget, as PoB2 computes (one point over at 98, unexplained — see passiveBudget.ts)', () => {
     expect(spentOf(passive)).toBe(122);
-    expect(isOverPassiveBudget(122, derivePassiveBudget(98))).toBe(false);
+    expect(isOverPassiveBudget(122, derivePassiveBudget(99))).toBe(false);
+    expect(isOverPassiveBudget(122, derivePassiveBudget(98))).toBe(true);
   });
 });
 
@@ -89,6 +90,6 @@ describe('real overflows still warn', () => {
   it('123 passives at level 98 is over, as is 125 at level 100', () => {
     expect(isOverPassiveBudget(123, derivePassiveBudget(98))).toBe(true);
     expect(isOverPassiveBudget(125, derivePassiveBudget(100))).toBe(true);
-    expect(isOverPassiveBudget(124, derivePassiveBudget(100))).toBe(false); // the one point of slack
+    expect(isOverPassiveBudget(123, derivePassiveBudget(100))).toBe(false);
   });
 });

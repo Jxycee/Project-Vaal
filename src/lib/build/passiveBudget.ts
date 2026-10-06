@@ -24,17 +24,16 @@ export const QUEST_PASSIVE_POINTS = 24;
 // same pool (Build.lua:1053 counts used - min(set1, set2)), so they are not excluded here.
 
 /**
- * Points of slack before a build reads as over budget. PoB2 derives the REQUIRED level
- * from the nodes (Build.lua:1035: nodes + 1 - quest points), which puts momentsZX's 122
- * passives at level 99 while her sheet says 98 — one point PoB2's data does not explain
- * (QuestRewards.lua sums to exactly 24: 12 quests x "+2 Weapon Set Passive Skill Points",
- * Build.lua:84-102). Signal-only, so a missed overflow of 1 costs less than a false warning.
+ * Whether `spent` points exceed `budget` (from `derivePassiveBudget`). No slack: PoB2
+ * derives the REQUIRED level from the nodes (Build.lua:1035: nodes + 1 - quest points),
+ * which puts the momentsZX reference character's 122 passives at level 99 while the
+ * character sheet says 98 — one point neither PoB2's data nor ours explains (QuestRewards.lua
+ * sums to exactly 24, Build.lua:84-102). A slack tuned to one character would hide every
+ * real one-point overflow, so that build shows the (signal-only, never blocking) chip,
+ * exactly as PoB2 would ask for level 99. Revisit if the missing point's source is found.
  */
-export const PASSIVE_BUDGET_SLACK = 1;
-
-/** Whether `spent` points exceed `budget` (from `derivePassiveBudget`) by more than the slack. */
 export function isOverPassiveBudget(spent: number, budget: number): boolean {
-  return spent > budget + PASSIVE_BUDGET_SLACK;
+  return spent > budget;
 }
 
 /**
