@@ -245,6 +245,27 @@
     }
   }
 
+  /* Landing hero backdrop (src/components/landing/hero-backdrop.tsx). The CSS
+     fallback drifts slowly so it reads as alive even where the WebGPU shader
+     cannot run; reduced-motion users get it frozen. */
+  @keyframes hero-drift {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+      transform: translate3d(4%, 3%, 0) scale(1.12);
+    }
+  }
+  .hero-drift {
+    animation: hero-drift 18s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-drift {
+      animation: none;
+    }
+  }
+
   /* Themed scrollbar for horizontally-scrolling strips (e.g. the prices
      category pill row) — the browser default scrollbar is a stark white
      bar that clashes with the dark theme. */

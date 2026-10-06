@@ -69,9 +69,17 @@ export default defineConfig({
       // phones, so a failure at 375px is a real failure, not a partial pass.
       // It runs everything except the desktop-only geometry spec.
       name: 'mobile',
-      testIgnore: /desktop-layout\.spec\.ts/,
+      testIgnore: /desktop-layout\.spec\.ts|landing-shader\.spec\.ts/,
       use: { ...devices['Pixel 7'], storageState: 'e2e/.auth/user.json' },
       dependencies: ['setup'],
+    },
+    {
+      // The public landing page, signed out. No `setup` dependency on purpose:
+      // the page needs no session, and the spec forces its own browser flags
+      // (WebGPU on/off), so it should run on a machine with no Supabase keys.
+      name: 'landing',
+      testMatch: /landing-shader\.spec\.ts/,
+      use: { ...devices['Pixel 7'] },
     },
     {
       // Deliberately narrow. This project used to re-run every spec at 1280px,

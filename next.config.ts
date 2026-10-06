@@ -36,6 +36,17 @@ const withSerwist = withSerwistInit({
   // glob v9+ dropped inline '!' and @serwist/next hardcodes `ignore`.
   // -------------------------------------------------------------------------
   globPublicPatterns: ['*', '!(data)/**/*', 'data/tree/**/*'],
+
+  // -------------------------------------------------------------------------
+  // The landing hero's WebGPU shader engine (src/components/landing/) is a
+  // ~1.6MB chunk that is fetched on demand, and only by browsers that can run
+  // it. Serwist precaches every .next/static chunk by default, which would make
+  // EVERY visitor download it on service-worker install — GPU or not — and undo
+  // the lazy load. The `shader-engine` name is given to that chunk by the
+  // splitChunks cache group in `webpack` below; the defaults are repeated here
+  // because setting `exclude` replaces them.
+  // -------------------------------------------------------------------------
+  exclude: [/\.map$/, /^manifest.*\.js$/, /shader-engine/],
 })
 
 const nextConfig: NextConfig = {
@@ -50,6 +61,27 @@ const nextConfig: NextConfig = {
   // key only matters for the production build path.
   // -------------------------------------------------------------------------
   turbopack: {},
+
+  // Production (`next build --webpack`) only: gives the shader engine's chunk a
+  // stable name so the Serwist `exclude` above can find it. Async-only, so it
+  // can never be pulled into an initial route bundle. See e2e/landing-shader.spec.ts
+  // (prod check) for the assertion that keeps the two in sync.
+  webpack(config) {
+    const split = config.optimization?.splitChunks
+    if (split && typeof split === 'object') {
+      split.cacheGroups = {
+        ...split.cacheGroups,
+        shaderEngine: {
+          test: /[\\/]node_modules[\\/](shaders|typegpu)[\\/]/,
+          name: 'shader-engine',
+          chunks: 'async',
+          priority: 60,
+          enforce: true,
+        },
+      }
+    }
+    return config
+  },
 
   // -------------------------------------------------------------------------
   // Serverless bundle tracing for the wiki's ISR detail routes.

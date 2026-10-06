@@ -1,9 +1,12 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { HeroBackdrop } from '@/components/landing/hero-backdrop'
 
 export default function Home() {
   return (
+    <>
+    <HeroBackdrop />
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-2xl flex-col items-center justify-center px-4 py-16 text-center">
       {/* w-based + h-auto preserves aspect ratio; max-w-[70vw] stops it
           overflowing or distorting on small phones. This is the page's LCP
@@ -86,5 +89,6 @@ export default function Home() {
         </a>
       </div>
     </main>
+    </>
   )
 }
