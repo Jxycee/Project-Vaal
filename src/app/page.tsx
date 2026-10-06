@@ -7,7 +7,7 @@ export default function Home() {
   return (
     <>
     <HeroBackdrop />
-    <main className="mx-auto flex min-h-[100dvh] w-full max-w-2xl flex-col items-center justify-center px-4 py-16 text-center">
+    <main className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-2xl flex-col items-center justify-center px-4 py-16 text-center">
       {/* w-based + h-auto preserves aspect ratio; max-w-[70vw] stops it
           overflowing or distorting on small phones. This is the page's LCP
           element — `priority` disables lazy-loading and sets fetchpriority=high;

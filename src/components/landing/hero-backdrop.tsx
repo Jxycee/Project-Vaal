@@ -9,67 +9,121 @@
 // The shader is skipped, and its chunk never requested, when `navigator.gpu` is
 // missing or the user prefers reduced motion. Both checks happen in an effect,
 // never during render, so server and client markup stay identical.
+//
+// `?backdrop=debug` adds a corner label naming the branch that is running —
+// the only way to tell on a phone, where "the shader did nothing" and "this
+// device has no WebGPU" look identical.
 import dynamic from 'next/dynamic'
-import { useEffect, useState } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 
 const ShaderLayer = dynamic(() => import('./shader-layer'), { ssr: false })
 
-export function HeroBackdrop() {
-  const [shaderOn, setShaderOn] = useState(false)
-  const [ready, setReady] = useState(false)
+const REDUCED = '(prefers-reduced-motion: reduce)'
 
-  useEffect(() => {
-    const query = window.matchMedia('(prefers-reduced-motion: reduce)')
-    const hasGpu = 'gpu' in navigator && !!(navigator as { gpu?: unknown }).gpu
-    const sync = () => {
-      const on = hasGpu && !query.matches
-      setShaderOn(on)
-      if (!on) setReady(false)
-    }
-    sync()
-    query.addEventListener('change', sync)
-    return () => query.removeEventListener('change', sync)
-  }, [])
+// Browser capabilities are external state: read through useSyncExternalStore so
+// the server (and the hydration pass) see "no shader" and the client switches
+// over afterwards, with no setState-in-effect and no hydration mismatch.
+const subscribeReduced = (cb: () => void) => {
+  const query = window.matchMedia(REDUCED)
+  query.addEventListener('change', cb)
+  return () => query.removeEventListener('change', cb)
+}
+const noSubscribe = () => () => {}
+
+type Capability = 'pending' | 'no-gpu' | 'reduced' | 'ok'
+
+function useCapability(): Capability {
+  const reduced = useSyncExternalStore(
+    subscribeReduced,
+    () => window.matchMedia(REDUCED).matches,
+    () => false,
+  )
+  const hasGpu = useSyncExternalStore(
+    noSubscribe,
+    () => 'gpu' in navigator && !!(navigator as { gpu?: unknown }).gpu,
+    () => false,
+  )
+  const hydrated = useSyncExternalStore(noSubscribe, () => true, () => false)
+  if (!hydrated) return 'pending'
+  if (!hasGpu) return 'no-gpu'
+  return reduced ? 'reduced' : 'ok'
+}
+
+export function HeroBackdrop() {
+  const capability = useCapability()
+  const debug = useSyncExternalStore(
+    noSubscribe,
+    () => new URLSearchParams(window.location.search).get('backdrop') === 'debug',
+    () => false,
+  )
+  const [ready, setReady] = useState(false)
+  const [unavailable, setUnavailable] = useState<string | null>(null)
+
+  const shaderOn = capability === 'ok' && unavailable === null
+  const status =
+    capability === 'reduced'
+      ? 'css · reduced motion'
+      : capability === 'ok'
+        ? unavailable !== null
+          ? `css · shader unavailable (${unavailable})`
+          : ready
+            ? 'shader · live'
+            : 'shader · loading'
+        : 'css · no webgpu'
 
   return (
-    <div
-      data-testid="hero-backdrop"
-      aria-hidden="true"
-      className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-background"
-    >
+    <>
       <div
-        className="hero-drift absolute -left-1/4 -top-1/3 h-[80vmax] w-[80vmax] rounded-full opacity-60 blur-3xl"
-        style={{ background: 'radial-gradient(circle, rgba(214,178,94,0.5), transparent 68%)' }}
-      />
-      <div
-        className="hero-drift absolute -right-1/4 top-0 h-[80vmax] w-[80vmax] rounded-full opacity-50 blur-3xl [animation-delay:-6s]"
-        style={{ background: 'radial-gradient(circle, rgba(176,51,47,0.55), transparent 66%)' }}
-      />
-      <div
-        className="hero-drift absolute -bottom-1/2 left-1/4 h-[70vmax] w-[70vmax] rounded-full opacity-40 blur-3xl [animation-delay:-12s]"
-        style={{ background: 'radial-gradient(circle, rgba(63,111,138,0.5), transparent 68%)' }}
-      />
-      <svg className="absolute inset-0 h-full w-full opacity-25 mix-blend-overlay">
-        <filter id="hero-grain">
-          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" />
-          <feColorMatrix type="saturate" values="0" />
-        </filter>
-        <rect width="100%" height="100%" filter="url(#hero-grain)" />
-      </svg>
-      {/* Keeps the copy legible whatever the backdrop is doing. */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background/20 to-background/85" />
-
-      {shaderOn && (
-        // mix-blend-screen: black adds nothing, so a shader that renders blank
-        // (software GPU, lost device) leaves the CSS fallback visible instead of
-        // painting an opaque black sheet over it.
+        data-testid="hero-backdrop"
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-background"
+      >
         <div
-          className="absolute inset-0 mix-blend-screen transition-opacity duration-1000"
-          style={{ opacity: ready ? 0.9 : 0 }}
+          className="hero-drift absolute -left-[30%] -top-[20%] h-[85vmax] w-[85vmax] rounded-full"
+          style={{ background: 'radial-gradient(circle, rgba(222,160,48,0.85), transparent 66%)' }}
+        />
+        <div
+          className="hero-drift absolute -right-[35%] top-[5%] h-[85vmax] w-[85vmax] rounded-full [animation-delay:-6s]"
+          style={{ background: 'radial-gradient(circle, rgba(196,48,40,0.8), transparent 64%)' }}
+        />
+        <div
+          className="hero-drift absolute -bottom-[30%] left-[10%] h-[75vmax] w-[75vmax] rounded-full [animation-delay:-12s]"
+          style={{ background: 'radial-gradient(circle, rgba(52,130,180,0.7), transparent 66%)' }}
+        />
+        <svg className="absolute inset-0 h-full w-full opacity-30 mix-blend-overlay">
+          <filter id="hero-grain">
+            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" />
+            <feColorMatrix type="saturate" values="0" />
+          </filter>
+          <rect width="100%" height="100%" filter="url(#hero-grain)" />
+        </svg>
+        {/* Light veil, heaviest at the bottom where the small print sits. */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background/0 via-background/15 to-background/70" />
+
+        {shaderOn && (
+          // mix-blend-screen: black adds nothing, so a shader that renders blank
+          // (software GPU, lost device) leaves the CSS fallback visible instead of
+          // painting an opaque black sheet over it.
+          <div
+            className="absolute inset-0 mix-blend-screen transition-opacity duration-1000"
+            style={{ opacity: ready ? 1 : 0 }}
+          >
+            <ShaderLayer
+              onReady={() => setReady(true)}
+              onUnavailable={(reason) => setUnavailable(String(reason))}
+            />
+          </div>
+        )}
+      </div>
+
+      {debug && (
+        <p
+          data-testid="hero-backdrop-status"
+          className="fixed bottom-2 right-2 z-50 rounded bg-black/70 px-2 py-1 font-mono text-[0.65rem] text-white"
         >
-          <ShaderLayer onReady={() => setReady(true)} />
-        </div>
+          {status}
+        </p>
       )}
-    </div>
+    </>
   )
 }

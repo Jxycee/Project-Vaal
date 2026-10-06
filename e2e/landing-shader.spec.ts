@@ -221,19 +221,30 @@ test.describe('no WebGPU', () => {
 
 // --------------------------------------------------------------------------
 test.describe('WebGPU present', () => {
-  test('canvas mounts once, never leaks to /prices or /login, and is gone after leaving', async (
+  test('shader loads once and ends live or cleanly unavailable; never leaks to /prices or /login', async (
     { page, baseURL },
     testInfo,
   ) => {
     const w = watch(page);
-    await page.goto('/');
+    await page.goto('/?backdrop=debug');
     test.skip(!(await hasAdapter(page)), 'sandbox Chromium returned no WebGPU adapter; branch not exercised');
 
+    // Two honest outcomes. A real GPU ends 'shader · live' with one canvas. The
+    // software adapter in CI/sandboxes makes the library report `device-lost`,
+    // and the page must then fall back to CSS and drop the canvas — verified
+    // here, not skipped, because that is exactly what a GPU reset does to a user.
+    const status = page.getByTestId('hero-backdrop-status');
+    await expect(status).toHaveText(/^(shader · live|css · shader unavailable)/, { timeout: 30_000 });
+    const outcome = (await status.textContent())!;
+    const live = outcome === 'shader · live';
     const canvas = page.locator(CANVAS);
-    await expect(canvas).toHaveCount(1, { timeout: 30_000 });
-    const size = (await canvas.boundingBox())!;
-    expect(size.width).toBeGreaterThan(100);
-    expect(size.height).toBeGreaterThan(100);
+    await expect(canvas).toHaveCount(live ? 1 : 0);
+    await expect(page.locator(BACKDROP)).toBeVisible();
+    const size = live ? (await canvas.boundingBox())! : null;
+    if (size) {
+      expect(size.width).toBeGreaterThan(100);
+      expect(size.height).toBeGreaterThan(100);
+    }
 
     // Pixel readback of a WebGPU canvas is NOT asserted: under the software
     // adapter this sandbox has, a mounted, ready canvas reads back all-zero
@@ -261,18 +272,21 @@ test.describe('WebGPU present', () => {
             }),
           ),
       );
-    const frameA = await readback();
-    await page.waitForTimeout(1500);
-    const frameB = await readback();
-    const readbackReport = { frameA, frameB, animated: frameA.hash !== frameB.hash };
-    // What IS asserted: a blank or broken shader must not hide the fallback.
-    const blend = await page.locator(`${BACKDROP} .mix-blend-screen`).evaluate(
-      (el) => getComputedStyle(el).mixBlendMode,
-    );
-    expect(blend).toBe('screen');
+    let readbackReport: unknown = 'shader not live: no canvas to read back';
+    if (live) {
+      const frameA = await readback();
+      await page.waitForTimeout(1500);
+      const frameB = await readback();
+      readbackReport = { frameA, frameB, animated: frameA.hash !== frameB.hash };
+      // What IS asserted: a blank or broken shader must not hide the fallback.
+      const blend = await page.locator(`${BACKDROP} .mix-blend-screen`).evaluate(
+        (el) => getComputedStyle(el).mixBlendMode,
+      );
+      expect(blend).toBe('screen');
+    }
 
     const onLanding = await w.shaderRequests();
-    expect(onLanding.length, 'canvas present but no shader chunk was fetched').toBeGreaterThan(0);
+    expect(onLanding.length, 'shader ran or failed but its chunk was never fetched').toBeGreaterThan(0);
     const foreign = w.foreignOrigins(new URL(baseURL!).origin);
     expect(foreign, 'shader telemetry or other third-party call').toEqual([]);
 
@@ -289,13 +303,18 @@ test.describe('WebGPU present', () => {
       expect(perRoute[route].canvases, `${route} has a canvas`).toBe(0);
     }
 
-    // Round trip: leaving and returning must leave exactly one canvas, not two.
-    await page.goto('/');
-    await expect(page.locator(CANVAS)).toHaveCount(1, { timeout: 30_000 });
+    // Round trip: leaving and returning must not stack canvases.
+    await page.goto('/?backdrop=debug');
+    await expect(page.getByTestId('hero-backdrop-status')).toHaveText(
+      /^(shader · live|css · shader unavailable)/,
+      { timeout: 30_000 },
+    );
+    expect(await page.locator(CANVAS).count()).toBeLessThanOrEqual(1);
 
     await attachReport(testInfo, {
       branch: 'webgpu',
       adapter: true,
+      outcome,
       canvasBox: size,
       readback: readbackReport,
       landingShaderRequests: onLanding,
@@ -323,6 +342,76 @@ test.describe('WebGPU present', () => {
       expect(await w.shaderRequests()).toEqual([]);
       await attachReport(testInfo, { branch: 'reduced-motion', adapter: true, shaderRequests: await w.shaderRequests() });
     });
+  });
+});
+
+// --------------------------------------------------------------------------
+// Visibility. The first cut of this backdrop passed every test above and was
+// still invisible: gradients at ~50% over a 0.16-lightness page under an 85%
+// veil read as plain black, so "nothing changed" was the honest review.
+// Structure tests cannot catch that, so this one measures pixels: it hides the
+// foreground, screenshots the page, and samples an 8x6 grid.
+test.describe('visibility', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'gpu', { value: undefined, configurable: true });
+    });
+  });
+
+  test('the CSS backdrop is clearly visible: colour and light/dark variation across the page', async (
+    { page },
+    testInfo,
+  ) => {
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    await page.addStyleTag({ content: 'main{visibility:hidden !important}' });
+    const png = (await page.screenshot()).toString('base64');
+    const stats = await page.evaluate(async (b64) => {
+      const img = new Image();
+      img.src = `data:image/png;base64,${b64}`;
+      await img.decode();
+      const c = document.createElement('canvas');
+      c.width = img.width;
+      c.height = img.height;
+      const x = c.getContext('2d')!;
+      x.drawImage(img, 0, 0);
+      const cols = 8;
+      const rows = 6;
+      const cells: { r: number; g: number; b: number }[] = [];
+      for (let j = 0; j < rows; j++) {
+        for (let i = 0; i < cols; i++) {
+          const d = x.getImageData(
+            Math.floor(((i + 0.5) / cols) * c.width) - 4,
+            Math.floor(((j + 0.5) / rows) * c.height) - 4,
+            8,
+            8,
+          ).data;
+          let r = 0, g = 0, b = 0;
+          for (let k = 0; k < d.length; k += 4) { r += d[k]; g += d[k + 1]; b += d[k + 2]; }
+          const n = d.length / 4;
+          cells.push({ r: r / n, g: g / n, b: b / n });
+        }
+      }
+      const lum = cells.map((p) => 0.2126 * p.r + 0.7152 * p.g + 0.0722 * p.b);
+      const chroma = cells.map((p) => Math.max(p.r, p.g, p.b) - Math.min(p.r, p.g, p.b));
+      return {
+        maxLum: Math.max(...lum),
+        lumRange: Math.max(...lum) - Math.min(...lum),
+        maxChroma: Math.max(...chroma),
+      };
+    }, png);
+
+    await attachReport(testInfo, { branch: 'visibility', ...stats });
+    // Thresholds are 8-bit channel values. The invisible first cut sat near
+    // maxLum ~20, lumRange ~10, maxChroma ~12 — plain page background.
+    expect(stats.maxChroma, 'no visible colour anywhere').toBeGreaterThan(35);
+    expect(stats.lumRange, 'backdrop is flat').toBeGreaterThan(25);
+    expect(stats.maxLum, 'backdrop never rises above near-black').toBeGreaterThan(55);
+  });
+
+  test('?backdrop=debug says which branch is running', async ({ page }) => {
+    await page.goto('/?backdrop=debug');
+    await expect(page.getByTestId('hero-backdrop-status')).toHaveText(/css · no webgpu/i);
   });
 });
 

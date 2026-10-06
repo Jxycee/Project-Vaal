@@ -8,16 +8,22 @@ import { FilmGrain, FlowingGradient, Shader } from 'shaders/react'
 
 type ShaderLayerProps = {
   onReady: () => void
+  onUnavailable: (reason: unknown) => void
 }
 
-export default function ShaderLayer({ onReady }: ShaderLayerProps) {
+export default function ShaderLayer({ onReady, onUnavailable }: ShaderLayerProps) {
   return (
     // disableTelemetry: `shaders` reports usage by default. The privacy page
     // promises no third-party calls from the landing page, and the e2e spec
     // asserts it — do not remove this prop.
-    <Shader disableTelemetry onReady={onReady} className="absolute inset-0 h-full w-full">
-      <FlowingGradient colorA="#12100c" colorB="#8c6a2a" colorC="#8a2b27" colorD="#2f5870" />
-      <FilmGrain strength={0.12} />
+    <Shader
+      disableTelemetry
+      onReady={onReady}
+      onUnavailable={onUnavailable}
+      className="absolute inset-0 h-full w-full"
+    >
+      <FlowingGradient colorA="#1a1610" colorB="#d6a23a" colorC="#c23a32" colorD="#3f8fb5" />
+      <FilmGrain strength={0.14} />
     </Shader>
   )
 }
