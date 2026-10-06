@@ -45,9 +45,19 @@ export function makeCollectData(files: RawCollectFiles): CollectData {
       return {
         armour: a ? { armour: num(a.armour), evasion: num(a.evasion), energyShield: num(a.energyShield) } : null,
         spirit: num(detail.spirit),
+        itemClass: typeof detail.itemClass === 'string' ? detail.itemClass : null,
+        weapon: isObject(detail.weapon),
         implicits: files.implicitStats.bases[detail.name],
         implicitLines: strings(detail.implicitMods),
       };
+    },
+    rune(slug) {
+      const detail = files.items.get(slug);
+      if (!isObject(detail) || typeof detail.name !== 'string' || !Array.isArray(detail.soulCoreEffects)) return undefined;
+      const effects = detail.soulCoreEffects
+        .filter((e): e is { category: string; lines: unknown } => isObject(e) && typeof e.category === 'string')
+        .map((e) => ({ category: e.category, lines: strings(e.lines) }));
+      return { name: detail.name, effects };
     },
     mod(slug) {
       const detail = files.mods.get(slug);

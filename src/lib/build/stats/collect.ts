@@ -14,6 +14,7 @@
 // says "Cannot gain Spirit from Equipment", every Spirit an item grants is
 // dropped, as PoB2 does (src/Modules/CalcSetup.lua:1470-1476, 1684).
 // Flasks and charms are left out: their stats apply while used, not always.
+// Runes follow PoB2 Item.lua:2179-2198 per item type, see runes.ts.
 // A stat id the table does not know is not dropped silently: if it looks like it
 // could move a reported number (statTable.ts looksLikeDefenceStat) it is named
 // in `notCounted` by id, once, with every source that carries it.
@@ -26,6 +27,7 @@ import type { GearState } from '../gearState';
 import type { PassiveState } from '../types';
 import { campaignAt } from './campaign';
 import { DEFENCE_WORDS, implicitStats } from './implicits';
+import { categoryApplies, isKnownCategory, readRuneLine } from './runes';
 import type { Contribution } from './engine';
 import { GLOBAL_EFFECTS, LOCAL_EFFECTS, looksLikeDefenceStat, NOT_MODELLED, type Pool } from './statTable';
 
@@ -47,8 +49,16 @@ export interface CollectData {
         implicits?: [string, number, number][][];
         /** The item file's implicit display lines — what `implicits` describes. */
         implicitLines?: string[];
+        /** The item file's `itemClass`, and whether it carries weapon data: where a rune's effect applies (runes.ts). */
+        itemClass?: string | null;
+        weapon?: boolean;
       }
     | undefined;
+  /**
+   * A rune or soul core by item slug: its effect lines per equipment category
+   * (the wiki's `soulCoreEffects`). Optional: without it runes are named, not counted.
+   */
+  rune?(slug: string): { name: string; effects: { category: string; lines: string[] }[] } | undefined;
   mod(slug: string): { stat: string; min: number; max: number }[] | undefined;
   /**
    * A unique by name: the slug of its base (for base defences) and its lines,
@@ -235,10 +245,31 @@ function collectItem(
       if (i < affix.values.length) stats.push([roll.stat, affix.values[i]]);
     });
   }
-  if ((craft?.runes.length ?? 0) > 0) {
-    const n = craft!.runes.length;
-    notCounted.push(`${item.name}: ${n} ${n === 1 ? 'rune' : 'runes'} not counted`);
+  // Runes: each one's effect for THIS item's type, as typed stats the local /
+  // global split below reads (runes.ts). A rune we have no data for is named.
+  const host = { itemClass: detail.itemClass ?? null, weapon: detail.weapon ?? false, armour: detail.armour !== null };
+  let runesUnread = 0;
+  for (const slug of craft?.runes ?? []) {
+    const rune = data.rune?.(slug);
+    if (!rune) {
+      runesUnread++;
+      continue;
+    }
+    for (const effect of rune.effects) {
+      if (!isKnownCategory(effect.category)) {
+        notCounted.push(`${item.name}: rune "${rune.name}" has an equipment category this builder does not recognise ("${effect.category}"), so it was not counted`);
+        continue;
+      }
+      if (!categoryApplies(effect.category, host)) continue;
+      for (const line of effect.lines) {
+        const read = readRuneLine(line);
+        if (read === null) continue;
+        if ('unmodelled' in read) notCounted.push(`${item.name}: rune line "${read.unmodelled}" not counted`);
+        else stats.push([read.stat, read.value]);
+      }
+    }
   }
+  if (runesUnread > 0) notCounted.push(`${item.name}: ${runesUnread} ${runesUnread === 1 ? 'rune' : 'runes'} not counted`);
 
   // Local stats shape the item's own defences and Spirit; the rest are global.
   const localFlat: Partial<Record<Pool, number>> = {};

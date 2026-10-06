@@ -32,9 +32,18 @@ const NODES: Record<number, { name: string; stats: [string, number][]; attribute
 
 const ITEMS: Record<
   string,
-  { armour: { armour: number; evasion: number; energyShield: number } | null; spirit: number; implicits?: [string, number, number][][]; implicitLines?: string[] }
+  {
+    armour: { armour: number; evasion: number; energyShield: number } | null;
+    spirit: number;
+    implicits?: [string, number, number][][];
+    implicitLines?: string[];
+    itemClass?: string | null;
+    weapon?: boolean;
+  }
 > = {
-  'plate-vest': { armour: { armour: 100, evasion: 0, energyShield: 0 }, spirit: 0 },
+  'plate-vest': { armour: { armour: 100, evasion: 0, energyShield: 0 }, spirit: 0, itemClass: 'Body Armour' },
+  'iron-cap': { armour: { armour: 20, evasion: 0, energyShield: 0 }, spirit: 0, itemClass: 'Helmet' },
+  longbow: { armour: null, spirit: 0, itemClass: 'Bow', weapon: true },
   'amethyst-ring': { armour: null, spirit: 0, implicits: [[['base_chaos_damage_resistance_%', 7, 13]]], implicitLines: ['+(7-13)% to Chaos Resistance'] },
   sceptre: { armour: null, spirit: 100 },
   emerald: { armour: null, spirit: 0 },
@@ -71,8 +80,32 @@ const MODS: Record<string, { stat: string; min: number; max: number }[]> = {
   'body-armour-pct': [{ stat: 'body_armour_+%', min: 30, max: 40 }],
 };
 
+// Runes as the wiki files them: lines per equipment category (soulCoreEffects).
+const RUNES: Record<string, { name: string; effects: { category: string; lines: string[] }[] }> = {
+  'greater-iron': {
+    name: 'Greater Iron Rune',
+    effects: [
+      { category: 'Martial Weapon', lines: ['18% increased Physical Damage'] },
+      { category: 'Wand or Staff', lines: ['30% increased Spell Damage'] },
+      { category: 'Armour', lines: ['18% increased Armour, Evasion and Energy Shield'] },
+    ],
+  },
+  adept: {
+    name: 'Adept Rune',
+    effects: [
+      { category: 'All Equipment', lines: ['+9 to Dexterity'] },
+      { category: 'Armour', lines: ['+13% to Fire Resistance', 'Bonded: +40 to maximum Life'] },
+    ],
+  },
+  'cap-rune': { name: 'Cap Rune', effects: [{ category: 'Helmet', lines: ['+30 to maximum Mana'] }] },
+  'archer-rune': { name: 'Archer Rune', effects: [{ category: 'Crossbow, Bow or Spear', lines: ['+10 to Spirit'] }] },
+  'scaling-rune': { name: 'Scaling Rune', effects: [{ category: 'Helmet', lines: ['+# to maximum Life per # Armour on Equipped Helmet'.replace(/#/g, '5'), 'Gain 5 Life per Enemy Hit with Attacks'] }] },
+  'odd-rune': { name: 'Odd Rune', effects: [{ category: 'Flying Cabbage', lines: ['+10 to maximum Life'] }] },
+};
+
 const data: CollectData = {
   node: (id) => NODES[id],
+  rune: (slug) => RUNES[slug],
   item: (slug) => ITEMS[slug],
   mod: (slug) => MODS[slug],
   unique: (name) => UNIQUES[name],
@@ -272,5 +305,60 @@ describe('collectContributions — the campaign', () => {
     expect(total(r, 'spirit')).toBe(100);
     expect(r.contributions.some((c) => c.source === 'Candlemass (Ogham Manor)')).toBe(true);
     expect(r.notCounted.some((n) => n.includes('Medallion (Valley of the Titans)'))).toBe(true);
+  });
+});
+
+describe('collectContributions — runes (PoB2 Item.lua:2179-2198, 2378-2391)', () => {
+  const vest = (runes: string[], extra: Partial<ItemCraft> = {}) => item('plate-vest', 'Plate Vest', 'Body Armour', { rarity: 'rare', runes, ...extra });
+
+  it("adds an armour rune's increased defences to the item's LOCAL increase, additive with its mods, before quality", () => {
+    const two = run(tree(), gear({ body: vest(['greater-iron', 'greater-iron']) }));
+    // round(100 x (1 + 36/100)) = 136
+    expect(total(two, 'armour')).toBe(136);
+    const withMod = run(tree(), gear({ body: vest(['greater-iron', 'greater-iron'], { quality: 20, prefixes: [{ slug: 'local-armour-inc', values: [50] }] }) }));
+    // round(100 x (1 + (50 + 36)/100) x 1.2) = round(223.2) = 223
+    expect(total(withMod, 'armour')).toBe(223);
+    expect(two.notCounted.join(' ')).not.toContain('rune');
+  });
+
+  it('applies the category the socketed item belongs to: a weapon gets the weapon line, which moves no defence', () => {
+    const bow = item('longbow', 'Longbow', 'Bow', { rarity: 'rare', runes: ['greater-iron'] });
+    const r = run(tree(), gear({ weapon1_main: bow }));
+    expect(total(r, 'armour')).toBe(0);
+    expect(r.notCounted).toEqual([]);
+  });
+
+  it('counts an "All Equipment" line on armour and on a weapon alike', () => {
+    expect(total(run(tree(), gear({ body: vest(['adept']) })), 'dex')).toBe(9);
+    expect(total(run(tree(), gear({ weapon1_main: item('longbow', 'Longbow', 'Bow', { rarity: 'rare', runes: ['adept'] }) })), 'dex')).toBe(9);
+  });
+
+  it('counts a global armour line at its value (resistance) and one rune per socket', () => {
+    expect(total(run(tree(), gear({ body: vest(['adept', 'adept']) })), 'fireRes')).toBe(26);
+  });
+
+  it("never reads a Bonded line — PoB2 builds it for display only (Item.lua:2146)", () => {
+    const r = run(tree(), gear({ body: vest(['adept']) }));
+    expect(total(r, 'life')).toBe(0);
+    expect(r.notCounted).toEqual([]);
+  });
+
+  it('keeps a helmet line to helmets, and splits a composite label like "Crossbow, Bow or Spear"', () => {
+    expect(total(run(tree(), gear({ head: item('iron-cap', 'Iron Cap', 'Helmet', { rarity: 'rare', runes: ['cap-rune'] }) })), 'mana')).toBe(30);
+    expect(total(run(tree(), gear({ body: vest(['cap-rune']) })), 'mana')).toBe(0);
+    const bow = item('longbow', 'Longbow', 'Bow', { rarity: 'rare', runes: ['archer-rune'] });
+    expect(total(run(tree(), gear({ weapon1_main: bow })), 'spirit')).toBe(10);
+    expect(total(run(tree(), gear({ body: vest(['archer-rune']) })), 'spirit')).toBe(0);
+  });
+
+  it('names a defence-looking line it cannot model, stays silent about offence', () => {
+    const r = run(tree(), gear({ head: item('iron-cap', 'Iron Cap', 'Helmet', { rarity: 'rare', runes: ['scaling-rune'] }) }));
+    expect(r.notCounted).toEqual(['Iron Cap: rune line "+5 to maximum Life per 5 Armour on Equipped Helmet" not counted']);
+  });
+
+  it('names a rune whose category it does not recognise, and a rune absent from the data', () => {
+    const r = run(tree(), gear({ body: vest(['odd-rune', 'no-such-rune']) }));
+    expect(r.notCounted).toEqual(expect.arrayContaining(['Plate Vest: rune "Odd Rune" has an equipment category this builder does not recognise ("Flying Cabbage"), so it was not counted', 'Plate Vest: 1 rune not counted']));
+    expect(total(r, 'life')).toBe(0);
   });
 });
