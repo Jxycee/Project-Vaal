@@ -155,3 +155,37 @@ describe('parsePobXml — the real vendored build', () => {
     expect(build.notes?.startsWith('^6')).toBe(true);
   });
 });
+
+describe('parsePobXml - quest config inputs', () => {
+  const config = (inputs: string, active = '1') =>
+    `<Config activeConfigSet="${active}"><ConfigSet id="1">${inputs}</ConfigSet><ConfigSet id="2"><Input name="questAct 3Venom CryptsVenom Draught" string="25% increased Mana Regeneration Rate"/></ConfigSet></Config>`;
+
+  it('reads string-valued quest inputs of the active config set only', () => {
+    const b = parsed(pob(config('<Input name="questAct 4Halls Of The DeadNgamahu&apos;s Test" string="+5 to Strength"/><Input boolean="true" name="conditionEnemyChilled"/>')));
+    expect(b.questInputs).toEqual([{ name: "questAct 4Halls Of The DeadNgamahu's Test", value: '+5 to Strength' }]);
+    expect(parsed(pob(config('', '2'))).questInputs).toEqual([{ name: 'questAct 3Venom CryptsVenom Draught', value: '25% increased Mana Regeneration Rate' }]);
+  });
+
+  it('has none without a Config, or when an input has no string value (the boolean fixed-reward toggles)', () => {
+    expect(parsed(pob('')).questInputs).toEqual([]);
+    expect(parsed(pob(config('<Input boolean="false" name="questAct 1ClearfellBeira"/><Input name="questAct 2Valley of the TitansMedallion"/>'))).questInputs).toEqual([]);
+  });
+
+  it('reads the real momentsZX export: seven quest choices, multi-line rewards intact', () => {
+    const decoded = decodePobCode(readFileSync('docs/superpowers/handoffs/2026-09-27-momentsZX-pob2-code.txt', 'utf8').trim());
+    if (!decoded.ok) throw new Error('decode');
+    const inputs = parsed(decoded.xml).questInputs;
+    expect(inputs.map((i) => i.name)).toEqual([
+      'questAct 2Valley of the TitansMedallion',
+      'questAct 3Venom CryptsVenom Draught',
+      'questAct 4Abandoned PrisonGoddess of Justice',
+      'questAct 4Eye of HinekoraTribal Medicine',
+      "questAct 4Halls Of The DeadNgamahu's Test",
+      "questAct 4Halls Of The DeadTasalio's Test",
+      'questInterlude 2QimahSeven Pillars',
+    ]);
+    expect(inputs[3].value.replace(/\s+/g, ' ')).toBe(
+      '+15% of Armour also applies to Elemental Damage Gain Deflection Rating equal to 12% of Evasion Rating 12% faster start of Energy Shield Recharge',
+    );
+  });
+});

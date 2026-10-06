@@ -31,6 +31,7 @@ import type { PassiveState } from '@/lib/build/types';
 import type { Catalogue } from './catalogue';
 import { mapGems } from './mapGems';
 import { mapItems, mapJewels } from './mapItems';
+import { mapQuests } from './mapQuests';
 import { mapTree } from './mapTree';
 import type { PobBuild } from './parse';
 import type { ReportEntry } from './report';
@@ -135,6 +136,12 @@ export async function mapBuild(pob: PobBuild, catalogue: Catalogue, options: { n
       : { value: {}, report: [] };
   const gearState: GearState = { ...gear.value, jewels: jewels.value };
 
+  // Quest reward choices are one PoB config for the whole build; each checkpoint
+  // carries them and its own level decides which have been reached.
+  const quests = mapQuests(pob.questInputs);
+  const questChoices = () => (Object.keys(quests.value).length > 0 ? { questChoices: { ...quests.value } } : {});
+  report.push(...quests.report);
+
   const checkpoints: ImportCheckpoint[] = [];
   const copy = () => ({ gear_state: structuredClone(gearState), gem_state: structuredClone(gems.value) });
 
@@ -144,7 +151,7 @@ export async function mapBuild(pob: PobBuild, catalogue: Catalogue, options: { n
       area: 'tree',
       message: `Path of Building had no passive tree, so the build has one checkpoint, Level ${buildLevel}, with no passives allocated.`,
     });
-    checkpoints.push({ name: `Level ${buildLevel}`, level: buildLevel, passive_state: { set1: [], set2: [], ascendancyNodes: [] }, ...copy() });
+    checkpoints.push({ name: `Level ${buildLevel}`, level: buildLevel, passive_state: { set1: [], set2: [], ascendancyNodes: [], ...questChoices() }, ...copy() });
   }
 
   pob.specs.forEach((spec, i) => {
@@ -180,7 +187,7 @@ export async function mapBuild(pob: PobBuild, catalogue: Catalogue, options: { n
     // By graph, not id: Abyssal Lich owns no nodes and uses Lich's.
     const passive = mapTree(spec, ascendancyId && tree.graphOf(ascendancyId), tree, number);
     report.push(...passive.report);
-    checkpoints.push({ name, level, passive_state: passive.value, ...copy() });
+    checkpoints.push({ name, level, passive_state: { ...passive.value, ...questChoices() }, ...copy() });
   });
 
   report.push(...gems.report, ...gear.report, ...jewels.report);
