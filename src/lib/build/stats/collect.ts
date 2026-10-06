@@ -14,6 +14,10 @@
 // says "Cannot gain Spirit from Equipment", every Spirit an item grants is
 // dropped, as PoB2 does (src/Modules/CalcSetup.lua:1470-1476, 1684).
 // Flasks and charms are left out: their stats apply while used, not always.
+// Runes follow PoB2 Item.lua:2179-2198 per item type, see runes.ts.
+// A stat id the table does not know is not dropped silently: if it looks like it
+// could move a reported number (statTable.ts looksLikeDefenceStat) it is named
+// in `notCounted` by id, once, with every source that carries it.
 // =============================================================================
 
 import type { AttributeChoice } from '@poe2-toolkit/tree-core';
@@ -23,8 +27,9 @@ import type { GearState } from '../gearState';
 import type { PassiveState } from '../types';
 import { campaignAt } from './campaign';
 import { DEFENCE_WORDS, implicitStats } from './implicits';
+import { categoryApplies, isKnownCategory, readRuneLine } from './runes';
 import type { Contribution } from './engine';
-import { GLOBAL_EFFECTS, LOCAL_EFFECTS, NOT_MODELLED, type Pool } from './statTable';
+import { GLOBAL_EFFECTS, LOCAL_EFFECTS, looksLikeDefenceStat, NOT_MODELLED, type Pool } from './statTable';
 
 /**
  * Embrace the Darkness: "You have no Spirit". Its typed stats (base_darkness
@@ -44,8 +49,16 @@ export interface CollectData {
         implicits?: [string, number, number][][];
         /** The item file's implicit display lines — what `implicits` describes. */
         implicitLines?: string[];
+        /** The item file's `itemClass`, and whether it carries weapon data: where a rune's effect applies (runes.ts). */
+        itemClass?: string | null;
+        weapon?: boolean;
       }
     | undefined;
+  /**
+   * A rune or soul core by item slug: its effect lines per equipment category
+   * (the wiki's `soulCoreEffects`). Optional: without it runes are named, not counted.
+   */
+  rune?(slug: string): { name: string; effects: { category: string; lines: string[] }[] } | undefined;
   mod(slug: string): { stat: string; min: number; max: number }[] | undefined;
   /**
    * A unique by name: the slug of its base (for base defences) and its lines,
@@ -76,6 +89,7 @@ export function collectContributions(
 ): Collected {
   const contributions: Contribution[] = [];
   const notCounted: string[] = [];
+  const unknown = new Map<string, Set<string>>();
   const assumed: string[] = [];
   const flags = { giantsBlood: false, lordOfTheWilds: false, noSpirit: false, noSpiritFromEquipment: false };
 
@@ -96,7 +110,7 @@ export function collectContributions(
       if (stat === 'keystone_giants_blood') flags.giantsBlood = true;
       else if (stat === 'keystone_lord_of_the_wilds') flags.lordOfTheWilds = true;
       else if (stat === 'cannot_gain_spirit_from_equipment') flags.noSpiritFromEquipment = true;
-      addGlobal(contributions, notCounted, stat, value, node.name);
+      addGlobal(contributions, notCounted, unknown, stat, value, node.name);
     }
   }
   if (unchosen > 0) {
@@ -105,38 +119,48 @@ export function collectContributions(
 
   // ---- Gear: every slot but the other set's weapons, flasks and charms; jewels whose socket is allocated here.
   const otherSet: ReadonlySet<GearSlot> = new Set(input.set === 1 ? ['weapon2_main', 'weapon2_off'] : ['weapon1_main', 'weapon1_off']);
-  const equipped: GearItem[] = [];
+  const equipped: { item: GearItem; slot?: GearSlot }[] = [];
   for (const slot of GEAR_SLOTS) {
     const item = input.gear[slot];
-    if (item && !otherSet.has(slot) && !NOT_ON_CHARACTER.has(slot)) equipped.push(item);
+    if (item && !otherSet.has(slot) && !NOT_ON_CHARACTER.has(slot)) equipped.push({ item, slot });
   }
   for (const [socket, jewel] of Object.entries(input.gear.jewels)) {
-    if (nodes.has(Number(socket))) equipped.push(jewel);
+    if (nodes.has(Number(socket))) equipped.push({ item: jewel });
   }
-  for (const item of equipped) collectItem(item, data, flags, contributions, notCounted, assumed);
+  for (const { item, slot } of equipped) collectItem(item, slot, data, flags, contributions, notCounted, unknown, assumed);
 
   // ---- Campaign, derived from the level.
-  const campaign = campaignAt(input.level);
-  for (const r of campaign.rewards) addGlobal(contributions, notCounted, r.stat, r.value, r.source);
+  const campaign = campaignAt(input.level, input.passive.questChoices);
+  for (const r of [...campaign.rewards, ...campaign.choiceRewards]) addGlobal(contributions, notCounted, unknown, r.stat, r.value, r.source);
+  notCounted.push(...campaign.choiceRewardsUnmodelled);
   if (campaign.choiceRewardsNotCounted.length > 0) {
     notCounted.push(`Quest rewards you choose: ${campaign.choiceRewardsNotCounted.join(', ')}`);
   }
 
+  for (const [stat, sources] of unknown) notCounted.push(`Unrecognised stat ${stat} (${[...sources].join(', ')})`);
+
   return { contributions, flags, resistancePenalty: campaign.resistancePenalty, act: campaign.act, notCounted, assumed };
 }
 
-function addGlobal(out: Contribution[], notCounted: string[], stat: string, value: number, source: string): void {
+function addGlobal(out: Contribution[], notCounted: string[], unknown: Map<string, Set<string>>, stat: string, value: number, source: string): void {
   const effects = GLOBAL_EFFECTS[stat];
-  if (effects) for (const e of effects) out.push({ pool: e.pool, kind: e.kind, value, source });
-  else if (NOT_MODELLED[stat]) notCounted.push(`${source}: ${NOT_MODELLED[stat]}`);
+  if (effects) {
+    for (const e of effects) out.push({ pool: e.pool, kind: e.kind, value, source, ...(e.slot ? { slot: e.slot } : {}) });
+  } else if (NOT_MODELLED[stat]) {
+    notCounted.push(`${source}: ${NOT_MODELLED[stat]}`);
+  } else if (!LOCAL_EFFECTS[stat] && looksLikeDefenceStat(stat)) {
+    unknown.set(stat, (unknown.get(stat) ?? new Set<string>()).add(source));
+  }
 }
 
 function collectItem(
   item: GearItem,
+  slot: GearSlot | undefined,
   data: CollectData,
   flags: Collected['flags'],
   contributions: Contribution[],
   notCounted: string[],
+  unknown: Map<string, Set<string>>,
   assumed: string[],
 ): void {
   const craft = item.craft;
@@ -222,10 +246,31 @@ function collectItem(
       if (i < affix.values.length) stats.push([roll.stat, affix.values[i]]);
     });
   }
-  if ((craft?.runes.length ?? 0) > 0) {
-    const n = craft!.runes.length;
-    notCounted.push(`${item.name}: ${n} ${n === 1 ? 'rune' : 'runes'} not counted`);
+  // Runes: each one's effect for THIS item's type, as typed stats the local /
+  // global split below reads (runes.ts). A rune we have no data for is named.
+  const host = { itemClass: detail.itemClass ?? null, weapon: detail.weapon ?? false, armour: detail.armour !== null };
+  let runesUnread = 0;
+  for (const slug of craft?.runes ?? []) {
+    const rune = data.rune?.(slug);
+    if (!rune) {
+      runesUnread++;
+      continue;
+    }
+    for (const effect of rune.effects) {
+      if (!isKnownCategory(effect.category)) {
+        notCounted.push(`${item.name}: rune "${rune.name}" has an equipment category this builder does not recognise ("${effect.category}"), so it was not counted`);
+        continue;
+      }
+      if (!categoryApplies(effect.category, host)) continue;
+      for (const line of effect.lines) {
+        const read = readRuneLine(line);
+        if (read === null) continue;
+        if ('unmodelled' in read) notCounted.push(`${item.name}: rune line "${read.unmodelled}" not counted`);
+        else stats.push([read.stat, read.value]);
+      }
+    }
   }
+  if (runesUnread > 0) notCounted.push(`${item.name}: ${runesUnread} ${runesUnread === 1 ? 'rune' : 'runes'} not counted`);
 
   // Local stats shape the item's own defences and Spirit; the rest are global.
   const localFlat: Partial<Record<Pool, number>> = {};
@@ -238,7 +283,7 @@ function collectItem(
         bucket[e.pool] = (bucket[e.pool] ?? 0) + value;
       }
     } else {
-      addGlobal(contributions, notCounted, stat, value, item.name);
+      addGlobal(contributions, notCounted, unknown, stat, value, item.name);
     }
   }
 
@@ -252,7 +297,7 @@ function collectItem(
     ['energyShield', armour?.energyShield ?? 0],
   ] as const) {
     const value = itemDefence(pool, base);
-    if (value !== 0) contributions.push({ pool, kind: 'flat', value, source: item.name });
+    if (value !== 0) contributions.push({ pool, kind: 'flat', value, source: item.name, ...(slot ? { slot } : {}) });
   }
   if (detail.spirit > 0) {
     contributions.push({ pool: 'spirit', kind: 'flat', value: Math.round(detail.spirit * (1 + (localInc.spirit ?? 0) / 100)), source: item.name });

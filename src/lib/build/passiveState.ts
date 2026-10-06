@@ -1,5 +1,6 @@
 import type { AttributeChoice, WeaponSetAllocation, WeaponSet } from '@poe2-toolkit/tree-core';
 import type { PassiveState } from '@/lib/build/types';
+import { isQuestChoice } from '@/lib/build/stats/campaign';
 
 /**
  * Editor allocation -> stored shape.
@@ -12,6 +13,7 @@ export function toPassiveState(
   main: WeaponSetAllocation,
   ascendancyNodes: number[],
   attributeChoices: Readonly<Record<number | string, AttributeChoice>> = {},
+  questChoices: Readonly<Record<string, string>> = {},
 ): PassiveState {
   const set1: number[] = [];
   const set2: number[] = [];
@@ -31,6 +33,8 @@ export function toPassiveState(
   const allocated = new Set(main.allocated);
   const choices = Object.fromEntries(Object.entries(attributeChoices).filter(([id]) => allocated.has(Number(id))));
   if (Object.keys(choices).length > 0) state.attributeChoices = choices;
+  const quests = parseQuestChoices(questChoices);
+  if (Object.keys(quests).length > 0) state.questChoices = quests;
   return state;
 }
 
@@ -99,6 +103,8 @@ export function parsePassiveState(raw: unknown): PassiveState {
   };
   const choices = parseAttributeChoices(v.attributeChoices);
   if (Object.keys(choices).length > 0) state.attributeChoices = choices;
+  const quests = parseQuestChoices(v.questChoices);
+  if (Object.keys(quests).length > 0) state.questChoices = quests;
   return state;
 }
 
@@ -114,4 +120,14 @@ export function parseAttributeChoices(raw: unknown): Record<string, AttributeCho
       (entry): entry is [string, AttributeChoice] => /^\d{1,10}$/.test(entry[0]) && isAttributeChoice(entry[1]),
     ),
   );
+}
+
+/**
+ * Defensive read of stored quest choices: keeps only a known quest id mapped to
+ * one of that quest's own option ids. Anything else (an id from a later or
+ * earlier version of the table, junk) is dropped on its own, never an error.
+ */
+export function parseQuestChoices(raw: unknown): Record<string, string> {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return {};
+  return Object.fromEntries(Object.entries(raw as Record<string, unknown>).filter((entry): entry is [string, string] => isQuestChoice(entry[0], entry[1])));
 }

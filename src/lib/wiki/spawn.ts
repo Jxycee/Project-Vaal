@@ -19,3 +19,35 @@ export function canSpawn(spawnWeights: readonly SpawnWeight[], tags: ReadonlySet
   }
   return false;
 }
+
+export type ModSource = 'normal' | 'desecrated' | 'essence';
+
+/**
+ * Where a mod can come from on a base — null if it cannot be on it at all.
+ *
+ * Three real sources exist on an `Item`-domain base, and the data carries them
+ * differently (checked on public/data/wiki/2026-08-25/mods, 2026-10-05):
+ * - normal: same domain, and the first-match spawn rule passes.
+ * - desecrated: domain "Unveiled" (the Abyss / Desecration pool). It names its
+ *   item classes with weight-1 tags beside a god tag (amulet + amanamu_mod), so
+ *   the same first-match rule decides the class. Items only: an Unveiled jewel
+ *   mod sits on bases of another domain and is excluded by that.
+ * - essence: an `Item` mod whose only weight is `default: 0` — nothing rolls it
+ *   naturally. Our data does not say which class an essence suits, so any
+ *   Item-domain base is allowed; the id says "Essence". The other 600-odd
+ *   zero-weight Item mods (handwraps/alloy/genesis leftovers) are not
+ *   obtainable that way and stay excluded.
+ */
+export function modEligibility(
+  mod: { slug: string; domain: string; spawnWeights: readonly SpawnWeight[] },
+  base: { modDomain: string | null; tags: ReadonlySet<string> },
+): ModSource | null {
+  if (base.modDomain === null) return null;
+  if (mod.domain === 'Unveiled') {
+    return base.modDomain === 'Item' && canSpawn(mod.spawnWeights, base.tags) ? 'desecrated' : null;
+  }
+  if (mod.domain !== base.modDomain) return null;
+  if (canSpawn(mod.spawnWeights, base.tags)) return 'normal';
+  if (mod.domain === 'Item' && /essence/.test(mod.slug) && mod.spawnWeights.every((w) => w.weight === 0 && w.tag === 'default')) return 'essence';
+  return null;
+}

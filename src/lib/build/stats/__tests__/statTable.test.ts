@@ -1,6 +1,6 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { GLOBAL_EFFECTS, LOCAL_EFFECTS, NOT_MODELLED, type Pool } from '../statTable';
+import { GLOBAL_EFFECTS, LOCAL_EFFECTS, looksLikeDefenceStat, NOT_MODELLED, type Pool } from '../statTable';
 
 // The stat table is hand-written, so every entry is checked against real
 // data: the id must exist in our tree or mod files, AND the display text of
@@ -75,4 +75,23 @@ describe('stat table — shape', () => {
   it('lists only not-modelled stats that really exist in our data', () => {
     for (const stat of Object.keys(NOT_MODELLED)) expect(textsFor.has(stat), stat).toBe(true);
   });
+});
+
+describe('looksLikeDefenceStat — which unmapped ids are worth naming on the sheet', () => {
+  it.each(['maximum_life_+%_final', 'base_maximum_spirit', 'future_resist_all_+%', 'dexterity_+%', 'maximum_energy_shield_from_gloves_+%', 'base_physical_damage_reduction_rating_extra'])(
+    'names %s',
+    (id) => expect(looksLikeDefenceStat(id)).toBe(true),
+  );
+
+  // Real ids from the reference characters: offence, conditionals, recovery rates and conversions.
+  it.each([
+    'attack_speed_+%',
+    'attack_damage_+%_when_on_low_life',
+    'mana_regeneration_rate_+%',
+    'life_leech_from_physical_attack_damage_permyriad',
+    'armour_break_amount_+%',
+    '%_maximum_life_as_focus',
+    'base_movement_velocity_+%',
+    'display_passive_attribute_text',
+  ])('stays silent about %s', (id) => expect(looksLikeDefenceStat(id)).toBe(false));
 });

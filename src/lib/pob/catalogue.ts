@@ -21,7 +21,7 @@ import { TREE_VERSION } from '@/lib/tree/version';
 import { loadAllSlugs, loadDetail } from '@/lib/wiki/load';
 import { getModCatalogue, type ModCatalogue } from '@/lib/wiki/modCatalogue';
 import { slugify } from '@/lib/wiki/normalize';
-import { canSpawn } from '@/lib/wiki/spawn';
+import { modEligibility } from '@/lib/wiki/spawn';
 import type { CraftLookups, CraftMod } from './mapCraft';
 import { loadIndex } from '@/lib/wiki/loadIndex';
 import type { WikiItemDetail, WikiSkillDetail } from '@/lib/wiki/types';
@@ -267,10 +267,13 @@ async function craftLookups(slug: string, byName: Map<string, CatalogueItem>): P
   const tags = new Set(detail?.tags ?? []);
   return {
     modById: (id) => modSlugsFor(id).map((slug) => bySlug.get(slug)).find(Boolean) ?? null,
+    // Natural mods first, then desecrated, then essence — a pasted line that
+    // reads the same under two sources is the natural one. Within a source, by level.
     candidates: catalogue.mods
-      .filter((m) => m.domain === detail?.modDomain && canSpawn(m.spawnWeights, tags))
-      .sort((a, b) => a.level - b.level)
-      .map((m) => bySlug.get(m.slug)!),
+      .map((m) => ({ m, source: detail ? modEligibility(m, { modDomain: detail.modDomain, tags }) : null }))
+      .filter((c): c is { m: ModCatalogue['mods'][number]; source: 'normal' | 'desecrated' | 'essence' } => c.source !== null)
+      .sort((a, b) => SOURCE_RANK[a.source] - SOURCE_RANK[b.source] || a.m.level - b.m.level)
+      .map((c) => bySlug.get(c.m.slug)!),
     base: detail ? { implicitLines: detail.implicitMods ?? [], uniqueLines: detail.uniqueMods?.explicitMods ?? [] } : null,
     runeSlugByName: (name) => {
       const entry = byName.get(name);
@@ -279,8 +282,10 @@ async function craftLookups(slug: string, byName: Map<string, CatalogueItem>): P
   };
 }
 
+const SOURCE_RANK = { normal: 0, desecrated: 1, essence: 2 } as const;
+
 function toCraftMod(m: ModCatalogue['mods'][number]): CraftMod {
-  return { slug: m.slug, kind: m.kind, rolls: m.rolls.map((r) => ({ min: r.min, max: r.max })), stats: m.stats };
+  return { slug: m.slug, kind: m.kind, group: m.group, rolls: m.rolls.map((r) => ({ min: r.min, max: r.max })), stats: m.stats };
 }
 
 const modIndexes = new WeakMap<ModCatalogue, Map<string, CraftMod>>();

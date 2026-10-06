@@ -78,8 +78,8 @@ function newLoadoutId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-/** Upper bound for `GemLoadout.quality` — an assumption, not data-backed. See that field's doc comment. */
-export const MAX_GEM_QUALITY = 20;
+/** Upper bound for `GemLoadout.quality` — an assumption, not data-backed (raised from 20: real gems exceed it). See that field's doc comment. */
+export const MAX_GEM_QUALITY = 30;
 
 export function newLoadout(): GemLoadout {
   return { id: newLoadoutId(), skill: null, supports: [], sets: [1, 2], level: 1, quality: 0 };

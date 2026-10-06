@@ -34,9 +34,11 @@ export function valueAt(min: number, max: number, fraction: number): number {
 /**
  * The numbers `line` fills into `template`'s ranges, in order — or null when
  * the line is not an instance of the template. `fraction` reads a line PoB
- * still writes as a range (PoB's own default is 0.5).
+ * still writes as a range (PoB's own default is 0.5). `bounded` false drops
+ * the range check on a plain number — "does this line have the template's
+ * shape?" — for reading a value that sits outside every tier.
  */
-export function matchTemplate(line: string, template: string, fraction = 0.5): number[] | null {
+export function matchTemplate(line: string, template: string, fraction = 0.5, bounded = true): number[] | null {
   const ranges: { min: number; max: number }[] = [];
   let pattern = '^';
   let last = 0;
@@ -57,7 +59,7 @@ export function matchTemplate(line: string, template: string, fraction = 0.5): n
     const [rangedMin, rangedMax, single] = found.slice(1 + i * 3, 4 + i * 3);
     if (single !== undefined) {
       const v = Number(single);
-      if (v < Math.min(min, max) || v > Math.max(min, max)) return null;
+      if (bounded && (v < Math.min(min, max) || v > Math.max(min, max))) return null;
       values.push(v);
     } else {
       if (Number(rangedMin) !== min || Number(rangedMax) !== max) return null;

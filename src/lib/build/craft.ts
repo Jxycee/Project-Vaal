@@ -41,10 +41,13 @@ export interface ItemCraft {
 }
 
 /**
- * Item quality cap. The usual 20, and like MAX_GEM_QUALITY an assumption
- * rather than a value read from our data.
+ * Item quality cap. Not the "usual 20": real items exceed it (the momentsZX
+ * reference character's helmet is at 22%, and the handoff saw 21-23% on live
+ * characters), and clamping to 20 silently lost defences on import. 30 is a
+ * generous ceiling, not a value read from our data — still an assumption, but
+ * one that no longer under-counts a real item.
  */
-export const MAX_ITEM_QUALITY = 20;
+export const MAX_ITEM_QUALITY = 30;
 
 /**
  * Storage bounds the write gate (stateInput.ts) refuses a craft over: affixes

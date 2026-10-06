@@ -175,19 +175,19 @@ function ModPicker({ itemSlug, kind, onPick, onClose }: { itemSlug: string; kind
         {state.status === 'ready' ? (
           <ul>
             {state.groups.map((g) => (
-              <li key={g.group} className="border-b border-border/60">
+              <li key={`${g.source ?? ''}:${g.group}`} className="border-b border-border/60">
                 <button
                   type="button"
                   data-testid="mod-group"
-                  onClick={() => setOpenGroup(openGroup === g.group ? null : g.group)}
+                  onClick={() => setOpenGroup(openGroup === `${g.source ?? ''}:${g.group}` ? null : `${g.source ?? ''}:${g.group}`)}
                   className="flex min-h-11 w-full flex-col items-start px-3 py-2 text-left text-sm"
                 >
                   <span>{g.tiers[g.tiers.length - 1]?.stats.join(' · ') || g.group}</span>
                   <span className="text-xs text-muted-foreground">
-                    {g.group} · {g.tiers.length} tiers
+                    {g.source === 'desecrated' ? 'Desecrated · ' : g.source === 'essence' ? 'Essence · ' : ''}{g.group} · {g.tiers.length} tiers
                   </span>
                 </button>
-                {openGroup === g.group ? (
+                {openGroup === `${g.source ?? ''}:${g.group}` ? (
                   <ul className="bg-card/40">
                     {g.tiers.map((t) => (
                       <li key={t.slug}>

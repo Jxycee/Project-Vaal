@@ -11,7 +11,8 @@ const raw = () => ({
   implicitStats: { bases: { 'Amethyst Ring': [[['base_chaos_damage_resistance_%', 7, 13]]] as [string, number, number][][] } },
   uniqueStats: { uniques: { 'Cloak of Flame': { baseType: 'Silk Robe', baseSlug: 'silk-robe', lines: [['local_energy_shield'], null] }, 'Baseless': { baseType: 'Gone', baseSlug: null, lines: [] } } },
   items: new Map<string, unknown>([
-    ['amethyst-ring', { name: 'Amethyst Ring', armour: null, spirit: 0, implicitMods: ['+(7-13)% to Chaos Resistance'] }],
+    ['amethyst-ring', { name: 'Amethyst Ring', itemClass: 'Ring', weapon: null, armour: null, spirit: 0, implicitMods: ['+(7-13)% to Chaos Resistance'] }],
+    ['iron-rune', { name: 'Iron Rune', soulCoreEffects: [{ category: 'Armour', lines: ['+9 to Dexterity'] }, { category: 5 }, { category: 'Bow', lines: 'nope' }] }],
     ['silk-robe', { name: 'Silk Robe', armour: { armour: 0, evasion: 0, energyShield: 50 }, spirit: 0 }],
     ['cloak-of-flame', { name: 'Cloak of Flame', implicitMods: [], uniqueMods: { explicitMods: ['+(30-50) to maximum Energy Shield', 'Fire Thorns'] } }],
   ]),
@@ -30,6 +31,8 @@ describe('makeCollectData', () => {
     expect(d().item('amethyst-ring')).toEqual({
       armour: null,
       spirit: 0,
+      itemClass: 'Ring',
+      weapon: false,
       implicits: [[['base_chaos_damage_resistance_%', 7, 13]]],
       implicitLines: ['+(7-13)% to Chaos Resistance'],
     });
@@ -47,6 +50,18 @@ describe('makeCollectData', () => {
     });
     expect(d().unique('Unknown Unique', 'unknown-unique')).toBeUndefined();
     expect(d().unique('Baseless', 'baseless')).toBeUndefined();
+  });
+
+  it("reads a rune's effect lines per equipment category, and skips malformed entries", () => {
+    expect(d().rune?.('iron-rune')).toEqual({
+      name: 'Iron Rune',
+      effects: [
+        { category: 'Armour', lines: ['+9 to Dexterity'] },
+        { category: 'Bow', lines: [] },
+      ],
+    });
+    expect(d().rune?.('amethyst-ring')).toBeUndefined(); // no soulCoreEffects: not a rune
+    expect(d().rune?.('nope')).toBeUndefined();
   });
 
   it("reads a mod's rolls", () => {

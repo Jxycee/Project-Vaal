@@ -19,13 +19,31 @@ const NODES: Record<number, { name: string; stats: [string, number][]; attribute
   7: { name: 'Offence', stats: [['attack_speed_+%', 5]] },
   [NO_SPIRIT_NODE]: { name: 'Embrace the Darkness', stats: [['base_darkness', 100]] },
   30: { name: 'Jewel Socket', stats: [] },
+  40: { name: 'Step Like Mist', stats: [['base_dexterity_and_intelligence', 5], ['mana_regeneration_rate_+%', 15]] },
+  41: { name: 'Attributes', stats: [['base_all_attributes', 5]] },
+  42: { name: 'Eldritch Will', stats: [['maximum_life_mana_and_energy_shield_+%', 3]] },
+  43: { name: 'Harmony Within', stats: [['oracle_maximum_life_+%_final', -15], ['oracle_maximum_mana_+%_final', -15]] },
+  44: { name: 'Mysterious Lineage', stats: [['titan_maximum_life_+%_final', 15]] },
+  45: { name: 'Ancient Aegis', stats: [['maximum_energy_shield_from_body_armour_+%', 60]] },
+  46: { name: 'Illuminated Crown', stats: [['energy_shield_from_helmet_+%', 70]] },
+  47: { name: 'Future Notable', stats: [['future_patch_maximum_life_+%_final', 9], ['future_patch_attack_speed_+%', 5]] },
+  48: { name: 'Future Notable 2', stats: [['future_patch_maximum_life_+%_final', 4]] },
 };
 
 const ITEMS: Record<
   string,
-  { armour: { armour: number; evasion: number; energyShield: number } | null; spirit: number; implicits?: [string, number, number][][]; implicitLines?: string[] }
+  {
+    armour: { armour: number; evasion: number; energyShield: number } | null;
+    spirit: number;
+    implicits?: [string, number, number][][];
+    implicitLines?: string[];
+    itemClass?: string | null;
+    weapon?: boolean;
+  }
 > = {
-  'plate-vest': { armour: { armour: 100, evasion: 0, energyShield: 0 }, spirit: 0 },
+  'plate-vest': { armour: { armour: 100, evasion: 0, energyShield: 0 }, spirit: 0, itemClass: 'Body Armour' },
+  'iron-cap': { armour: { armour: 20, evasion: 0, energyShield: 0 }, spirit: 0, itemClass: 'Helmet' },
+  longbow: { armour: null, spirit: 0, itemClass: 'Bow', weapon: true },
   'amethyst-ring': { armour: null, spirit: 0, implicits: [[['base_chaos_damage_resistance_%', 7, 13]]], implicitLines: ['+(7-13)% to Chaos Resistance'] },
   sceptre: { armour: null, spirit: 100 },
   emerald: { armour: null, spirit: 0 },
@@ -62,8 +80,32 @@ const MODS: Record<string, { stat: string; min: number; max: number }[]> = {
   'body-armour-pct': [{ stat: 'body_armour_+%', min: 30, max: 40 }],
 };
 
+// Runes as the wiki files them: lines per equipment category (soulCoreEffects).
+const RUNES: Record<string, { name: string; effects: { category: string; lines: string[] }[] }> = {
+  'greater-iron': {
+    name: 'Greater Iron Rune',
+    effects: [
+      { category: 'Martial Weapon', lines: ['18% increased Physical Damage'] },
+      { category: 'Wand or Staff', lines: ['30% increased Spell Damage'] },
+      { category: 'Armour', lines: ['18% increased Armour, Evasion and Energy Shield'] },
+    ],
+  },
+  adept: {
+    name: 'Adept Rune',
+    effects: [
+      { category: 'All Equipment', lines: ['+9 to Dexterity'] },
+      { category: 'Armour', lines: ['+13% to Fire Resistance', 'Bonded: +40 to maximum Life'] },
+    ],
+  },
+  'cap-rune': { name: 'Cap Rune', effects: [{ category: 'Helmet', lines: ['+30 to maximum Mana'] }] },
+  'archer-rune': { name: 'Archer Rune', effects: [{ category: 'Crossbow, Bow or Spear', lines: ['+10 to Spirit'] }] },
+  'scaling-rune': { name: 'Scaling Rune', effects: [{ category: 'Helmet', lines: ['+# to maximum Life per # Armour on Equipped Helmet'.replace(/#/g, '5'), 'Gain 5 Life per Enemy Hit with Attacks'] }] },
+  'odd-rune': { name: 'Odd Rune', effects: [{ category: 'Flying Cabbage', lines: ['+10 to maximum Life'] }] },
+};
+
 const data: CollectData = {
   node: (id) => NODES[id],
+  rune: (slug) => RUNES[slug],
   item: (slug) => ITEMS[slug],
   mod: (slug) => MODS[slug],
   unique: (name) => UNIQUES[name],
@@ -107,6 +149,48 @@ describe('collectContributions — the tree', () => {
     const r = run(tree({ set1: [6, 7] }));
     expect(r.notCounted).toContain('Lead me through Grace...: Spirit from body armour Evasion');
     expect(r.notCounted.join(' ')).not.toContain('Offence');
+  });
+});
+
+describe('collectContributions — stat ids the sheet needs (statTable.ts)', () => {
+  it('splits a two-attribute and an all-attribute stat across their attributes (PoB2 ModParser.lua:168, 170)', () => {
+    const r = run(tree({ set1: [40, 41] }));
+    expect([total(r, 'str'), total(r, 'dex'), total(r, 'int')]).toEqual([5, 10, 10]);
+  });
+
+  it('adds one increase to Life, Mana and Energy Shield (PoB2 ModParser.lua:5339)', () => {
+    const r = run(tree({ set1: [42] }));
+    expect([total(r, 'life', 'increased'), total(r, 'mana', 'increased'), total(r, 'energyShield', 'increased')]).toEqual([3, 3, 3]);
+  });
+
+  it('reads "final" Life and Mana as more/less multipliers, not as increased', () => {
+    const r = run(tree({ set1: [43, 44] }));
+    expect(total(r, 'life', 'more')).toBe(0); // -15 + 15
+    expect(r.contributions.filter((c) => c.pool === 'life' && c.kind === 'more').map((c) => c.value)).toEqual([-15, 15]);
+    expect(r.contributions.filter((c) => c.pool === 'mana' && c.kind === 'more').map((c) => c.value)).toEqual([-15]);
+    expect(total(r, 'life', 'increased')).toBe(0);
+  });
+
+  it("scopes 'from body armour' and 'from helmet' increases to that slot, and tags the item's own defence with its slot", () => {
+    const r = run(tree({ set1: [45, 46] }), gear({ body: item('silk-robe', 'Silk Robe', 'Body Armour') }));
+    expect(r.contributions).toContainEqual({ pool: 'energyShield', kind: 'increased', value: 60, source: 'Ancient Aegis', slot: 'body' });
+    expect(r.contributions).toContainEqual({ pool: 'energyShield', kind: 'increased', value: 70, source: 'Illuminated Crown', slot: 'head' });
+    expect(r.contributions).toContainEqual({ pool: 'energyShield', kind: 'flat', value: 50, source: 'Silk Robe', slot: 'body' });
+  });
+});
+
+describe('collectContributions — unknown stat ids are named, not dropped', () => {
+  it('lists an unmapped defence-looking id once, with every source that carries it', () => {
+    const r = run(tree({ set1: [47, 48] }));
+    expect(r.notCounted).toContain('Unrecognised stat future_patch_maximum_life_+%_final (Future Notable, Future Notable 2)');
+    expect(r.notCounted.filter((n) => n.includes('future_patch_maximum_life'))).toHaveLength(1);
+  });
+
+  it('stays silent about an unmapped offence id, and about an id it maps', () => {
+    const r = run(tree({ set1: [47, 7, 40] }));
+    expect(r.notCounted.join(' ')).not.toContain('attack_speed');
+    expect(r.notCounted.join(' ')).not.toContain('base_dexterity_and_intelligence');
+    expect(r.notCounted.join(' ')).not.toContain('mana_regeneration'); // regeneration is not a sheet stat
   });
 });
 
@@ -221,5 +305,100 @@ describe('collectContributions — the campaign', () => {
     expect(total(r, 'spirit')).toBe(100);
     expect(r.contributions.some((c) => c.source === 'Candlemass (Ogham Manor)')).toBe(true);
     expect(r.notCounted.some((n) => n.includes('Medallion (Valley of the Titans)'))).toBe(true);
+  });
+});
+
+describe('collectContributions — runes (PoB2 Item.lua:2179-2198, 2378-2391)', () => {
+  const vest = (runes: string[], extra: Partial<ItemCraft> = {}) => item('plate-vest', 'Plate Vest', 'Body Armour', { rarity: 'rare', runes, ...extra });
+
+  it("adds an armour rune's increased defences to the item's LOCAL increase, additive with its mods, before quality", () => {
+    const two = run(tree(), gear({ body: vest(['greater-iron', 'greater-iron']) }));
+    // round(100 x (1 + 36/100)) = 136
+    expect(total(two, 'armour')).toBe(136);
+    const withMod = run(tree(), gear({ body: vest(['greater-iron', 'greater-iron'], { quality: 20, prefixes: [{ slug: 'local-armour-inc', values: [50] }] }) }));
+    // round(100 x (1 + (50 + 36)/100) x 1.2) = round(223.2) = 223
+    expect(total(withMod, 'armour')).toBe(223);
+    expect(two.notCounted.join(' ')).not.toContain('rune');
+  });
+
+  it('applies the category the socketed item belongs to: a weapon gets the weapon line, which moves no defence', () => {
+    const bow = item('longbow', 'Longbow', 'Bow', { rarity: 'rare', runes: ['greater-iron'] });
+    const r = run(tree(), gear({ weapon1_main: bow }));
+    expect(total(r, 'armour')).toBe(0);
+    expect(r.notCounted).toEqual([]);
+  });
+
+  it('counts an "All Equipment" line on armour and on a weapon alike', () => {
+    expect(total(run(tree(), gear({ body: vest(['adept']) })), 'dex')).toBe(9);
+    expect(total(run(tree(), gear({ weapon1_main: item('longbow', 'Longbow', 'Bow', { rarity: 'rare', runes: ['adept'] }) })), 'dex')).toBe(9);
+  });
+
+  it('counts a global armour line at its value (resistance) and one rune per socket', () => {
+    expect(total(run(tree(), gear({ body: vest(['adept', 'adept']) })), 'fireRes')).toBe(26);
+  });
+
+  it("never reads a Bonded line — PoB2 builds it for display only (Item.lua:2146)", () => {
+    const r = run(tree(), gear({ body: vest(['adept']) }));
+    expect(total(r, 'life')).toBe(0);
+    expect(r.notCounted).toEqual([]);
+  });
+
+  it('keeps a helmet line to helmets, and splits a composite label like "Crossbow, Bow or Spear"', () => {
+    expect(total(run(tree(), gear({ head: item('iron-cap', 'Iron Cap', 'Helmet', { rarity: 'rare', runes: ['cap-rune'] }) })), 'mana')).toBe(30);
+    expect(total(run(tree(), gear({ body: vest(['cap-rune']) })), 'mana')).toBe(0);
+    const bow = item('longbow', 'Longbow', 'Bow', { rarity: 'rare', runes: ['archer-rune'] });
+    expect(total(run(tree(), gear({ weapon1_main: bow })), 'spirit')).toBe(10);
+    expect(total(run(tree(), gear({ body: vest(['archer-rune']) })), 'spirit')).toBe(0);
+  });
+
+  it('names a defence-looking line it cannot model, stays silent about offence', () => {
+    const r = run(tree(), gear({ head: item('iron-cap', 'Iron Cap', 'Helmet', { rarity: 'rare', runes: ['scaling-rune'] }) }));
+    expect(r.notCounted).toEqual(['Iron Cap: rune line "+5 to maximum Life per 5 Armour on Equipped Helmet" not counted']);
+  });
+
+  it('names a rune whose category it does not recognise, and a rune absent from the data', () => {
+    const r = run(tree(), gear({ body: vest(['odd-rune', 'no-such-rune']) }));
+    expect(r.notCounted).toEqual(expect.arrayContaining(['Plate Vest: rune "Odd Rune" has an equipment category this builder does not recognise ("Flying Cabbage"), so it was not counted', 'Plate Vest: 1 rune not counted']));
+    expect(total(r, 'life')).toBe(0);
+  });
+});
+
+describe('collectContributions - quest choices', () => {
+  it('counts a chosen reward for a level that reached the quest', () => {
+    const r = run(tree({ questChoices: { 'ngamahus-test': 'strength', 'tribal-medicine': 'global-defences' } }), gear(), 98);
+    expect(total(r, 'str')).toBe(5);
+    expect(total(r, 'armour', 'increased')).toBe(30);
+    expect(total(r, 'evasion', 'increased')).toBe(30);
+    expect(total(r, 'energyShield', 'increased')).toBe(30);
+    expect(r.contributions.find((c) => c.pool === 'str')?.source).toBe("Ngamahu's Test (Halls of the Dead)");
+  });
+
+  it('does not count a choice for a quest the level has not reached, and does not list it', () => {
+    const r = run(tree({ questChoices: { 'seven-pillars': 'all-attributes' } }), gear(), 50);
+    expect(total(r, 'str')).toBe(0);
+    expect(r.notCounted.join(' | ')).not.toContain('Seven Pillars');
+  });
+
+  it('keeps the unchosen quests listed under "Not counted" and drops the chosen one from that list', () => {
+    const r = run(tree({ questChoices: { 'ngamahus-test': 'strength' } }), gear(), 98);
+    const line = r.notCounted.find((l) => l.startsWith('Quest rewards you choose: '));
+    expect(line).toContain('Medallion (Valley of the Titans)');
+    expect(line).not.toContain("Ngamahu's Test");
+  });
+
+  it('with no choices at all behaves exactly as before: every reached quest listed, none counted', () => {
+    const r = run(tree(), gear(), 98);
+    expect(r.notCounted.find((l) => l.startsWith('Quest rewards you choose: '))).toContain('Seven Pillars (Qimah)');
+    expect(total(r, 'str') + total(r, 'int')).toBe(0);
+  });
+
+  it('names a chosen reward the engine cannot model', () => {
+    const r = run(tree({ questChoices: { 'tribal-medicine': 'elemental-armour' } }), gear(), 98);
+    expect(r.notCounted.some((l) => l.startsWith('Tribal Medicine (Eye of Hinekora): '))).toBe(true);
+  });
+
+  it('ignores a junk stored choice instead of crashing', () => {
+    const r = run(tree({ questChoices: { 'ngamahus-test': 'dexterity', bogus: 'x' } as Record<string, string> }), gear(), 98);
+    expect(total(r, 'str') + total(r, 'dex')).toBe(0);
   });
 });

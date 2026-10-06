@@ -32,6 +32,7 @@ const build = (overrides: Partial<PobBuild> = {}): PobBuild => ({
   items: [],
   slots: [],
   notes: null,
+  questInputs: [],
   ...overrides,
 });
 
@@ -241,5 +242,41 @@ describe('mapBuild — the real build', async () => {
         expect(gated.value).toEqual(value);
       }
     }
+  });
+});
+
+describe('mapBuild - quest choices from the real momentsZX export', async () => {
+  const decoded = decodePobCode(readFileSync('docs/superpowers/handoffs/2026-09-27-momentsZX-pob2-code.txt', 'utf8').trim());
+  if (!decoded.ok) throw new Error('momentsZX failed to decode');
+  const parsed = parsePobXml(decoded.xml);
+  if (!parsed.ok) throw new Error('momentsZX failed to parse');
+  const result = await mapBuild(parsed.build, await getCatalogue(), {});
+  if (!result.ok) throw new Error(result.error);
+
+  it("gives every checkpoint the build's seven quest choices, and they pass the write gate", () => {
+    const expected = {
+      medallion: 'charm-charges',
+      'venom-draught': 'stun-threshold',
+      'goddess-of-justice': 'mana-flasks',
+      'tribal-medicine': 'elemental-armour',
+      'ngamahus-test': 'strength',
+      'tasalios-test': 'intelligence',
+      'seven-pillars': 'global-defences',
+    };
+    for (const c of result.plan.checkpoints) {
+      expect(c.passive_state.questChoices).toEqual(expected);
+      expect(cleanPassiveStateInput(c.passive_state)).toEqual({ ok: true, value: c.passive_state });
+    }
+    expect(result.plan.report.some((r) => /quest/i.test(r.message) && r.kind === 'dropped')).toBe(false);
+  });
+
+  it('leaves the key off a build with no quest inputs (the older fixture)', async () => {
+    const old = decodePobCode(readFileSync('src/lib/pob/__fixtures__/sample-pob2-code.txt', 'utf8'));
+    if (!old.ok) throw new Error('decode');
+    const p = parsePobXml(old.xml);
+    if (!p.ok) throw new Error('parse');
+    const r = await mapBuild(p.build, await getCatalogue(), {});
+    if (!r.ok) throw new Error(r.error);
+    for (const c of r.plan.checkpoints) expect(c.passive_state).not.toHaveProperty('questChoices');
   });
 });

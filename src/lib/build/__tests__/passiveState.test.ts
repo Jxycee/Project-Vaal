@@ -132,3 +132,44 @@ describe('fromPassiveState — attribute choices (Slice 5)', () => {
     expect(toPassiveState(main, ascendancyNodes, attributeChoices)).toEqual(stored);
   });
 });
+
+describe('quest choices (stats/campaign.ts CHOICE_QUESTS)', () => {
+  const main: WeaponSetAllocation = { allocated: [10], weaponSets: {} };
+
+  it('writes no questChoices key when there are none, so the stored shape is unchanged', () => {
+    expect(toPassiveState(main, [], {})).not.toHaveProperty('questChoices');
+    expect(toPassiveState(main, [], {}, {})).not.toHaveProperty('questChoices');
+    expect(toPassiveState(main, [], {}, { 'ngamahus-test': 'nonsense' })).not.toHaveProperty('questChoices');
+  });
+
+  it('keeps valid choices only, and still writes attribute choices alongside', () => {
+    const state = toPassiveState(main, [], { 10: 'str' }, { 'ngamahus-test': 'strength', 'seven-pillars': 'nope', ghost: 'strength' });
+    expect(state.questChoices).toEqual({ 'ngamahus-test': 'strength' });
+    expect(state.attributeChoices).toEqual({ '10': 'str' });
+  });
+
+  it('reads choices back, and none from an old row', () => {
+    expect(parsePassiveState({ set1: [], set2: [], ascendancyNodes: [], questChoices: { 'tasalios-test': 'intelligence' } }).questChoices).toEqual({
+      'tasalios-test': 'intelligence',
+    });
+    expect(parsePassiveState({ set1: [], set2: [], ascendancyNodes: [] })).not.toHaveProperty('questChoices');
+  });
+
+  it('drops a malformed choice on its own when reading, never throws', () => {
+    expect(
+      parsePassiveState({ set1: [], set2: [], ascendancyNodes: [], questChoices: { 'tasalios-test': 'strength', 'seven-pillars': 5, __proto__: 'x', 'medallion': 'charm-charges' } })
+        .questChoices,
+    ).toEqual({ medallion: 'charm-charges' });
+    for (const junk of ['x', 7, null, ['medallion'], { constructor: 'toString' }]) {
+      expect(parsePassiveState({ set1: [], set2: [], ascendancyNodes: [], questChoices: junk })).not.toHaveProperty('questChoices');
+    }
+  });
+
+  it('round-trips an old-shape row and a new one unchanged', () => {
+    const old = { set1: [10], set2: [10], ascendancyNodes: [] };
+    const { main: m, ascendancyNodes, attributeChoices } = fromPassiveState(old);
+    expect(toPassiveState(m, ascendancyNodes, attributeChoices)).toEqual(old);
+    const stored = { ...old, questChoices: { medallion: 'charm-duration' } };
+    expect(parsePassiveState(stored)).toEqual(stored);
+  });
+});

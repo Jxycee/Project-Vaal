@@ -27,7 +27,7 @@ import { parseGearState, type GearState } from './gearState';
 import { parseGemState, type GemState } from './gemState';
 import type { AttributeChoice } from '@poe2-toolkit/tree-core';
 import { isAllowedIconUrl, ITEM_SLUG_RE } from './iconUrl';
-import { isAttributeChoice } from './passiveState';
+import { isAttributeChoice, parseQuestChoices } from './passiveState';
 import type { PassiveState } from './types';
 
 /** Serialised size cap per state column. A full build is a few KB; this is headroom, not a target. */
@@ -174,6 +174,8 @@ export function isPassiveState(value: unknown): value is PassiveState {
 
 /** 293 generic attribute nodes exist on the 0.5.2 tree; this is headroom, not a target. */
 const MAX_ATTRIBUTE_CHOICES = 300;
+/** There are 8 choice quests; this is headroom against a junk payload, not a target. */
+const MAX_QUEST_CHOICES = 64;
 const NODE_ID_RE = /^\d{1,10}$/;
 
 export function cleanPassiveStateInput(raw: unknown): InputResult<PassiveState> {
@@ -189,6 +191,15 @@ export function cleanPassiveStateInput(raw: unknown): InputResult<PassiveState> 
       if (!NODE_ID_RE.test(id) || !isAttributeChoice(choice)) return fail('Malformed passive_state');
     }
     if (entries.length > 0) value.attributeChoices = { ...(choices as Record<string, AttributeChoice>) };
+  }
+  // Quest choices: unknown quest or option ids are dropped (a table that moves
+  // between versions must not make a saved build unsavable); a non-object or an
+  // oversized one is refused like the attribute choices above.
+  const quests = (raw as unknown as Record<string, unknown>).questChoices;
+  if (quests !== undefined) {
+    if (!isPlainObject(quests) || Object.keys(quests).length > MAX_QUEST_CHOICES) return fail('Malformed passive_state');
+    const kept = parseQuestChoices(quests);
+    if (Object.keys(kept).length > 0) value.questChoices = kept;
   }
   return { ok: true, value };
 }

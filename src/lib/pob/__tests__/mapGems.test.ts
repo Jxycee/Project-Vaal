@@ -112,9 +112,9 @@ describe('mapGems — every way it can go wrong', () => {
     expect(disabledGroup.report).toHaveLength(1);
   });
 
-  it("clamps a skill's level to that gem's own cap, and its quality to 20, reporting each", () => {
-    const { value, report } = mapGems([group(1, [gem('SkillGemLowCap', { level: 25, quality: 23 })])], null, catalogue);
-    expect(value.loadouts[0]).toMatchObject({ level: 20, quality: 20 });
+  it("clamps a skill's level to that gem's own cap, and its quality to 30, reporting each", () => {
+    const { value, report } = mapGems([group(1, [gem('SkillGemLowCap', { level: 25, quality: 33 })])], null, catalogue);
+    expect(value.loadouts[0]).toMatchObject({ level: 20, quality: 30 });
     expect(report).toHaveLength(2);
   });
 

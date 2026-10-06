@@ -183,7 +183,7 @@ describe('cleanGearStateInput — item craft (Slice 4)', () => {
     ['item level 0', { itemLevel: 0 }],
     ['item level 101', { itemLevel: 101 }],
     ['a fractional item level', { itemLevel: 50.5 }],
-    ['quality 21', { quality: 21 }],
+    ['quality 31', { quality: 31 }],
     ['negative quality', { quality: -1 }],
     ['a non-boolean corrupted', { corrupted: 1 }],
     ['a non-finite value', { prefixes: [{ slug: 'addedcolddamage1', values: [Number.POSITIVE_INFINITY] }] }],
@@ -227,4 +227,35 @@ describe('cleanGemStateInput — craft is gear-only', () => {
     const skill = item({ slug: 'fireball', category: 'Active Skill Gems', isUnique: false, craft: { rarity: 'normal' } });
     expect(cleanGemStateInput({ loadouts: [loadout({ skill })], primaryId: null }).ok).toBe(false);
   });
+});
+
+describe('cleanPassiveStateInput - quest choices', () => {
+  const base = { set1: [], set2: [], ascendancyNodes: [] };
+
+  it('keeps well-formed choices through the gate', () => {
+    expect(cleanPassiveStateInput({ ...base, questChoices: { 'ngamahus-test': 'fire-resistance' } })).toEqual({
+      ok: true,
+      value: { ...base, questChoices: { 'ngamahus-test': 'fire-resistance' } },
+    });
+  });
+
+  it('drops unknown quests and unknown options instead of refusing the build', () => {
+    expect(cleanPassiveStateInput({ ...base, questChoices: { 'ngamahus-test': 'strength', ghost: 'x', medallion: 'not-an-option', 'seven-pillars': 3 } })).toEqual({
+      ok: true,
+      value: { ...base, questChoices: { 'ngamahus-test': 'strength' } },
+    });
+  });
+
+  it('writes no key when nothing valid is left, or when none was sent', () => {
+    expect(cleanPassiveStateInput({ ...base, questChoices: { ghost: 'x' } })).toEqual({ ok: true, value: base });
+    expect(cleanPassiveStateInput({ ...base, questChoices: {} })).toEqual({ ok: true, value: base });
+    expect(cleanPassiveStateInput(base)).toEqual({ ok: true, value: base });
+  });
+
+  it.each([['a non-object', 'strength'], ['an array', ['medallion']], ['null', null], ['an oversized object', Object.fromEntries(Array.from({ length: 200 }, (_, i) => [`q${i}`, 'x']))]])(
+    'refuses %s',
+    (_label, questChoices) => {
+      expect(cleanPassiveStateInput({ ...base, questChoices }).ok).toBe(false);
+    },
+  );
 });

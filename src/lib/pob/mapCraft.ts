@@ -30,6 +30,7 @@ import {
   MAX_AFFIXES_PER_KIND,
   MAX_ITEM_QUALITY,
   MAX_RUNES,
+  RANGE_RE,
   rangesIn,
   type CraftedMod,
   type ItemCraft,
@@ -40,6 +41,8 @@ import { matchTemplate, stripTags, valueAt } from './craftText';
 export interface CraftMod {
   slug: string;
   kind: 'prefix' | 'suffix' | 'other';
+  /** The mod group — one per item. Optional so a test fake can leave it out. */
+  group?: string;
   rolls: { min: number; max: number }[];
   stats: string[];
 }
@@ -89,6 +92,123 @@ function matchLines(lines: string[], templates: string[], notes: CraftNote[], wh
   return rows;
 }
 
+/**
+ * Several mods can print the same line — a prefix and a suffix of "Rarity of
+ * Items found" do. PoB's text does not say which one an item has, but an item
+ * has at most three of each kind (one if magic) and one mod per group, so
+ * take the first (the natural, lowest-level) match whose kind still has room
+ * and whose group is unused; with none, the first match, as before.
+ */
+function pickOne(matches: CraftMod[], craft: ItemCraft, all: CraftMod[]): CraftMod | undefined {
+  if (matches.length < 2) return matches[0];
+  const used = new Set<string>();
+  for (const m of [...craft.prefixes, ...craft.suffixes]) {
+    const group = all.find((c) => c.slug === m.slug)?.group;
+    if (group) used.add(group);
+  }
+  // What a rare item can hold per kind (affixRules.ts: magic 1, rare 3); the write gate's own cap is looser.
+  const room = craft.rarity === 'magic' ? 1 : 3;
+  const fits = (c: CraftMod) => c.kind !== 'other' && craft[c.kind === 'prefix' ? 'prefixes' : 'suffixes'].length < room && !(c.group && used.has(c.group));
+  return matches.find(fits) ?? matches[0];
+}
+
+
+/** A display template with its "(a-b)" ranges blanked: two mods print the same line when their shapes match. */
+const shapeOf = (template: string) => template.replace(RANGE_RE, '#');
+
+/** Distance of each shown number outside its roll range: 0 inside, negative below the minimum (not "above"). */
+function overshoot(shown: number[], rolls: { min: number; max: number }[]): number | null {
+  if (shown.length !== rolls.length) return null;
+  let total = 0;
+  for (let i = 0; i < shown.length; i++) {
+    if (shown[i] < rolls[i].min) return null;
+    total += Math.max(0, shown[i] - rolls[i].max);
+  }
+  return total;
+}
+
+/** The number a line shows for any template of its shape (its first), ignoring range bounds — null when no single-stat mod prints this shape. */
+function matchTemplateAny(line: string, candidates: CraftMod[]): number | null {
+  for (const c of candidates) {
+    if (c.stats.length !== 1) continue;
+    const v = matchTemplate(line, c.stats[0], 0.5, false);
+    if (v) return v[0];
+  }
+  return null;
+}
+
+/**
+ * A line whose number sits above the top of every tier that prints it
+ * (matchTemplate said no only because of range): the legal mod nearest the
+ * shown value, at its closest roll. Never for a value below a tier's minimum,
+ * and only where the shown units are the roll units.
+ */
+function closestLegal(line: string, candidates: CraftMod[], craft: ItemCraft): { mod: CraftMod; values: number[] } | undefined {
+  const scored: { mod: CraftMod; shown: number[]; gap: number }[] = [];
+  for (const c of candidates) {
+    if (c.stats.length !== 1 || c.kind === 'other' || !sameUnits(c)) continue;
+    const shown = matchTemplate(line, c.stats[0], 0.5, false);
+    const gap = shown ? overshoot(shown, c.rolls) : null;
+    if (shown && gap !== null && gap > 0) scored.push({ mod: c, shown, gap });
+  }
+  if (scored.length === 0) return undefined;
+  const best = Math.min(...scored.map((s) => s.gap));
+  const nearest = scored.filter((s) => s.gap === best);
+  const mod = pickOne(nearest.map((s) => s.mod), craft, candidates);
+  const row = nearest.find((s) => s.mod === mod) ?? nearest[0];
+  return { mod: row.mod, values: row.mod.rolls.map((r) => r.max) };
+}
+
+interface SummedSplit {
+  hybrid: CraftMod;
+  pure: CraftMod;
+  hybridValues: number[];
+  pureValues: number[];
+  /** Index of the other pasted line the hybrid's second stat read from. */
+  partner: number;
+}
+
+/**
+ * One printed line can be two mods added together: the game sums a stat across
+ * mods before printing it, so a pure "(80-100)% increased Evasion and Energy
+ * Shield" and a hybrid "(33-38)% ... + (27-32) to maximum Mana" print a single
+ * 126% line, with the hybrid's other stat on a line of its own. (PoB's own
+ * "Evasion: 728" header on the same item reproduces only at 126%, checked
+ * 2026-10-05.) Called only for a line no single tier can print. Finds a hybrid
+ * whose OTHER stat is a pasted line in range, and a pure mod of another group
+ * for the same stat so that hybrid + pure can reach the shown value. Only the
+ * sum is known: the hybrid's roll is placed at the same fraction of its range
+ * as its other stat's, and the pure mod takes the rest (any split that fits a
+ * tier is tried if that one does not).
+ */
+function splitSummed(shown: number, at: number, pasted: string[], consumed: Set<number>, candidates: CraftMod[]): SummedSplit | null {
+  for (const hybrid of candidates) {
+    if (hybrid.stats.length !== 2 || hybrid.kind === 'other' || !sameUnits(hybrid)) continue;
+    for (const k of [0, 1] as const) {
+      if (!matchTemplate(pasted[at], hybrid.stats[k], 0.5, false)) continue;
+      const partner = pasted.findIndex((l, j) => j !== at && !consumed.has(j) && matchTemplate(l, hybrid.stats[1 - k]) !== null);
+      if (partner === -1) continue;
+      const partnerValue = matchTemplate(pasted[partner], hybrid.stats[1 - k])!;
+      const { min, max } = hybrid.rolls[k];
+      const own = hybrid.rolls[1 - k];
+      const fraction = own.max === own.min ? 0 : (partnerValue[0] - own.min) / (own.max - own.min);
+      const preferred = Math.round(min + fraction * (max - min));
+      const tried = [preferred, ...Array.from({ length: max - min + 1 }, (_, i) => min + i)];
+      for (const pure of candidates) {
+        if (pure.stats.length !== 1 || pure.kind === 'other' || pure.group === hybrid.group || !sameUnits(pure)) continue;
+        if (shapeOf(pure.stats[0]) !== shapeOf(hybrid.stats[k])) continue;
+        for (const h of tried) {
+          const p = shown - h;
+          if (h < min || h > max || p < pure.rolls[0].min || p > pure.rolls[0].max) continue;
+          const hybridValues = k === 0 ? [h, partnerValue[0]] : [partnerValue[0], h];
+          return { hybrid, pure, hybridValues, pureValues: [p], partner };
+        }
+      }
+    }
+  }
+  return null;
+}
+
 export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups): { craft: ItemCraft; notes: CraftNote[] } {
   const lines = raw
     .split(/\r?\n/)
@@ -121,7 +241,12 @@ export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups):
   let isCrafted = false;
   for (const line of header) {
     const quality = /^Quality: (\d+)$/.exec(line);
-    if (quality) craft.quality = Math.min(MAX_ITEM_QUALITY, Number(quality[1]));
+    if (quality) {
+      craft.quality = Math.min(MAX_ITEM_QUALITY, Number(quality[1]));
+      if (Number(quality[1]) > MAX_ITEM_QUALITY) {
+        notes.push({ kind: 'inferred', message: `Quality ${quality[1]}% is above the ${MAX_ITEM_QUALITY}% this builder stores, so it was kept at ${MAX_ITEM_QUALITY}%; the item's own defences will read slightly low.` });
+      }
+    }
     const level = /^Item Level: (\d+)$/.exec(line);
     if (level) craft.itemLevel = Math.min(100, Math.max(1, Number(level[1])));
     const rune = /^Rune: (.+)$/.exec(line);
@@ -163,13 +288,53 @@ export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups):
     craft.suffixes = crafted.suffix;
   } else {
     const pasted = explicitLines.filter((l) => !l.includes('{rune}')).map(stripTags);
-    for (let i = 0; i < pasted.length; i++) {
-      const two = lookups.candidates.find(
+    const twoAt = (i: number) =>
+      lookups.candidates.find(
         (c) => c.stats.length === 2 && i + 1 < pasted.length && matchTemplate(pasted[i], c.stats[0]) && matchTemplate(pasted[i + 1], c.stats[1]),
       );
-      const one = two ? undefined : lookups.candidates.find((c) => c.stats.length === 1 && matchTemplate(pasted[i], c.stats[0]));
+    const oneMatches = (i: number) => lookups.candidates.filter((c) => c.stats.length === 1 && matchTemplate(pasted[i], c.stats[0]) !== null);
+
+    // Pre-pass: a line no single tier (or in-range hybrid) can print may be two
+    // mods summed; its partner line can sit anywhere, so find the splits first.
+    const splits = new Map<number, SummedSplit>();
+    const consumed = new Set<number>();
+    for (let i = 0; i < pasted.length; i++) {
+      if (consumed.has(i) || twoAt(i) || oneMatches(i).length > 0) continue;
+      const shown = matchTemplateAny(pasted[i], lookups.candidates);
+      if (shown === null) continue;
+      const split = splitSummed(shown, i, pasted, consumed, lookups.candidates);
+      if (!split) continue;
+      splits.set(i, split);
+      consumed.add(i);
+      consumed.add(split.partner);
+    }
+
+    for (let i = 0; i < pasted.length; i++) {
+      const split = splits.get(i);
+      if (split) {
+        for (const [m, values] of [[split.hybrid, split.hybridValues], [split.pure, split.pureValues]] as const) {
+          (m.kind === 'prefix' ? craft.prefixes : craft.suffixes).push({ slug: m.slug, values });
+        }
+        notes.push({
+          kind: 'inferred',
+          message: `"${pasted[i]}" is two mods added together (${split.hybrid.slug} and ${split.pure.slug}); the game shows only the sum, so the split between them is assumed.`,
+        });
+        continue;
+      }
+      if (consumed.has(i)) continue;
+      const two = twoAt(i);
+      const one = two ? undefined : pickOne(oneMatches(i), craft, lookups.candidates);
       const hit = two ?? one;
       if (!hit || hit.kind === 'other') {
+        const capped = hit ? undefined : closestLegal(pasted[i], lookups.candidates, craft);
+        if (capped) {
+          (capped.mod.kind === 'prefix' ? craft.prefixes : craft.suffixes).push({ slug: capped.mod.slug, values: capped.values });
+          notes.push({
+            kind: 'inferred',
+            message: `"${pasted[i]}" is above the highest roll this base can have for it, so it was kept at ${capped.mod.slug}'s best roll (${capped.values.join(', ')}); a roll past its top tier usually means a quality or catalyst scaling this builder does not model.`,
+          });
+          continue;
+        }
         notes.push({ kind: 'dropped', message: `The mod line "${pasted[i]}" matches nothing this base can roll, so it was not kept.` });
         continue;
       }

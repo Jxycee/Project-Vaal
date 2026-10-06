@@ -110,6 +110,15 @@ describe('save and load', () => {
     expect(loadDraft('build-123')).toEqual(state);
   });
 
+  it('round-trips quest choices, drops junk ones, and omits the key when there are none', () => {
+    saveDraft('build-123', { ...state, quest: { 'ngamahus-test': 'strength' } });
+    expect(loadDraft('build-123')?.quest).toEqual({ 'ngamahus-test': 'strength' });
+    localStorage.setItem(draftKey('build-123'), JSON.stringify({ ...state, quest: { 'ngamahus-test': 'nope', ghost: 'x' } }));
+    expect(loadDraft('build-123')).not.toHaveProperty('quest');
+    localStorage.setItem(draftKey('build-123'), JSON.stringify({ ...state, quest: 'junk' }));
+    expect(loadDraft('build-123')).toEqual(state);
+  });
+
   it('round-trips a scratch-mode draft', () => {
     saveDraft(undefined, state);
     expect(loadDraft(undefined)).toEqual(state);

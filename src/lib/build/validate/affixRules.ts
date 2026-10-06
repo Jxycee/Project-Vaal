@@ -15,7 +15,7 @@ import { rangesIn, type CraftedMod, type ItemCraft, type ValueRange } from '../c
 import type { GearItem } from '../gearSlots';
 import type { GearState } from '../gearState';
 import { GEAR_SLOTS } from '../gearSlots';
-import { canSpawn, type SpawnWeight } from '@/lib/wiki/spawn';
+import { modEligibility, type SpawnWeight } from '@/lib/wiki/spawn';
 import { handednessOf } from './handedness';
 import type { BuildWarning, WarningTarget } from './types';
 
@@ -120,7 +120,8 @@ function checkItem(item: GearItem, target: WarningTarget, data: CraftData): Buil
     if (m.kind !== side) warn('affix-wrong-kind', `${item.name}: "${chosen.slug}" is not a ${side}.`);
     if (groups.has(m.group)) warn('affix-duplicate-group', `${item.name} has two mods from the ${m.group} group; an item can roll only one.`);
     groups.add(m.group);
-    if (base && (m.domain !== base.modDomain || !canSpawn(m.spawnWeights, tags))) {
+    // Desecrated and essence mods do not follow the natural spawn rule; modEligibility knows them.
+    if (base && modEligibility({ slug: chosen.slug, domain: m.domain, spawnWeights: m.spawnWeights }, { modDomain: base.modDomain, tags }) === null) {
       warn('affix-not-eligible', `${item.name} cannot roll "${chosen.slug}".`);
     }
     if (craft.itemLevel !== null && m.level > craft.itemLevel) {

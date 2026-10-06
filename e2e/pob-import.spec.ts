@@ -157,7 +157,7 @@ test.describe('Path of Building 2 import', () => {
       // Stats is its own tab (stats-panel) on the build page.
       await openEditor(page, 'stats');
       const stats = page.getByTestId('stats-panel');
-      await expect(stats.getByTestId('stat-life')).toHaveText('2498', { timeout: 30_000 });
+      await expect(stats.getByTestId('stat-life')).toHaveText('2692', { timeout: 30_000 }); // 2498 before runes were counted (3 Greater Body Runes, +60 Life each, then life multipliers)
       await expect(stats.getByTestId('stat-mana')).toHaveText('916');
       await expect(stats.getByTestId('stat-energy-shield')).toHaveText('167');
       await expect(stats.getByTestId('stat-armour')).toHaveText('1151');
@@ -166,10 +166,12 @@ test.describe('Path of Building 2 import', () => {
       await expect(stats.getByTestId('stat-dex')).toHaveText('80');
       await expect(stats.getByTestId('stat-int')).toHaveText('44');
       await expect(stats.getByTestId('stat-fire')).toHaveText('75% (max 75%, 135% before the cap)');
-      await expect(stats.getByTestId('stat-chaos')).toHaveText('73% (max 75%)');
+      await expect(stats.getByTestId('stat-chaos')).toHaveText('75% (max 75%, 99% before the cap)'); // 73% before desecrated/essence mods became reachable
       await expect(stats.getByTestId('stat-spirit')).toContainText('100');
       await expect(stats.getByTestId('stat-act')).toContainText('Endgame');
-      await expect(stats.getByTestId('stat-not-counted')).toContainText('Siege Crossbow: 2 runes not counted');
+      // Runes are counted now, so none is listed; the choice quests (none recorded in this fixture) are.
+      await expect(stats.getByTestId('stat-not-counted')).toContainText('Quest rewards you choose');
+      await expect(stats.getByTestId('stat-not-counted')).not.toContainText('runes not counted');
     });
 
     await test.step('the build lists under its name', async () => {

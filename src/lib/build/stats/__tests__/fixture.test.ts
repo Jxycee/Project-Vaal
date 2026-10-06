@@ -94,10 +94,11 @@ describe('the fixture build — what does not depend on a patch', () => {
     expect(sheet.spirit).toBe(100);
   });
 
-  it('names the runes it did not count, on each item that carries them', () => {
-    for (const item of ['Paragon Greathelm', 'Cloak of Flame', 'Blueflame Bracers', 'Vaal Greaves', 'Siege Crossbow']) {
-      expect(collected.notCounted.some((n) => n.startsWith(`${item}: `) && n.includes('rune')), item).toBe(true);
-    }
+  it('counts the runes on each item that carries them, and names none as uncounted', () => {
+    expect(collected.notCounted.filter((n) => n.includes('rune'))).toEqual([]);
+    // Greater Body Rune, armour line: +60 to maximum Life, once in the Cloak of Flame's two sockets and once in the Bracers'.
+    const life = collected.contributions.filter((c) => c.pool === 'life' && ['Cloak of Flame', 'Blueflame Bracers'].includes(c.source) && c.value === 60);
+    expect(life.map((c) => c.source).sort()).toEqual(['Blueflame Bracers', 'Cloak of Flame', 'Cloak of Flame']);
   });
 
   it('counts all 27 attribute choices kept on spec 8, leaving none unchosen', () => {

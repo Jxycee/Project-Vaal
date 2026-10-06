@@ -21,6 +21,7 @@
 //   <Skills activeSkillSet><SkillSet id><Skill label enabled><Gem …/></Skill>
 //   <Items activeItemSet><Item id>clipboard text</Item><ItemSet id><Slot name itemId/>
 //   <Notes>text</Notes>
+//   <Config activeConfigSet><ConfigSet id><Input name string|boolean|number/>
 // =============================================================================
 
 import { DOMParser } from '@xmldom/xmldom';
@@ -80,6 +81,11 @@ export interface PobBuild {
   /** Occupied slots of the active item set only; a slot holding item 0 is empty. */
   slots: PobSlot[];
   notes: string | null;
+  /**
+   * String-valued <Input>s named "quest..." in the active <ConfigSet>: PoB2's
+   * chosen quest rewards (see mapQuests). Values keep PoB's own line breaks.
+   */
+  questInputs: { name: string; value: string }[];
 }
 
 export type ParseError = 'malformed-xml' | 'no-build';
@@ -246,6 +252,14 @@ export function parsePobXml(xml: string): { ok: true; build: PobBuild } | { ok: 
         .filter((slot): slot is PobSlot => slot.name !== '' && slot.itemId !== null && slot.itemId > 0)
     : [];
 
+  const configElement = firstChild(root, 'Config');
+  const configSet = configElement ? pickActive(childElements(configElement, 'ConfigSet'), intAttr(configElement, 'activeConfigSet')) : null;
+  const questInputs = configSet
+    ? childElements(configSet, 'Input')
+        .map((input) => ({ name: input.getAttribute('name') ?? '', value: input.getAttribute('string') }))
+        .filter((input): input is { name: string; value: string } => input.name.startsWith('quest') && input.value !== null && input.value !== '')
+    : [];
+
   const notesText = firstChild(root, 'Notes')?.textContent?.trim() ?? '';
 
   return {
@@ -261,6 +275,7 @@ export function parsePobXml(xml: string): { ok: true; build: PobBuild } | { ok: 
       items,
       slots,
       notes: notesText === '' ? null : notesText,
+      questInputs,
     },
   };
 }
