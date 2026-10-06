@@ -121,14 +121,15 @@ export function draftDiffersFrom(
   if (draft.tree.className !== build.class) return true;
   if ((draft.tree.ascendancyId ?? null) !== build.ascendancy) return true;
 
-  const draftState = toPassiveState(draft.tree.main, draft.tree.ascendancyNodes, draft.tree.attributeChoices);
+  const draftState = toPassiveState(draft.tree.main, draft.tree.ascendancyNodes, draft.tree.attributeChoices, draft.quest);
   const savedState = build.passive_state;
 
   if (
     !sameNumberSet(draftState.set1, savedState.set1) ||
     !sameNumberSet(draftState.set2, savedState.set2) ||
     !sameNumberSet(draftState.ascendancyNodes, savedState.ascendancyNodes) ||
-    !sameChoices(draftState.attributeChoices, savedState.attributeChoices)
+    !sameChoices(draftState.attributeChoices, savedState.attributeChoices) ||
+    !sameChoices(draftState.questChoices, savedState.questChoices)
   ) {
     return true;
   }

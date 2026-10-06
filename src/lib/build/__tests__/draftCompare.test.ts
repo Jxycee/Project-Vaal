@@ -274,3 +274,20 @@ describe('draftDiffersFrom — item crafts', () => {
     expect(draftDiffersFrom(draft({ ...saved, craft: reordered }), build(saved))).toBe(false);
   });
 });
+
+describe('draftDiffersFrom - quest choices', () => {
+  it('returns true when only a quest choice differs, so the restore offer is not lost', () => {
+    expect(draftDiffersFrom({ ...matchingDraft, quest: { 'ngamahus-test': 'strength' } }, savedBuild)).toBe(true);
+  });
+
+  it('returns false when they match, and treats absent and empty as the same', () => {
+    const saved = { ...savedBuild, passive_state: { ...savedBuild.passive_state, questChoices: { 'ngamahus-test': 'strength' } } };
+    expect(draftDiffersFrom({ ...matchingDraft, quest: { 'ngamahus-test': 'strength' } }, saved)).toBe(false);
+    expect(draftDiffersFrom({ ...matchingDraft, quest: {} }, savedBuild)).toBe(false);
+  });
+
+  it('returns true when a saved choice was cleared in the draft', () => {
+    const saved = { ...savedBuild, passive_state: { ...savedBuild.passive_state, questChoices: { 'ngamahus-test': 'strength' } } };
+    expect(draftDiffersFrom(matchingDraft, saved)).toBe(true);
+  });
+});

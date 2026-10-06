@@ -23,12 +23,14 @@
 import type { BuildEditorState } from '@/lib/build/types';
 import { parseGearState, type GearState } from '@/lib/build/gearState';
 import { parseGemState, type GemState } from '@/lib/build/gemState';
-import { parseAttributeChoices } from '@/lib/build/passiveState';
+import { parseAttributeChoices, parseQuestChoices } from '@/lib/build/passiveState';
 
 export interface BuildDraftState {
   tree: BuildEditorState;
   gear: GearState;
   gem: GemState;
+  /** Quest id -> option id (PassiveState.questChoices). Absent when none; a draft saved before it existed has no key. */
+  quest?: Record<string, string>;
 }
 
 /**
@@ -109,10 +111,12 @@ export function loadDraft(buildId: string | undefined, checkpointId?: string): B
     // defensively like gear and gems, or a junk entry fails every later save.
     const { attributeChoices, ...tree } = treeCandidate;
     const choices = parseAttributeChoices(attributeChoices);
+    const quest = parseQuestChoices('quest' in parsed ? parsed.quest : undefined);
     return {
       tree: Object.keys(choices).length > 0 ? { ...tree, attributeChoices: choices } : tree,
       gear: parseGearState('gear' in parsed ? parsed.gear : undefined),
       gem: parseGemState('gem' in parsed ? parsed.gem : undefined),
+      ...(Object.keys(quest).length > 0 ? { quest } : {}),
     };
   } catch {
     return null;
