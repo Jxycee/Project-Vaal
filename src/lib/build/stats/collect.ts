@@ -130,8 +130,9 @@ export function collectContributions(
   for (const { item, slot } of equipped) collectItem(item, slot, data, flags, contributions, notCounted, unknown, assumed);
 
   // ---- Campaign, derived from the level.
-  const campaign = campaignAt(input.level);
-  for (const r of campaign.rewards) addGlobal(contributions, notCounted, unknown, r.stat, r.value, r.source);
+  const campaign = campaignAt(input.level, input.passive.questChoices);
+  for (const r of [...campaign.rewards, ...campaign.choiceRewards]) addGlobal(contributions, notCounted, unknown, r.stat, r.value, r.source);
+  notCounted.push(...campaign.choiceRewardsUnmodelled);
   if (campaign.choiceRewardsNotCounted.length > 0) {
     notCounted.push(`Quest rewards you choose: ${campaign.choiceRewardsNotCounted.join(', ')}`);
   }

@@ -22,6 +22,13 @@ export interface PassiveState {
    * so every row saved before Slice 5 keeps exactly its old shape.
    */
   attributeChoices?: Record<string, AttributeChoice>;
+  /**
+   * The option chosen for each campaign quest whose reward the player picks:
+   * quest id -> option id (stats/campaign.ts CHOICE_QUESTS). Counted once the
+   * checkpoint's level has reached the quest. ABSENT (not `{}`) when empty, so
+   * every row saved before this key existed reads exactly as it did.
+   */
+  questChoices?: Record<string, string>;
 }
 
 /**

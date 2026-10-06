@@ -362,3 +362,43 @@ describe('collectContributions — runes (PoB2 Item.lua:2179-2198, 2378-2391)', 
     expect(total(r, 'life')).toBe(0);
   });
 });
+
+describe('collectContributions - quest choices', () => {
+  it('counts a chosen reward for a level that reached the quest', () => {
+    const r = run(tree({ questChoices: { 'ngamahus-test': 'strength', 'tribal-medicine': 'global-defences' } }), gear(), 98);
+    expect(total(r, 'str')).toBe(5);
+    expect(total(r, 'armour', 'increased')).toBe(30);
+    expect(total(r, 'evasion', 'increased')).toBe(30);
+    expect(total(r, 'energyShield', 'increased')).toBe(30);
+    expect(r.contributions.find((c) => c.pool === 'str')?.source).toBe("Ngamahu's Test (Halls of the Dead)");
+  });
+
+  it('does not count a choice for a quest the level has not reached, and does not list it', () => {
+    const r = run(tree({ questChoices: { 'seven-pillars': 'all-attributes' } }), gear(), 50);
+    expect(total(r, 'str')).toBe(0);
+    expect(r.notCounted.join(' | ')).not.toContain('Seven Pillars');
+  });
+
+  it('keeps the unchosen quests listed under "Not counted" and drops the chosen one from that list', () => {
+    const r = run(tree({ questChoices: { 'ngamahus-test': 'strength' } }), gear(), 98);
+    const line = r.notCounted.find((l) => l.startsWith('Quest rewards you choose: '));
+    expect(line).toContain('Medallion (Valley of the Titans)');
+    expect(line).not.toContain("Ngamahu's Test");
+  });
+
+  it('with no choices at all behaves exactly as before: every reached quest listed, none counted', () => {
+    const r = run(tree(), gear(), 98);
+    expect(r.notCounted.find((l) => l.startsWith('Quest rewards you choose: '))).toContain('Seven Pillars (Qimah)');
+    expect(total(r, 'str') + total(r, 'int')).toBe(0);
+  });
+
+  it('names a chosen reward the engine cannot model', () => {
+    const r = run(tree({ questChoices: { 'tribal-medicine': 'elemental-armour' } }), gear(), 98);
+    expect(r.notCounted.some((l) => l.startsWith('Tribal Medicine (Eye of Hinekora): '))).toBe(true);
+  });
+
+  it('ignores a junk stored choice instead of crashing', () => {
+    const r = run(tree({ questChoices: { 'ngamahus-test': 'dexterity', bogus: 'x' } as Record<string, string> }), gear(), 98);
+    expect(total(r, 'str') + total(r, 'dex')).toBe(0);
+  });
+});

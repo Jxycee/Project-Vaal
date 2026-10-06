@@ -3,7 +3,8 @@
 // Campaign progress, DERIVED from a checkpoint's level (user decision,
 // plans/2026-09-25-slice5-defence-engine.md): the elemental resistance
 // penalty, and the fixed quest rewards a character of that level is assumed
-// to have. Choice rewards are listed by name and never counted.
+// to have. A choice reward counts once the build records a choice
+// (PassiveState.questChoices); an unchosen one is listed by name, not counted.
 //
 // Source: Path of Building Community (PoE2) — src/Data/QuestRewards.lua for
 // the quests, their area levels and rewards; src/Modules/ConfigOptions.lua:113
@@ -46,17 +47,148 @@ export const FIXED_QUEST_REWARDS: readonly FixedQuest[] = [
   { areaLevel: 61, stat: 'base_spirit', value: 40, source: 'Lythara (Kriar Village)' },
 ];
 
-/** The quests whose reward is the player's choice — named, never counted. */
-export const CHOICE_QUESTS: readonly { areaLevel: number; name: string }[] = [
-  { areaLevel: 26, name: 'Medallion (Valley of the Titans)' },
-  { areaLevel: 35, name: 'Venom Draught (Venom Crypts)' },
-  { areaLevel: 51, name: 'Tribal Medicine (Eye of Hinekora)' },
-  { areaLevel: 51, name: 'Goddess of Justice (Abandoned Prison)' },
-  { areaLevel: 52, name: "Tawhoa's Test (Halls of the Dead)" },
-  { areaLevel: 52, name: "Tasalio's Test (Halls of the Dead)" },
-  { areaLevel: 52, name: "Ngamahu's Test (Halls of the Dead)" },
-  { areaLevel: 63, name: 'Seven Pillars (Qimah)' },
+/** One option of a choice quest. `stats` are the ones this engine counts; `unmodelled` names a defensive effect it does not. */
+export interface QuestOption {
+  id: string;
+  /** The reward as PoB2's QuestRewards.lua words it, line breaks collapsed to " / ". */
+  text: string;
+  stats: readonly (readonly [stat: string, value: number])[];
+  unmodelled?: string;
+}
+
+export interface ChoiceQuest {
+  /** Stable id stored in PassiveState.questChoices. */
+  id: string;
+  areaLevel: number;
+  /** "Quest (Area)", as the sheet and the "Not counted" list name it. */
+  name: string;
+  /**
+   * PoB2's Config input name: "quest" .. Description .. Area .. Info
+   * (src/Modules/ConfigOptions.lua:72), stored in a build's <Config> as
+   * <Input name=pobKey string=option text>.
+   */
+  pobKey: string;
+  options: readonly QuestOption[];
+}
+
+/**
+ * The quests whose reward the player chooses, with every option, from PoB2's
+ * src/Data/QuestRewards.lua (the entries carrying `Options`: Medallion line
+ * 59, Venom Draught 109, Tribal Medicine 160, Tawhoa's / Tasalio's /
+ * Ngamahu's Test 172-207, Goddess of Justice 218, Seven Pillars 259), read raw
+ * from the `dev` branch on 2026-10-05. A chosen option counts only its
+ * `stats`; effects that touch no defence on this sheet (charms, thresholds,
+ * flask recovery, cooldowns) carry none, and defensive effects the engine
+ * cannot model say so in `unmodelled`.
+ */
+export const CHOICE_QUESTS: readonly ChoiceQuest[] = [
+  {
+    id: 'medallion',
+    areaLevel: 26,
+    name: 'Medallion (Valley of the Titans)',
+    pobKey: 'questAct 2Valley of the TitansMedallion',
+    options: [
+      { id: 'charm-charges', text: '30% increased Charm Charges Gained / +1 Charm Slot', stats: [] },
+      { id: 'charm-duration', text: '30% increased Charm Effect Duration / +1 Charm Slot', stats: [] },
+    ],
+  },
+  {
+    id: 'venom-draught',
+    areaLevel: 35,
+    name: 'Venom Draught (Venom Crypts)',
+    pobKey: 'questAct 3Venom CryptsVenom Draught',
+    options: [
+      { id: 'stun-threshold', text: '25% increased Stun Threshold', stats: [] },
+      { id: 'ailment-threshold', text: '30% increased Elemental Ailment Threshold', stats: [] },
+      { id: 'mana-regen', text: '25% increased Mana Regeneration Rate', stats: [] },
+    ],
+  },
+  {
+    id: 'tribal-medicine',
+    areaLevel: 51,
+    name: 'Tribal Medicine (Eye of Hinekora)',
+    pobKey: 'questAct 4Eye of HinekoraTribal Medicine',
+    options: [
+      { id: 'global-defences', text: '30% increased Global Armour, Evasion and Energy Shield', stats: [['global_armour_evasion_energy_shield_+%', 30]] },
+      {
+        id: 'elemental-armour',
+        text: '+15% of Armour also applies to Elemental Damage / Gain Deflection Rating equal to 12% of Evasion Rating / 12% faster start of Energy Shield Recharge',
+        stats: [],
+        unmodelled: 'Armour applying to Elemental Damage, Deflection Rating and Energy Shield Recharge start',
+      },
+    ],
+  },
+  {
+    id: 'goddess-of-justice',
+    areaLevel: 51,
+    name: 'Goddess of Justice (Abandoned Prison)',
+    pobKey: 'questAct 4Abandoned PrisonGoddess of Justice',
+    options: [
+      { id: 'life-flasks', text: '30% increased Life Recovery from Flasks', stats: [] },
+      { id: 'mana-flasks', text: '30% increased Mana Recovery from Flasks', stats: [] },
+    ],
+  },
+  {
+    id: 'tawhoas-test',
+    areaLevel: 52,
+    name: "Tawhoa's Test (Halls of the Dead)",
+    pobKey: "questAct 4Halls Of The DeadTawhoa's Test",
+    options: [
+      { id: 'dexterity', text: '+5 to Dexterity', stats: [['base_dexterity', 5]] },
+      { id: 'lightning-resistance', text: '+5% to Lightning Resistance', stats: [['base_lightning_damage_resistance_%', 5]] },
+    ],
+  },
+  {
+    id: 'tasalios-test',
+    areaLevel: 52,
+    name: "Tasalio's Test (Halls of the Dead)",
+    pobKey: "questAct 4Halls Of The DeadTasalio's Test",
+    options: [
+      { id: 'intelligence', text: '+5 to Intelligence', stats: [['base_intelligence', 5]] },
+      { id: 'cold-resistance', text: '+5% to Cold Resistance', stats: [['base_cold_damage_resistance_%', 5]] },
+    ],
+  },
+  {
+    id: 'ngamahus-test',
+    areaLevel: 52,
+    name: "Ngamahu's Test (Halls of the Dead)",
+    pobKey: "questAct 4Halls Of The DeadNgamahu's Test",
+    options: [
+      { id: 'strength', text: '+5 to Strength', stats: [['base_strength', 5]] },
+      { id: 'fire-resistance', text: '+5% to Fire Resistance', stats: [['base_fire_damage_resistance_%', 5]] },
+    ],
+  },
+  {
+    id: 'seven-pillars',
+    areaLevel: 63,
+    name: 'Seven Pillars (Qimah)',
+    pobKey: 'questInterlude 2QimahSeven Pillars',
+    options: [
+      { id: 'all-resistances', text: '+5% to all Elemental Resistances', stats: [['base_resist_all_elements_%', 5]] },
+      { id: 'movement-speed', text: '3% increased Movement Speed', stats: [] },
+      { id: 'global-defences', text: '15% increased Global Armour, Evasion and Energy Shield', stats: [['global_armour_evasion_energy_shield_+%', 15]] },
+      { id: 'presence-area', text: '20% increased Presence Area Of Effect', stats: [] },
+      { id: 'cooldown-recovery', text: '12% increased Cooldown Recovery Rate', stats: [] },
+      { id: 'all-attributes', text: '+5 to all Attributes', stats: [['base_all_attributes', 5]] },
+      {
+        id: 'experience-trade',
+        text: '5% increased Experience Gain / -5% to all Elemental Resistances / 3% reduced Movement Speed / 15% reduced Global Armour, Evasion and Energy Shield / 20% reduced Presence Area Of Effect / 12% reduced Cooldown Recovery Rate / 5% reduced Attributes',
+        stats: [
+          ['base_resist_all_elements_%', -5],
+          ['global_armour_evasion_energy_shield_+%', -15],
+          ['all_attributes_+%', -5],
+        ],
+      },
+    ],
+  },
 ];
+
+export const CHOICE_QUEST_BY_ID: ReadonlyMap<string, ChoiceQuest> = new Map(CHOICE_QUESTS.map((q) => [q.id, q]));
+
+/** Whether `optionId` is a real option of the quest `questId`. */
+export function isQuestChoice(questId: string, optionId: unknown): optionId is string {
+  return typeof optionId === 'string' && !!CHOICE_QUEST_BY_ID.get(questId)?.options.some((o) => o.id === optionId);
+}
 
 /** Highest quest area level of each act (cumulative), from QuestRewards.lua; above the last is endgame. */
 const ACTS: readonly { upTo: number; act: string; penalty: number }[] = [
@@ -73,16 +205,35 @@ export interface CampaignProgress {
   /** Added to fire, cold and lightning resistance; chaos is not penalised. */
   resistancePenalty: number;
   rewards: QuestReward[];
+  /** The chosen option of each reached choice quest, as rewards to count. */
+  choiceRewards: QuestReward[];
+  /** Chosen options with a defensive effect the engine does not model: "Quest: effect". */
+  choiceRewardsUnmodelled: string[];
+  /** Reached choice quests with no (valid) choice made. */
   choiceRewardsNotCounted: string[];
 }
 
-export function campaignAt(rawLevel: number): CampaignProgress {
+export function campaignAt(rawLevel: number, questChoices: Readonly<Record<string, string>> = {}): CampaignProgress {
   const level = Number.isFinite(rawLevel) ? Math.min(100, Math.max(1, Math.trunc(rawLevel))) : 1;
   const stage = ACTS.find((a) => level <= a.upTo) ?? ENDGAME;
+  const choiceRewards: QuestReward[] = [];
+  const choiceRewardsUnmodelled: string[] = [];
+  const choiceRewardsNotCounted: string[] = [];
+  for (const q of CHOICE_QUESTS.filter((c) => level >= c.areaLevel)) {
+    const option = q.options.find((o) => o.id === questChoices[q.id]);
+    if (!option) {
+      choiceRewardsNotCounted.push(q.name);
+      continue;
+    }
+    for (const [stat, value] of option.stats) choiceRewards.push({ stat, value, source: q.name });
+    if (option.unmodelled) choiceRewardsUnmodelled.push(q.name + ': ' + option.unmodelled);
+  }
   return {
     act: stage.act,
     resistancePenalty: stage.penalty,
     rewards: FIXED_QUEST_REWARDS.filter((q) => level >= q.areaLevel).map(({ stat, value, source }) => ({ stat, value, source })),
-    choiceRewardsNotCounted: CHOICE_QUESTS.filter((q) => level >= q.areaLevel).map((q) => q.name),
+    choiceRewards,
+    choiceRewardsUnmodelled,
+    choiceRewardsNotCounted,
   };
 }
