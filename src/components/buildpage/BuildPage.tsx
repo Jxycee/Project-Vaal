@@ -20,7 +20,6 @@ import { useSearchParams } from 'next/navigation';
 import { headlineSet, parseTab, patchQuery } from '@/lib/build/buildPage';
 import type { SharedBuildRow } from '@/lib/build/types';
 import type { BuildCheckpoint } from '@/lib/build/checkpointState';
-import { useTreeExport } from './useTreeExport';
 import BuildSessionProvider, { useBuildSession } from './session/BuildSession';
 import BuildHeader, { HeaderActions } from './BuildHeader';
 import BuildTabs from './BuildTabs';
@@ -51,7 +50,6 @@ export interface BuildPageProps {
 
 export default function BuildPage(props: BuildPageProps) {
   const { mode, row, activeCheckpointId } = props;
-  const { tree, error: treeError } = useTreeExport();
   // Computed here (not just inside BuildPageBody) because BuildSessionProvider
   // needs it too — drafts are an edit-mode concern, so the provider must know
   // whether the page is in edit mode, not just whether the viewer owns the
@@ -64,8 +62,6 @@ export default function BuildPage(props: BuildPageProps) {
       editing={edit}
       row={row}
       checkpointId={activeCheckpointId}
-      tree={tree}
-      treeError={treeError}
     >
       <BuildPageBody {...props} />
     </BuildSessionProvider>

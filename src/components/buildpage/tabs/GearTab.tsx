@@ -101,7 +101,7 @@ export default function GearTab({ edit }: { edit: boolean }) {
           <h2 className="text-sm font-semibold text-foreground">Jewels</h2>
           {edit ? (
             <button type="button" onClick={() => setJewelsSheetOpen(true)} disabled={!jewels} className={EDIT_BUTTON}>
-              {jewels ? 'Edit jewels' : 'Loading tree…'}
+              {jewels ? 'Edit jewels' : 'Loading…'}
             </button>
           ) : null}
         </div>

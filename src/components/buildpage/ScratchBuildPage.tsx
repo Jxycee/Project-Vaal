@@ -12,7 +12,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { headlineSet, parseTab } from '@/lib/build/buildPage';
 import { BUILD_CLASSES } from '@/lib/tree/ascendancyNames';
-import { useTreeExport } from './useTreeExport';
 import BuildSessionProvider, { useBuildSession, type SessionRow } from './session/BuildSession';
 import { ScratchHeader } from './BuildHeader';
 import BuildTabs from './BuildTabs';
@@ -41,9 +40,8 @@ const SCRATCH_ROW: SessionRow = {
 };
 
 export default function ScratchBuildPage({ notice }: { notice: string | null }) {
-  const { tree, error: treeError } = useTreeExport();
   return (
-    <BuildSessionProvider canEdit editing scratch row={SCRATCH_ROW} checkpointId={undefined} tree={tree} treeError={treeError}>
+    <BuildSessionProvider canEdit editing scratch row={SCRATCH_ROW} checkpointId={undefined}>
       <ScratchBody notice={notice} />
     </BuildSessionProvider>
   );

@@ -6,7 +6,7 @@
 // affixes), then runs collect + engine per set. `null` while loading.
 
 import { useEffect, useMemo, useState } from 'react';
-import type { GggTreeJson } from '@poe2-toolkit/tree-core/ggg';
+import type { TreeLite } from '@/lib/tree/treeLite';
 import { GEAR_SLOTS, type GearItem } from '@/lib/build/gearSlots';
 import type { GearState } from '@/lib/build/gearState';
 import { collectContributions, type Collected } from '@/lib/build/stats/collect';
@@ -43,7 +43,7 @@ async function loadAll<T>(slugs: string[], fetchOne: (slug: string) => Promise<T
 
 export function useDefenceSheets(input: {
   /** null while the tree export is still loading (the shared page fetches it behind a tap). */
-  tree: GggTreeJson | null;
+  tree: TreeLite | null;
   className: string | undefined;
   level: number;
   passive: PassiveState;
@@ -77,8 +77,8 @@ export function useDefenceSheets(input: {
   return useMemo(() => {
     if (!loaded || loaded.key !== key || !input.tree) return null;
     if ('error' in loaded) return { error: loaded.error };
-    const data = makeCollectData({ tree: input.tree as unknown as Parameters<typeof makeCollectData>[0]['tree'], ...loaded.files, items: loaded.items, mods: loaded.mods });
-    const cls = (input.tree.classes as unknown as { name: string; base_str: number; base_dex: number; base_int: number }[]).find(
+    const data = makeCollectData({ tree: input.tree, ...loaded.files, items: loaded.items, mods: loaded.mods });
+    const cls = input.tree.classes.find(
       (c) => c.name === input.className,
     );
     const classBase = cls ? { str: cls.base_str, dex: cls.base_dex, int: cls.base_int } : { str: 0, dex: 0, int: 0 };

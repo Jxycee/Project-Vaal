@@ -27,7 +27,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useRouter } from 'next/navigation';
-import type { GggTreeJson } from '@poe2-toolkit/tree-core/ggg';
+import { useTreeData } from '../useTreeData';
 import type { WeaponSet } from '@poe2-toolkit/tree-core';
 import type { BuildEditorState, PassiveState, SharedBuildRow } from '@/lib/build/types';
 import { patchQuery } from '@/lib/build/buildPage';
@@ -126,8 +126,6 @@ export default function BuildSessionProvider({
   scratch = false,
   row,
   checkpointId,
-  tree,
-  treeError,
   children,
 }: {
   /** The build's owner. Every write helper below is a no-op for a reader. */
@@ -139,10 +137,9 @@ export default function BuildSessionProvider({
   /** The build AS THE ACTIVE CHECKPOINT sees it — the caller substitutes that checkpoint's tree/gear/gems/level before this component ever sees `row`. */
   row: SessionRow;
   checkpointId: string | undefined;
-  tree: GggTreeJson | null;
-  treeError: string | null;
   children: ReactNode;
 }) {
+  const { lite, liteError, full: tree, fullError: treeError, requestFull: requestFullTree } = useTreeData();
   const router = useRouter();
   // The build this session's drafts belong to. Undefined for scratch, which
   // is what draftKey() turns into the scratch key.
@@ -506,25 +503,25 @@ export default function BuildSessionProvider({
   );
   const craftData = useCraftData(gear);
   const warnings = useMemo(
-    () => validateCheckpoint({ passive: livePassive, gear, craftData, tree }),
-    [livePassive, gear, craftData, tree],
+    () => validateCheckpoint({ passive: livePassive, gear, craftData, tree: lite }),
+    [livePassive, gear, craftData, lite],
   );
   const offHandOccupied = useMemo<Record<WeaponSet, GearItem | null>>(
     () => ({ 1: offHandOccupiedBy(gear, livePassive, 1), 2: offHandOccupiedBy(gear, livePassive, 2) }),
     [gear, livePassive],
   );
   const jewels = useMemo<JewelsSummary | null>(
-    () => (tree ? summarizeJewels(tree, treeState.main.allocated, gear.jewels) : null),
-    [tree, treeState.main.allocated, gear.jewels],
+    () => (lite ? summarizeJewels(lite, treeState.main.allocated, gear.jewels) : null),
+    [lite, treeState.main.allocated, gear.jewels],
   );
   const defence = useDefenceSheets({
-    tree,
+    tree: lite,
     className: treeState.className,
     level: meta.level,
     passive: livePassive,
     gear,
   });
-  const sheets = useMemo<Sheets>(() => (treeError ? { error: treeError } : defence), [treeError, defence]);
+  const sheets = useMemo<Sheets>(() => (liteError ? { error: liteError } : defence), [liteError, defence]);
   const reserved = useReservedSpirit(gems);
 
   // metaDirty = a name/level/league/notes field changed, compared directly
@@ -718,6 +715,7 @@ export default function BuildSessionProvider({
       scratch,
       tree,
       treeError,
+      requestFullTree,
       treeState,
       treeSeedKey,
       livePassive,
@@ -754,6 +752,7 @@ export default function BuildSessionProvider({
       scratch,
       tree,
       treeError,
+      requestFullTree,
       treeState,
       treeSeedKey,
       livePassive,

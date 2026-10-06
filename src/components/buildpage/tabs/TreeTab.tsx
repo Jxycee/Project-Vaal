@@ -4,6 +4,7 @@
 // editable for the owner with `?edit=1` — same PassiveTree component either
 // way, driven entirely by the BuildSession (tree export, seeded editor
 // state, and the setter it reports allocations back through).
+import { useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useBuildSession } from '../session/BuildSession';
 
@@ -14,7 +15,9 @@ const PassiveTree = dynamic(() => import('@/components/tree/PassiveTree'), {
 });
 
 export default function TreeTab({ edit }: { edit: boolean }) {
-  const { tree, treeError, treeState, treeSeedKey, meta, setTreeState } = useBuildSession();
+  const { tree, treeError, requestFullTree, treeState, treeSeedKey, meta, setTreeState } = useBuildSession();
+  // Only the canvas needs the 5 MB export; every other tab runs on the lite file.
+  useEffect(() => requestFullTree(), [requestFullTree]);
   return (
     <div
       id="tree-tab"
