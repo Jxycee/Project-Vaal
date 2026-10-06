@@ -85,6 +85,18 @@ const got = (k: keyof typeof IN_GAME): number => {
 
 // Matching today (2026-10-05 baseline: 2 of 12; 4 of 12 once desecrated mods are importable; 5 of 12 with Dexterity and Intelligence ids). Move a key from MISSING to
 // MATCHING in the same commit as the fix that closes it.
+// Where ES (now 1200 vs 1348) and Evasion (4321 vs 4752) stand, diagnosed 2026-10-05
+// from PoB's per-item header lines, which our item formula reproduces exactly for
+// the body (945/297), gloves (41/12) and boots (203/62):
+//  - Helmet 716/220 vs the header's 728/223: the item is quality 22, we store 20 (MAX_ITEM_QUALITY, write gate).
+//  - Amulet: the shown "53% increased maximum Energy Shield" and "36% ... Global Armour,
+//    Evasion and Energy Shield" are 1.2 x the top of their tiers (44 -> 53, 30 -> 36), most
+//    likely a catalyst-quality scaling we do not model; we keep 50 and 30 (mapCraft reports it).
+//  - Even with those, the in-game numbers imply 74% global defence increase where we sum 59
+//    (Cooked -25, three tree notables +48, amulet 36): the same +15% closes ES and Evasion,
+//    so it is one unexplained global source, not two. Not guessed at.
+// Neither stat can match until the first two are modelled; lightning 77 also needs the boots'
+// "+1% to Maximum Lightning Resistance" enchant and Heart of the Well (no mod data), both unmodelled.
 const MATCHING: (keyof typeof IN_GAME)[] = ['fire', 'cold', 'chaos', 'dex', 'spirit'];
 const MISSING: (keyof typeof IN_GAME)[] = ['str', 'int', 'life', 'mana', 'energyShield', 'evasion', 'lightning'];
 
