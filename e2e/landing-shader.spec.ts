@@ -416,6 +416,69 @@ test.describe('visibility', () => {
 });
 
 // --------------------------------------------------------------------------
+// /login: the desktop brand panel gets the same backdrop (one instance per
+// page). Below md that panel is display:none, so the shader must not be loaded
+// for a layer nobody can see — the mobile leak assertion in the WebGPU test
+// above covers that side; this covers desktop.
+test.describe('login panel', () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'gpu', { value: undefined, configurable: true });
+    });
+  });
+
+  test('desktop: the brand panel is visibly lit, and the form still works over/beside it', async (
+    { page },
+    testInfo,
+  ) => {
+    await page.goto('/login');
+    await page.waitForLoadState('networkidle');
+    const backdrop = page.getByTestId('login-backdrop');
+    await expect(backdrop).toBeVisible();
+
+    // The backdrop lives inside the left panel, not over the whole page.
+    const box = (await backdrop.boundingBox())!;
+    expect(box.x).toBe(0);
+    expect(box.width).toBeLessThan(1280 * 0.7);
+
+    await page.addStyleTag({ content: 'main .z-10{visibility:hidden !important} img{visibility:hidden !important}' });
+    const png = (await page.screenshot({ clip: { x: 0, y: 0, width: box.width, height: 800 } })).toString('base64');
+    const maxChroma = await page.evaluate(async (b64) => {
+      const img = new Image();
+      img.src = `data:image/png;base64,${b64}`;
+      await img.decode();
+      const c = document.createElement('canvas');
+      c.width = img.width;
+      c.height = img.height;
+      const x = c.getContext('2d')!;
+      x.drawImage(img, 0, 0);
+      let best = 0;
+      for (let j = 0; j < 6; j++) {
+        for (let i = 0; i < 6; i++) {
+          const d = x.getImageData(Math.floor(((i + 0.5) / 6) * c.width) - 4, Math.floor(((j + 0.5) / 6) * c.height) - 4, 8, 8).data;
+          let r = 0, g = 0, b = 0;
+          for (let k = 0; k < d.length; k += 4) { r += d[k]; g += d[k + 1]; b += d[k + 2]; }
+          const n = d.length / 4;
+          best = Math.max(best, Math.max(r, g, b) / n - Math.min(r, g, b) / n);
+        }
+      }
+      return best;
+    }, png);
+    await attachReport(testInfo, { branch: 'login-panel', panelWidth: box.width, maxChroma });
+    expect(maxChroma, 'login panel backdrop is not visibly coloured').toBeGreaterThan(25);
+  });
+
+  test('desktop: sign-in form is untouched and clickable', async ({ page }) => {
+    await page.goto('/login');
+    const email = page.getByLabel('Email');
+    await email.fill('someone@example.com');
+    await expect(email).toHaveValue('someone@example.com');
+    await expect(page.getByRole('button', { name: /continue with google/i })).toBeEnabled();
+  });
+});
+
+// --------------------------------------------------------------------------
 // Production artifacts. The dev server tests above cannot see chunking or the
 // service worker, so this reads what `npm run build` left behind. It skips (with
 // a reason) when there is no build, rather than passing on nothing. Found by

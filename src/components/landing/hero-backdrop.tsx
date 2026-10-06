@@ -19,6 +19,8 @@ import { useState, useSyncExternalStore } from 'react'
 const ShaderLayer = dynamic(() => import('./shader-layer'), { ssr: false })
 
 const REDUCED = '(prefers-reduced-motion: reduce)'
+// The login brand panel is display:none below md; match Tailwind's breakpoint.
+const WIDE = '(min-width: 768px)'
 
 // Browser capabilities are external state: read through useSyncExternalStore so
 // the server (and the hydration pass) see "no shader" and the client switches
@@ -49,8 +51,27 @@ function useCapability(): Capability {
   return reduced ? 'reduced' : 'ok'
 }
 
-export function HeroBackdrop() {
-  const capability = useCapability()
+type HeroBackdropProps = {
+  /** `page`: fixed behind the whole viewport. `panel`: fills its (relative) parent, desktop only. */
+  variant?: 'page' | 'panel'
+}
+
+const subscribeWide = (cb: () => void) => {
+  const query = window.matchMedia(WIDE)
+  query.addEventListener('change', cb)
+  return () => query.removeEventListener('change', cb)
+}
+
+export function HeroBackdrop({ variant = 'page' }: HeroBackdropProps) {
+  const panel = variant === 'panel'
+  const wide = useSyncExternalStore(
+    subscribeWide,
+    () => window.matchMedia(WIDE).matches,
+    () => false,
+  )
+  const capabilityRaw = useCapability()
+  // A hidden panel must not load the engine for a layer nobody can see.
+  const capability: Capability = panel && !wide ? 'pending' : capabilityRaw
   const debug = useSyncExternalStore(
     noSubscribe,
     () => new URLSearchParams(window.location.search).get('backdrop') === 'debug',
@@ -74,9 +95,13 @@ export function HeroBackdrop() {
   return (
     <>
       <div
-        data-testid="hero-backdrop"
+        data-testid={panel ? 'login-backdrop' : 'hero-backdrop'}
         aria-hidden="true"
-        className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-background"
+        className={
+          panel
+            ? 'pointer-events-none absolute inset-0 z-0 overflow-hidden'
+            : 'pointer-events-none fixed inset-0 z-0 overflow-hidden bg-background'
+        }
       >
         <div
           className="hero-drift absolute -left-[30%] -top-[20%] h-[85vmax] w-[85vmax] rounded-full"

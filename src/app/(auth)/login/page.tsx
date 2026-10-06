@@ -22,6 +22,7 @@ import { safeRedirect } from '@/lib/safeRedirect'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { HeroBackdrop } from '@/components/landing/hero-backdrop'
 
 // Standard multi-colour Google "G". Inlined so there's no icon dependency
 // (lucide doesn't ship brand logos).
@@ -154,7 +155,9 @@ function LoginForm() {
           backgroundPosition: 'top left, center, center',
         }}
       >
-        <div className="flex flex-col items-center gap-4 px-16 text-center">
+        {/* Shader/CSS glow over the panel's own atmosphere; desktop only. */}
+        <HeroBackdrop variant="panel" />
+        <div className="relative z-10 flex flex-col items-center gap-4 px-16 text-center">
           <EmblemWithGlow size={250} glowSize={620} glowBlur={20} priority />
           <h1 className="font-heading text-4xl font-semibold tracking-tight">Project Vaal</h1>
           <Image
