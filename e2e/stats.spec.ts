@@ -3,6 +3,8 @@ import {
   cleanupWithFreshPage,
   listedBuildNames,
   openEditor,
+  allocateNodes,
+  nodesNearStart,
   openTree,
   readBuildId,
   saveBuild,
@@ -107,5 +109,67 @@ test.describe('defence stats', () => {
     expect((await treeState(page)).allocated).toEqual([]);
     await page.evaluate((id) => window.__vaalTree!.allocate(id), node);
     expect(await choice()).toBeUndefined();
+  });
+});
+
+// Quest rewards (QuestChoices on the Stats tab, session setQuestChoice): a choice reward counts
+// once the owner picks it, survives Save and a view-mode reload, and an unreached or unpicked
+// quest adds nothing. Ngamahu's Test (area level 52): "+5 to Strength" vs "+5% to Fire
+// Resistance"; PoB2 gives +2 Life per Strength, so +5 Str is exactly +10 Life.
+test.describe('quest reward choices', () => {
+  test.skip(() => test.info().project.name !== 'mobile', 'mobile project only');
+  test.use({ viewport: { width: 375, height: 812 } });
+  test.setTimeout(300_000);
+
+  test.afterAll(async ({ browser }) => {
+    await cleanupWithFreshPage(browser);
+  });
+
+  const statValue = async (page: Page, id: string): Promise<number> => {
+    const cell = page.getByTestId('stats-panel').getByTestId(id);
+    await expect(cell).toHaveText(/^\d+$/, { timeout: 30_000 });
+    return Number(await cell.textContent());
+  };
+
+  test('choosing a quest reward changes the sheet by exactly its amount, saves, and shows on reload', async ({ page }) => {
+    // Seed at level 55: Ngamahu's Test (52) is reached, Seven Pillars (63) is not.
+    await openTree(page);
+    await allocateNodes(page, await nodesNearStart(page, 5));
+    await saveBuild(page, { name: testBuildName('quest'), level: 55 });
+    const token = new URL(page.url()).pathname.split('/').pop()!;
+
+    await page.goto(`/builds/${token}?edit=1&tab=stats`);
+    await expect(page.getByTestId('quest-choices')).toBeVisible({ timeout: 60_000 });
+    const quest = page.getByTestId('quest-choice-ngamahus-test').locator('select');
+    await expect(quest).toHaveValue('');
+    // Negative pair: a quest above this level is not offered at all.
+    await expect(page.getByTestId('quest-choice-seven-pillars')).toHaveCount(0);
+
+    const strBase = await statValue(page, 'stat-str');
+    const lifeBase = await statValue(page, 'stat-life');
+
+    await quest.selectOption('strength');
+    await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
+    await expect(page.getByTestId('stats-panel').getByTestId('stat-str')).toHaveText(String(strBase + 5), { timeout: 30_000 });
+    expect(await statValue(page, 'stat-life')).toBe(lifeBase + 10);
+
+    // The other reward of the same quest is not Strength: it must take the +5 back off.
+    await quest.selectOption('fire-resistance');
+    await expect(page.getByTestId('stats-panel').getByTestId('stat-str')).toHaveText(String(strBase), { timeout: 30_000 });
+    expect(await statValue(page, 'stat-life')).toBe(lifeBase);
+    await quest.selectOption('strength');
+    await expect(page.getByTestId('stats-panel').getByTestId('stat-str')).toHaveText(String(strBase + 5), { timeout: 30_000 });
+
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(page.getByTestId('save-status')).toHaveText(/^Saved /, { timeout: 30_000 });
+
+    // View mode, fresh load: the choice text shows (read-only) and the stat holds.
+    await page.goto(`/builds/${token}?tab=stats`);
+    await expect(page.getByTestId('quest-choice-ngamahus-test-value')).toHaveText('+5 to Strength', { timeout: 60_000 });
+    await expect(page.getByTestId('quest-choice-ngamahus-test').locator('select')).toHaveCount(0);
+    // Negative pair: a quest left unpicked records nothing.
+    await expect(page.getByTestId('quest-choice-tawhoas-test-value')).toHaveText('No choice recorded');
+    expect(await statValue(page, 'stat-str')).toBe(strBase + 5);
+    expect(await statValue(page, 'stat-life')).toBe(lifeBase + 10);
   });
 });

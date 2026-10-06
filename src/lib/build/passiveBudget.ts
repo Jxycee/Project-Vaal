@@ -2,9 +2,9 @@
 // =============================================================================
 // Character level -> passive-point budget. Pure module, no React.
 //
-// Previously TreeControls.tsx hardcoded MAX_BASIC_POINTS = 123 — the budget
+// Previously TreeControls.tsx hardcoded MAX_BASIC_POINTS = 123 â€” the budget
 // of a level-100 character (99 levelling points, levels 2-100, + 24 quest
-// points) — regardless of what level the build actually claimed. That made
+// points) â€” regardless of what level the build actually claimed. That made
 // `level` inert metadata: nothing on `/tree` read it. This module derives
 // the SAME formula from the build's actual level, so a level-40 build's
 // budget reads 63, not 123.
@@ -13,7 +13,7 @@
 /**
  * Passive points awarded by quest completions, independent of level.
  * Verified in TreeControls.tsx's prior comment: the reference tree's budget
- * readout is 99 (levelling, levels 2-100) + 24 (quest) = 123 at level 100 —
+ * readout is 99 (levelling, levels 2-100) + 24 (quest) = 123 at level 100 â€”
  * so 24 is the level-independent term or the formula wouldn't land on 123
  * at exactly level 100. Fixed game constant, not derived from any save data.
  */
@@ -26,7 +26,7 @@ export const QUEST_PASSIVE_POINTS = 24;
 /**
  * Points of slack before a build reads as over budget. PoB2 derives the REQUIRED level
  * from the nodes (Build.lua:1035: nodes + 1 - quest points), which puts momentsZX's 122
- * passives at level 99 while her sheet says 98 � one point PoB2's data does not explain
+ * passives at level 99 while her sheet says 98 — one point PoB2's data does not explain
  * (QuestRewards.lua sums to exactly 24: 12 quests x "+2 Weapon Set Passive Skill Points",
  * Build.lua:84-102). Signal-only, so a missed overflow of 1 costs less than a false warning.
  */
@@ -43,7 +43,7 @@ export function isOverPassiveBudget(spent: number, budget: number): boolean {
  * the previous hardcoded MAX_BASIC_POINTS=123 exactly at level 100:
  * (100 - 1) + 24 = 123.
  *
- * Levels outside 1-100 are clamped first — `builds.level` is validated to
+ * Levels outside 1-100 are clamped first â€” `builds.level` is validated to
  * 1-100 by POST /api/builds, but this is also called from client state that
  * can transiently hold something else (an in-progress edit in
  * the level field), so clamping here (rather than trusting the caller) keeps
