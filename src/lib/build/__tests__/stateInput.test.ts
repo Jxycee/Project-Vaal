@@ -183,7 +183,7 @@ describe('cleanGearStateInput — item craft (Slice 4)', () => {
     ['item level 0', { itemLevel: 0 }],
     ['item level 101', { itemLevel: 101 }],
     ['a fractional item level', { itemLevel: 50.5 }],
-    ['quality 21', { quality: 21 }],
+    ['quality 31', { quality: 31 }],
     ['negative quality', { quality: -1 }],
     ['a non-boolean corrupted', { corrupted: 1 }],
     ['a non-finite value', { prefixes: [{ slug: 'addedcolddamage1', values: [Number.POSITIVE_INFINITY] }] }],

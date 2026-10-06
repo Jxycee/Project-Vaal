@@ -271,10 +271,15 @@ describe('mapCraft — a value above every roll this base has', () => {
 });
 
 describe('mapCraft — quality above what we store', () => {
-  it('clamps quality 22 to 20 and says so', () => {
+  it('keeps quality 22 (real items exceed 20) without a note', () => {
     const { craft, notes } = mapCraft(text('Rarity: RARE', 'X', 'Grinning Mask', 'Quality: 22', 'Implicits: 0'), false, lookups());
-    expect(craft.quality).toBe(20);
-    expect(notes.some((n) => n.message.includes('22') && n.message.toLowerCase().includes('quality'))).toBe(true);
+    expect(craft.quality).toBe(22);
+    expect(notes.some((n) => n.message.toLowerCase().includes('quality'))).toBe(false);
+  });
+  it('clamps quality 31 to the 30 cap and says so', () => {
+    const { craft, notes } = mapCraft(text('Rarity: RARE', 'X', 'Grinning Mask', 'Quality: 31', 'Implicits: 0'), false, lookups());
+    expect(craft.quality).toBe(30);
+    expect(notes.some((n) => n.message.includes('31') && n.message.toLowerCase().includes('quality'))).toBe(true);
   });
   it('says nothing about quality 20', () => {
     const { notes } = mapCraft(text('Rarity: RARE', 'X', 'Grinning Mask', 'Quality: 20', 'Implicits: 0'), false, lookups());
