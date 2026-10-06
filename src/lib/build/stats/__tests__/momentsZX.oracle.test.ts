@@ -83,10 +83,10 @@ const got = (k: keyof typeof IN_GAME): number => {
   }
 };
 
-// Matching today (2026-10-05 baseline: 2 of 12; 4 of 12 once desecrated mods are importable). Move a key from MISSING to
+// Matching today (2026-10-05 baseline: 2 of 12; 4 of 12 once desecrated mods are importable; 5 of 12 with Dexterity and Intelligence ids). Move a key from MISSING to
 // MATCHING in the same commit as the fix that closes it.
-const MATCHING: (keyof typeof IN_GAME)[] = ['fire', 'cold', 'chaos', 'spirit'];
-const MISSING: (keyof typeof IN_GAME)[] = ['str', 'dex', 'int', 'life', 'mana', 'energyShield', 'evasion', 'lightning'];
+const MATCHING: (keyof typeof IN_GAME)[] = ['fire', 'cold', 'chaos', 'dex', 'spirit'];
+const MISSING: (keyof typeof IN_GAME)[] = ['str', 'int', 'life', 'mana', 'energyShield', 'evasion', 'lightning'];
 
 describe('momentsZX oracle (in-game character sheet, Set II)', () => {
   it('covers every stat exactly once', () => {

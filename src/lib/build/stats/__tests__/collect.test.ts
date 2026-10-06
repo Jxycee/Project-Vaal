@@ -19,6 +19,15 @@ const NODES: Record<number, { name: string; stats: [string, number][]; attribute
   7: { name: 'Offence', stats: [['attack_speed_+%', 5]] },
   [NO_SPIRIT_NODE]: { name: 'Embrace the Darkness', stats: [['base_darkness', 100]] },
   30: { name: 'Jewel Socket', stats: [] },
+  40: { name: 'Step Like Mist', stats: [['base_dexterity_and_intelligence', 5], ['mana_regeneration_rate_+%', 15]] },
+  41: { name: 'Attributes', stats: [['base_all_attributes', 5]] },
+  42: { name: 'Eldritch Will', stats: [['maximum_life_mana_and_energy_shield_+%', 3]] },
+  43: { name: 'Harmony Within', stats: [['oracle_maximum_life_+%_final', -15], ['oracle_maximum_mana_+%_final', -15]] },
+  44: { name: 'Mysterious Lineage', stats: [['titan_maximum_life_+%_final', 15]] },
+  45: { name: 'Ancient Aegis', stats: [['maximum_energy_shield_from_body_armour_+%', 60]] },
+  46: { name: 'Illuminated Crown', stats: [['energy_shield_from_helmet_+%', 70]] },
+  47: { name: 'Future Notable', stats: [['future_patch_maximum_life_+%_final', 9], ['future_patch_attack_speed_+%', 5]] },
+  48: { name: 'Future Notable 2', stats: [['future_patch_maximum_life_+%_final', 4]] },
 };
 
 const ITEMS: Record<
@@ -107,6 +116,48 @@ describe('collectContributions — the tree', () => {
     const r = run(tree({ set1: [6, 7] }));
     expect(r.notCounted).toContain('Lead me through Grace...: Spirit from body armour Evasion');
     expect(r.notCounted.join(' ')).not.toContain('Offence');
+  });
+});
+
+describe('collectContributions — stat ids the sheet needs (statTable.ts)', () => {
+  it('splits a two-attribute and an all-attribute stat across their attributes (PoB2 ModParser.lua:168, 170)', () => {
+    const r = run(tree({ set1: [40, 41] }));
+    expect([total(r, 'str'), total(r, 'dex'), total(r, 'int')]).toEqual([5, 10, 10]);
+  });
+
+  it('adds one increase to Life, Mana and Energy Shield (PoB2 ModParser.lua:5339)', () => {
+    const r = run(tree({ set1: [42] }));
+    expect([total(r, 'life', 'increased'), total(r, 'mana', 'increased'), total(r, 'energyShield', 'increased')]).toEqual([3, 3, 3]);
+  });
+
+  it('reads "final" Life and Mana as more/less multipliers, not as increased', () => {
+    const r = run(tree({ set1: [43, 44] }));
+    expect(total(r, 'life', 'more')).toBe(0); // -15 + 15
+    expect(r.contributions.filter((c) => c.pool === 'life' && c.kind === 'more').map((c) => c.value)).toEqual([-15, 15]);
+    expect(r.contributions.filter((c) => c.pool === 'mana' && c.kind === 'more').map((c) => c.value)).toEqual([-15]);
+    expect(total(r, 'life', 'increased')).toBe(0);
+  });
+
+  it("scopes 'from body armour' and 'from helmet' increases to that slot, and tags the item's own defence with its slot", () => {
+    const r = run(tree({ set1: [45, 46] }), gear({ body: item('silk-robe', 'Silk Robe', 'Body Armour') }));
+    expect(r.contributions).toContainEqual({ pool: 'energyShield', kind: 'increased', value: 60, source: 'Ancient Aegis', slot: 'body' });
+    expect(r.contributions).toContainEqual({ pool: 'energyShield', kind: 'increased', value: 70, source: 'Illuminated Crown', slot: 'head' });
+    expect(r.contributions).toContainEqual({ pool: 'energyShield', kind: 'flat', value: 50, source: 'Silk Robe', slot: 'body' });
+  });
+});
+
+describe('collectContributions — unknown stat ids are named, not dropped', () => {
+  it('lists an unmapped defence-looking id once, with every source that carries it', () => {
+    const r = run(tree({ set1: [47, 48] }));
+    expect(r.notCounted).toContain('Unrecognised stat future_patch_maximum_life_+%_final (Future Notable, Future Notable 2)');
+    expect(r.notCounted.filter((n) => n.includes('future_patch_maximum_life'))).toHaveLength(1);
+  });
+
+  it('stays silent about an unmapped offence id, and about an id it maps', () => {
+    const r = run(tree({ set1: [47, 7, 40] }));
+    expect(r.notCounted.join(' ')).not.toContain('attack_speed');
+    expect(r.notCounted.join(' ')).not.toContain('base_dexterity_and_intelligence');
+    expect(r.notCounted.join(' ')).not.toContain('mana_regeneration'); // regeneration is not a sheet stat
   });
 });
 

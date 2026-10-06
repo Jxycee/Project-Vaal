@@ -102,3 +102,44 @@ describe('computeDefences — bad input', () => {
     expect(computeDefences(input({ contributions: [c('life', Number.NaN), c('life', 10)] })).life).toBe(52);
   });
 });
+
+describe('computeDefences — "more" multipliers (PoB2 CalcDefence.lua:91, 96)', () => {
+  it('multiplies Life by every more, after increased, in one round', () => {
+    const d = computeDefences(input({ contributions: [c('life', 100), c('life', 10, 'increased'), c('life', -15, 'more'), c('life', 15, 'more')] }));
+    // (12 + 16 + 14 + 100) x 1.10 x 0.85 x 1.15 = 152.6855 -> 153
+    expect(d.life).toBe(153);
+  });
+
+  it('a less is a negative more: Oracle -15% to both Life and Mana', () => {
+    const d = computeDefences(input({ contributions: [c('life', -15, 'more'), c('mana', -15, 'more')] }));
+    expect(d.life).toBe(Math.round(42 * 0.85));
+    expect(d.mana).toBe(Math.round(64 * 0.85));
+  });
+
+  it('ignores a more on a pool it does not name', () => {
+    expect(computeDefences(input({ contributions: [c('mana', 50, 'more')] })).life).toBe(42);
+  });
+});
+
+describe('computeDefences — increased from one equipped slot (PoB2 CalcDefence.lua:1445-1453)', () => {
+  const item = (slot: Contribution['slot'], value: number): Contribution => ({ pool: 'energyShield', kind: 'flat', value, source: 'item', slot });
+  const slotInc = (slot: Contribution['slot'], value: number): Contribution => ({ pool: 'energyShield', kind: 'increased', value, source: 'node', slot });
+
+  it("adds a slot's increase to the global one for THAT item's Energy Shield only", () => {
+    const d = computeDefences(
+      input({ contributions: [item('head', 100), item('body', 200), c('energyShield', 50), c('energyShield', 10, 'increased'), slotInc('body', 60)] }),
+    );
+    // helmet 100 x 1.10 + body 200 x (1 + 0.10 + 0.60) + global 50 x 1.10 = 110 + 340 + 55
+    expect(d.energyShield).toBe(505);
+  });
+
+  it('does nothing when that slot holds no item (no item Energy Shield to scale)', () => {
+    const d = computeDefences(input({ contributions: [item('head', 100), slotInc('body', 70)] }));
+    expect(d.energyShield).toBe(100);
+  });
+
+  it('leaves an unscoped total exactly as before', () => {
+    const d = computeDefences(input({ contributions: [c('energyShield', 100), c('energyShield', 25, 'increased')] }));
+    expect(d.energyShield).toBe(125);
+  });
+});

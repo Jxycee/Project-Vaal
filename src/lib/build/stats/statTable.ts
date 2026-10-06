@@ -16,6 +16,8 @@
 // `base_maximum_energy_shield`) spawn only on belts, rings and amulets.
 // =============================================================================
 
+import type { GearSlot } from '../gearSlots';
+
 export type Pool =
   | 'life'
   | 'mana'
@@ -35,14 +37,21 @@ export type Pool =
   | 'chaosMax'
   | 'spirit';
 
-/** `flat` adds to the pool's base; `increased` adds percent to its "increased" sum. */
+/**
+ * `flat` adds to the pool's base; `increased` adds percent to its "increased"
+ * sum; `more` is one multiplier (a "less" is a negative one). A `slot` limits
+ * an increase to the defence of the item worn there (PoB2 SlotName tag).
+ */
 export interface Effect {
   pool: Pool;
-  kind: 'flat' | 'increased';
+  kind: 'flat' | 'increased' | 'more';
+  slot?: GearSlot;
 }
 
 const flat = (...pools: Pool[]): Effect[] => pools.map((pool) => ({ pool, kind: 'flat' }));
 const inc = (...pools: Pool[]): Effect[] => pools.map((pool) => ({ pool, kind: 'increased' }));
+const more = (...pools: Pool[]): Effect[] => pools.map((pool) => ({ pool, kind: 'more' }));
+const incFromSlot = (slot: GearSlot, ...pools: Pool[]): Effect[] => pools.map((pool) => ({ pool, kind: 'increased', slot }));
 
 export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   base_maximum_life: flat('life'),
@@ -57,6 +66,19 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   'evasion_rating_+%': inc('evasion'),
   'global_armour_evasion_energy_shield_+%': inc('armour', 'evasion', 'energyShield'),
   'evasion_and_physical_damage_reduction_rating_+%': inc('armour', 'evasion'),
+  // "N% increased maximum Life, Mana and Energy Shield" - PoB2 ModParser.lua:5339.
+  'maximum_life_mana_and_energy_shield_+%': inc('life', 'mana', 'energyShield'),
+  // "N% increased Energy Shield from Equipped Body Armour / Helmet": PoB2's
+  // SlotName tag (ModParser.lua:1191, 1197) - it scales only that slot's item,
+  // on top of the global increase (CalcDefence.lua:1445-1453).
+  'maximum_energy_shield_from_body_armour_+%': incFromSlot('body', 'energyShield'),
+  'energy_shield_from_helmet_+%': incFromSlot('head', 'energyShield'),
+  // "final" stats are "more"/"less" multipliers (ModParser.lua:67-69), applied
+  // after increased (CalcDefence.lua:91, 96). Oracle's Harmony Within is -15
+  // ("15% less maximum Life / Mana"); Titan's Mysterious Lineage is +15.
+  'oracle_maximum_life_+%_final': more('life'),
+  'oracle_maximum_mana_+%_final': more('mana'),
+  'titan_maximum_life_+%_final': more('life'),
 
   base_strength: flat('str'),
   base_dexterity: flat('dex'),
@@ -65,6 +87,9 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   additional_dexterity: flat('dex'),
   additional_intelligence: flat('int'),
   additional_all_attributes: flat('str', 'dex', 'int'),
+  // "+N to all Attributes" / "+N to Dexterity and Intelligence": PoB2 ModParser.lua:170, 168.
+  base_all_attributes: flat('str', 'dex', 'int'),
+  base_dexterity_and_intelligence: flat('dex', 'int'),
   base_strength_and_dexterity: flat('str', 'dex'),
   base_strength_and_intelligence: flat('str', 'int'),
   additional_strength_and_dexterity: flat('str', 'dex'),
@@ -130,3 +155,19 @@ export const NOT_MODELLED: Readonly<Record<string, string>> = {
   base_physical_damage_reduction_rating_no_display: 'hidden Armour',
   'maximum_fire_resistance_+%_if_at_least_5_red_supports_socketed': 'Maximum Fire Resistance with 5 red supports socketed',
 };
+
+const ID_WORDS = /(^|_)(life|mana|energy_shield|evasion|armour|strength|dexterity|intelligence|attributes?|spirit|resistances?)(_|$)/;
+/** Words that make an id a conditional, a per-X scaling, an offence or a recovery rate - not a flat sheet number. */
+const ID_NOISE =
+  /(^|_)(when|while|if|per|during|vs|against|on|for|with|after|regen|regeneration|leech|recovery|recoup|gain|lose|cost|taken|damage|chance|speed|duration|flask|charges?|minions?|totems?|aura|curse|display)(_|$)/;
+
+/**
+ * Whether an UNMAPPED stat id looks like it could move a number the sheet
+ * reports (a pool, an attribute, a resistance, Spirit), so the collector names
+ * it instead of dropping it. Deliberately narrow: our data has thousands of
+ * ids and almost all are offence, which would drown the list. Id words only.
+ */
+export function looksLikeDefenceStat(stat: string): boolean {
+  const id = stat.replace('physical_damage_reduction_rating', 'armour');
+  return ID_WORDS.test(id) && !ID_NOISE.test(id);
+}
