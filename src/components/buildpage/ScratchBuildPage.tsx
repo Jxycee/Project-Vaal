@@ -104,7 +104,7 @@ function ScratchBody({ notice }: { notice: string | null }) {
           {tab === 'gear' ? <GearTab edit /> : null}
           {tab === 'skills' ? <SkillsTab edit /> : null}
           {tab === 'tree' ? <TreeTab edit /> : null}
-          {tab === 'stats' ? <StatsTab /> : null}
+          {tab === 'stats' ? <StatsTab edit /> : null}
         </div>
         {tab === 'tree' ? null : <StatsRail sheets={sheets} set={set} reserved={reserved} />}
       </div>

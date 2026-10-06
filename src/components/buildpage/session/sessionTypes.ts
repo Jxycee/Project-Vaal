@@ -57,6 +57,8 @@ export interface BuildSessionValue {
   /** Bump to force whatever `PassiveTree` a consumer renders (keyed by this) to remount and re-seed. */
   treeSeedKey: number;
   livePassive: PassiveState;
+  /** Quest id -> chosen option id; the same map livePassive carries as `questChoices`. */
+  questChoices: Record<string, string>;
   gear: GearState;
   gems: GemState;
   meta: BuildMeta;
@@ -85,6 +87,8 @@ export interface BuildSessionValue {
   /** Ignored while `!canEdit` — a read-only PassiveTree still reports its seeded state on mount. */
   setTreeState(next: BuildEditorState): void;
   setMeta(patch: Partial<BuildMeta>): void;
+  /** Owner-only (a no-op otherwise). `null` clears the quest's choice; an id that is not that quest's option is dropped. */
+  setQuestChoice(questId: string, optionId: string | null): void;
   /**
    * The build's name was just saved to the database by something other than
    * `save()` (the settings menu's rename, which calls `renameBuild`). Sets the

@@ -31,7 +31,7 @@ import type { GggTreeJson } from '@poe2-toolkit/tree-core/ggg';
 import type { WeaponSet } from '@poe2-toolkit/tree-core';
 import type { BuildEditorState, PassiveState, SharedBuildRow } from '@/lib/build/types';
 import { patchQuery } from '@/lib/build/buildPage';
-import { fromPassiveState, toPassiveState, parsePassiveState } from '@/lib/build/passiveState';
+import { fromPassiveState, toPassiveState, parsePassiveState, parseQuestChoices } from '@/lib/build/passiveState';
 import { saveDraft, loadDraft, clearDraft, type BuildDraftState } from '@/lib/build/draft';
 import { draftDiffersFrom } from '@/lib/build/draftCompare';
 import { parseGearState, type GearState } from '@/lib/build/gearState';
@@ -171,6 +171,9 @@ export default function BuildSessionProvider({
   // changing that prop on an already-mounted instance would do nothing.
   const [treeSeedKey, setTreeSeedKey] = useState(0);
 
+  // Quest reward choices (quest id -> option id). Their own state rather than
+  // part of treeState: PassiveTree reports treeState and would overwrite them.
+  const [questChoices, setQuestChoices] = useState<Record<string, string>>(() => parsePassiveState(row.passive_state).questChoices ?? {});
   const [gear, setGear] = useState<GearState>(() => parseGearState(row.gear_state));
   const [gems, setGems] = useState<GemState>(() => parseGemState(row.gem_state));
   const [meta, setMetaState] = useState<BuildMeta>(() => ({
@@ -304,6 +307,21 @@ export default function BuildSessionProvider({
       if (!canEdit) return;
       setMetaState((prev) => ({ ...prev, name }));
       setBaseline((prev) => ({ ...prev, meta: { ...prev.meta, name } }));
+    },
+    [canEdit],
+  );
+
+  // ---- Quest reward choices ---------------------------------------------
+  // A null (or unknown) option clears the quest's choice. Ids are validated by
+  // parseQuestChoices, so a bad call can never put junk in a draft or a save.
+  const setQuestChoice = useCallback(
+    (questId: string, optionId: string | null) => {
+      if (!canEdit) return;
+      setQuestChoices((prev) => {
+        const { [questId]: _dropped, ...rest } = prev;
+        void _dropped;
+        return parseQuestChoices(optionId === null ? rest : { ...rest, [questId]: optionId });
+      });
     },
     [canEdit],
   );
@@ -471,20 +489,20 @@ export default function BuildSessionProvider({
     // localStorage held for the previous session — this effect immediately
     // overwrites it with the freshly-seeded (echo) state.
     if (!draftReadDone.current) return;
-    const session: BuildDraftState = { tree: treeState, gear, gem: gems };
+    const session: BuildDraftState = { tree: treeState, gear, gem: gems, quest: questChoices };
     latestSession.current = session;
     // Once the first scratch save has created the build, the scratch key is
     // retired (save() handed any in-flight edits to the new build's draft):
     // edits made while the navigation is still in flight must not resurrect it.
     if (scratchCreated.current) return;
     saveDraft(draftBuildId, session, checkpointId);
-  }, [canEdit, editing, treeState, gear, gems, draftBuildId, checkpointId]);
+  }, [canEdit, editing, treeState, gear, gems, questChoices, draftBuildId, checkpointId]);
 
   // ---- Structural validation + derived view models ---------------------
   // Derived, nothing here is stored.
   const livePassive = useMemo(
-    () => toPassiveState(treeState.main, treeState.ascendancyNodes, treeState.attributeChoices),
-    [treeState],
+    () => toPassiveState(treeState.main, treeState.ascendancyNodes, treeState.attributeChoices, questChoices),
+    [treeState, questChoices],
   );
   const craftData = useCraftData(gear);
   const warnings = useMemo(
@@ -527,7 +545,7 @@ export default function BuildSessionProvider({
   // dirty = draftDiffersFrom's tree/gear/gems comparison against baseline, OR metaDirty.
   const dirty = useMemo(() => {
     const changedBelowMeta = draftDiffersFrom(
-      { tree: treeState, gear, gem: gems },
+      { tree: treeState, gear, gem: gems, quest: questChoices },
       {
         class: baseline.class,
         ascendancy: baseline.ascendancy,
@@ -537,7 +555,7 @@ export default function BuildSessionProvider({
       },
     );
     return changedBelowMeta || metaDirty;
-  }, [treeState, gear, gems, baseline, metaDirty]);
+  }, [treeState, gear, gems, questChoices, baseline, metaDirty]);
 
   // ---- Save --------------------------------------------------------------
   const [saving, setSaving] = useState(false);
@@ -550,7 +568,7 @@ export default function BuildSessionProvider({
     saveInFlight.current = true;
     // What this save carries. Edits made while it is in flight are not in
     // it — see the `latestSession` in-flight check below.
-    const sent: BuildDraftState = { tree: treeState, gear, gem: gems };
+    const sent: BuildDraftState = { tree: treeState, gear, gem: gems, quest: questChoices };
     const sentMeta = meta;
     setSaving(true);
     setSaveError(null);
@@ -575,7 +593,7 @@ export default function BuildSessionProvider({
           // exists to protect a save path that legitimately doesn't touch a
           // field, which this one isn't.
           notes: sentMeta.notes,
-          passive_state: toPassiveState(sent.tree.main, sent.tree.ascendancyNodes, sent.tree.attributeChoices),
+          passive_state: toPassiveState(sent.tree.main, sent.tree.ascendancyNodes, sent.tree.attributeChoices, sent.quest),
           gear_state: sent.gear,
           gem_state: sent.gem,
           // Always sent, string or null — deriveMainSkill returns null (not
@@ -610,7 +628,7 @@ export default function BuildSessionProvider({
       setBaseline({
         class: sent.tree.className,
         ascendancy: sent.tree.ascendancyId ?? null,
-        passive_state: toPassiveState(sent.tree.main, sent.tree.ascendancyNodes, sent.tree.attributeChoices),
+        passive_state: toPassiveState(sent.tree.main, sent.tree.ascendancyNodes, sent.tree.attributeChoices, sent.quest),
         gear_state: sent.gear,
         gem_state: sent.gem,
         meta: sentMeta,
@@ -620,7 +638,7 @@ export default function BuildSessionProvider({
       // draft holds edits the server never received, and clearing it loses
       // them on the next reload (review 2026-09-26).
       const now = latestSession.current;
-      const moved = !!now && !(now.tree === sent.tree && now.gear === sent.gear && now.gem === sent.gem);
+      const moved = !!now && !(now.tree === sent.tree && now.gear === sent.gear && now.gem === sent.gem && now.quest === sent.quest);
       if (!moved) {
         clearDraft(draftBuildId, checkpointId);
       } else if (scratch && payload.build) {
@@ -653,7 +671,7 @@ export default function BuildSessionProvider({
       saveInFlight.current = false;
       if (!scratchCreated.current) setSaving(false);
     }
-  }, [canEdit, scratch, treeState, gear, gems, meta, row.id, draftBuildId, checkpointId, router]);
+  }, [canEdit, scratch, treeState, gear, gems, questChoices, meta, row.id, draftBuildId, checkpointId, router]);
 
   // ---- Discard / draft prompt actions -----------------------------------
   const discard = useCallback(() => {
@@ -671,6 +689,7 @@ export default function BuildSessionProvider({
     }));
     setGear(baseline.gear_state);
     setGems(baseline.gem_state);
+    setQuestChoices(baseline.passive_state.questChoices ?? {});
     setMetaState(baseline.meta);
     clearDraft(draftBuildId, checkpointId);
     setTreeSeedKey((k) => k + 1);
@@ -682,6 +701,7 @@ export default function BuildSessionProvider({
     setTreeStateRaw(storedDraft.tree);
     setGear(storedDraft.gear);
     setGems(storedDraft.gem);
+    setQuestChoices(storedDraft.quest ?? {});
     setTreeSeedKey((k) => k + 1);
     setDraftPromptOpen(false);
   }, [canEdit, storedDraft]);
@@ -701,6 +721,7 @@ export default function BuildSessionProvider({
       treeState,
       treeSeedKey,
       livePassive,
+      questChoices,
       gear,
       gems,
       meta,
@@ -717,6 +738,7 @@ export default function BuildSessionProvider({
       draftPromptOpen,
       setTreeState,
       setMeta,
+      setQuestChoice,
       applySavedName,
       setGearSlot,
       pickJewel,
@@ -735,6 +757,7 @@ export default function BuildSessionProvider({
       treeState,
       treeSeedKey,
       livePassive,
+      questChoices,
       gear,
       gems,
       meta,
@@ -751,6 +774,7 @@ export default function BuildSessionProvider({
       draftPromptOpen,
       setTreeState,
       setMeta,
+      setQuestChoice,
       applySavedName,
       setGearSlot,
       pickJewel,

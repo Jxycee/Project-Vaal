@@ -213,7 +213,7 @@ function BuildPageBody(props: BuildPageProps) {
           {/* Keyed by mode: leaving edit mode drops the tab's sheet/detail UI state (it holds nothing else). */}
           {tab === 'skills' ? <SkillsTab key={edit ? 'edit' : 'read'} edit={edit} /> : null}
           {tab === 'tree' ? <TreeTab edit={edit} /> : null}
-          {tab === 'stats' ? <StatsTab /> : null}
+          {tab === 'stats' ? <StatsTab edit={edit} /> : null}
         </div>
         {tab === 'tree' ? null : <StatsRail sheets={sheets} set={set} reserved={reserved} />}
       </div>
