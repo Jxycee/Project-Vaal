@@ -94,9 +94,9 @@ describe('mapCraft — pasted items (text only)', () => {
   });
 
   it('names a line no eligible mod matches, and keeps nothing for it', () => {
-    const { craft, notes } = mapCraft(text('Rarity: RARE', 'X', 'Ring', 'Implicits: 0', '+999 to maximum Life'), false, lookups());
+    const { craft, notes } = mapCraft(text('Rarity: RARE', 'X', 'Ring', 'Implicits: 0', 'Grants a wish'), false, lookups());
     expect(craft.prefixes).toEqual([]);
-    expect(notes).toEqual([expect.objectContaining({ kind: 'dropped', message: expect.stringContaining('+999 to maximum Life') })]);
+    expect(notes).toEqual([expect.objectContaining({ kind: 'dropped', message: expect.stringContaining('Grants a wish') })]);
   });
 
   it('reads a corrupted flag wherever it appears', () => {
@@ -191,5 +191,93 @@ describe('mapCraft — one line that fits a prefix and a suffix', () => {
     const one = text('Rarity: RARE', 'X', 'Amethyst Ring', 'Implicits: 0', '12% increased Rarity of Items found');
     const { craft } = mapCraft(one, false, lookups({ candidates: [RARITY_SUFFIX, RARITY_PREFIX] }));
     expect(craft.suffixes.map((m) => m.slug)).toEqual(['itemfoundrarityincrease2']);
+  });
+});
+
+describe('mapCraft — one printed line that is two mods added together', () => {
+  // momentsZX's helmet (handoff Appendix A, checked 2026-10-05 against PoB's own
+  // "Evasion: 728" header: it reproduces only at 126% local increase): the game
+  // sums one stat across mods, so a pure "(80-100)% Evasion and ES" and a hybrid
+  // "(33-38)% Evasion and ES + (27-32) Mana" print ONE 126% line, with the
+  // hybrid's mana on its own line elsewhere. No single tier reaches 126.
+  const PURE = mod('pureees', { group: 'LocalEES', rolls: [{ min: 80, max: 100 }], stats: ['(80-100)% increased Evasion and Energy Shield'] });
+  const HYB = mod('hybees', { group: 'LocalEESMana', rolls: [{ min: 33, max: 38 }, { min: 27, max: 32 }], stats: ['(33-38)% increased Evasion and Energy Shield', '+(27-32) to maximum Mana'] });
+  const MANA = mod('plainmana', { group: 'IncreasedMana', rolls: [{ min: 25, max: 34 }], stats: ['+(25-34) to maximum Mana'] });
+  const FLAT = mod('flatbase', { group: 'LocalBase', rolls: [{ min: 70, max: 80 }], stats: ['+(70-80) to Evasion Rating'] });
+  const helmet = (...lines: string[]) => text('Rarity: RARE', 'X', 'Grinning Mask', 'Implicits: 0', ...lines);
+  const L = (candidates: CraftMod[]) => lookups({ candidates });
+
+  it('reads 126% + 28 Mana as the hybrid (with that Mana) plus the pure mod, not a lone Mana mod', () => {
+    const { craft, notes } = mapCraft(helmet('126% increased Evasion and Energy Shield', '+77 to Evasion Rating', '+28 to maximum Mana'), false, L([MANA, HYB, PURE, FLAT]));
+    const hyb = craft.prefixes.find((m) => m.slug === 'hybees')!;
+    const pure = craft.prefixes.find((m) => m.slug === 'pureees')!;
+    expect(hyb.values[1]).toBe(28);
+    expect(hyb.values[0] + pure.values[0]).toBe(126);
+    expect(hyb.values[0]).toBeGreaterThanOrEqual(33);
+    expect(hyb.values[0]).toBeLessThanOrEqual(38);
+    expect(craft.prefixes.map((m) => m.slug)).not.toContain('plainmana');
+    expect(craft.prefixes.map((m) => m.slug)).toContain('flatbase');
+    expect(notes.filter((n) => n.kind === 'inferred' && n.message.includes('126%'))).toHaveLength(1);
+  });
+
+  it('does not split a line one tier can print — 90% is the pure mod alone, and the Mana stays its own mod', () => {
+    const { craft } = mapCraft(helmet('90% increased Evasion and Energy Shield', '+28 to maximum Mana'), false, L([MANA, HYB, PURE]));
+    expect(craft.prefixes.map((m) => m.slug)).toEqual(['pureees', 'plainmana']);
+  });
+
+  it('refuses a split whose two mods share a group (an item rolls one mod per group)', () => {
+    const SAME = mod('pureees2', { group: 'LocalEESMana', rolls: [{ min: 80, max: 100 }], stats: ['(80-100)% increased Evasion and Energy Shield'] });
+    const { craft } = mapCraft(helmet('126% increased Evasion and Energy Shield', '+28 to maximum Mana'), false, L([MANA, HYB, SAME]));
+    expect(craft.prefixes.map((m) => m.slug)).not.toContain('hybees');
+  });
+
+  it('refuses a split when no pure tier can cover what the hybrid leaves (150 > 38 + 100)', () => {
+    const { craft, notes } = mapCraft(helmet('150% increased Evasion and Energy Shield', '+28 to maximum Mana'), false, L([MANA, HYB, PURE]));
+    expect(craft.prefixes.map((m) => m.slug)).not.toContain('hybees');
+    expect(notes.some((n) => n.message.includes('150%'))).toBe(true);
+  });
+});
+
+describe('mapCraft — a value above every roll this base has', () => {
+  // momentsZX's amulet: "53% increased maximum Energy Shield" (top tier 45-50) and
+  // "36% increased Global Armour, Evasion and Energy Shield" (essence 20-30). Both
+  // sit ~1.2x the top of their tier, with in-range resistances beside them — a
+  // quality-style scaling on defence mods that we do not model. Kept at the closest
+  // legal roll, and said so; never dropped without a word, never kept at an
+  // impossible value.
+  const ES = (n: number, a: number, b: number) => mod(`es${n}`, { group: 'GlobalES', rolls: [{ min: a, max: b }], stats: [`(${a}-${b})% increased maximum Energy Shield`] });
+  const amulet = (...lines: string[]) => text('Rarity: RARE', 'X', 'Gold Amulet', 'Implicits: 0', ...lines);
+
+  it('keeps the top tier at its maximum roll and names the shown value', () => {
+    const { craft, notes } = mapCraft(amulet('53% increased maximum Energy Shield'), false, lookups({ candidates: [ES(6, 39, 44), ES(7, 45, 50)] }));
+    expect(craft.prefixes).toEqual([{ slug: 'es7', values: [50] }]);
+    const note = notes.find((n) => n.message.includes('53%'));
+    expect(note?.kind).toBe('inferred');
+    expect(note?.message).toContain('50');
+  });
+
+  it('picks the tier whose range is nearest, not the first', () => {
+    const near = mod('near', { group: 'G2', rolls: [{ min: 20, max: 30 }], stats: ['(20-30)% increased Global Defences'] });
+    const far = mod('far', { group: 'G1', rolls: [{ min: 15, max: 25 }], stats: ['(15-25)% increased Global Defences'] });
+    const { craft } = mapCraft(amulet('36% increased Global Defences'), false, lookups({ candidates: [far, near] }));
+    expect(craft.prefixes).toEqual([{ slug: 'near', values: [30] }]);
+  });
+
+  it('still drops a value BELOW every roll, as before', () => {
+    const { craft, notes } = mapCraft(amulet('5% increased maximum Energy Shield'), false, lookups({ candidates: [ES(7, 45, 50)] }));
+    expect(craft.prefixes).toEqual([]);
+    expect(notes.some((n) => n.kind === 'dropped' && n.message.includes('5%'))).toBe(true);
+  });
+});
+
+describe('mapCraft — quality above what we store', () => {
+  it('clamps quality 22 to 20 and says so', () => {
+    const { craft, notes } = mapCraft(text('Rarity: RARE', 'X', 'Grinning Mask', 'Quality: 22', 'Implicits: 0'), false, lookups());
+    expect(craft.quality).toBe(20);
+    expect(notes.some((n) => n.message.includes('22') && n.message.toLowerCase().includes('quality'))).toBe(true);
+  });
+  it('says nothing about quality 20', () => {
+    const { notes } = mapCraft(text('Rarity: RARE', 'X', 'Grinning Mask', 'Quality: 20', 'Implicits: 0'), false, lookups());
+    expect(notes.some((n) => n.message.toLowerCase().includes('quality'))).toBe(false);
   });
 });
