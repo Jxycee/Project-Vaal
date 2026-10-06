@@ -18,6 +18,24 @@
  * at exactly level 100. Fixed game constant, not derived from any save data.
  */
 export const QUEST_PASSIVE_POINTS = 24;
+// Cited: PoB2 src/Data/QuestRewards.lua has 12 quests with `questPoints = 2`; Build.lua:84-102
+// totals them (maxWeaponSets = 24) and Build.lua:1031 caps at 99 + 24 + ExtraPoints. The 24 is
+// right, not one short. They are weapon-set points in the data, but PoB2 draws them from the
+// same pool (Build.lua:1053 counts used - min(set1, set2)), so they are not excluded here.
+
+/**
+ * Points of slack before a build reads as over budget. PoB2 derives the REQUIRED level
+ * from the nodes (Build.lua:1035: nodes + 1 - quest points), which puts momentsZX's 122
+ * passives at level 99 while her sheet says 98 — one point PoB2's data does not explain
+ * (QuestRewards.lua sums to exactly 24: 12 quests x "+2 Weapon Set Passive Skill Points",
+ * Build.lua:84-102). Signal-only, so a missed overflow of 1 costs less than a false warning.
+ */
+export const PASSIVE_BUDGET_SLACK = 1;
+
+/** Whether `spent` points exceed `budget` (from `derivePassiveBudget`) by more than the slack. */
+export function isOverPassiveBudget(spent: number, budget: number): boolean {
+  return spent > budget + PASSIVE_BUDGET_SLACK;
+}
 
 /**
  * Passive points obtainable at a given character level: one point per level

@@ -506,8 +506,8 @@ export default function BuildSessionProvider({
   );
   const craftData = useCraftData(gear);
   const warnings = useMemo(
-    () => validateCheckpoint({ passive: livePassive, gear, craftData }),
-    [livePassive, gear, craftData],
+    () => validateCheckpoint({ passive: livePassive, gear, craftData, tree }),
+    [livePassive, gear, craftData, tree],
   );
   const offHandOccupied = useMemo<Record<WeaponSet, GearItem | null>>(
     () => ({ 1: offHandOccupiedBy(gear, livePassive, 1), 2: offHandOccupiedBy(gear, livePassive, 2) }),

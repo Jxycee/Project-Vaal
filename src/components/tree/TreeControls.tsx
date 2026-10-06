@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { ChevronDown, ChevronUp, Search } from 'lucide-react';
 import type { AllocMode } from '@poe2-toolkit/tree-core';
 import { MAX_ASCENDANCY_POINTS, MAX_WEAPON_SET_POINTS } from '@/lib/build/constants';
+import { isOverPassiveBudget } from '@/lib/build/passiveBudget';
 import { WEAPON_SET_DOT } from '@/lib/build/weaponSetColors';
 import ResetButton from '@/components/tree/ResetButton';
 
@@ -169,7 +170,7 @@ export default function TreeControls({
               // brief: this never disables the button or blocks a click —
               // planning a level-90 build while the build row still says
               // level 1 is a normal workflow, not an error state.
-              const overBudget = m === 0 && spent > max;
+              const overBudget = m === 0 && isOverPassiveBudget(spent, max);
               const content = (
                 <>
                   <span className={`h-2 w-2 rounded-full ${MODE_DOT[m]}`} />

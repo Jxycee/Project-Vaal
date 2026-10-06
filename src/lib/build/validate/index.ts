@@ -14,6 +14,7 @@
 import { MAX_ASCENDANCY_POINTS, MAX_WEAPON_SET_POINTS } from '../constants';
 import { GEAR_SLOTS, GEAR_SLOT_LABELS, categoriesForSlot } from '../gearSlots';
 import type { GearState } from '../gearState';
+import { ascendancyPointCount, type OptionLookup } from '../ascendancyPoints';
 import type { PassiveState } from '../types';
 import type { BuildWarning } from './types';
 import { validateCrafts, type CraftData } from './affixRules';
@@ -28,7 +29,7 @@ export { socketLimitFor, type BaseData, type CraftData, type ModData } from './a
 // campaign progress. The endgame total lives in ../constants.
 export { MAX_WEAPON_SET_POINTS };
 
-function treeWarnings(passive: PassiveState): BuildWarning[] {
+function treeWarnings(passive: PassiveState, tree?: OptionLookup | null): BuildWarning[] {
   const warnings: BuildWarning[] = [];
   const inSet1 = new Set(passive.set1);
   const inSet2 = new Set(passive.set2);
@@ -44,12 +45,13 @@ function treeWarnings(passive: PassiveState): BuildWarning[] {
       });
     }
   }
-  if (passive.ascendancyNodes.length > MAX_ASCENDANCY_POINTS) {
+  const ascendancyPoints = ascendancyPointCount(passive.ascendancyNodes, tree);
+  if (ascendancyPoints > MAX_ASCENDANCY_POINTS) {
     warnings.push({
       code: 'ascendancy-points-over',
       severity: 'warning',
       target: { kind: 'tree' },
-      message: `${passive.ascendancyNodes.length} ascendancy points allocated; a character has at most ${MAX_ASCENDANCY_POINTS}.`,
+      message: `${ascendancyPoints} ascendancy points allocated; a character has at most ${MAX_ASCENDANCY_POINTS}.`,
     });
   }
   return warnings;
@@ -81,15 +83,18 @@ export function validateCheckpoint({
   passive,
   gear,
   craftData,
+  tree,
 }: {
   passive: PassiveState;
   gear: GearState;
   craftData?: CraftData;
+  /** The tree export: lets a choice notable's option node cost no extra ascendancy point. Without it every node counts. */
+  tree?: OptionLookup | null;
 }): BuildWarning[] {
   const slotIndex = (w: BuildWarning) =>
     w.target.kind === 'gear' ? GEAR_SLOTS.indexOf(w.target.slot) : w.target.kind === 'jewel' ? GEAR_SLOTS.length : -1;
   const gearWarnings = [...slotMismatches(gear), ...validateWeapons(gear, passive), ...(craftData ? validateCrafts(gear, craftData) : [])];
   // Array.prototype.sort is stable, so warnings on one slot keep their order.
   gearWarnings.sort((a, b) => slotIndex(a) - slotIndex(b));
-  return [...treeWarnings(passive), ...gearWarnings];
+  return [...treeWarnings(passive, tree), ...gearWarnings];
 }

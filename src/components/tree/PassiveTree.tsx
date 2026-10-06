@@ -28,6 +28,7 @@ import NodeTooltip, { type HoveredNode } from '@/components/tree/NodeTooltip';
 import NodeInfoPanel, { type SelectedNode } from '@/components/tree/NodeInfoPanel';
 import { useTreeResources, useClassCentreSprites } from '@/lib/tree/resources';
 import { MAX_ASCENDANCY_POINTS } from '@/lib/build/constants';
+import { ascendancyPointCount } from '@/lib/build/ascendancyPoints';
 import { derivePassiveBudget } from '@/lib/build/passiveBudget';
 import type { BuildEditorState, PassiveTreeInitialState } from '@/lib/build/types';
 import type { TreeTestApi } from '@/lib/tree/testApi';
@@ -161,14 +162,14 @@ export default function PassiveTree({
       // Refuse growth past the cap; always allow a click that shrinks the
       // allocation, so a user at the cap can still deallocate.
       if (
-        nextAscendancy.length > MAX_ASCENDANCY_POINTS &&
-        nextAscendancy.length > ascendancyNodes.length
+        ascendancyPointCount(nextAscendancy, raw) > MAX_ASCENDANCY_POINTS &&
+        ascendancyPointCount(nextAscendancy, raw) > ascendancyPointCount(ascendancyNodes, raw)
       ) {
         return;
       }
       setAscendancyNodes(nextAscendancy);
     },
-    [main.allocated, ascendancyNodes.length, readOnly],
+    [main.allocated, ascendancyNodes, raw, readOnly],
   );
 
   // Tooltips: real pointer hover only fires for a mouse (touch always starts
@@ -259,8 +260,8 @@ export default function PassiveTree({
       if (set === 1) setI++;
       else if (set === 2) setII++;
     }
-    return { basic: main.allocated.length - setI - setII, setI, setII, ascendancy: ascendancyNodes.length };
-  }, [main, ascendancyNodes]);
+    return { basic: main.allocated.length - setI - setII, setI, setII, ascendancy: ascendancyPointCount(ascendancyNodes, raw) };
+  }, [main, ascendancyNodes, raw]);
 
   const maxBasicPoints = useMemo(() => derivePassiveBudget(level ?? 100), [level]);
 
