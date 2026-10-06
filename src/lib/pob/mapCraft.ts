@@ -40,6 +40,8 @@ import { matchTemplate, stripTags, valueAt } from './craftText';
 export interface CraftMod {
   slug: string;
   kind: 'prefix' | 'suffix' | 'other';
+  /** The mod group — one per item. Optional so a test fake can leave it out. */
+  group?: string;
   rolls: { min: number; max: number }[];
   stats: string[];
 }
@@ -87,6 +89,26 @@ function matchLines(lines: string[], templates: string[], notes: CraftNote[], wh
     rows[at] = matchTemplate(plain, templates[at], rangeFractionOf(line))!;
   }
   return rows;
+}
+
+/**
+ * Several mods can print the same line — a prefix and a suffix of "Rarity of
+ * Items found" do. PoB's text does not say which one an item has, but an item
+ * has at most three of each kind (one if magic) and one mod per group, so
+ * take the first (the natural, lowest-level) match whose kind still has room
+ * and whose group is unused; with none, the first match, as before.
+ */
+function pickOne(matches: CraftMod[], craft: ItemCraft, all: CraftMod[]): CraftMod | undefined {
+  if (matches.length < 2) return matches[0];
+  const used = new Set<string>();
+  for (const m of [...craft.prefixes, ...craft.suffixes]) {
+    const group = all.find((c) => c.slug === m.slug)?.group;
+    if (group) used.add(group);
+  }
+  // What a rare item can hold per kind (affixRules.ts: magic 1, rare 3); the write gate's own cap is looser.
+  const room = craft.rarity === 'magic' ? 1 : 3;
+  const fits = (c: CraftMod) => c.kind !== 'other' && craft[c.kind === 'prefix' ? 'prefixes' : 'suffixes'].length < room && !(c.group && used.has(c.group));
+  return matches.find(fits) ?? matches[0];
 }
 
 export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups): { craft: ItemCraft; notes: CraftNote[] } {
@@ -167,7 +189,7 @@ export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups):
       const two = lookups.candidates.find(
         (c) => c.stats.length === 2 && i + 1 < pasted.length && matchTemplate(pasted[i], c.stats[0]) && matchTemplate(pasted[i + 1], c.stats[1]),
       );
-      const one = two ? undefined : lookups.candidates.find((c) => c.stats.length === 1 && matchTemplate(pasted[i], c.stats[0]));
+      const one = two ? undefined : pickOne(lookups.candidates.filter((c) => c.stats.length === 1 && matchTemplate(pasted[i], c.stats[0])!== null), craft, lookups.candidates);
       const hit = two ?? one;
       if (!hit || hit.kind === 'other') {
         notes.push({ kind: 'dropped', message: `The mod line "${pasted[i]}" matches nothing this base can roll, so it was not kept.` });

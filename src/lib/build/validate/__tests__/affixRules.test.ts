@@ -97,6 +97,21 @@ describe('validateCrafts — which mod', () => {
     }
   });
 
+  it('accepts a desecrated mod on the class it names, and an essence mod on any Item base — no false warning', () => {
+    const desecrated = mod({ domain: 'Unveiled', spawnWeights: [{ tag: 'ring', weight: 1 }, { tag: 'default', weight: 0 }, { tag: 'kurgal_mod', weight: 1 }] });
+    const essence = mod({ kind: 'suffix', group: 'EssenceThing', spawnWeights: [{ tag: 'default', weight: 0 }] });
+    const d = data({ d: desecrated, essencething1: essence });
+    expect(codes(gear({ ring1: ring({ rarity: 'rare', prefixes: [p('d')], suffixes: [p('essencething1')] }) }), d)).toEqual([]);
+  });
+
+  it('still flags a desecrated mod on a class it does not name, and a zero-weight non-essence Item mod', () => {
+    const wrongClass = mod({ domain: 'Unveiled', spawnWeights: [{ tag: 'mace', weight: 1 }, { tag: 'default', weight: 0 }] });
+    const legacy = mod({ spawnWeights: [{ tag: 'default', weight: 0 }] });
+    for (const [slug, m] of [['abyssmodmace', wrongClass], ['handwrapsdexterity1', legacy]] as const) {
+      expect(codes(gear({ ring1: ring({ rarity: 'rare', prefixes: [p(slug)] }) }), data({ [slug]: m })), slug).toEqual(['affix-not-eligible']);
+    }
+  });
+
   it("flags a tier above the item's level, and not when no item level is set", () => {
     const d = data({ x: mod({ level: 75 }) });
     expect(codes(gear({ ring1: ring({ rarity: 'rare', itemLevel: 60, prefixes: [p('x')] }) }), d)).toEqual(['affix-above-item-level']);

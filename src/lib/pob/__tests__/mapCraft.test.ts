@@ -163,3 +163,33 @@ describe('mapCraft — uniques and runes', () => {
     expect(notes.some((n) => n.message.includes('+80 to maximum Life'))).toBe(false);
   });
 });
+
+describe('mapCraft — one line that fits a prefix and a suffix', () => {
+  // momentsZX's Amethyst Ring (handoff Appendix A): "Rarity of Items found"
+  // twice — a suffix and a prefix share the same display text. PoB's text does
+  // not say which is which, and an item cannot roll one group twice, so the
+  // second is the other kind.
+  const RARITY_SUFFIX = mod('itemfoundrarityincrease2', { kind: 'suffix', group: 'ItemFoundRarityIncrease', rolls: [{ min: 10, max: 14 }], stats: ['(10-14)% increased Rarity of Items found'] });
+  const RARITY_PREFIX = mod('itemfoundrarityincreaseprefix2', { group: 'ItemFoundRarityIncreasePrefix', rolls: [{ min: 10, max: 14 }], stats: ['(10-14)% increased Rarity of Items found'] });
+  const raw = text('Rarity: RARE', 'Mind Knot', 'Amethyst Ring', 'Implicits: 0', '12% increased Rarity of Items found', '13% increased Rarity of Items found');
+
+  it('gives the second line the kind whose group is still free', () => {
+    const { craft } = mapCraft(raw, false, lookups({ candidates: [RARITY_SUFFIX, RARITY_PREFIX] }));
+    expect(craft.suffixes.map((m) => m.slug)).toEqual(['itemfoundrarityincrease2']);
+    expect(craft.prefixes.map((m) => m.slug)).toEqual(['itemfoundrarityincreaseprefix2']);
+  });
+
+  it('prefers a kind with room: a full set of suffixes sends the line to a prefix', () => {
+    const s = (n: string) => mod(n, { kind: 'suffix', group: n, rolls: [{ min: 1, max: 1 }], stats: [`+(1-1) to ${n}`] });
+    const full = text('Rarity: RARE', 'X', 'Amethyst Ring', 'Implicits: 0', '+1 to A', '+1 to B', '+1 to C', '12% increased Rarity of Items found');
+    const { craft } = mapCraft(full, false, lookups({ candidates: [s('A'), s('B'), s('C'), RARITY_SUFFIX, RARITY_PREFIX] }));
+    expect(craft.suffixes).toHaveLength(3);
+    expect(craft.prefixes.map((m) => m.slug)).toEqual(['itemfoundrarityincreaseprefix2']);
+  });
+
+  it('with nothing to disambiguate, keeps the first match as before', () => {
+    const one = text('Rarity: RARE', 'X', 'Amethyst Ring', 'Implicits: 0', '12% increased Rarity of Items found');
+    const { craft } = mapCraft(one, false, lookups({ candidates: [RARITY_SUFFIX, RARITY_PREFIX] }));
+    expect(craft.suffixes.map((m) => m.slug)).toEqual(['itemfoundrarityincrease2']);
+  });
+});

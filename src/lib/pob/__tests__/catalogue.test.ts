@@ -121,6 +121,17 @@ describe('catalogue — lookups', () => {
     expect(lookups.modById('NotARealMod1')).toBeNull();
   });
 
+  it('lets a pasted line match a desecrated or essence mod the base can carry', async () => {
+    // Real lines from the momentsZX character (handoff Appendix A): a Gold
+    // Amulet's desecrated "36% increased Global ..." and a bow's essence level line.
+    const { items } = await getCatalogue();
+    const amulet = (await items.craftLookupsFor!('gold-amulet')).candidates.map((c) => c.slug);
+    expect(amulet).toContain('abyssmodamuletamanamuprefixglobaldefences');
+    expect(amulet).not.toContain('abyssmod1hmaceamanamusuffixadditionalfissurechance');
+    const bow = (await items.craftLookupsFor!('obliterator-bow')).candidates.map((c) => c.slug);
+    expect(bow).toContain('essenceattackskilllevel1h1');
+  });
+
   it('finds items by exact name, uniques flagged', async () => {
     const { items } = await getCatalogue();
     expect(items.byName.get('Stellar Amulet')).toMatchObject({ category: 'Amulet', isUnique: false });
