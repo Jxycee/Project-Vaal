@@ -156,10 +156,10 @@ export const NOT_MODELLED: Readonly<Record<string, string>> = {
   'maximum_fire_resistance_+%_if_at_least_5_red_supports_socketed': 'Maximum Fire Resistance with 5 red supports socketed',
 };
 
-const ID_WORDS = /(^|_)(life|mana|energy_shield|evasion|armour|strength|dexterity|intelligence|attributes?|spirit|resistances?)(_|$)/;
+const ID_WORDS = /(^|_)(life|mana|energy_shield|evasion|armour|strength|dexterity|intelligence|attributes?|spirit|resist(ances?)?)(_|$)/;
 /** Words that make an id a conditional, a per-X scaling, an offence or a recovery rate - not a flat sheet number. */
 const ID_NOISE =
-  /(^|_)(when|while|if|per|during|vs|against|on|for|with|after|regen|regeneration|leech|recovery|recoup|gain|lose|cost|taken|damage|chance|speed|duration|flask|charges?|minions?|totems?|aura|curse|display)(_|$)/;
+  /(^|_)(when|while|if|per|during|vs|against|on|for|with|after|regen|regeneration|leech|recovery|recoup|gain|lose|cost|taken|damage|chance|speed|duration|flask|charges?|minions?|totems?|aura|curse|display|break|amount|as)(_|$)/;
 
 /**
  * Whether an UNMAPPED stat id looks like it could move a number the sheet
