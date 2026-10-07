@@ -50,6 +50,30 @@ test.describe('landing page, gilded frame', () => {
     await page.screenshot({ path: testInfo.outputPath('landing-1280.png') });
   });
 
+  // Desktop and tablet-landscape sizes, short laptop windows included: the
+  // whole page, legal links and all, fits the viewport with no vertical scroll.
+  for (const [width, height] of [
+    [1024, 600],
+    [1280, 640],
+    [1366, 768],
+    [1440, 900],
+    [1920, 1080],
+    [2560, 1440],
+  ] as const) {
+    test(`${width}x${height}: fits the viewport, no vertical scroll`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      await page.goto('/');
+      await expect(page.getByRole('link', { name: 'GitHub', exact: true })).toBeVisible();
+      const m = await page.evaluate(() => ({
+        scroll: document.documentElement.scrollHeight - document.documentElement.clientHeight,
+        github: document.querySelector('a[href*="github.com"]')!.getBoundingClientRect().bottom,
+        h: window.innerHeight,
+      }));
+      expect(m.scroll, 'the page scrolls vertically').toBeLessThanOrEqual(0);
+      expect(m.github, 'the legal links are below the fold').toBeLessThanOrEqual(m.h);
+    });
+  }
+
   test('reduced motion: nothing animates', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
