@@ -104,6 +104,26 @@ export function rangesIn(line: string): ValueRange[] {
   return Array.from(line.matchAll(RANGE_RE), (m) => ({ min: Number(m[1]), max: Number(m[2]) }));
 }
 
+/**
+ * The numbers a mod's display lines would show for stored roll `values`, or
+ * null when they cannot be known. Our files keep a roll in game units and the
+ * line in display units, and for a few mods the two differ: crit prints
+ * "(3-4)%" over rolls 311-380, i.e. hundredths. Same ranges: the values as
+ * stored. Every range a power of ten apart (311-380 floors to 3 and ceils to 4
+ * at /100): the values divided by it. Anything else: null, and the caller
+ * falls back to the best display value.
+ */
+export function displayedValues(stats: readonly string[], rolls: readonly ValueRange[], values: readonly number[]): number[] | null {
+  const shown = stats.flatMap(rangesIn);
+  if (shown.length === 0 || shown.length !== rolls.length) return null;
+  if (shown.every((r, i) => r.min === rolls[i].min && r.max === rolls[i].max)) return [...values];
+  for (const k of [10, 100, 1000]) {
+    const fits = shown.every((r, i) => Math.floor(Math.min(rolls[i].min, rolls[i].max) / k) === Math.min(r.min, r.max) && Math.ceil(Math.max(rolls[i].min, rolls[i].max) / k) === Math.max(r.min, r.max));
+    if (fits) return values.map((v) => Math.round((v / k) * 1e6) / 1e6);
+  }
+  return null;
+}
+
 const isFiniteNumber = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
 function numberRow(raw: unknown): number[] {

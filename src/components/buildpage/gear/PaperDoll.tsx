@@ -6,13 +6,14 @@
 // (AGENTS.md "GGG art use"). Layout lives in src/lib/build/paperDoll.ts; each
 // cell's position is handed to CSS through custom properties so ONE DOM
 // switches from the 6-column phone grid to the 8-column desktop grid at `md:`.
-import type { CSSProperties } from 'react';
+import { useRef, useState, type CSSProperties } from 'react';
 import type { WeaponSet } from '@poe2-toolkit/tree-core';
 import { GEAR_SLOT_LABELS, type GearItem, type GearSlot } from '@/lib/build/gearSlots';
 import type { GearState } from '@/lib/build/gearState';
 import { DESKTOP_DOLL, DOLL_KEYS, PHONE_DOLL, dollSlot, type DollSlotKey } from '@/lib/build/paperDoll';
 import type { BuildWarning } from '@/lib/build/validate';
 import { WEAPON_SET_DOT } from '@/lib/build/weaponSetColors';
+import ItemHoverCard from './ItemHoverCard';
 
 /** Whether a cell has room for its slot label under the item name. */
 function roomForLabel(cell: { w: number; h: number }): boolean {
@@ -27,6 +28,7 @@ function DollCell({
   warnings,
   selected,
   onSelect,
+  onHover,
 }: {
   dollKey: DollSlotKey;
   slot: GearSlot;
@@ -36,6 +38,8 @@ function DollCell({
   warnings: readonly BuildWarning[];
   selected: boolean;
   onSelect: () => void;
+  /** Mouse hover or keyboard focus on the cell; null when it ends. The parent decides whether a card shows. */
+  onHover: (anchor: DOMRect | null) => void;
 }) {
   const phone = PHONE_DOLL.cells[dollKey];
   const desktop = DESKTOP_DOLL.cells[dollKey];
@@ -68,6 +72,10 @@ function DollCell({
       aria-label={`${label}: ${shownName}`}
       aria-pressed={selected}
       onClick={onSelect}
+      onPointerEnter={(e) => e.pointerType === 'mouse' && onHover(e.currentTarget.getBoundingClientRect())}
+      onPointerLeave={() => onHover(null)}
+      onFocus={(e) => e.currentTarget.matches(':focus-visible') && onHover(e.currentTarget.getBoundingClientRect())}
+      onBlur={() => onHover(null)}
       style={style}
       className={[
         '[grid-column:var(--pc)/span_var(--pw)] [grid-row:var(--pr)/span_var(--ph)]',
@@ -125,6 +133,19 @@ export default function PaperDoll({
   warnings: readonly BuildWarning[];
   offHandOccupied: Record<WeaponSet, GearItem | null>;
 }) {
+  // The hover card: desktop (md and up) with a mouse or keyboard focus only; touch uses the tap panel.
+  const [hover, setHover] = useState<{ item: GearItem; anchor: DOMRect } | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showFor = (item: GearItem | null, anchor: DOMRect | null) => {
+    if (timer.current) clearTimeout(timer.current);
+    if (!item || !anchor) {
+      setHover(null);
+      return;
+    }
+    if (!window.matchMedia('(min-width: 768px)').matches) return;
+    // A short delay keeps a mouse passing over the doll from flashing cards.
+    timer.current = setTimeout(() => setHover({ item, anchor }), 140);
+  };
   return (
     <div data-testid="paper-doll" className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
@@ -160,11 +181,17 @@ export default function PaperDoll({
               occupiedBy={key === 'weapon_off' ? offHandOccupied[weaponSet] : null}
               warnings={warnings.filter((w) => w.target.kind === 'gear' && w.target.slot === slot)}
               selected={selected === key}
-              onSelect={() => onSelect(key)}
+              onSelect={() => {
+                showFor(null, null); // cancel a pending hover: the card opens below instead
+                onSelect(key);
+              }}
+              // The selected slot's card is already open below the doll; a second copy beside it would only repeat it.
+              onHover={(anchor) => showFor(selected === key ? null : gear[slot], anchor)}
             />
           );
         })}
       </div>
+      {hover ? <ItemHoverCard item={hover.item} anchor={hover.anchor} /> : null}
     </div>
   );
 }
