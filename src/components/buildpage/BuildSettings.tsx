@@ -25,7 +25,7 @@ import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
 import { addBuildTag, deleteBuild, removeBuildTag, renameBuild, setBuildVisibility } from '@/app/(dashboard)/builds/actions';
-import { exportPobCode, type ExportResult } from '@/app/(dashboard)/builds/exportActions';
+import { exportGameBuildFile, exportPobCode, type BuildFileExportResult, type ExportResult } from '@/app/(dashboard)/builds/exportActions';
 import { MAX_BUILD_NAME_LENGTH } from '@/lib/build/constants';
 import { clearDraft } from '@/lib/build/draft';
 import { normalizeTag } from '@/lib/build/tags';
@@ -88,6 +88,7 @@ function SettingsSheet({ buildId, visibility, tags, edit, checkpointIds, activeC
   const [nameDraft, setNameDraft] = useState(meta.name);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [exported, setExported] = useState<Extract<ExportResult, { ok: true }> | null>(null);
+  const [buildFile, setBuildFile] = useState<Extract<BuildFileExportResult, { ok: true }> | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -124,6 +125,43 @@ function SettingsSheet({ buildId, visibility, tags, edit, checkpointIds, activeC
       }
       setExported(result);
     });
+  }
+
+  function exportBuildFile() {
+    setError(null);
+    setNote(null);
+    setCopied(false);
+    startTransition(async () => {
+      const result = await callAction(() => exportGameBuildFile(buildId, activeCheckpointId ?? null));
+      if (!result.ok) {
+        setBuildFile(null);
+        setError(result.error);
+        return;
+      }
+      setBuildFile(result);
+    });
+  }
+
+  const buildFileText = buildFile ? JSON.stringify(buildFile.file, null, 2) : '';
+
+  async function copyBuildFile() {
+    try {
+      await navigator.clipboard.writeText(buildFileText);
+      setCopied(true);
+    } catch {
+      setError('Could not copy automatically. Select the text and copy it.');
+    }
+  }
+
+  function downloadBuildFile() {
+    if (!buildFile) return;
+    const blob = new Blob([buildFileText], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${buildFile.file.name.replace(/[^A-Za-z0-9 _-]/g, '').trim() || 'build'}.build`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   async function copyCode() {
@@ -352,6 +390,45 @@ function SettingsSheet({ buildId, visibility, tags, edit, checkpointIds, activeC
                   </summary>
                   <ul className="flex list-disc flex-col gap-1 pl-4">
                     {exported.report.map((entry, i) => (
+                      <li key={i}>{entry.message}</li>
+                    ))}
+                  </ul>
+                </details>
+              ) : null}
+            </div>
+          ) : null}
+
+          <p className="pt-2 text-xs text-muted-foreground">
+            Or make a file for the game's own Build Planner. Save it in Documents/My Games/Path of Exile 2/BuildPlanner and it shows up in game. It carries the
+            passive tree (with both weapon sets) and the skill gems of the checkpoint you are viewing, not items.
+          </p>
+          <button type="button" onClick={exportBuildFile} disabled={pending} className={BUTTON}>
+            {pending ? 'Exporting…' : "Export for the game's Build Planner"}
+          </button>
+          {buildFile ? (
+            <div className="flex flex-col gap-2" data-testid="build-file-result">
+              <textarea
+                readOnly
+                value={buildFileText}
+                rows={5}
+                aria-label="Build Planner file"
+                data-testid="build-file-json"
+                onFocus={(e) => e.currentTarget.select()}
+                className="w-full resize-none rounded-md border border-border bg-background p-2 font-mono text-xs text-foreground"
+              />
+              <button type="button" onClick={downloadBuildFile} className={BUTTON}>
+                Download .build
+              </button>
+              <button type="button" onClick={copyBuildFile} className={BUTTON}>
+                Copy JSON
+              </button>
+              {buildFile.report.length > 0 ? (
+                <details className="text-xs text-muted-foreground" data-testid="build-file-report">
+                  <summary className="flex min-h-11 cursor-pointer items-center">
+                    {buildFile.report.length} thing{buildFile.report.length === 1 ? '' : 's'} to know
+                  </summary>
+                  <ul className="flex list-disc flex-col gap-1 pl-4">
+                    {buildFile.report.map((entry, i) => (
                       <li key={i}>{entry.message}</li>
                     ))}
                   </ul>
