@@ -267,3 +267,71 @@
     background-color: var(--muted-foreground);
   }
 }
+
+/* Landing page: the gilded frame (src/components/landing/gilded-frame.tsx).
+   Everything is decorative and quiet; reduced-motion users get it still. */
+@layer components {
+  .landing-frame-line {
+    border: 1px solid color-mix(in oklab, var(--primary) 50%, transparent);
+    box-shadow: 0 0 18px color-mix(in oklab, var(--primary) 14%, transparent);
+    animation: landing-lit 9s ease-in-out infinite;
+  }
+  .landing-halo {
+    background: radial-gradient(
+      circle,
+      color-mix(in oklab, var(--primary) 20%, transparent),
+      rgba(120, 40, 28, 0.07) 45%,
+      transparent 68%
+    );
+    animation: landing-breathe 9s ease-in-out infinite;
+  }
+  .landing-title {
+    background: linear-gradient(100deg, var(--primary) 30%, #fff4d8 48%, var(--primary) 66%) 0 0 / 220% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: landing-sheen 9s ease-in-out infinite;
+  }
+  .landing-stud {
+    box-shadow: 0 0 12px color-mix(in oklab, var(--primary) 60%, transparent);
+  }
+}
+@keyframes landing-lit {
+  0%,
+  100% {
+    box-shadow: 0 0 18px color-mix(in oklab, var(--primary) 14%, transparent),
+      inset 0 0 90px color-mix(in oklab, var(--primary) 7%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 30px color-mix(in oklab, var(--primary) 26%, transparent),
+      inset 0 0 130px color-mix(in oklab, var(--primary) 12%, transparent);
+  }
+}
+@keyframes landing-breathe {
+  0%,
+  100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes landing-sheen {
+  0% {
+    background-position: -220% 0;
+  }
+  60%,
+  100% {
+    background-position: 220% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-frame-line,
+  .landing-halo,
+  .landing-title {
+    animation: none;
+  }
+  .landing-title {
+    background-position: 50% 0;
+  }
+}
