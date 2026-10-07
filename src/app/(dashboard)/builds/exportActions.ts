@@ -10,10 +10,11 @@
 // there is no new write or access path. It exports the SAVED build; unsaved
 // edits in the editor are not included (the UI says so).
 //
-// The catalogue reads public/data through fs, so this route must have those
-// files traced into the deployment: see outputFileTracingIncludes in
-// next.config.ts, which the "/builds" entry covers because this action runs in
-// the /builds route.
+// The catalogue reads public/data through fs, so the route this action runs in
+// must have those files traced into the deployment. It runs in the build page,
+// /builds/[shareToken] (BuildSettings calls it), which the "/builds/*" key of
+// outputFileTracingIncludes in next.config.ts covers; verified after a build by
+// counting public/data entries in that route's page.js.nft.json (11,381).
 
 import { UUID_RE } from '@/lib/build/constants';
 import { parseCheckpoints } from '@/lib/build/checkpointState';

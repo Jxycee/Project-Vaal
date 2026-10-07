@@ -11,8 +11,9 @@
 // DISPLAY lines, not the crafted "Prefix: {range}ModId" form. Our mod slugs
 // are lowercased and PoB2 looks a mod id up case-sensitively, so a crafted
 // header could not be written faithfully; display text is what PoB2 reads for
-// any pasted item, and PoB2 itself rebuilds rune lines from "Rune:" (Item.lua
-// UpdateRunes), so rune effect lines are not written.
+// any pasted item. PoB2 rebuilds an item's rune effects itself from its
+// "Rune:" names when each is a known rune (Item.lua ParseRaw: canRebuildRunes
+// -> UpdateRunes), so rune effect lines are not written.
 //
 // A mod whose display ranges are not its roll ranges (crit: "(3-4)%" over
 // rolls 311-380) cannot show a stored roll, so it is written at its best
