@@ -43,6 +43,9 @@ function Brand({ size = 'sm', href }: { size?: 'sm' | 'md'; href: string }) {
         width={px}
         height={px}
         sizes={`${px}px`}
+        // The header logo is above the fold on every page and is often the
+        // largest paint; without this Next logs an LCP warning per page load.
+        loading="eager"
         className={size === 'md' ? 'size-12' : 'size-16'}
       />
       <span
