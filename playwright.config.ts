@@ -107,7 +107,9 @@ export default defineConfig({
     url: BASE_URL,
     reuseExistingServer: process.env.E2E_REUSE === '1',
     timeout: 120_000,
-    stdout: 'ignore',
+    // E2E_SERVER_LOG=1 surfaces Next's own "Compiling /…" and reload lines
+    // (as [WebServer] lines in the run's output). Off by default: noisy.
+    stdout: process.env.E2E_SERVER_LOG === '1' ? 'pipe' : 'ignore',
     stderr: 'pipe',
   },
 });

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gem card mock (Skills tab)</title>
+<!-- STATIC MOCK for the user's approval. Not wired to anything. Mirrors ItemCardView
+     (src/components/build/ItemCard.tsx): same near-black panel, gold hairline, no effects.
+     Original chrome only; the gem icons would be the real wiki icons (public/data/wiki). -->
+<style>
+  :root { --bg:#0b0907; --panel:#110e0b; --foot:#0e0b09; --gold:#b8995a; --border:#2a2318; --text:#e8e0cf; --muted:#9a907c; --stat:#a9b8ff; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.45 Inter, system-ui, sans-serif; padding:16px; }
+  h1 { font:600 13px/1 Inter, sans-serif; color:var(--muted); letter-spacing:.08em; text-transform:uppercase; margin:0 0 12px; }
+  .wrap { display:grid; gap:20px; grid-template-columns: repeat(auto-fit, minmax(300px, 26rem)); }
+  .card { max-width:26rem; background:var(--panel); border:1px solid rgba(184,153,90,.4); border-radius:6px; overflow:hidden; }
+  .bar { height:3px; }
+  .head { padding:12px 16px 8px; display:flex; gap:10px; align-items:center; }
+  .icon { width:40px; height:40px; border:1px solid var(--border); border-radius:6px; background:#17130e; flex:none; display:grid; place-items:center; color:var(--muted); font-size:10px; }
+  .name { font:600 18px/1.15 Georgia, 'Times New Roman', serif; }
+  .sub { font-size:13px; color:var(--muted); }
+  .tags { padding:0 16px 8px; display:flex; flex-wrap:wrap; gap:4px; }
+  .tag { font-size:11px; border:1px solid var(--border); border-radius:3px; padding:0 6px; color:var(--muted); }
+  .desc { padding:0 16px 8px; font-size:13px; color:var(--muted); }
+  .rows { padding:0 16px 8px; font-size:13px; color:var(--muted); }
+  .rows b { color:var(--stat); }
+  .rule { height:1px; margin:2px 16px 10px; background:linear-gradient(to right, transparent, rgba(184,153,90,.4), transparent); }
+  .mods { list-style:none; margin:0; padding:0 16px 12px; display:flex; flex-direction:column; gap:6px; }
+  .mods li { display:flex; gap:10px; font-size:14px; color:#8fb3c9; }
+  .mods li::before { content:''; width:5px; height:5px; margin-top:8px; transform:rotate(45deg); background:currentColor; flex:none; }
+  .q li { color:#c9b48a; }
+  .sec { padding:0 16px 4px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+  .sup { margin:0 16px 8px; padding:8px 10px; border:1px solid var(--border); border-radius:4px; background:rgba(255,255,255,.015); display:flex; gap:10px; }
+  .sup .icon { width:28px; height:28px; }
+  .sup p { margin:0; } .sup .n { font-weight:600; font-size:13px; } .sup .e { font-size:12.5px; color:var(--muted); }
+  .foot { border-top:1px solid var(--border); background:var(--foot); padding:8px 16px; font-size:12px; color:var(--muted); }
+  .note { max-width:26rem; color:var(--muted); font-size:12.5px; }
+</style>
+</head>
+<body>
+<h1>Gem card, Skills tab (mock A: tap a row, same card as hover on desktop)</h1>
+<div class="wrap">
+
+  <article class="card">
+    <div class="bar" style="background:#4cae6e"></div>
+    <header class="head">
+      <div class="icon">icon</div>
+      <div><div class="name" style="color:#7fd39a">Lightning Arrow</div><div class="sub">Level 20 · Quality 20%</div></div>
+    </header>
+    <div class="tags"><span class="tag">Attack</span><span class="tag">AoE</span><span class="tag">Projectile</span><span class="tag">Lightning</span><span class="tag">Chaining</span></div>
+    <p class="desc">Fire a charged arrow at the target. On hitting an enemy or wall, the arrow will fire Chaining Lightning beams at nearby enemies.</p>
+    <div class="rows">Cost: <b>40 Mana</b> · Requires: Level 1</div>
+    <div class="rule"></div>
+    <div class="sec">At this level</div>
+    <ul class="mods"><li>(stat lines for the build's gem level, from the wiki scaling table)</li></ul>
+    <div class="sec">Quality (20%)</div>
+    <ul class="mods q"><li>+8% chance to Shock</li><li>6% chance for Lightning Damage with Hits to be Lucky</li></ul>
+    <div class="sec">Supports (3)</div>
+    <div class="sup"><div class="icon">icon</div><div><p class="n">Close Combat</p><p class="e">Supports Melee Attack Skills. More damage against nearby enemies.</p></div></div>
+    <div class="sup"><div class="icon">icon</div><div><p class="n">Abiding Hex</p><p class="e">Supports Curse Skills you cast yourself. Consumes Power Charges for more duration.</p></div></div>
+    <div class="sup"><div class="icon">icon</div><div><p class="n">Chain</p><p class="e">Supported Skills Chain additional times.</p></div></div>
+    <footer class="foot">Quality bonuses shown at the build's quality, not 20% unless it is.</footer>
+  </article>
+
+  <div class="note">
+    <p><b>What it shows</b>: the skill's own description, tags, level and quality from the build, the stat lines the wiki scaling table gives for that level, quality bonuses at the build's quality, then each support with a one-line "what it does".</p>
+    <p><b>Where</b>: replaces the bare name list in the tapped row's detail (read mode). Desktop gets the same card as a hover popover, like items.</p>
+    <p><b>Kept quiet</b>: no animation, no shader, no neon. Gem colour only as the 3px top bar and the name (red/green/blue as in game).</p>
+    <p><b>Open choices</b>: (1) show all of the level's stat lines or only the first 4 with "more"; (2) support descriptions always visible vs tap-to-expand on phones.</p>
+  </div>
+
+</div>
+</body>
+</html>

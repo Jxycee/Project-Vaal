@@ -261,12 +261,57 @@ export async function saveBuild(
     await page.locator('#build-notes').fill(opts.notes);
   }
   const scratch = new URL(page.url()).pathname === '/tree';
+  // Scratch only: a stall here has failed the first full run twice with no
+  // evidence of where the time went. (Measured once: a cold standalone save
+  // lands in 13s, which does not by itself rule out a cold compile in a long
+  // run.) Keep a timeline plus the set of requests still pending, so the next
+  // failure says whether the POST hung, errored, or the navigation did, and
+  // which request never answered.
+  const t0 = Date.now();
+  const timeline: string[] = [];
+  const stamp = (m: string) => timeline.push(`${((Date.now() - t0) / 1000).toFixed(1)}s ${m}`);
+  const trim = (u: string) => u.replace(/^https?:\/\/[^/]+/, '');
+  const pending = new Map<unknown, string>();
+  const onRequest = (r: { method(): string; url(): string }) => {
+    pending.set(r, `${r.method()} ${trim(r.url())}`);
+    if (/\/api\/builds|\/builds\//.test(r.url())) stamp(`req ${r.method()} ${trim(r.url())}`);
+  };
+  const onResponse = (r: { status(): number; url(): string; request(): unknown }) => {
+    pending.delete(r.request());
+    if (/\/api\/builds|\/builds\//.test(r.url())) stamp(`res ${r.status()} ${trim(r.url())}`);
+  };
+  const onFailed = (r: { url(): string; failure(): { errorText: string } | null }) => {
+    pending.delete(r);
+    stamp(`FAILED ${trim(r.url())} ${r.failure()?.errorText ?? ''}`);
+  };
+  if (scratch) {
+    page.on('request', onRequest);
+    page.on('response', onResponse);
+    page.on('requestfailed', onFailed);
+  }
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   if (scratch) {
-    // The first save lands on a route the dev server may still be compiling
-    // (webpack, cold cache — seen at 30s+ in a screenshot's "Compiling" badge).
-    await page.waitForURL(/\/builds\/[A-Za-z0-9_-]+/, { timeout: 120_000 });
-    await expect(page.getByTestId('build-page')).toBeVisible({ timeout: 60_000 });
+    try {
+      // The first save lands on a route the dev server may still be compiling
+      // (webpack, cold cache — seen at 30s+ in a screenshot's "Compiling" badge).
+      await page.waitForURL(/\/builds\/[A-Za-z0-9_-]+/, { timeout: 120_000 });
+      await expect(page.getByTestId('build-page')).toBeVisible({ timeout: 60_000 });
+    } catch (err) {
+      const state = await page
+        .evaluate(() => ({
+          url: location.href,
+          save: document.querySelector('[data-testid="save-status"]')?.textContent ?? null,
+          alerts: [...document.querySelectorAll('[role="alert"]')].map((e) => e.textContent),
+        }))
+        .catch(() => 'page unreadable');
+      const report = `${timeline.join('\n')}\n\nstill pending:\n${[...pending.values()].join('\n') || '(none)'}\n\npage: ${JSON.stringify(state)}`;
+      console.log(`saveBuild stalled (scratch):\n${report}`);
+      throw new Error(`${(err as Error).message}\n\n--- saveBuild timeline ---\n${report}`);
+    } finally {
+      page.off('request', onRequest);
+      page.off('response', onResponse);
+      page.off('requestfailed', onFailed);
+    }
     return;
   }
   await expect(page.getByTestId('save-status')).toHaveText(/^Saved /, { timeout: 30_000 });
