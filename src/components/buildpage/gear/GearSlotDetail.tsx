@@ -1,10 +1,11 @@
 'use client';
 
 // The tapped doll cell's detail panel, below the doll. Readers get the item's
-// name, craft summary and warnings; the owner (edit mode) also gets Choose
+// card (every mod, tier and roll), its craft summary and warnings; the owner (edit mode) also gets Choose
 // item / Edit affixes / Clear, which drive the standalone ItemPickerSheet and
 // ItemEditorSheet (both portal themselves, so no stacking-context care here).
 import { useState } from 'react';
+import ItemCard from '@/components/build/ItemCard';
 import ItemEditorSheet from '@/components/build/ItemEditorSheet';
 import ItemPickerSheet from '@/components/build/ItemPickerSheet';
 import { craftSummary } from '@/lib/build/craft';
@@ -72,6 +73,9 @@ export default function GearSlotDetail({
           ) : null}
         </div>
       </div>
+
+      {/* The whole item for a reader: every mod with its tier and roll. */}
+      {item ? <ItemCard item={item} /> : null}
 
       {warnings.length > 0 ? (
         <ul className="flex flex-col gap-1 text-xs text-muted-foreground">

@@ -20,12 +20,11 @@
 // display value and reported — the same reading the importer applies.
 // =============================================================================
 
-import { emptyCraft, rangesIn } from '@/lib/build/craft';
+import { displayedValues, emptyCraft, rangesIn } from '@/lib/build/craft';
 import type { GearItem } from '@/lib/build/gearSlots';
 import { loadDetail } from '@/lib/wiki/load';
 import { getModCatalogue, type ModCatalogue } from '@/lib/wiki/modCatalogue';
 import type { WikiItemDetail } from '@/lib/wiki/types';
-import { sameUnits } from '../mapCraft';
 import type { ReportEntry } from '../report';
 import { renderLine } from './renderLine';
 
@@ -55,11 +54,13 @@ const entry = (kind: ReportEntry['kind'], message: string): ReportEntry => ({ ki
 
 /** A mod's display lines, filled from its stored values. */
 function modLines(mod: CatalogueMod, values: readonly number[], label: string, report: ReportEntry[]): string[] {
-  if (sameUnits({ rolls: mod.rolls, stats: mod.stats, slug: mod.slug, kind: mod.kind })) {
+  // Stored rolls in the units the line shows (crit's hundredths scaled back), or null.
+  const shown = displayedValues(mod.stats, mod.rolls, values);
+  if (shown) {
     let at = 0;
     return mod.stats.map((template) => {
       const n = rangesIn(template).length;
-      const line = renderLine(template, values.slice(at, at + n));
+      const line = renderLine(template, shown.slice(at, at + n));
       at += n;
       return line;
     });
