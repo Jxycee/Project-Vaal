@@ -17,6 +17,7 @@
     "sync:wiki": "tsx scripts/sync-wiki.ts",
     "sync:stats": "tsx scripts/sync-stats.ts",
     "sync:tree-lite": "tsx scripts/sync-tree-lite.ts",
+    "sync:pob-gem-ids": "tsx scripts/sync-pob-gem-ids.ts",
     "db:types": "npx supabase gen types typescript --project-id mjxadehorflhncendqiy > src/types/database.ts",
     "db:schema": "tsx scripts/dump-schema.ts"
   },

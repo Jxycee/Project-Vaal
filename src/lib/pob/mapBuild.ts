@@ -75,7 +75,7 @@ const ENDS_WITH_ACT = /\b(?:act|acto|atto|acte|akt|ato)\s*$/i;
  * otherwise the first 1–100 number that is not an act number. Titles like
  * "Act 3 - lvl 40" used to read as level 3.
  */
-function levelInTitle(title: string): number | null {
+export function levelInTitle(title: string): number | null {
   const marked = LEVEL_NUMBER.exec(title);
   if (marked) {
     const n = Number(marked[1]);
