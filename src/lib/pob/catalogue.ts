@@ -76,6 +76,10 @@ export interface Catalogue {
     isStartNode(id: number): boolean;
     /** A generic "+5 to any Attribute" node (GGG: isGenericAttribute) — Slice 5 attribute choices. */
     isAttributeNode(id: number): boolean;
+    /** The node's own string id (what the in-game Build Planner file calls a passive's `id`), or null. */
+    gggIdOf(id: number): string | null;
+    /** The string id of an ascendancy's start node, or null. */
+    ascendancyStartId(ascendancyId: string): string | null;
   };
   /** Keyed by the gem's GGG id — the last segment of its metadata path, e.g. 'SkillGemIceNova'. */
   gems: Map<string, CatalogueGem>;
@@ -99,6 +103,8 @@ export interface Catalogue {
 }
 
 interface RawTreeNode {
+  /** The node's own string id ("criticals45"): what the game's Build Planner file lists. */
+  id?: string;
   ascendancyId?: string;
   isGenericAttribute?: boolean;
   isAscendancyStart?: boolean;
@@ -127,9 +133,13 @@ async function buildTree(): Promise<Catalogue['tree']> {
   const startNodes = new Set<number>();
   const jewelSockets = new Set<number>();
   const attributeNodes = new Set<number>();
+  const gggIds = new Map<number, string>();
+  const ascendancyStarts = new Map<string, string>();
   for (const [key, node] of Object.entries(raw.nodes)) {
     if (!/^\d+$/.test(key)) continue;
     ascendancyByNode.set(Number(key), node.ascendancyId ?? null);
+    if (typeof node.id === 'string') gggIds.set(Number(key), node.id);
+    if (node.isAscendancyStart && node.ascendancyId && typeof node.id === 'string') ascendancyStarts.set(node.ascendancyId, node.id);
     if (node.isJewelSocket) jewelSockets.add(Number(key));
     if (node.isGenericAttribute) attributeNodes.add(Number(key));
     // Class starts carry classesStart (e.g. [3, 9]: DUELIST is shared by
@@ -172,6 +182,8 @@ async function buildTree(): Promise<Catalogue['tree']> {
     graphOf: (ascendancyId) => graphs.get(ascendancyId) ?? ascendancyId,
     isStartNode: (id) => startNodes.has(id),
     isAttributeNode: (id) => attributeNodes.has(id),
+    gggIdOf: (id) => gggIds.get(id) ?? null,
+    ascendancyStartId: (ascendancyId) => ascendancyStarts.get(ascendancyId) ?? null,
   };
 }
 

@@ -21,13 +21,17 @@ import { parseCheckpoints } from '@/lib/build/checkpointState';
 import { parseGearState } from '@/lib/build/gearState';
 import { parseGemState } from '@/lib/build/gemState';
 import { getCatalogue } from '@/lib/pob/catalogue';
-import { encodePobCode, exportPobXml } from '@/lib/pob/export/exportBuild';
+import { encodePobCode, exportPobXml, type ExportInput } from '@/lib/pob/export/exportBuild';
+import { exportBuildFile, type BuildFile } from '@/lib/ggg/exportBuildFile';
 import type { ReportEntry } from '@/lib/pob/report';
 import { createClient, getCachedUser } from '@/lib/supabase/server';
 
 export type ExportResult = { ok: true; code: string; report: ReportEntry[]; checkpointName: string } | { ok: false; error: string };
 
-export async function exportPobCode(buildId: string, checkpointId: string | null): Promise<ExportResult> {
+type Loaded = { ok: true; input: ExportInput; checkpointName: string } | { ok: false; error: string };
+
+/** Everything either export reads: the caller's own saved build and its checkpoints, through RLS. */
+async function loadExportInput(buildId: string, checkpointId: string | null): Promise<Loaded> {
   const { data: userData } = await getCachedUser();
   if (!userData.user) return { ok: false, error: 'Sign in to export a build.' };
   if (typeof buildId !== 'string' || !UUID_RE.test(buildId)) return { ok: false, error: "Couldn't export that build." };
@@ -47,9 +51,10 @@ export async function exportPobCode(buildId: string, checkpointId: string | null
   const requested = checkpointId ?? row.active_checkpoint_id;
   const found = checkpoints.findIndex((c) => c.id === requested);
   const activeIndex = found === -1 ? 0 : found;
-
-  const result = await exportPobXml(
-    {
+  return {
+    ok: true,
+    checkpointName: checkpoints[activeIndex].name,
+    input: {
       build: { name: row.name, class: row.class, ascendancy: row.ascendancy, level: row.level, notes: row.notes },
       checkpoints: checkpoints.map((c) => ({
         name: c.name,
@@ -60,8 +65,24 @@ export async function exportPobCode(buildId: string, checkpointId: string | null
       })),
       activeIndex,
     },
-    await getCatalogue(),
-  );
+  };
+}
+
+export async function exportPobCode(buildId: string, checkpointId: string | null): Promise<ExportResult> {
+  const loaded = await loadExportInput(buildId, checkpointId);
+  if (!loaded.ok) return loaded;
+  const result = await exportPobXml(loaded.input, await getCatalogue());
   if (!result.ok) return result;
-  return { ok: true, code: encodePobCode(result.xml), report: result.report, checkpointName: checkpoints[activeIndex].name };
+  return { ok: true, code: encodePobCode(result.xml), report: result.report, checkpointName: loaded.checkpointName };
+}
+
+export type BuildFileExportResult = { ok: true; file: BuildFile; report: ReportEntry[]; checkpointName: string } | { ok: false; error: string };
+
+/** The same saved build as the game's own Build Planner file (.build). Same access rules as exportPobCode. */
+export async function exportGameBuildFile(buildId: string, checkpointId: string | null): Promise<BuildFileExportResult> {
+  const loaded = await loadExportInput(buildId, checkpointId);
+  if (!loaded.ok) return loaded;
+  const result = exportBuildFile(loaded.input, await getCatalogue());
+  if (!result.ok) return result;
+  return { ok: true, file: result.file, report: result.report, checkpointName: loaded.checkpointName };
 }
