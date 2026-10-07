@@ -29,9 +29,9 @@ import { callAction } from '@/lib/callAction';
 const BUTTON = 'flex h-11 min-w-11 items-center justify-center rounded-md border border-border px-3 text-sm text-foreground disabled:opacity-50';
 
 const SECTIONS: Array<{ kind: ReportEntry['kind']; title: string }> = [
-  { kind: 'dropped', title: 'Dropped' },
-  { kind: 'inferred', title: 'Inferred' },
-  { kind: 'note', title: 'Notes' },
+  { kind: 'dropped', title: 'Left out' },
+  { kind: 'inferred', title: 'Filled in by us' },
+  { kind: 'note', title: 'Good to know' },
 ];
 
 export default function ImportSheet({ onClose }: { onClose: () => void }) {
@@ -91,8 +91,15 @@ export default function ImportSheet({ onClose }: { onClose: () => void }) {
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-3 *:shrink-0">
+        <p className="text-sm text-muted-foreground" data-testid="import-help">
+          Copy a build from Path of Building 2 or a build site into a new Project Vaal build. Paste it below, press Preview to
+          see what will come across, then press Import.
+        </p>
         <label className="flex flex-col gap-1 text-sm text-foreground">
-          Path of Building 2 code, or a pobb.in / Maxroll / poe.ninja / poe2db.tw link
+          Build code or link
+          <span className="text-xs text-muted-foreground">
+            In Path of Building 2: Import/Export Build, Generate, Copy. Or paste a link from pobb.in, Maxroll, poe.ninja or poe2db.tw.
+          </span>
           <textarea
             value={input}
             onChange={(e) => onInput(e.target.value)}
@@ -114,14 +121,15 @@ export default function ImportSheet({ onClose }: { onClose: () => void }) {
         {preview ? (
           <div className="flex flex-col gap-3" data-testid="import-preview">
             <section className="flex flex-col gap-1">
-              <h2 className="text-sm font-semibold text-foreground">Kept</h2>
+              <h2 className="text-sm font-semibold text-foreground">What will be imported</h2>
               <p className="text-sm text-foreground" data-testid="import-summary">
                 {preview.summary.ascendancy ?? preview.summary.className} ({preview.summary.className}), level{' '}
                 {preview.summary.level}. {preview.summary.checkpoints.length} checkpoints, {preview.summary.skills} skills
                 with {preview.summary.gems} gems, {preview.summary.items} items, {preview.summary.jewels} jewels.
               </p>
               <p className="text-xs text-muted-foreground">
-                Dropped {count('dropped')} · Inferred {count('inferred')} · Notes {count('note')}
+                Left out {count('dropped')} (in the original, not supported here) · Filled in by us {count('inferred')} (not stated in
+                the original) · Good to know {count('note')}
               </p>
             </section>
 
