@@ -1,10 +1,13 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { GildedFrame } from '@/components/landing/gilded-frame'
 
 export default function Home() {
   return (
-    <main className="mx-auto flex min-h-[100dvh] w-full max-w-2xl flex-col items-center justify-center px-4 py-16 text-center">
+    <>
+    <GildedFrame />
+    <main className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-2xl flex-col items-center justify-center px-8 py-20 text-center sm:px-4 sm:py-16">
       {/* w-based + h-auto preserves aspect ratio; max-w-[70vw] stops it
           overflowing or distorting on small phones. This is the page's LCP
           element — `priority` disables lazy-loading and sets fetchpriority=high;
@@ -12,17 +15,24 @@ export default function Home() {
           so next/image requests an appropriately small variant instead of
           always serving the full 1024x1024 source (was ~1.4MB, the single
           biggest contributor to a 10s+ LCP). */}
-      <Image
-        src="/brand/vaal-emblem.png"
-        alt=""
-        width={384}
-        height={384}
-        priority
-        sizes="(max-width: 381px) 88vw, (max-width: 639px) 336px, 384px"
-        className="mb-6 h-auto w-84 max-w-[88vw] opacity-95 sm:w-96"
-      />
+      <div className="relative mb-6">
+        {/* Warm halo behind the emblem; decorative, slow breathing. */}
+        <div
+          aria-hidden="true"
+          className="landing-halo absolute left-1/2 top-1/2 -z-10 size-[150%] max-h-[100vw] max-w-[100vw] -translate-x-1/2 -translate-y-1/2 rounded-full"
+        />
+        <Image
+          src="/brand/vaal-emblem.png"
+          alt=""
+          width={384}
+          height={384}
+          priority
+          sizes="(max-width: 381px) 88vw, (max-width: 639px) 336px, 384px"
+          className="h-auto w-72 max-w-[80vw] opacity-95 sm:w-96"
+        />
+      </div>
 
-      <h1 className="font-heading text-4xl font-semibold tracking-tight sm:text-5xl">
+      <h1 className="landing-title font-heading text-4xl font-semibold uppercase tracking-[0.06em] sm:text-5xl">
         Project Vaal
       </h1>
 
@@ -86,5 +96,6 @@ export default function Home() {
         </a>
       </div>
     </main>
+    </>
   )
 }
