@@ -58,6 +58,27 @@ const SLOT_BY_POB_NAME: Record<string, GearSlot | 'flask'> = {
 };
 const POB_SLOT_ORDER = Object.keys(SLOT_BY_POB_NAME);
 
+/** Our slot -> PoB's slot name, for export. Flasks are 'Flask 1' (Life) and 'Flask 2' (Mana), the way the importer files them. */
+export const POB_SLOT_NAME: Record<GearSlot, string> = {
+  weapon1_main: 'Weapon 1',
+  weapon1_off: 'Weapon 2',
+  weapon2_main: 'Weapon 1 Swap',
+  weapon2_off: 'Weapon 2 Swap',
+  head: 'Helmet',
+  body: 'Body Armour',
+  gloves: 'Gloves',
+  boots: 'Boots',
+  amulet: 'Amulet',
+  ring1: 'Ring 1',
+  ring2: 'Ring 2',
+  belt: 'Belt',
+  flask1: 'Flask 1',
+  flask2: 'Flask 2',
+  charm1: 'Charm 1',
+  charm2: 'Charm 2',
+  charm3: 'Charm 3',
+};
+
 interface ReadItem {
   rarity: string;
   /** Lines 2 and 3 of the clipboard text, without the rarity line. */

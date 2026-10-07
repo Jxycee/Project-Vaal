@@ -38,6 +38,16 @@ const withSerwist = withSerwistInit({
   globPublicPatterns: ['*', '!(data)/**/*', 'data/tree/**/*'],
 })
 
+/** The files src/lib/pob/catalogue.ts reads at request time (import and export). */
+const POB_CATALOGUE_FILES = [
+  './public/data/tree/*/data.json',
+  './public/data/wiki/*/item-index.json',
+  './public/data/wiki/*/skills/*.json',
+  './public/data/wiki/*/items/*.json',
+  // Slice 4: the importer reads crafted mods through the mod catalogue.
+  './public/data/wiki/*/mods/*.json',
+];
+
 const nextConfig: NextConfig = {
   // -------------------------------------------------------------------------
   // Explicit, empty Turbopack config. `withSerwistInit` (below) injects a
@@ -118,15 +128,13 @@ const nextConfig: NextConfig = {
   // here: count public/data entries in
   // .next/server/app/(dashboard)/builds/page.js.nft.json after a build.
   // -------------------------------------------------------------------------
+  // The PoB2 EXPORT Server Function (builds/exportActions.ts) is invoked from
+  // the build page, /builds/[shareToken], so it runs in THAT route's function,
+  // not /builds': it needs the same catalogue files. Gate: count public/data
+  // entries in .next/server/app/(dashboard)/builds/[shareToken]/page.js.nft.json.
   outputFileTracingIncludes: {
-    '/builds': [
-      './public/data/tree/*/data.json',
-      './public/data/wiki/*/item-index.json',
-      './public/data/wiki/*/skills/*.json',
-      './public/data/wiki/*/items/*.json',
-      // Slice 4: the importer reads crafted mods through the mod catalogue.
-      './public/data/wiki/*/mods/*.json',
-    ],
+    '/builds': POB_CATALOGUE_FILES,
+    '/builds/*': POB_CATALOGUE_FILES,
     // GET /api/wiki/mods reads every mod file and one item file at request
     // time (src/lib/wiki/modCatalogue.ts). Verified 2026-09-25: the automatic
     // trace DOES find them today (5,267 mods, 4,994 items without this entry).

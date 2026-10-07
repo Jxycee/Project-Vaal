@@ -409,11 +409,11 @@ export async function setVisibility(page: Page, token: string, visibility: Build
  * the new build's share token, read off the URL the import lands on
  * (`/builds/<token>?...edit=1`, slice 7a).
  */
-export async function importFixture(page: Page, name: string): Promise<string> {
+export async function importFixture(page: Page, name: string, code: string = POB_FIXTURE_CODE): Promise<string> {
   await gotoBuilds(page);
   await page.getByTestId('open-import-sheet').click();
   const sheet = page.getByTestId('import-sheet');
-  await sheet.getByTestId('import-input').fill(POB_FIXTURE_CODE);
+  await sheet.getByTestId('import-input').fill(code);
   await sheet.getByRole('button', { name: 'Preview', exact: true }).click();
   await expect(sheet.getByTestId('import-preview')).toBeVisible({ timeout: 60_000 });
   await sheet.getByTestId('import-name').fill(name);

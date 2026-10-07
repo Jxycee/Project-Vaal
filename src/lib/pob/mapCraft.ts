@@ -70,7 +70,7 @@ function rangeFractionOf(line: string): number {
 }
 
 /** Whether a mod's display ranges are its roll ranges — then a shown number IS the rolled value. */
-function sameUnits(mod: CraftMod): boolean {
+export function sameUnits(mod: CraftMod): boolean {
   const shown = mod.stats.flatMap(rangesIn);
   return shown.length === mod.rolls.length && shown.every((r, i) => r.min === mod.rolls[i].min && r.max === mod.rolls[i].max);
 }

@@ -25,6 +25,7 @@ import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
 import { addBuildTag, deleteBuild, removeBuildTag, renameBuild, setBuildVisibility } from '@/app/(dashboard)/builds/actions';
+import { exportPobCode, type ExportResult } from '@/app/(dashboard)/builds/exportActions';
 import { MAX_BUILD_NAME_LENGTH } from '@/lib/build/constants';
 import { clearDraft } from '@/lib/build/draft';
 import { normalizeTag } from '@/lib/build/tags';
@@ -45,9 +46,11 @@ export interface BuildSettingsProps {
   edit: boolean;
   /** Every checkpoint id of this build, so deleting it can clear each checkpoint's local draft (drafts are keyed per checkpoint). */
   checkpointIds: readonly string[];
+  /** The checkpoint on screen: the one whose gear and gems a Path of Building export carries. */
+  activeCheckpointId?: string;
 }
 
-export default function BuildSettings({ buildId, visibility, tags, edit, checkpointIds }: BuildSettingsProps) {
+export default function BuildSettings({ buildId, visibility, tags, edit, checkpointIds, activeCheckpointId }: BuildSettingsProps) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -64,7 +67,7 @@ export default function BuildSettings({ buildId, visibility, tags, edit, checkpo
           its fields are seeded from the current props every time it opens. */}
       {open && typeof document !== 'undefined'
         ? createPortal(
-            <SettingsSheet buildId={buildId} visibility={visibility} tags={tags} edit={edit} checkpointIds={checkpointIds} onClose={() => setOpen(false)} />,
+            <SettingsSheet buildId={buildId} visibility={visibility} tags={tags} edit={edit} checkpointIds={checkpointIds} activeCheckpointId={activeCheckpointId} onClose={() => setOpen(false)} />,
             document.body,
           )
         : null}
@@ -72,7 +75,7 @@ export default function BuildSettings({ buildId, visibility, tags, edit, checkpo
   );
 }
 
-function SettingsSheet({ buildId, visibility, tags, edit, checkpointIds, onClose }: BuildSettingsProps & { onClose: () => void }) {
+function SettingsSheet({ buildId, visibility, tags, edit, checkpointIds, activeCheckpointId, onClose }: BuildSettingsProps & { onClose: () => void }) {
   const router = useRouter();
   const { meta, dirty, setMeta, applySavedName } = useBuildSession();
   const [pending, startTransition] = useTransition();
@@ -84,6 +87,8 @@ function SettingsSheet({ buildId, visibility, tags, edit, checkpointIds, onClose
   const [tagDraft, setTagDraft] = useState('');
   const [nameDraft, setNameDraft] = useState(meta.name);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [exported, setExported] = useState<Extract<ExportResult, { ok: true }> | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -104,6 +109,32 @@ function SettingsSheet({ buildId, visibility, tags, edit, checkpointIds, onClose
       }
       onOk();
     });
+  }
+
+  function exportCode() {
+    setError(null);
+    setNote(null);
+    setCopied(false);
+    startTransition(async () => {
+      const result = await callAction(() => exportPobCode(buildId, activeCheckpointId ?? null));
+      if (!result.ok) {
+        setExported(null);
+        setError(result.error);
+        return;
+      }
+      setExported(result);
+    });
+  }
+
+  async function copyCode() {
+    if (!exported) return;
+    try {
+      await navigator.clipboard.writeText(exported.code);
+      setCopied(true);
+    } catch {
+      // No clipboard permission: the code is in the box, selectable by hand.
+      setError('Could not copy automatically. Select the code and copy it.');
+    }
   }
 
   function chooseVisibility(next: BuildVisibility) {
@@ -288,6 +319,45 @@ function SettingsSheet({ buildId, visibility, tags, edit, checkpointIds, onClose
             <p role="status" className="text-xs text-muted-foreground">
               {note}
             </p>
+          ) : null}
+        </section>
+
+        <section className="flex flex-col gap-2 border-t border-border pt-4" data-testid="export-section">
+          <h2 className="text-sm font-semibold text-foreground">Export</h2>
+          <p className="text-xs text-muted-foreground">
+            Makes a Path of Building 2 code from the saved build{edit && dirty ? ' (your unsaved edits are not included)' : ''}. Path of Building holds one set of gear and gems, so
+            those come from the checkpoint you are viewing.
+          </p>
+          <button type="button" onClick={exportCode} disabled={pending} className={BUTTON}>
+            {pending ? 'Exporting…' : 'Export to Path of Building'}
+          </button>
+          {exported ? (
+            <div className="flex flex-col gap-2" data-testid="export-result">
+              <textarea
+                readOnly
+                value={exported.code}
+                rows={4}
+                aria-label="Path of Building code"
+                data-testid="export-code"
+                onFocus={(e) => e.currentTarget.select()}
+                className="w-full resize-none rounded-md border border-border bg-background p-2 font-mono text-xs text-foreground"
+              />
+              <button type="button" onClick={copyCode} className={BUTTON}>
+                {copied ? 'Copied' : 'Copy code'}
+              </button>
+              {exported.report.length > 0 ? (
+                <details className="text-xs text-muted-foreground" data-testid="export-report">
+                  <summary className="flex min-h-11 cursor-pointer items-center">
+                    {exported.report.length} thing{exported.report.length === 1 ? '' : 's'} to know
+                  </summary>
+                  <ul className="flex list-disc flex-col gap-1 pl-4">
+                    {exported.report.map((entry, i) => (
+                      <li key={i}>{entry.message}</li>
+                    ))}
+                  </ul>
+                </details>
+              ) : null}
+            </div>
           ) : null}
         </section>
 

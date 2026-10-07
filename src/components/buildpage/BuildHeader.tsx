@@ -165,6 +165,7 @@ export function HeaderActions({
   shareToken,
   tags = null,
   checkpointIds = [],
+  activeCheckpointId,
   compact = false,
   edit,
   onToggleEdit,
@@ -172,6 +173,8 @@ export function HeaderActions({
 }: Pick<HeaderProps, 'mode' | 'row' | 'shareToken' | 'edit' | 'onToggleEdit' | 'onRequestDone'> & {
   /** Every checkpoint id of the build, for the settings menu's delete (which clears each one's draft). */
   checkpointIds?: readonly string[];
+  /** The checkpoint on screen, so a Path of Building export knows which one's gear and gems to carry. */
+  activeCheckpointId?: string;
   /** The owner's tags, for the settings menu. Not needed by the compact bar, which has no settings button. */
   tags?: string[] | null;
   /** The compact sticky bar has no room for Copy link below `sm` — Edit stays, Copy link hides; the settings button lives in the full header only. */
@@ -202,7 +205,7 @@ export function HeaderActions({
         </button>
       ) : null}
       {mode === 'owner' && !compact ? (
-        <BuildSettings buildId={row.id} visibility={row.visibility} tags={tags} edit={edit} checkpointIds={checkpointIds} />
+        <BuildSettings buildId={row.id} visibility={row.visibility} tags={tags} edit={edit} checkpointIds={checkpointIds} activeCheckpointId={activeCheckpointId} />
       ) : null}
       {mode === 'owner' ? (
         <button
@@ -243,6 +246,7 @@ export default function BuildHeader(props: HeaderProps) {
           shareToken={shareToken}
           tags={tags}
           checkpointIds={checkpoints.map((c) => c.id)}
+          activeCheckpointId={activeCheckpointId}
           edit={edit}
           onToggleEdit={onToggleEdit}
           onRequestDone={onRequestDone}

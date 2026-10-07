@@ -55,6 +55,8 @@ export interface Catalogue {
     ascendancyOf(id: number): string | null;
     /** Exact class display name, e.g. 'Mercenary'. A tree cannot be placed on a class we do not have. */
     hasClass(className: string): boolean;
+    /** The class's index in the tree export — PoB2's `classInternalId` (Marauder 0 … Druid 11) — or null. */
+    classIndexOf(className: string): number | null;
     /** A passive node that holds a jewel. */
     isJewelSocket(id: number): boolean;
     /** Exact class and ascendancy display names -> our ascendancy id, or null. */
@@ -161,6 +163,10 @@ async function buildTree(): Promise<Catalogue['tree']> {
     hasNode: (id) => ascendancyByNode.has(id),
     ascendancyOf: (id) => ascendancyByNode.get(id) ?? null,
     hasClass: (className) => classNames.has(className),
+    classIndexOf: (className) => {
+      const at = raw.classes.findIndex((cls) => cls.name === className);
+      return at === -1 ? null : at;
+    },
     isJewelSocket: (id) => jewelSockets.has(id),
     ascendancyIdFor: (className, ascendancyName) => ascendancyIds.get(`${className}\u0000${ascendancyName}`) ?? null,
     graphOf: (ascendancyId) => graphs.get(ascendancyId) ?? ascendancyId,
