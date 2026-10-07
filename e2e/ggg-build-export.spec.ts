@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
+import { deflateSync, inflateSync } from 'node:zlib';
 import { test, expect } from '@playwright/test';
 import { cleanupWithFreshPage, importFixture, openBuildSettings, testBuildName } from './helpers';
 
@@ -31,11 +32,32 @@ import { cleanupWithFreshPage, importFixture, openBuildSettings, testBuildName }
 // report and the counts checked, so it can be dropped into
 // Documents/My Games/Path of Exile 2/BuildPlanner by hand.
 
-const CODE = readFileSync(path.join(__dirname, '..', 'docs', 'superpowers', 'handoffs', '2026-09-27-momentsZX-pob2-code.txt'), 'utf8').trim();
 const TREE = JSON.parse(readFileSync(path.join(__dirname, '..', 'public', 'data', 'tree', '0.5.2', 'data.json'), 'utf8')) as {
   nodes: Record<string, { id: string; ascendancyId?: string }>;
   classes: { name: string; ascendancies?: { id: string; name: string }[] }[];
 };
+// Neither vendored PoB code carries weapon-set node lists, so inject some: take the last spec's allocated
+// main-tree nodes, tie two to set 1 and two to set 2 (PoB's <WeaponSetN nodes> lists set-only nodes).
+function codeWithWeaponSets(): { code: string; set1: string[]; set2: string[] } {
+  const raw = readFileSync(path.join(__dirname, '..', 'docs', 'superpowers', 'handoffs', '2026-09-27-momentsZX-pob2-code.txt'), 'utf8').trim();
+  const xml = inflateSync(Buffer.from(raw.replace(/-/g, '+').replace(/_/g, '/'), 'base64')).toString('utf8');
+  const specs = [...xml.matchAll(/<Spec [^>]*nodes="([0-9,]+)"[^>]*>/g)];
+  const last = specs[specs.length - 1];
+  const plain = last[1]
+    .split(',')
+    .map(Number)
+    .filter((n) => {
+      const node = TREE.nodes[String(n)] as { ascendancyId?: string; isAscendancyStart?: boolean; classStartIndex?: unknown; classesStart?: unknown; isJewelSocket?: boolean } | undefined;
+      return node && !node.ascendancyId && !node.isAscendancyStart && node.classStartIndex === undefined && node.classesStart === undefined && !node.isJewelSocket;
+    });
+  const pick1 = plain.slice(10, 12);
+  const pick2 = plain.slice(20, 22);
+  const insertAt = xml.indexOf('>', last.index!) + 1;
+  const withSets = xml.slice(0, insertAt) + '<WeaponSet1 nodes="' + pick1.join(',') + '"/><WeaponSet2 nodes="' + pick2.join(',') + '"/>' + xml.slice(insertAt);
+  const code = deflateSync(Buffer.from(withSets, 'utf8')).toString('base64').replace(/\+/g, '-').replace(/\//g, '_');
+  return { code, set1: pick1.map((n) => TREE.nodes[String(n)].id), set2: pick2.map((n) => TREE.nodes[String(n)].id) };
+}
+
 const GEM_PATHS = new Set(
   Object.values(JSON.parse(readFileSync(path.join(__dirname, '..', 'src', 'lib', 'pob', 'export', 'pobGemIds.json'), 'utf8')) as Record<string, { gameId: string }>).map(
     (g) => g.gameId,
@@ -63,7 +85,8 @@ test.describe('in-game Build Planner export', () => {
   });
 
   test('exports a valid .build file for the momentsZX Deadeye', async ({ page }, testInfo) => {
-    const token = await importFixture(page, name, CODE);
+    const injected = codeWithWeaponSets();
+    const token = await importFixture(page, name, injected.code);
     await page.goto(`/builds/${token}`);
     await expect(page.getByTestId('build-page')).toBeVisible({ timeout: 30_000 });
 
@@ -97,6 +120,9 @@ test.describe('in-game Build Planner export', () => {
     // 2. Weapon sets present and well-formed (momentsZX uses both).
     const sets = new Set(file.passives.map((p) => p.weapon_set).filter((w) => w !== undefined));
     expect([...sets].sort(), 'weapon_set values').toEqual([1, 2]);
+    // Exactly the injected nodes carry their set, and nothing else is tagged.
+    expect(file.passives.filter((q) => q.weapon_set === 1).map((q) => q.id).sort(), 'set 1 nodes').toEqual([...injected.set1].sort());
+    expect(file.passives.filter((q) => q.weapon_set === 2).map((q) => q.id).sort(), 'set 2 nodes').toEqual([...injected.set2].sort());
     // A node tied to a set is never also listed untagged (shared = no tag).
     const untaggedIds = new Set(file.passives.filter((p) => p.weapon_set === undefined).map((p) => p.id));
     for (const p of file.passives.filter((q) => q.weapon_set !== undefined)) expect(untaggedIds.has(p.id), p.id + ' listed both tagged and untagged').toBe(false);
