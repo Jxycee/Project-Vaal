@@ -23,7 +23,13 @@ export interface RawCollectFiles {
    * The tree: names and flags for every reader. `jewelRadius` (lite.json) or, on the full export, node x/y with
    * the type flags, say which notables and smalls sit near each jewel socket.
    */
-  tree: { nodes: Record<string, { name?: string; isGenericAttribute?: boolean }>; jewelSlots?: (string | number)[]; jewelRadius?: Record<string, JewelRadiusNode[]> };
+  tree: {
+    nodes: Record<string, { name?: string; isGenericAttribute?: boolean; isNotable?: boolean; isKeystone?: boolean; isMastery?: boolean; isJewelSocket?: boolean }>;
+    jewelSlots?: (string | number)[];
+    jewelRadius?: Record<string, JewelRadiusNode[]>;
+    /** lite.json: the ids that are not plain small passives (treeLite.ts). The full export says it per node instead. */
+    notSmall?: number[];
+  };
   nodeStats: { nodes: Record<string, [string, number][]> };
   implicitStats: { bases: Record<string, [string, number, number][][]> };
   uniqueStats: { uniques: Record<string, { baseType: string; baseSlug: string | null; lines: (string[] | null)[] }> };
@@ -48,6 +54,8 @@ export function makeCollectData(files: RawCollectFiles): CollectData {
   let byName: Map<string, number> | undefined;
   /** Near-socket passives: the lite file's table, else derived from the full export's coordinates, else unknown. */
   let radius: Record<string, JewelRadiusNode[]> | null | undefined = files.tree.jewelRadius;
+  const notSmall = files.tree.notSmall ? new Set(files.tree.notSmall) : undefined;
+  const full = Object.values(files.tree.nodes).some((n) => n.isNotable !== undefined || n.isKeystone !== undefined || n.isMastery !== undefined);
   return {
     radiusNodes(socket) {
       if (radius === undefined) {
@@ -78,7 +86,9 @@ export function makeCollectData(files: RawCollectFiles): CollectData {
       const typed = files.nodeStats.nodes[String(id)];
       const node = files.tree.nodes[String(id)];
       if (!typed || !node) return undefined;
-      return { name: node.name ?? '', stats: typed, attribute: Boolean(node.isGenericAttribute) };
+      // Plain small = what "increased effect of Small Passive Skills" scales; undefined = this tree file cannot say.
+      const small = notSmall ? !notSmall.has(id) : full ? !(node.isNotable || node.isKeystone || node.isMastery || node.isJewelSocket) : undefined;
+      return { name: node.name ?? '', stats: typed, attribute: Boolean(node.isGenericAttribute), ...(small === undefined ? {} : { small }) };
     },
     item(slug) {
       const detail = files.items.get(slug);

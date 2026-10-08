@@ -175,12 +175,12 @@ const DERIVED_FLOOR: Record<string, number> = {
   'ordinary-amazon-1.json': 15, // of 19
   'ordinary-amazon-2.json': 7, // of 19
   'ordinary-martial-artist-1.json': 8, // round 1 of the accuracy loop: Fists of Stone per-level defences; was 7 // of 19
-  'ordinary-martial-artist-2.json': 7, // round 1 of the accuracy loop: Fists of Stone per-level defences; was 6 // of 19
+  'ordinary-martial-artist-2.json': 13, // round 1 of the accuracy loop: Fists of Stone per-level defences and a jewel's Effect of Notable Passive Skills in Radius; was 6 // of 19
   'ordinary-pathfinder-1.json': 12, // of 19
   'ordinary-pathfinder-2.json': 13, // of 19
   'ordinary-spirit-walker-1.json': 12, // of 19
   'ordinary-spirit-walker-2.json': 15, // of 19
-  'ordinary-titan-1.json': 10, // of 19
+  'ordinary-titan-1.json': 15, // round 1 of the accuracy loop: Hulking Form (effect of Small Passive Skills), Stone Skin (slot more); was 10 // of 19
   'ordinary-warbringer-1.json': 8, // of 17
 };
 
@@ -212,12 +212,12 @@ const FLOOR: Record<string, number> = {
   'ordinary-amazon-1.json': 13, // 13 of 13 at the start (Kustu, evasion/ES)
   'ordinary-amazon-2.json': 11, // 11 of 13 at the start: short ES (4123/4800) and Evasion (15605/30956)
   'ordinary-martial-artist-1.json': 12, // round 1 of the accuracy loop: 12 of 13 (Way of the Stonefist's Fists of Stone: its per-player-level defences count and the unique's untransformed lines do not); short: Evasion (the Evasive Leg limb slot); was 9 at the start: short Mana, ES, Evasion; Armour 60 where PoB has 0
-  'ordinary-martial-artist-2.json': 7, // round 1 of the accuracy loop: 7 of 13 (Fists of Stone: Armour, ES; Life and Mana now within 4); short: attributes and Evasion (a Time-Lost jewel's 22% increased Effect of Notable Passive Skills in Radius); was 5 at the start: attributes, Life (over), Mana, ES, Evasion short; Armour 34 where PoB has 0
+  'ordinary-martial-artist-2.json': 13, // round 1 of the accuracy loop: 13 of 13 (Fists of Stone per-level defences; a Time-Lost jewel's 22% increased Effect of Notable Passive Skills in Radius scales its notables, floored); was 5 at the start: attributes, Life (over), Mana, ES, Evasion short; Armour 34 where PoB has 0
   'ordinary-pathfinder-1.json': 13, // 13 of 13 at the start (zzzuzaha2, flask/charm build)
   'ordinary-pathfinder-2.json': 12, // 12 of 13 at the start: short Evasion (3899/4586)
   'ordinary-spirit-walker-1.json': 10, // 10 of 13 at the start: ES, Armour, Evasion off by 1 to 6 (rounding or a small flat source)
   'ordinary-spirit-walker-2.json': 13, // 13 of 13 at the start
-  'ordinary-titan-1.json': 4, // 4 of 13 at the start: strength/Life/Mana/ES/Armour/Evasion short, Spirit 200 where PoB has 0 (Grand Spectrum x3, Darkness Enthroned)
+  'ordinary-titan-1.json': 13, // round 1 of the accuracy loop: 13 of 13 (Hulking Form scales plain small passives by 50%, floored, never the generic attribute nodes or ascendancy ones; Stone Skin is a body-armour-only more; Kaom's Heart 'You have no Spirit'); was 4 at the start: strength/Life/Mana/ES/Armour/Evasion short, Spirit 200 where PoB has 0 (Grand Spectrum x3, Darkness Enthroned)
   'ordinary-warbringer-1.json': 9, // 9 of 13 at the start: Mana 552 where PoB has 0, Armour and Evasion short, Life over
 };
 

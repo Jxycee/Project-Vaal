@@ -166,11 +166,11 @@ export function computeDefences(given: EngineInput): DefenceSheet {
   // increase this is the same number as scaling the grand total.
   const defence = (pool: Pool, base = 0) => {
     const slotted = slotsOf(input.contributions, pool);
-    let total = (base + sum(input.contributions, pool, 'flat', false)) * (1 + incOf(pool) / 100);
+    let total = (base + sum(input.contributions, pool, 'flat', false)) * (1 + incOf(pool) / 100) * moreOf(pool);
     for (const slot of slotted) {
-      total += sumSlot(input.contributions, pool, 'flat', slot) * (1 + (incOf(pool) + sumSlot(input.contributions, pool, 'increased', slot)) / 100);
+      total += sumSlot(input.contributions, pool, 'flat', slot) * (1 + (incOf(pool) + sumSlot(input.contributions, pool, 'increased', slot)) / 100) * product(input.contributions, pool, slot);
     }
-    return Math.max(Math.round(total * moreOf(pool)), 0);
+    return Math.max(Math.round(total), 0);
   };
 
   const resist = (pool: Pool, maxPool: Pool, penalty: number): Resistance => {
@@ -234,11 +234,13 @@ function sumSlot(list: readonly Contribution[], pool: Pool, kind: Contribution['
  * (ModDB.lua MoreInternal: result * round(modResult, 2); the highPrecisionMods exceptions are BASE crit/regen, none of them
  * a more). Runeseeker's Call: 30% less x 15% less = 0.595 -> 0.60, which is why PoB's Life is 987 and not 979.
  */
-function product(list: readonly Contribution[], pool: Pool): number {
+function product(list: readonly Contribution[], pool: Pool, slot?: GearSlot): number {
   let total = 1;
   let any = false;
   for (const c of list) {
-    if (c.pool === pool && c.kind === 'more' && Number.isFinite(c.value)) {
+    // A slot-tagged more (the Titan's Stone Skin: 50% more Armour from Equipped Body Armour) multiplies that item alone;
+    // the pool's own more (slot undefined) never includes it. A slot asked for gets the global more AND its own.
+    if (c.pool === pool && c.kind === 'more' && Number.isFinite(c.value) && (c.slot === undefined || c.slot === slot)) {
       total *= 1 + c.value / 100;
       any = true;
     }

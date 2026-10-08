@@ -3614,18 +3614,10 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
-      "evasion": [
-        "increased 24 from 62984"
-      ],
-      "str": [
-        "flat 12 from 13407"
-      ],
-      "dex": [
-        "increased 9 from 51707"
-      ],
-      "int": [
-        "flat 12 from 38537"
-      ]
+      "evasion": [],
+      "str": [],
+      "dex": [],
+      "int": []
     },
     "notCounted": [
       "Quest rewards you choose: Venom Draught (Venom Crypts)",
@@ -3633,33 +3625,33 @@
     ],
     "class": "Martial Artist",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/Sirsyd-4681/Syd_XV",
-    "matched": 7,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
         "want": 56,
-        "got": 54,
-        "ok": false
+        "got": 56,
+        "ok": true
       },
       "dex": {
         "want": 174,
-        "got": 173,
-        "ok": false
+        "got": 174,
+        "ok": true
       },
       "int": {
         "want": 139,
-        "got": 137,
-        "ok": false
+        "got": 139,
+        "ok": true
       },
       "life": {
         "want": 1528,
-        "got": 1524,
-        "ok": false
+        "got": 1528,
+        "ok": true
       },
       "mana": {
         "want": 1079,
-        "got": 1075,
-        "ok": false
+        "got": 1079,
+        "ok": true
       },
       "energyShield": {
         "want": 3726,
@@ -3673,8 +3665,8 @@
       },
       "evasion": {
         "want": 27279,
-        "got": 27080,
-        "ok": false
+        "got": 27279,
+        "ok": true
       },
       "fire": {
         "want": 75,
@@ -3702,7 +3694,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 7,
+    "derivedMatched": 13,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -3717,12 +3709,12 @@
       },
       "deflectionRating": {
         "want": 21004,
-        "got": 20580,
-        "ok": false
+        "got": 21004,
+        "ok": true
       },
       "deflectChance": {
         "want": 95,
-        "got": 89,
+        "got": 90,
         "ok": false
       },
       "ward": {
@@ -3772,33 +3764,33 @@
       },
       "effectiveHealthPool": {
         "want": 64736,
-        "got": 56989,
+        "got": 57403,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 5254,
-        "got": 5250,
-        "ok": false
+        "got": 5254,
+        "ok": true
       },
       "fireMaxHit": {
         "want": 18764,
-        "got": 18750,
-        "ok": false
+        "got": 18764,
+        "ok": true
       },
       "coldMaxHit": {
         "want": 9730,
-        "got": 9722,
-        "ok": false
+        "got": 9730,
+        "ok": true
       },
       "lightningMaxHit": {
         "want": 8757,
-        "got": 8750,
-        "ok": false
+        "got": 8757,
+        "ok": true
       },
       "chaosMaxHit": {
         "want": 13564,
-        "got": 13548,
-        "ok": false
+        "got": 13564,
+        "ok": true
       }
     }
   },
@@ -4761,31 +4753,16 @@
         "flat 184 from Loath Horn, Runeforged Gladiatorial Helm"
       ],
       "mana": [],
-      "energyShield": [
-        "increased 18 from 55888"
-      ],
+      "energyShield": [],
       "spirit": [
         "3 0 from Kaom's Heart, Conqueror Plate"
       ],
-      "evasion": [
-        "increased 18 from 46475"
-      ],
-      "str": [
-        "flat 7 from 21885",
-        "flat 4 from 34813",
-        "flat 7 from 52126",
-        "flat 12 from 60203",
-        "flat 12 from 7218"
-      ],
-      "dex": [
-        "flat 4 from 34813"
-      ],
-      "int": [
-        "flat 4 from 34813"
-      ]
+      "evasion": [],
+      "str": [],
+      "dex": [],
+      "int": []
     },
     "notCounted": [
-      "Kaom's Heart: \"You have no Spirit\" not counted",
       "Defiance of Destiny: \"Recover (20-30)% of Missing Life before being Hit by an Enemy\" not counted",
       "Darkness Enthroned: \"This item gains bonuses from Socketed Items as though it was a Body Armour\" not counted",
       "Guiding Palm of the Heart: \"50% of your Base Life Regeneration is granted to Allies in your Presence\" not counted",
@@ -4795,48 +4772,48 @@
     ],
     "class": "Titan",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/shaper1225-1434/TiTanRen",
-    "matched": 4,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
         "want": 333,
-        "got": 319,
-        "ok": false
+        "got": 333,
+        "ok": true
       },
       "dex": {
         "want": 66,
-        "got": 65,
-        "ok": false
+        "got": 66,
+        "ok": true
       },
       "int": {
         "want": 81,
-        "got": 80,
-        "ok": false
+        "got": 81,
+        "ok": true
       },
       "life": {
         "want": 7806,
-        "got": 7755,
-        "ok": false
+        "got": 7806,
+        "ok": true
       },
       "mana": {
         "want": 963,
-        "got": 961,
-        "ok": false
+        "got": 963,
+        "ok": true
       },
       "energyShield": {
         "want": 27,
-        "got": 26,
-        "ok": false
+        "got": 27,
+        "ok": true
       },
       "armour": {
         "want": 3520,
-        "got": 2758,
-        "ok": false
+        "got": 3520,
+        "ok": true
       },
       "evasion": {
         "want": 548,
-        "got": 526,
-        "ok": false
+        "got": 548,
+        "ok": true
       },
       "fire": {
         "want": 80,
@@ -4860,11 +4837,11 @@
       },
       "spirit": {
         "want": 0,
-        "got": 200,
-        "ok": false
+        "got": 0,
+        "ok": true
       }
     },
-    "derivedMatched": 10,
+    "derivedMatched": 15,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -4894,7 +4871,7 @@
       },
       "lifeRegen": {
         "want": 2732,
-        "got": 1885,
+        "got": 2345,
         "ok": false
       },
       "manaRegen": {
@@ -4934,33 +4911,33 @@
       },
       "effectiveHealthPool": {
         "want": 37077,
-        "got": 22524,
+        "got": 23273,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 9485,
-        "got": 9359,
-        "ok": false
+        "got": 9485,
+        "ok": true
       },
       "fireMaxHit": {
         "want": 39765,
-        "got": 39530,
-        "ok": false
+        "got": 39765,
+        "ok": true
       },
       "coldMaxHit": {
         "want": 19883,
-        "got": 19765,
-        "ok": false
+        "got": 19883,
+        "ok": true
       },
       "lightningMaxHit": {
         "want": 32664,
-        "got": 32471,
-        "ok": false
+        "got": 32664,
+        "ok": true
       },
       "chaosMaxHit": {
         "want": 26860,
-        "got": 26703,
-        "ok": false
+        "got": 26860,
+        "ok": true
       }
     }
   },

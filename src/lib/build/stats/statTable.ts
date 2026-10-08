@@ -153,6 +153,9 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   'oracle_maximum_life_+%_final': more('life'),
   'oracle_maximum_mana_+%_final': more('mana'),
   'titan_maximum_life_+%_final': more('life'),
+  // The Titan's Stone Skin: "50% more Armour from Equipped Body Armour" - a more with PoB's SlotName tag, so it multiplies the body
+  // armour's Armour alone (engine.ts defence()), on top of the global more.
+  'ascendancy_titan_damage_reduction_rating_from_body_armour_+%_final': [{ pool: 'armour', kind: 'more', slot: 'body' }],
 
   // The Winter Owl: "3% increased Evasion Rating per 10 Intelligence" (PoB PerStat on Int, floor(260 / 10) x 3 = 78).
   'evasion_+%_per_10_intelligence': [{ pool: 'evasion', kind: 'increased', perAttribute: { attr: 'int', per: 10 } }],

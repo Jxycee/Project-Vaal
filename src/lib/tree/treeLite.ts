@@ -35,6 +35,12 @@ export interface TreeLite {
    * file written before it existed simply names the radius jewels it cannot count.
    */
   jewelRadius?: Record<string, JewelRadiusNode[]>;
+  /**
+   * Every notable, keystone, mastery and jewel socket id: the passives that are NOT plain small ones. "N% increased effect
+   * of Small Passive Skills" (Hulking Form) scales only the plain small ones, and the lite nodes carry no type flag, so the
+   * stats engine needs this list. Optional: a file written before it existed leaves the small-passive effect uncounted (named).
+   */
+  notSmall?: number[];
 }
 
 /**
@@ -95,5 +101,10 @@ export function projectTreeLite(full: GggTreeJson): TreeLite {
     base_dex: c.base_dex,
     base_int: c.base_int,
   }));
-  return { nodes, jewelSlots: full.jewelSlots ?? [], classes, jewelRadius: projectJewelRadius(full.nodes as Record<string, unknown>) };
+  type Kinds = { isNotable?: boolean; isKeystone?: boolean; isMastery?: boolean; isJewelSocket?: boolean };
+  const notSmall = Object.entries(full.nodes)
+    .filter(([id, raw]) => id !== 'root' && [(raw as Kinds).isNotable, (raw as Kinds).isKeystone, (raw as Kinds).isMastery, (raw as Kinds).isJewelSocket].some((f) => f === true))
+    .map(([id]) => Number(id))
+    .sort((a, b) => a - b);
+  return { nodes, jewelSlots: full.jewelSlots ?? [], classes, jewelRadius: projectJewelRadius(full.nodes as Record<string, unknown>), notSmall };
 }
