@@ -2454,9 +2454,7 @@
   "ordinary-druid-1.json": {
     "gaps": {
       "life": [
-        "flat 192 from Loath Keep, Masked Greathelm",
-        "flat 29 from Many Sources:^x88FFFF28% Ring 1 Bonus Effect",
-        "flat 31 from Many Sources:^x88FFFF30% Ring 2 Bonus Effect"
+        "flat 192 from Loath Keep, Masked Greathelm"
       ],
       "mana": [],
       "energyShield": [],
@@ -2464,10 +2462,7 @@
       "evasion": [],
       "str": [],
       "dex": [],
-      "int": [
-        "flat 9 from Many Sources:^x88FFFF28% Ring 1 Bonus Effect",
-        "flat 9 from Many Sources:^x88FFFF30% Ring 2 Bonus Effect"
-      ]
+      "int": []
     },
     "notCounted": [
       "Quest rewards you choose: Venom Draught (Venom Crypts)",
@@ -2475,7 +2470,7 @@
     ],
     "class": "Druid",
     "source": "https://poe.ninja/poe2/builds/runesofaldur/character/DpsFudge-6069/SplitMind",
-    "matched": 8,
+    "matched": 12,
     "of": 13,
     "stats": {
       "str": {
@@ -2490,18 +2485,18 @@
       },
       "int": {
         "want": 125,
-        "got": 107,
-        "ok": false
+        "got": 125,
+        "ok": true
       },
       "life": {
         "want": 2562,
-        "got": 2499,
-        "ok": false
+        "got": 2562,
+        "ok": true
       },
       "mana": {
         "want": 616,
-        "got": 581,
-        "ok": false
+        "got": 616,
+        "ok": true
       },
       "energyShield": {
         "want": 171,
@@ -2530,13 +2525,13 @@
       },
       "lightning": {
         "want": 76,
-        "got": 68,
+        "got": 75,
         "ok": false
       },
       "chaos": {
         "want": 57,
-        "got": 49,
-        "ok": false
+        "got": 57,
+        "ok": true
       },
       "spirit": {
         "want": 100,
@@ -2544,7 +2539,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 9,
+    "derivedMatched": 11,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -2579,7 +2574,7 @@
       },
       "manaRegen": {
         "want": 32,
-        "got": 23,
+        "got": 24,
         "ok": false
       },
       "esRecharge": {
@@ -2614,33 +2609,33 @@
       },
       "effectiveHealthPool": {
         "want": 13562,
-        "got": 11753,
+        "got": 12849,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 3767,
-        "got": 3699,
-        "ok": false
+        "got": 3767,
+        "ok": true
       },
       "fireMaxHit": {
         "want": 11699,
-        "got": 11177,
+        "got": 11407,
         "ok": false
       },
       "coldMaxHit": {
         "want": 12151,
-        "got": 11594,
+        "got": 11840,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 11754,
-        "got": 8910,
+        "got": 11079,
         "ok": false
       },
       "chaosMaxHit": {
         "want": 6157,
-        "got": 5068,
-        "ok": false
+        "got": 6157,
+        "ok": true
       }
     }
   },

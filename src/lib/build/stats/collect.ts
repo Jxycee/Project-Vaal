@@ -711,7 +711,7 @@ function collectItem(
           flags.noSpirit = true;
           return;
         }
-        if (DEFENCE_WORDS.test(line.text)) {
+        if (DEFENCE_WORDS.test(line.text) || /bonuses gained from/.test(line.text)) {
           const text = resolveLine(line.text, values);
           if (readLine(text) === null) notCounted.push(`${item.name}: "${line.text}" not counted`);
           else untypedLines.push(text);

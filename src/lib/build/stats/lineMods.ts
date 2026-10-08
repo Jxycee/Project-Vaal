@@ -73,6 +73,23 @@ import type { Pool } from './statTable';
  */
 export const RADIUS_GRANT_LINE = /^(Small|Notable) Passive Skills in Radius also grant (.+)$/;
 
+/**
+ * "28% increased bonuses gained from left Equipped Ring" (Ingenuity), "... from Equipped Rings", "... from Equipped Amulet",
+ * "... from Equipped Rings and Amulets": PoB's EffectOfBonusesFrom<slot> INC. modcache.json lacks these lines, so the
+ * words decide. The sum per slot becomes a second, scaled copy of that ring or amulet's modifiers (collect.ts
+ * bonusEffectFromJewellery). "reduced" is the negative; the collector clamps the scale at 0.
+ * Failure mode: a wording this does not match (e.g. "...from Equipped Ring" without left/right) stays unread, so the
+ * line is named in notCounted by its caller, never guessed onto a slot.
+ */
+export const EFFECT_OF_BONUSES_LINE = /^(\d+(?:\.\d+)?)% (increased|reduced) bonuses gained from (left Equipped Ring|right Equipped Ring|Equipped Rings and Amulets|Equipped Rings|Equipped Amulet)$/;
+const EFFECT_SLOTS: Record<string, Pool[]> = {
+  'left Equipped Ring': ['effectRing1'],
+  'right Equipped Ring': ['effectRing2'],
+  'Equipped Rings': ['effectRing1', 'effectRing2', 'effectRing3'],
+  'Equipped Amulet': ['effectAmulet'],
+  'Equipped Rings and Amulets': ['effectRing1', 'effectRing2', 'effectRing3', 'effectAmulet'],
+};
+
 export interface LineMod {
   pool: Pool;
   kind: 'flat' | 'increased' | 'more';
@@ -249,6 +266,11 @@ function build(): Map<string, Template | null> {
  * null = not a line this reader has a template for (offence, fragments, unknown shapes).
  */
 export function readLine(line: string): LineRead | null {
+  const effect = EFFECT_OF_BONUSES_LINE.exec(line.trim());
+  if (effect) {
+    const value = (effect[2] === 'reduced' ? -1 : 1) * Number(effect[1]);
+    return { mods: EFFECT_SLOTS[effect[3]].map((pool) => ({ pool, kind: 'increased' as const, value })), global: true };
+  }
   templates ??= build();
   const numbers = line.match(NUMBER) ?? [];
   if (numbers.length !== 1) return null;

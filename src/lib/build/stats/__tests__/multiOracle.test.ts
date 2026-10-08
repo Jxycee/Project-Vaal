@@ -230,7 +230,7 @@ const FLOOR: Record<string, number> = {
   'ordinary-spirit-walker-2.json': 13, // 13 of 13 at the start
   'ordinary-titan-1.json': 13, // round 1 of the accuracy loop: 13 of 13 (Hulking Form scales plain small passives by 50%, floored, never the generic attribute nodes or ascendancy ones; Stone Skin is a body-armour-only more; Kaom's Heart 'You have no Spirit'); was 4 at the start: strength/Life/Mana/ES/Armour/Evasion short, Spirit 200 where PoB has 0 (Grand Spectrum x3, Darkness Enthroned)
   // Round-5 class-coverage set (Runes of Aldur, no Mageblood, no RELIC item): classes with no fixture yet; FLOOR = the match when added.
-  'ordinary-druid-1.json': 8, // short: Int, Life, Mana, Lightning, Chaos
+  'ordinary-druid-1.json': 12, // round 5 of the engine loop: Ingenuity's "N% increased bonuses gained from left/right Equipped Ring" (lineMods.ts EFFECT_OF_BONUSES_LINE) scales both rings; was 8. Short: Lightning (76/75: "+1% Maximum Lightning Resistance while Shapeshifted" needs the Shapeshifted condition PoB derives from the main skill)
   'ordinary-huntress-1.json': 13, // 13 of 13 at the start
   'ordinary-infernalist-1.json': 12, // short: Spirit (234/380)
   'ordinary-invoker-1.json': 12, // short: Mana (2253/2549)
