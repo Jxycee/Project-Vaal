@@ -127,6 +127,9 @@ const LINE_STATS: [RegExp, (m: RegExpExecArray) => string][] = [
   [/^[+-]?\d+(?:\.\d+)? to Armour$/, () => 'local_base_physical_damage_reduction_rating'],
   [/^[+-]?\d+(?:\.\d+)? to Evasion Rating$/, () => 'local_base_evasion_rating'],
   [/^\d+(?:\.\d+)?% increased Armour, Evasion and Energy Shield$/, () => 'local_armour_and_evasion_and_energy_shield_+%'],
+  // A sceptre rune (Kraken Bane's "Aura Skills have 25% increased Magnitudes"): the same line as the tree's and an item's,
+  // which scales an Aura's own modifiers (skillBuffs.ts).
+  [/^Aura Skills have \d+(?:\.\d+)?% increased Magnitudes$/, () => 'aura_effect_+%'],
 ];
 
 /** Lines that touch a sheet word but are recovery, cost or requirement text — not a number the sheet reports. */

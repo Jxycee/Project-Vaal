@@ -77,7 +77,7 @@ const MODS: Record<string, { stat: string; min: number; max: number }[]> = {
   'local-armour-inc': [{ stat: 'local_physical_damage_reduction_rating_+%', min: 40, max: 60 }],
   'local-armour-flat': [{ stat: 'local_base_physical_damage_reduction_rating', min: 20, max: 30 }],
   'global-life': [{ stat: 'base_maximum_life', min: 60, max: 70 }],
-  'body-armour-pct': [{ stat: 'body_armour_+%', min: 30, max: 40 }],
+  'body-armour-pct': [{ stat: 'body_armour_grants_spirit_+%', min: 30, max: 40 }],
 };
 
 // Runes as the wiki files them: lines per equipment category (soulCoreEffects).
@@ -252,7 +252,7 @@ describe('collectContributions — gear', () => {
         'Crown of Eyes: unique — not in our data',
         'Plate Vest: 1 rune not counted',
         'Plate Vest: mod "ghost" is not in our data',
-        'Plate Vest: increased Armour from body armour',
+        'Plate Vest: increased Spirit from body armour',
       ]),
     );
   });

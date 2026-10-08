@@ -176,7 +176,10 @@ export function collectContributions(
   }
   const wornAt = new Map<GearSlot, { from: number; to: number; name: string }>();
   // Gear-counted multipliers (lineMods.ts GEAR_MULTIPLIERS): PoB adds Multiplier:GrandSpectrum 1 per Grand Spectrum worn.
-  const gearCounts: Record<string, number> = { GrandSpectrum: equipped.filter((e) => e.item.name.includes('Grand Spectrum')).length };
+  const gearCounts: Record<string, number> = {
+    GrandSpectrum: equipped.filter((e) => e.item.name.includes('Grand Spectrum')).length,
+    CorruptedItem: corruptedItemCount(equipped),
+  };
   /** Radius jewels wait until every item has allocated what it grants (Megalomaniac's "Allocates X"): PoB counts a node in the radius however it was allocated. */
   const radiusJewels: { item: GearItem; socket: number }[] = [];
   for (const { item, slot, socket } of equipped) {
@@ -186,6 +189,16 @@ export function collectContributions(
     if (slot) wornAt.set(slot, { from, to: contributions.length, name: item.name });
   }
   for (const { item, socket } of radiusJewels) radiusGrants(item, socket, nodes, data, contributions, notCounted, config);
+  // "N% increased ... from Equipped Shield" carries PoB's Condition UsingShield: a focus in the same off-hand slot
+  // is not a shield, so the increase must not scale its Energy Shield. Dropped when the slot's item is another class.
+  for (let i = contributions.length - 1; i >= 0; i--) {
+    const c = contributions[i];
+    if (!c.itemClass || !c.slot) continue;
+    const worn = input.gear[c.slot];
+    const unique = worn?.isUnique ? data.unique(worn.name, worn.slug) : undefined;
+    const base = !worn ? undefined : unique ? ((worn.craft?.baseSlug ? data.item(worn.craft.baseSlug) : undefined) ?? data.item(unique.baseSlug)) : data.item(worn.slug);
+    if (base?.itemClass !== c.itemClass) contributions.splice(i, 1);
+  }
   reflectOppositeRing(wornAt, contributions);
   bonusEffectFromJewellery(wornAt, contributions);
 
@@ -194,7 +207,8 @@ export function collectContributions(
   for (const { rule, value, source } of perItem) {
     const have = contributions.filter((c) => c.slot === rule.slot && c.pool === rule.from && c.kind === 'flat').reduce((n, c) => n + c.value, 0);
     const [amount, div] = rule.valueIs === 'amount' ? [value, rule.fixed] : [rule.fixed, value];
-    const steps = div > 0 ? Math.floor(have / div) : 0;
+    // PercentStat: floor(figure x percent / 100) Life, one each.
+    const steps = rule.valueIs === 'percent' ? Math.floor((have * value) / 100) : div > 0 ? Math.floor(have / div) : 0;
     if (steps * amount !== 0) {
       contributions.push({ pool: rule.pool, kind: 'flat', value: steps * amount, source });
     }
@@ -231,7 +245,7 @@ export function collectContributions(
   }
 
   // ---- Campaign, derived from the level.
-  const campaign = campaignAt(input.level, input.passive.questChoices);
+  const campaign = campaignAt(input.level, input.passive.questChoices, config?.questsOff);
   for (const r of [...campaign.rewards, ...campaign.choiceRewards]) addGlobal(contributions, notCounted, unknown, r.stat, r.value, r.source, config);
   notCounted.push(...campaign.choiceRewardsUnmodelled);
   if (campaign.choiceRewardsNotCounted.length > 0) {
@@ -321,6 +335,24 @@ function radiusGrants(
  *   5. A rare ring named like the unique: the name is checked on the equipped item, not on the lines.
  */
 export const MIRROR_RING_NAMES: ReadonlySet<string> = new Set(["Kalandra's Touch"]);
+
+/**
+ * Multiplier:CorruptedItem (CalcSetup.lua 1640-1711): one for each corrupted item in a gear slot, plus the corrupted
+ * jewels in allocated sockets (ordinary-life-1: body, gloves, boots, ring + 3 jewels = 7), and Kalandra's Touch swaps its
+ * own corruption for the opposite ring's (it does not count itself, it counts the ring it copies): +1 = PoB's 8.
+ */
+function corruptedItemCount(equipped: readonly { item: GearItem; slot?: GearSlot }[]): number {
+  const corrupted = (item: GearItem | undefined) => item?.craft?.corrupted === true;
+  let count = equipped.filter((e) => corrupted(e.item)).length;
+  for (const [slot, other] of [['ring1', 'ring2'], ['ring2', 'ring1']] as const) {
+    const ring = equipped.find((e) => e.slot === slot);
+    if (!ring?.item.name.includes("Kalandra's Touch")) continue;
+    const opposite = equipped.find((e) => e.slot === other)?.item;
+    if (corrupted(ring.item)) count--;
+    if (opposite && !opposite.name.includes("Kalandra's Touch") && corrupted(opposite)) count++;
+  }
+  return count;
+}
 
 function reflectOppositeRing(wornAt: ReadonlyMap<GearSlot, { from: number; to: number; name: string }>, contributions: Contribution[]): void {
   const rings: GearSlot[] = ['ring1', 'ring2'];
@@ -416,7 +448,7 @@ function addGlobal(
   const conditional = CONDITIONAL_EFFECTS[stat];
   if (conditional) {
     const holds = conditionHolds(config, conditional.condition, conditional.negate);
-    if (holds === true) for (const e of conditional.effects) out.push({ pool: e.pool, kind: e.kind, value, source, ...(e.slot ? { slot: e.slot } : {}) });
+    if (holds === true) for (const e of conditional.effects) out.push({ pool: e.pool, kind: e.kind, value, source, ...(e.slot ? { slot: e.slot } : {}), ...(e.itemClass ? { itemClass: e.itemClass } : {}) });
     else if (holds === undefined) {
       notCounted.push(`${source}: ${stat} needs ${conditional.negate ? 'not ' : ''}${conditional.condition} (a Path of Building configuration setting), so it was not counted`);
     }
@@ -424,7 +456,7 @@ function addGlobal(
   }
   const effects = GLOBAL_EFFECTS[stat];
   if (effects) {
-    for (const e of effects) out.push({ pool: e.pool, kind: e.kind, value: value * (e.scale ?? 1), source, ...(e.slot ? { slot: e.slot } : {}) });
+    for (const e of effects) out.push({ pool: e.pool, kind: e.kind, value: value * (e.scale ?? 1), source, ...(e.slot ? { slot: e.slot } : {}), ...(e.itemClass ? { itemClass: e.itemClass } : {}) });
   } else if (NOT_MODELLED[stat]) {
     notCounted.push(`${source}: ${NOT_MODELLED[stat]}`);
   } else if (!LOCAL_EFFECTS[stat] && looksLikeDefenceStat(stat)) {
@@ -570,11 +602,21 @@ function collectItem(
   // its rune data already applied): they replace the recomputation from rune slugs below. A line is a typed
   // defence stat the same way a data line is, so "increased Armour, Evasion and Energy Shield" stays LOCAL.
   const printedRunes = craft?.runeLines;
+  // A printed line our typed table (runes.ts) cannot type is read the way PoB parses ANY modifier line (lineMods.ts):
+  // "Aura Skills have 25% increased Magnitudes" (Kraken Bane), "45% less maximum Life" (Runeseeker's Call), "1% increased
+  // maximum Life for each Corrupted Item Equipped" (Morior Invictus). They count like the item's other verbatim lines.
+  const runeVerbatim: string[] = [];
   for (const line of printedRunes ?? []) {
     const read = readRuneLine(line);
-    if (read === null) continue;
-    if ('unmodelled' in read) notCounted.push(`${item.name}: rune line "${read.unmodelled}" not counted`);
-    else stats.push([runeStat(read.stat), read.value]);
+    if (read !== null && 'stat' in read) {
+      stats.push([runeStat(read.stat), read.value]);
+      continue;
+    }
+    if (!/^Bonded:/i.test(line) && readLine(line) !== null) {
+      runeVerbatim.push(line);
+      continue;
+    }
+    if (read !== null) notCounted.push(`${item.name}: rune line "${read.unmodelled}" not counted`);
   }
   for (const slug of printedRunes ? [] : (craft?.runes ?? [])) {
     const rune = data.rune?.(slug);
@@ -603,7 +645,7 @@ function collectItem(
   // Local stats shape the item's own defences and Spirit; the rest are global.
   const localFlat: Partial<Record<Pool, number>> = {};
   const localInc: Partial<Record<Pool, number>> = {};
-  readVerbatim([...(craft?.verbatim ?? []), ...untypedLines], item.name, { defences: detail.armour !== null, spirit: detail.spirit > 0 }, localFlat, localInc, contributions, notCounted, allocate, config, { sockets: filledSockets(craft), gear: gearCounts });
+  readVerbatim([...(craft?.verbatim ?? []), ...untypedLines, ...runeVerbatim], item.name, { defences: detail.armour !== null, spirit: detail.spirit > 0 }, localFlat, localInc, contributions, notCounted, allocate, config, { sockets: filledSockets(craft), gear: gearCounts });
   for (const [stat, value] of stats) {
     const local = LOCAL_EFFECTS[stat];
     if (local) {

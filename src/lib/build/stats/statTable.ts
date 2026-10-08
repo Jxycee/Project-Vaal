@@ -92,6 +92,8 @@ export interface Effect {
   pool: Pool;
   kind: 'flat' | 'increased' | 'more';
   slot?: GearSlot;
+  /** With a slot: the increase counts only when the item worn there is of this class ("from Equipped Shield" needs a shield, not a focus). */
+  itemClass?: string;
   /** The stat id's number times this is the pool's number (regeneration is stored per minute, shown per second). */
   scale?: number;
 }
@@ -101,6 +103,7 @@ const inc = (...pools: Pool[]): Effect[] => pools.map((pool) => ({ pool, kind: '
 const more = (...pools: Pool[]): Effect[] => pools.map((pool) => ({ pool, kind: 'more' }));
 const perMinute = (pool: Pool, kind: Effect['kind']): Effect[] => [{ pool, kind, scale: 1 / 60 }];
 const incFromSlot = (slot: GearSlot, ...pools: Pool[]): Effect[] => pools.map((pool) => ({ pool, kind: 'increased', slot }));
+const incFromShield = (slot: GearSlot, ...pools: Pool[]): Effect[] => pools.map((pool) => ({ pool, kind: 'increased', slot, itemClass: 'Shield' }));
 
 export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   base_maximum_life: flat('life'),
@@ -125,6 +128,14 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   // "N% increased Evasion Rating from Equipped Body Armour" (Beastial Skin, 100): the same SlotName tag. Found on
   // ordinary-deadeye, where it is the 1472 Evasion PoB's total holds beyond base x increased x more.
   'body_armour_evasion_rating_+%': incFromSlot('body', 'evasion'),
+  // Ancient Aegis: "60% increased Armour from Equipped Body Armour" (the same SlotName tag; its ES half is the line above).
+  'body_armour_+%': incFromSlot('body', 'armour'),
+  // Fortified Aegis: "100% increased Armour, Evasion and Energy Shield from Equipped Shield" - PoB2 ModParser.lua:1189, SlotName
+  // "Weapon 2" + Condition UsingShield. The shield sits in the off hand of whichever weapon set is worn.
+  'shield_armour_evasion_energy_shield_+%': [
+    ...incFromShield('weapon1_off', 'armour', 'evasion', 'energyShield'),
+    ...incFromShield('weapon2_off', 'armour', 'evasion', 'energyShield'),
+  ],
   // "N% increased Energy Shield from Focus" - PoB2's SlotName tag on the off-hand slot. A focus sits in the off
   // hand of whichever weapon set is worn; only that set's item carries flats, so both slots are listed.
   'energy_shield_from_focus_+%': [...incFromSlot('weapon1_off', 'energyShield'), ...incFromSlot('weapon2_off', 'energyShield')],
@@ -286,10 +297,13 @@ export interface PerItemDefence {
   pool: Pool;
   slot: GearSlot;
   from: 'armour' | 'evasion' | 'energyShield';
-  valueIs: 'amount' | 'div';
+  valueIs: 'amount' | 'div' | 'percent';
   fixed: number;
 }
 export const PER_ITEM_DEFENCE: Readonly<Record<string, PerItemDefence>> = {
+  // Crimson Power: "Gain additional maximum Life equal to 100% of the Item Energy Shield on Equipped Body Armour" - PoB's PercentStat
+  // tag (ModParser.lua:2870): the node's number is the percent of the item's figure, one Life each.
+  'gain_%_life_from_body_es': { pool: 'life', slot: 'body', from: 'energyShield', valueIs: 'percent', fixed: 1 },
   'maximum_energy_shield_+1_per_x_body_armour_evasion_rating': { pool: 'energyShield', slot: 'body', from: 'evasion', valueIs: 'div', fixed: 1 },
   'evasion_rating_+_per_1_helmet_energy_shield': { pool: 'evasion', slot: 'head', from: 'energyShield', valueIs: 'amount', fixed: 1 },
   'evasion_rating_+_per_1_armour_on_gloves': { pool: 'evasion', slot: 'gloves', from: 'armour', valueIs: 'amount', fixed: 1 },
@@ -324,7 +338,6 @@ export const NOT_MODELLED: Readonly<Record<string, string>> = {
   'spirit_+_per_empty_charm_slot': 'Spirit per empty charm slot',
   'body_armour_grants_spirit_+%': 'increased Spirit from body armour',
   'ascendancy_beidats_will_spirit_+_per_X_maximum_life': 'Spirit per maximum Life',
-  'body_armour_+%': 'increased Armour from body armour',
   base_physical_damage_reduction_rating_no_display: 'hidden Armour',
   'maximum_fire_resistance_+%_if_at_least_5_red_supports_socketed': 'Maximum Fire Resistance with 5 red supports socketed',
   // Harmony Within: ModCache.lua:8219-8221 leaves this sentence unparsed, so Path of Building 2 counts nothing for it either.

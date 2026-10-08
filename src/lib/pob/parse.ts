@@ -287,7 +287,8 @@ export function parsePobXml(xml: string): { ok: true; build: PobBuild } | { ok: 
             number: num !== null && num !== '' && Number.isFinite(Number(num)) ? Number(num) : null,
           };
         })
-        .filter((input) => input.name !== '' && !input.name.startsWith('quest'))
+        // A quest input is a reward choice (read above as questInputs) unless it is a ticked-off fixed reward: boolean="false".
+        .filter((input) => input.name !== '' && (!input.name.startsWith('quest') || input.boolean === false))
     : null;
 
   const notesText = firstChild(root, 'Notes')?.textContent?.trim() ?? '';

@@ -45,6 +45,8 @@ export interface Contribution {
    * slot's item. Untagged contributions are global.
    */
   slot?: GearSlot;
+  /** With a slot: counts only while the item worn there is of this class (collect.ts drops it otherwise). */
+  itemClass?: string;
 }
 
 export interface EngineInput {
@@ -203,10 +205,21 @@ function sumSlot(list: readonly Contribution[], pool: Pool, kind: Contribution['
   return total;
 }
 
+/**
+ * A pool's "more" multiplier. PoB rounds the PRODUCT of one modifier name's more/less mods to 2 decimals before using it
+ * (ModDB.lua MoreInternal: result * round(modResult, 2); the highPrecisionMods exceptions are BASE crit/regen, none of them
+ * a more). Runeseeker's Call: 30% less x 15% less = 0.595 -> 0.60, which is why PoB's Life is 987 and not 979.
+ */
 function product(list: readonly Contribution[], pool: Pool): number {
   let total = 1;
-  for (const c of list) if (c.pool === pool && c.kind === 'more' && Number.isFinite(c.value)) total *= 1 + c.value / 100;
-  return total;
+  let any = false;
+  for (const c of list) {
+    if (c.pool === pool && c.kind === 'more' && Number.isFinite(c.value)) {
+      total *= 1 + c.value / 100;
+      any = true;
+    }
+  }
+  return any ? Math.floor(total * 100 + 0.5) / 100 : total;
 }
 
 /** Slots whose item carries a flat of this pool: the items whose own defence a slot increase can scale. */

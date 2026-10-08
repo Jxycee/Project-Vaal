@@ -59,6 +59,12 @@ export interface BuildConfig {
   conditions: string[];
   /** PoB multiplier name -> its count ("WindDancerStacks": 3). */
   multipliers: Record<string, number>;
+  /**
+   * Fixed quest rewards the build UNTICKED in PoB's Configuration (<Input boolean="false" name="questAct 4Eye of HinekoraSilent Hall"/>).
+   * Every fixed reward is a checkbox that defaults to ticked (ConfigOptions.lua addQuestModsRewardsConfigOptions, defaultState = true),
+   * so only the unticked ones are written. Absent = none unticked.
+   */
+  questsOff?: string[];
 }
 
 /** Count inputs we turn into Multipliers: the config var -> the Multiplier name PoB's option applies. */
@@ -93,7 +99,9 @@ export interface ConfigInput {
 export function buildConfigFromInputs(inputs: readonly ConfigInput[]): BuildConfig {
   const conditions = new Set<string>();
   const multipliers: Record<string, number> = {};
+  const questsOff = new Set<string>();
   for (const input of inputs) {
+    if (input.boolean === false && input.name.startsWith('quest')) questsOff.add(input.name);
     if (input.boolean === true && input.name.startsWith('condition') && NAME.test(input.name.slice('condition'.length))) {
       conditions.add(input.name.slice('condition'.length));
     }
@@ -101,7 +109,7 @@ export function buildConfigFromInputs(inputs: readonly ConfigInput[]): BuildConf
     const multiplier = NUMBER_INPUTS[input.name];
     if (multiplier !== undefined && input.number !== null && input.number > 0) multipliers[multiplier] = input.number;
   }
-  return { conditions: [...conditions].sort(), multipliers };
+  return { conditions: [...conditions].sort(), multipliers, ...(questsOff.size > 0 ? { questsOff: [...questsOff].sort() } : {}) };
 }
 
 /** Defensive read of a stored value (failure mode 6). undefined = no usable config. */
@@ -117,7 +125,10 @@ export function parseBuildConfig(raw: unknown): BuildConfig | undefined {
       if (NAME.test(name) && typeof count === 'number' && Number.isFinite(count) && count > 0) multipliers[name] = count;
     }
   }
-  return { conditions, multipliers };
+  const questsOff = Array.isArray(v.questsOff)
+    ? [...new Set(v.questsOff.filter((q): q is string => typeof q === 'string' && q.startsWith('quest') && q.length <= 120))].sort().slice(0, MAX_ENTRIES)
+    : [];
+  return { conditions, multipliers, ...(questsOff.length > 0 ? { questsOff } : {}) };
 }
 
 /** Whether a condition (optionally negated: "if you haven't been Hit Recently") holds under this config. undefined config = unknown. */

@@ -16,6 +16,7 @@
     },
     "notCounted": [
       "Morior Invictus: rune line \"+3 to Spirit per Idol socketed in your Equipment\" not counted",
+      "Morior Invictus: \"+10% of Armour also applies to Chaos Damage\" not counted",
       "Ruby: \"41% increased Armour, Evasion and Energy Shield from Equipped Shield\" not counted",
       "Prism of Belief: unique — not in our data",
       "Unrecognised stat global_item_attribute_requirements_+% (Reduced Attribute Requirements)",
@@ -597,7 +598,7 @@
     ],
     "class": "Tactician",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/pjf5845203344-2325/%E5%A4%A9%E7%A9%BA%E6%87%92%E7%8B%BC%E8%93%9D",
-    "matched": 8,
+    "matched": 9,
     "of": 13,
     "stats": {
       "str": {
@@ -662,8 +663,8 @@
       },
       "spirit": {
         "want": 216,
-        "got": 250,
-        "ok": false
+        "got": 216,
+        "ok": true
       }
     },
     "derivedMatched": 7,
@@ -784,7 +785,6 @@
       "int": []
     },
     "notCounted": [
-      "Runeseeker's Call: rune line \"45% less maximum Life\" not counted",
       "Prism of Belief: unique — not in our data",
       "Unrecognised stat global_item_attribute_requirements_+% (Reduced Attribute Requirements)",
       "Unrecognised stat intelligence_skill_gem_level_+ (Neurological Implants)"
@@ -811,7 +811,7 @@
       },
       "life": {
         "want": 987,
-        "got": 1644,
+        "got": 904,
         "ok": false
       },
       "mana": {
@@ -920,32 +920,32 @@
       },
       "effectiveHealthPool": {
         "want": 26259,
-        "got": 18550,
+        "got": 16657,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 5510,
-        "got": 7348,
+        "got": 6608,
         "ok": false
       },
       "fireMaxHit": {
         "want": 19332,
-        "got": 25893,
+        "got": 23250,
         "ok": false
       },
       "coldMaxHit": {
         "want": 19332,
-        "got": 25893,
+        "got": 23250,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 19332,
-        "got": 25893,
+        "got": 23250,
         "ok": false
       },
       "chaosMaxHit": {
         "want": 21652,
-        "got": 29000,
+        "got": 26040,
         "ok": false
       }
     }
@@ -2489,23 +2489,22 @@
       "int": []
     },
     "notCounted": [
-      "Ancient Aegis: increased Armour from body armour",
       "Grip of Kulemak: unique — not in our data",
       "Grip of Kulemak: \"+36% of Armour also applies to Elemental Damage\" not counted",
       "Grip of Kulemak: unique — not in our data",
       "Grip of Kulemak: \"+36% of Armour also applies to Elemental Damage\" not counted",
       "Shavronne's Satchel: \"(20-30)% reduced Flask Life Recovery rate\" not counted",
       "Shavronne's Satchel: \"Life Recovery from Flasks also applies to Energy Shield\" not counted",
+      "Intricate Crest Shield: \"+25% of Armour also applies to Elemental Damage\" not counted",
       "From Nothing: unique — not in our data",
       "Quest rewards you choose: Tawhoa's Test (Halls of the Dead), Tasalio's Test (Halls of the Dead), Ngamahu's Test (Halls of the Dead)",
       "Unrecognised stat stun_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Dampening Shield, Sapphire)",
       "Unrecognised stat ailment_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Dampening Shield, Sapphire)",
-      "Unrecognised stat shield_armour_evasion_energy_shield_+% (Fortified Aegis)",
       "Unrecognised stat ignore_armour_movement_penalties (Momentum)"
     ],
     "class": "Lich",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/hagarfloss-9464/DayLaConMot",
-    "matched": 9,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -2530,18 +2529,18 @@
       },
       "mana": {
         "want": 768,
-        "got": 808,
-        "ok": false
+        "got": 768,
+        "ok": true
       },
       "energyShield": {
         "want": 9474,
-        "got": 9215,
-        "ok": false
+        "got": 9474,
+        "ok": true
       },
       "armour": {
         "want": 15337,
-        "got": 14019,
-        "ok": false
+        "got": 15337,
+        "ok": true
       },
       "evasion": {
         "want": 1607,
@@ -2555,8 +2554,8 @@
       },
       "cold": {
         "want": 74,
-        "got": 64,
-        "ok": false
+        "got": 74,
+        "ok": true
       },
       "lightning": {
         "want": 75,
@@ -2574,7 +2573,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 11,
+    "derivedMatched": 12,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -2609,13 +2608,13 @@
       },
       "manaRegen": {
         "want": -8,
-        "got": 32,
+        "got": 30,
         "ok": false
       },
       "esRecharge": {
         "want": 1397,
-        "got": 1359,
-        "ok": false
+        "got": 1397,
+        "ok": true
       },
       "esRechargeDelay": {
         "want": 2.2099,
@@ -2644,27 +2643,27 @@
       },
       "effectiveHealthPool": {
         "want": 141535,
-        "got": 70958,
+        "got": 79563,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 11052,
-        "got": 10452,
+        "got": 10818,
         "ok": false
       },
       "fireMaxHit": {
         "want": 37227,
-        "got": 34189,
+        "got": 35298,
         "ok": false
       },
       "coldMaxHit": {
         "want": 37227,
-        "got": 25988,
+        "got": 35298,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 38411,
-        "got": 35330,
+        "got": 36471,
         "ok": false
       },
       "chaosMaxHit": {
@@ -2870,10 +2869,7 @@
   },
   "ordinary-life-1.json": {
     "gaps": {
-      "life": [
-        "flat 288 from 31223",
-        "increased 8 from Morior Invictus, Grand Regalia"
-      ],
+      "life": [],
       "mana": [],
       "energyShield": [],
       "spirit": [],
@@ -2883,7 +2879,6 @@
       "int": []
     },
     "notCounted": [
-      "Morior Invictus: rune line \"1% increased Maximum Life for each Corrupted Item Equipped\" not counted",
       "Defiance of Destiny: \"Recover (20-30)% of Missing Life before being Hit by an Enemy\" not counted",
       "Against the Darkness: unique — not in our data",
       "From Nothing: unique — not in our data",
@@ -2893,7 +2888,7 @@
     ],
     "class": "Blood Mage",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/Shaelmao-0831/Rakurimosa",
-    "matched": 12,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -2913,8 +2908,8 @@
       },
       "life": {
         "want": 4800,
-        "got": 4124,
-        "ok": false
+        "got": 4800,
+        "ok": true
       },
       "mana": {
         "want": 871,
@@ -3032,32 +3027,32 @@
       },
       "effectiveHealthPool": {
         "want": 21021,
-        "got": 14487,
+        "got": 16428,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 7601,
-        "got": 5324,
+        "got": 6000,
         "ok": false
       },
       "fireMaxHit": {
         "want": 26586,
-        "got": 18457,
+        "got": 20871,
         "ok": false
       },
       "coldMaxHit": {
         "want": 26586,
-        "got": 18457,
+        "got": 20871,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 26586,
-        "got": 18457,
+        "got": 20871,
         "ok": false
       },
       "chaosMaxHit": {
         "want": 23410,
-        "got": 16068,
+        "got": 18248,
         "ok": false
       }
     }

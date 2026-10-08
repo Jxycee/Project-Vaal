@@ -217,7 +217,14 @@ export interface CampaignProgress {
   choiceRewardsNotCounted: string[];
 }
 
-export function campaignAt(rawLevel: number, questChoices: Readonly<Record<string, string>> = {}): CampaignProgress {
+/** PoB's Configuration key of a fixed reward: "quest" + act + area + quest name, so the part after the act is area + name ("Silent Hall (Eye of Hinekora)" -> "Eye of HinekoraSilent Hall"). */
+function fixedQuestKeyTail(source: string): string {
+  const m = /^(.*) \((.*)\)$/.exec(source);
+  return m ? m[2] + m[1] : source;
+}
+
+/** `questsOff`: the fixed rewards the build unticked in PoB (BuildConfig.questsOff); a reward not named there counts, as PoB's default is ticked. */
+export function campaignAt(rawLevel: number, questChoices: Readonly<Record<string, string>> = {}, questsOff: readonly string[] = []): CampaignProgress {
   const level = Number.isFinite(rawLevel) ? Math.min(100, Math.max(1, Math.trunc(rawLevel))) : 1;
   const stage = ACTS.find((a) => level <= a.upTo) ?? ENDGAME;
   const choiceRewards: QuestReward[] = [];
@@ -235,7 +242,7 @@ export function campaignAt(rawLevel: number, questChoices: Readonly<Record<strin
   return {
     act: stage.act,
     resistancePenalty: stage.penalty,
-    rewards: FIXED_QUEST_REWARDS.filter((q) => level >= q.areaLevel).map(({ stat, value, source }) => ({ stat, value, source })),
+    rewards: FIXED_QUEST_REWARDS.filter((q) => level >= q.areaLevel && !questsOff.some((key) => key.startsWith('quest') && key.endsWith(fixedQuestKeyTail(q.source)))).map(({ stat, value, source }) => ({ stat, value, source })),
     choiceRewards,
     choiceRewardsUnmodelled,
     choiceRewardsNotCounted,

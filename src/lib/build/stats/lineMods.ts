@@ -151,10 +151,11 @@ interface Template {
 
 /**
  * Multipliers PoB counts from the gear itself, so a line scaled by one is a number we can read: the count of equipped
- * Grand Spectrum jewels (Item.lua adds Multiplier:GrandSpectrum 1 for each, ModParser "per Grand Spectrum").
+ * Grand Spectrum jewels (Item.lua adds Multiplier:GrandSpectrum 1 for each, ModParser "per Grand Spectrum") and corrupted worn
+ * items (CalcSetup.lua adds Multiplier:CorruptedItem 1 for each: Morior Invictus's "1% increased Maximum Life for each Corrupted Item Equipped").
  * Any other Multiplier (a charge count, a stat) stays unmodelled.
  */
-export const GEAR_MULTIPLIERS: ReadonlySet<string> = new Set(['GrandSpectrum']);
+export const GEAR_MULTIPLIERS: ReadonlySet<string> = new Set(['GrandSpectrum', 'CorruptedItem']);
 
 /** "+7 to all Attributes per Socket filled": PoB scales it by Multiplier:RunesSocketedIn<slot> (the runes in that item). */
 const PER_SOCKET = /per Socket filled$/i;
