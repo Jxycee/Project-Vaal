@@ -39,7 +39,7 @@ import { computeDefences, type DefenceSheet } from '../engine';
 // ours, and the match count (`derived` / `derivedMatched` for the derived keys). Diffing it is the accuracy report.
 
 const DIR = 'docs/superpowers/oracle';
-const FILES = readdirSync(DIR).filter((f) => f.endsWith('.json') && f !== 'results.json');
+const FILES = readdirSync(DIR).filter((f) => f.endsWith('.json') && f !== 'results.json' && f !== 'dps-spike.json');
 
 type Fixture = {
   source: string;
