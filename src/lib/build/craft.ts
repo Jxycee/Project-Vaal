@@ -204,6 +204,25 @@ export function parseCraft(raw: unknown, isUnique: boolean): ItemCraft | undefin
   craft.prefixes = parseMods(v.prefixes);
   craft.suffixes = parseMods(v.suffixes);
   if (Array.isArray(v.runes)) craft.runes = v.runes.filter((r): r is string => typeof r === 'string' && r.length > 0);
+
+  // Importer-only fields the stat engine reads (see ItemCraft). The write gate (stateInput.ts cleanCraft) refuses a
+  // craft whose copy is out of bounds; this reader is tolerant and drops only the bad piece. They MUST survive here:
+  // dropping them silently made the Stats tab disagree with the oracle (life 2248 vs 2267, ES 1136 vs 1746 on a real build).
+  const lines = (raw: unknown): string[] | undefined =>
+    Array.isArray(raw) && raw.length <= MAX_VERBATIM_LINES
+      ? raw.filter((l): l is string => typeof l === 'string' && l.length > 0 && l.length <= MAX_VERBATIM_LENGTH)
+      : undefined;
+  const verbatim = lines(v.verbatim);
+  if (verbatim && verbatim.length > 0) craft.verbatim = verbatim;
+  const runeLines = lines(v.runeLines);
+  if (runeLines && runeLines.length > 0) craft.runeLines = runeLines;
+  if (typeof v.radius === 'string' && /^[A-Za-z][A-Za-z ]{0,19}$/.test(v.radius)) craft.radius = v.radius;
+  if (Number.isInteger(v.filledSockets) && (v.filledSockets as number) >= 0 && (v.filledSockets as number) <= MAX_RUNES) craft.filledSockets = v.filledSockets as number;
+  if (Array.isArray(v.absentLines)) {
+    const absent = v.absentLines.filter((n): n is number => Number.isInteger(n) && n >= 0 && n < 64);
+    if (absent.length > 0 && v.absentLines.length <= 64) craft.absentLines = absent;
+  }
+  if (typeof v.baseSlug === 'string' && /^[a-z0-9-]{1,120}$/.test(v.baseSlug)) craft.baseSlug = v.baseSlug;
   return craft;
 }
 

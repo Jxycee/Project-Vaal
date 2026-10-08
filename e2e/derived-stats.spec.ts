@@ -59,6 +59,16 @@ test.describe('derived defence stats', () => {
     // The main sheet has finished calculating before we read anything (Life is a number, not "Calculating…").
     await expect(page.getByTestId('stats-panel').getByTestId('stat-life')).toHaveText(/^\d+$/, { timeout: 60_000 });
 
+    // The main numbers must equal the oracle's too. They did not once: the persistence reader dropped the craft
+    // fields the importer writes (verbatim / runeLines / baseSlug), so a SAVED build computed lower than a fresh
+    // import (life 2248 vs 2267, ES 1136 vs 1746). This is the guard for that whole class of leak.
+    const MAIN: Record<string, string> = { life: 'stat-life', mana: 'stat-mana', energyShield: 'stat-energy-shield', evasion: 'stat-evasion', str: 'stat-str', dex: 'stat-dex', int: 'stat-int' };
+    const mainStats = (RESULTS['ordinary-deadeye.json'] as unknown as { stats: Record<string, { want: number; ok: boolean }> }).stats;
+    for (const [key, testId] of Object.entries(MAIN)) {
+      expect(mainStats[key]?.ok, key + ' should be matched by the oracle for this fixture').toBe(true);
+      await expect(page.getByTestId('stats-panel').getByTestId(testId), key).toHaveText(String(mainStats[key].want));
+    }
+
     for (const [key, v] of matched) {
       const [id, format] = ROWS[key];
       await expect(group.getByTestId(id), key).toHaveText(format(v.want));
