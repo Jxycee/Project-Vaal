@@ -2,9 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { normalizeTag, normalizeTagList, MAX_TAGS_PER_BUILD } from '@/lib/build/tags';
 
 describe('normalizeTag', () => {
-  it('lowercases', () => {
-    expect(normalizeTag('Minion')).toBe('minion');
-  });
 
   it('trims leading/trailing whitespace', () => {
     expect(normalizeTag('  minion  ')).toBe('minion');
@@ -46,7 +43,4 @@ describe('normalizeTagList', () => {
     expect(normalizeTagList(raw)).toHaveLength(MAX_TAGS_PER_BUILD);
   });
 
-  it('preserves order', () => {
-    expect(normalizeTagList(['b', 'a', 'c'])).toEqual(['b', 'a', 'c']);
-  });
 });

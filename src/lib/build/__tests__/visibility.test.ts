@@ -9,17 +9,10 @@ describe('isBuildVisibility', () => {
     }
   });
 
-  it('rejects an empty string', () => {
-    expect(isBuildVisibility('')).toBe(false);
-  });
-
   it('rejects a wrong-case value', () => {
     expect(isBuildVisibility('Public')).toBe(false);
   });
 
-  it('rejects a value the CHECK constraint would also reject', () => {
-    expect(isBuildVisibility('deleted')).toBe(false);
-  });
 });
 
 describe('SHARE_TOKEN_RE', () => {

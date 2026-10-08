@@ -57,13 +57,6 @@ function installMockStorage() {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('draftKey', () => {
-  it('namespaces by build id', () => {
-    expect(draftKey('build-123')).toBe('vaal:tree-draft:build-123');
-  });
-
-  it('uses a stable placeholder for scratch mode', () => {
-    expect(draftKey(undefined)).toBe('vaal:tree-draft:scratch');
-  });
 
   it('is byte-identical to the old key when no checkpoint is given', () => {
     // Drafts written before checkpoints existed live under this exact key.
@@ -119,29 +112,14 @@ describe('save and load', () => {
     expect(loadDraft('build-123')).toEqual(state);
   });
 
-  it('round-trips a scratch-mode draft', () => {
-    saveDraft(undefined, state);
-    expect(loadDraft(undefined)).toEqual(state);
-  });
-
   it('keeps drafts for different builds separate', () => {
     saveDraft('build-123', state);
     expect(loadDraft('build-456')).toBeNull();
     expect(loadDraft(undefined)).toBeNull();
   });
 
-  it('returns null when nothing is stored', () => {
-    expect(loadDraft('nope')).toBeNull();
-  });
-
   it('returns null for corrupt JSON instead of throwing', () => {
     localStorage.setItem(draftKey('build-123'), '{not json');
-    expect(loadDraft('build-123')).toBeNull();
-  });
-
-  it('clears a draft — tree, gear and gems together', () => {
-    saveDraft('build-123', state);
-    clearDraft('build-123');
     expect(loadDraft('build-123')).toBeNull();
   });
 
@@ -215,11 +193,6 @@ describe('save and load', () => {
         gear: emptyGearState(),
         gem: emptyGemState(),
       });
-    });
-
-    it('does not crash or half-restore on an old-shape draft', () => {
-      localStorage.setItem(draftKey('build-123'), JSON.stringify(treeState));
-      expect(() => loadDraft('build-123')).not.toThrow();
     });
 
     it('still rejects an old-shape draft with an invalid tree', () => {

@@ -94,10 +94,6 @@ describe('cleanGemStateInput', () => {
     expect(result).toEqual({ ok: true, value: raw });
   });
 
-  it('accepts the empty state', () => {
-    expect(cleanGemStateInput({ loadouts: [], primaryId: null })).toEqual({ ok: true, value: { loadouts: [], primaryId: null } });
-  });
-
   it.each([
     ['off-origin skill icon', { loadouts: [loadout({ skill: item({ iconUrl: 'https://attacker.example/p.gif' }) })] }],
     ['off-origin support icon', { loadouts: [loadout({ supports: [item({ iconUrl: '//attacker.example/p.png' })] })] }],

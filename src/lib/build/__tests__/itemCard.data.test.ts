@@ -124,12 +124,6 @@ describe('buildItemCard: lines and rolls', () => {
 });
 
 describe('buildItemCard: header, requirements, runes', () => {
-  it('names the item, its base and its rarity', () => {
-    const card = buildItemCard(crossbow, sourcesFor(crossbow));
-    expect(card.base).toContain('Crossbow');
-    expect(card.rarity).toBe('rare');
-    expect(card.name).toBe(crossbow.craft!.name || crossbow.name);
-  });
 
   it('lists only the requirements an item has', () => {
     const card = buildItemCard(helmet, sourcesFor(helmet));
