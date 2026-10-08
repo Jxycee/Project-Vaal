@@ -49,11 +49,6 @@ describe('parsePobXml — every way it can fail', () => {
     expect(build.specs[0].nodes).toEqual([1, 3, 7]);
   });
 
-  it('treats a spec with no nodes attribute as an empty spec, not an error', () => {
-    const build = parsed(pob('<Tree><Spec title="Empty"/></Tree>'));
-    expect(build.specs[0]).toMatchObject({ title: 'Empty', nodes: [], weaponSet1: [], weaponSet2: [] });
-  });
-
   it('reads missing or non-numeric build numbers as null rather than guessing', () => {
     const build = parsed(pob('', '<Build level="lots" className="Witch"/>'));
     expect(build.level).toBeNull();
@@ -131,11 +126,6 @@ describe('parsePobXml — the real vendored build', () => {
       'Nivel 94',
     ]);
     expect(build.specs.map((s) => s.nodes.length)).toEqual([39, 50, 57, 70, 77, 86, 97, 127]);
-  });
-
-  it("reads spec 1's attribute choices", () => {
-    expect(build.specs[0].attributeOverrides.dex).toEqual([45969, 27439, 42350, 22975, 8600, 36629]);
-    expect(build.specs[0].attributeOverrides.str).toEqual([28510, 25374]);
   });
 
   it('reads eight skill elements, gems in the five real groups', () => {

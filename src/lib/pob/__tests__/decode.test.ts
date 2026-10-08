@@ -19,14 +19,14 @@ describe('decodePobCode — every way it can fail', () => {
     expect(decodePobCode('   \n\t')).toEqual({ ok: false, error: 'empty' });
   });
 
-  it('refuses text that is not base64 at all', () => {
-    expect(decodePobCode('this is a sentence, not a code!')).toEqual({ ok: false, error: 'not-base64' });
-  });
-
   it('refuses a URL pasted where a code was expected', () => {
     // Resolving links is source.ts's job; handed one directly, the decoder
     // must refuse rather than try to base64-decode "https://…".
     expect(decodePobCode('https://pobb.in/TUsV2f6hi8cg')).toEqual({ ok: false, error: 'not-base64' });
+  });
+
+  it('refuses text that is not base64 at all', () => {
+    expect(decodePobCode('this is a sentence, not a code!')).toEqual({ ok: false, error: 'not-base64' });
   });
 
   it('refuses valid base64 that is not zlib data', () => {

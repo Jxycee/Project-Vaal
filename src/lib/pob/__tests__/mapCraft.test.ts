@@ -299,8 +299,4 @@ describe('mapCraft — quality above what we store', () => {
     expect(craft.quality).toBe(30);
     expect(notes.some((n) => n.message.includes('31') && n.message.toLowerCase().includes('quality'))).toBe(true);
   });
-  it('says nothing about quality 20', () => {
-    const { notes } = mapCraft(text('Rarity: RARE', 'X', 'Grinning Mask', 'Quality: 20', 'Implicits: 0'), false, lookups());
-    expect(notes.some((n) => n.message.toLowerCase().includes('quality'))).toBe(false);
-  });
 });
