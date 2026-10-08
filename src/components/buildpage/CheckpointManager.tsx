@@ -56,7 +56,7 @@ export default function CheckpointManager({
   const [newName, setNewName] = useState('');
   const [newLevel, setNewLevel] = useState<number>(currentLevel);
 
-  const { pending, error, move, rename, armedDeleteId, requestDelete, add } = useCheckpointActions({
+  const { pending, error, move, rename, armedDeleteId, requestDelete, add, duplicate } = useCheckpointActions({
     buildId,
     checkpoints,
     activeId,
@@ -144,6 +144,15 @@ export default function CheckpointManager({
                     onClick={() => renaming.start(checkpoint.id, checkpoint.name)}
                   >
                     Rename
+                  </button>
+                  <button
+                    type="button"
+                    className={ROW_BUTTON}
+                    aria-label={`Duplicate ${checkpoint.name}`}
+                    disabled={pending}
+                    onClick={() => duplicate(checkpoint.id)}
+                  >
+                    Duplicate
                   </button>
                   {/* Two taps, like the builds list and the sheet: the first arms, the second deletes. */}
                   <button
