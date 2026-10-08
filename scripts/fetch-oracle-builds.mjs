@@ -31,6 +31,9 @@ for (const c of CHARACTERS) {
     useSecondWeaponSet: Boolean(j.useSecondWeaponSet),
     pob: j.pathOfBuildingExport,
     defensiveStats: j.defensiveStats,
+    // PoB's own per-stat build-up: stats[i] = { base, inc, more, total, mods: [[kind 0 flat|1 inc|2 more, value, sourceIndex]] },
+    // sources[i] = what each index is (an item, a passive node id, a quest, a skill).
+    breakdowns: j.breakdowns,
     skills: (j.skills ?? []).map((s) => ({
       name: s.allGems?.[0]?.name ?? null,
       dps: (s.dps ?? []).map((d) => ({ name: d.name, dps: d.dps, dotDps: d.dotDps })),

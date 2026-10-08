@@ -4,7 +4,8 @@ import { getCatalogue } from '@/lib/pob/catalogue';
 import { decodePobCode } from '@/lib/pob/decode';
 import { mapBuild } from '@/lib/pob/mapBuild';
 import { parsePobXml } from '@/lib/pob/parse';
-import { collectContributions } from '../collect';
+import { collectContributions, type Collected } from '../collect';
+import type { Pool } from '../statTable';
 import { makeCollectData } from '../collectData';
 import { computeDefences, type DefenceSheet } from '../engine';
 
@@ -36,6 +37,7 @@ type Fixture = {
   useSecondWeaponSet: boolean;
   pob: string;
   defensiveStats: Record<string, number>;
+  breakdowns: unknown;
   skills: { name: string | null; dps: { name: string; dps: number }[] }[];
 };
 
@@ -69,6 +71,31 @@ const FLOOR: Record<string, number> = {
   'evasion-deadeye.json': 4,
   'hybrid-tactician.json': 3,
 };
+
+// PoB's own per-stat build-up (breakdowns.stats[i].mods = [kind 0 flat|1 inc|2 more, value, sourceIndex]) says WHICH
+// modifiers PoB counts that we do not. Stat index -> our pool, and the diff itself.
+const BREAKDOWN_POOLS: Record<string, Pool> = { '0': 'life', '1': 'mana', '2': 'energyShield', '3': 'spirit', '5': 'evasion', '6': 'str', '7': 'dex', '8': 'int' };
+const KIND = ['flat', 'increased', 'more'] as const;
+type Breakdowns = { stats: Record<string, { mods: [number, number, number][] }>; sources: ([number, string?, string?] | [number])[] };
+
+/** Modifiers PoB lists for a pool that none of our contributions match by kind and value. Class base and attribute-derived entries (source types 0 and 5) are formulas, not modifiers, and are skipped. */
+function missingMods(b: Breakdowns, pool: Pool, idx: string, mine: Collected['contributions']): string[] {
+  const have = new Map<string, number>();
+  for (const c of mine.filter((x) => x.pool === pool)) {
+    const k = c.kind + '|' + Math.round(c.value * 100) / 100;
+    have.set(k, (have.get(k) ?? 0) + 1);
+  }
+  const out: string[] = [];
+  for (const [kind, value, si] of b.stats[idx]?.mods ?? []) {
+    const src = b.sources[si];
+    if (src && (src[0] === 0 || src[0] === 5 || String(src[1] ?? '').startsWith('Attribute:'))) continue;
+    const key = (KIND[kind] ?? 'kind' + kind) + '|' + value;
+    const n = have.get(key) ?? 0;
+    if (n > 0) have.set(key, n - 1);
+    else out.push((KIND[kind] ?? kind) + ' ' + value + ' from ' + (src ? (src[1] ?? 'source type ' + src[0]) : 'source ' + si));
+  }
+  return out;
+}
 
 const results: Record<string, unknown> = {};
 const sheets = new Map<string, { want: Record<Key, number>; got: Record<Key, number>; matched: number }>();
@@ -113,7 +140,8 @@ beforeAll(async () => {
     const got = Object.fromEntries(KEYS.map((k) => [k, ours(sheet, k)])) as Record<Key, number>;
     const matched = KEYS.filter((k) => got[k] === want[k]).length;
     sheets.set(f, { want, got, matched });
-    results[f] = { class: fx.class, source: fx.source, matched, of: KEYS.length, stats: Object.fromEntries(KEYS.map((k) => [k, { want: want[k], got: got[k], ok: got[k] === want[k] }])) };
+    const gaps = Object.fromEntries(Object.entries(BREAKDOWN_POOLS).map(([idx, pool]) => [pool, missingMods(fx.breakdowns as Breakdowns, pool, idx, collected.contributions)]));
+    results[f] = { gaps, class: fx.class, source: fx.source, matched, of: KEYS.length, stats: Object.fromEntries(KEYS.map((k) => [k, { want: want[k], got: got[k], ok: got[k] === want[k] }])) };
   }
   writeFileSync(`${DIR}/results.json`, JSON.stringify(results, null, 2));
 }, 600_000);
