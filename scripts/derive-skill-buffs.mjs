@@ -17,7 +17,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 
-const SHEET_NAMES = /^(Life|Mana|EnergyShield|Armour|Evasion|Spirit|Str|Dex|Int|AllAttributes|(Fire|Cold|Lightning|Chaos|Elemental)Resist(Max)?|MaxResist)$/;
+const SHEET_NAMES = /^(Life|Mana|EnergyShield|EnergyShieldTotal|Armour|Evasion|Spirit|Str|Dex|Int|AllAttributes|(Fire|Cold|Lightning|Chaos|Elemental)Resist(Max)?|MaxResist)$/;
 const skills = JSON.parse(readFileSync('src/lib/pob/data/skills.json', 'utf8'));
 const out = {};
 

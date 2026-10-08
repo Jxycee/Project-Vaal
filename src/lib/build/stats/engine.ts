@@ -177,13 +177,13 @@ export function computeDefences(given: EngineInput): DefenceSheet {
   // Each slot's item gets the global increase plus its own slot's (CalcDefence.lua:1445-1453);
   // everything else (class base, global flats) gets the global one only. With no slot-scoped
   // increase this is the same number as scaling the grand total.
-  const defence = (pool: Pool, base = 0) => {
+  const defence = (pool: Pool, base = 0, afterScaling = 0) => {
     const slotted = slotsOf(input.contributions, pool);
     let total = (base + sum(input.contributions, pool, 'flat', false)) * (1 + incOf(pool) / 100) * moreOf(pool);
     for (const slot of slotted) {
       total += sumSlot(input.contributions, pool, 'flat', slot) * (1 + (incOf(pool) + sumSlot(input.contributions, pool, 'increased', slot)) / 100) * product(input.contributions, pool, slot);
     }
-    return Math.max(Math.round(total), 0);
+    return Math.max(Math.round(Math.round(total) + afterScaling), 0);
   };
 
   const resist = (pool: Pool, maxPool: Pool, penalty: number): Resistance => {
@@ -204,7 +204,8 @@ export function computeDefences(given: EngineInput): DefenceSheet {
     int,
     life,
     mana,
-    energyShield: converted ? 0 : defence('energyShield', Math.round((lifeBase * lifeToEs) / 100)),
+    // EnergyShieldTotal (Discipline) joins the rounded scaled figure (sorceress-1: 8661 + 482.16 -> 9143, where one rounding at the end gives 9144).
+    energyShield: converted ? 0 : defence('energyShield', Math.round((lifeBase * lifeToEs) / 100), flatOf('energyShieldTotal')),
     armour: defence('armour', ironReflexes ? 7 : 0),
     evasion: ironReflexes ? 0 : defence('evasion', 7),
     fire: resist('fireRes', 'fireMax', input.resistancePenalty),

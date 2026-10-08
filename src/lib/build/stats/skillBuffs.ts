@@ -41,6 +41,9 @@
 //      mod behind MultiplierThreshold SupportCount): the bonus applies only when the loadout's support count equals
 //      the threshold (the gem itself counted); any other count adds nothing. Level-granting supports that need the
 //      skill's tags (an element Mastery) are not in the data and stay an assumption (8).
+//  12. Discipline's "maximum Energy Shield" is PoB's EnergyShieldTotal (not EnergyShield): it is added to the finished Energy
+//      Shield, not scaled by its increases, and it takes the Aura magnitudes like any Aura (monk-1: level 13 = 162 exactly;
+//      sorceress-1: level 20 = 328 x 1.47 = 482.16). The engine adds the pool 'energyShieldTotal' after rounding the scaled figure.
 // =============================================================================
 
 import buffs from '@/lib/pob/data/skill-buffs.json';
@@ -199,6 +202,22 @@ export function skillBuffContributions(
 //      that is merely socketed elsewhere gives nothing, exactly as in PoB.
 //   3. A skill name another kind of skill shares is absent from the data (scripts/derive-skill-buffs.mjs): no bonus.
 //   4. Switching the primary skill in the app to a non-form skill drops the bonus, like PoB's main-skill selector.
+//   5. The same main skill sets PoB's Condition:Shapeshifted (withShapeshifted below), so "+1% to Maximum Lightning
+//      Resistance while Shapeshifted" and the other "while Shapeshifted" passives count (ordinary-druid-1: Lightning 76).
+//      A build with no Configuration is never given one, like the other derived conditions.
+export function isShapeshifted(gems: GemState | undefined): boolean {
+  const main = gems ? deriveMainSkill(gems) : null;
+  if (main === null) return false;
+  const forms = shapeshift as Record<'Bear' | 'Wolf' | 'Wyvern', string[]>;
+  return forms.Bear.includes(main) || forms.Wolf.includes(main) || forms.Wyvern.includes(main);
+}
+
+/** The Configuration with Condition:Shapeshifted added when the main skill is a form (failure mode 5). */
+export function withShapeshifted(config: BuildConfig | undefined, gems: GemState | undefined): BuildConfig | undefined {
+  if (!config || config.conditions.includes('Shapeshifted') || !isShapeshifted(gems)) return config;
+  return { ...config, conditions: [...config.conditions, 'Shapeshifted'].sort() };
+}
+
 export function shapeshiftContributions(gems: GemState | undefined, level: number): Contribution[] {
   const main = gems ? deriveMainSkill(gems) : null;
   if (main === null) return [];

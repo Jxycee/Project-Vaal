@@ -25,6 +25,7 @@ const POOL_WORDS: Record<Pool, RegExp> = {
   life: /Life/,
   mana: /Mana/,
   energyShield: /Energy ?Shield/,
+  energyShieldTotal: /Energy ?Shield/,
   armour: /Armour/,
   evasion: /Evasion/,
   str: /Strength|Attributes/,

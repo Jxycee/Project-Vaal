@@ -22,6 +22,9 @@ export type Pool =
   | 'life'
   | 'mana'
   | 'energyShield'
+  // Discipline's "+N to maximum Energy Shield" is PoB's EnergyShieldTotal BASE: added to the finished Energy Shield, after the
+  // increases (monk-1: Discipline L13 = 162, exactly the gap; not 162 x 6.12). engine.ts adds it after scaling.
+  | 'energyShieldTotal'
   | 'armour'
   | 'evasion'
   | 'str'
@@ -322,6 +325,13 @@ export const CONDITIONAL_EFFECTS: Readonly<Record<string, ConditionalEffect>> = 
   'deflection_rating_+%_while_surrounded': { condition: 'Surrounded', effects: inc('deflection') },
   'movement_speed_+%_while_surrounded': { condition: 'Surrounded', effects: inc('movementSpeed') },
   'life_regeneration_rate_per_minute_%_while_surrounded': { condition: 'Surrounded', effects: perMinute('lifeRegenPercent', 'flat') },
+  // "while Shapeshifted": PoB sets Condition:Shapeshifted while the MAIN skill is a Bear, Wolf or Wyvern form (skillBuffs.ts
+  // withShapeshifted). The maximum-resistance ids carry "_+%_" in their name but are plain +N to the maximum (modcache.json:
+  // "+1% to Maximum Lightning Resistance while Shapeshifted", BASE 1 on LightningResistMax).
+  'maximum_fire_damage_resistance_+%_while_shapeshifted': { condition: 'Shapeshifted', effects: flat('fireMax') },
+  'maximum_cold_damage_resistance_+%_while_shapeshifted': { condition: 'Shapeshifted', effects: flat('coldMax') },
+  'maximum_lightning_damage_resistance_+%_while_shapeshifted': { condition: 'Shapeshifted', effects: flat('lightningMax') },
+  'armour_+%_while_shapeshifted': { condition: 'Shapeshifted', effects: inc('armour') },
 };
 
 /**

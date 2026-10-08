@@ -632,7 +632,7 @@
       },
       "energyShield": {
         "want": 4729,
-        "got": 4226,
+        "got": 4730,
         "ok": false
       },
       "armour": {
@@ -671,7 +671,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 9,
+    "derivedMatched": 10,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -711,8 +711,8 @@
       },
       "esRecharge": {
         "want": 591,
-        "got": 528,
-        "ok": false
+        "got": 591,
+        "ok": true
       },
       "esRechargeDelay": {
         "want": 4,
@@ -741,32 +741,32 @@
       },
       "effectiveHealthPool": {
         "want": 26777,
-        "got": 24845,
+        "got": 26613,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 8357,
-        "got": 7840,
+        "got": 8346,
         "ok": false
       },
       "fireMaxHit": {
         "want": 28096,
-        "got": 26300,
+        "got": 28100,
         "ok": false
       },
       "coldMaxHit": {
         "want": 28096,
-        "got": 26300,
+        "got": 28100,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 28096,
-        "got": 26300,
+        "got": 28100,
         "ok": false
       },
       "chaosMaxHit": {
         "want": 22010,
-        "got": 21004,
+        "got": 22012,
         "ok": false
       }
     }
@@ -2493,7 +2493,7 @@
     ],
     "class": "Druid",
     "source": "https://poe.ninja/poe2/builds/runesofaldur/character/DpsFudge-6069/SplitMind",
-    "matched": 12,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -2548,8 +2548,8 @@
       },
       "lightning": {
         "want": 76,
-        "got": 75,
-        "ok": false
+        "got": 76,
+        "ok": true
       },
       "chaos": {
         "want": 57,
@@ -2632,7 +2632,7 @@
       },
       "effectiveHealthPool": {
         "want": 13562,
-        "got": 12849,
+        "got": 12906,
         "ok": false
       },
       "physicalMaxHit": {
@@ -2652,7 +2652,7 @@
       },
       "lightningMaxHit": {
         "want": 11754,
-        "got": 11079,
+        "got": 11445,
         "ok": false
       },
       "chaosMaxHit": {
@@ -4796,7 +4796,7 @@
     ],
     "class": "Monk",
     "source": "https://poe.ninja/poe2/builds/runesofaldur/character/LittleQ-4442/%E6%AD%A6%E5%9C%A3%E7%AA%9D%E7%93%9C",
-    "matched": 12,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -4826,8 +4826,8 @@
       },
       "energyShield": {
         "want": 8387,
-        "got": 8225,
-        "ok": false
+        "got": 8387,
+        "ok": true
       },
       "armour": {
         "want": 0,
@@ -4865,7 +4865,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 12,
+    "derivedMatched": 19,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -4905,8 +4905,8 @@
       },
       "esRecharge": {
         "want": 1268,
-        "got": 1244,
-        "ok": false
+        "got": 1268,
+        "ok": true
       },
       "esRechargeDelay": {
         "want": 3.252,
@@ -4935,33 +4935,33 @@
       },
       "effectiveHealthPool": {
         "want": 20662,
-        "got": 20326,
-        "ok": false
+        "got": 20662,
+        "ok": true
       },
       "physicalMaxHit": {
         "want": 9969,
-        "got": 9807,
-        "ok": false
+        "got": 9969,
+        "ok": true
       },
       "fireMaxHit": {
         "want": 35604,
-        "got": 35025,
-        "ok": false
+        "got": 35604,
+        "ok": true
       },
       "coldMaxHit": {
         "want": 35604,
-        "got": 35025,
-        "ok": false
+        "got": 35604,
+        "ok": true
       },
       "lightningMaxHit": {
         "want": 35604,
-        "got": 35025,
-        "ok": false
+        "got": 35604,
+        "ok": true
       },
       "chaosMaxHit": {
         "want": 15609,
-        "got": 15391,
-        "ok": false
+        "got": 15609,
+        "ok": true
       }
     }
   },
@@ -5943,7 +5943,7 @@
     ],
     "class": "Sorceress",
     "source": "https://poe.ninja/poe2/builds/runesofaldur/character/DonDiLiu1210-3985/%E4%B8%80%E5%80%8B%E7%B5%90%E6%89%93%E5%BB%BF%E5%9B%9B%E5%80%8B%E9%8C%A2%E8%AA%92%E5%B0%8F%E8%BF%AA%E5%85%AC",
-    "matched": 12,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -5973,8 +5973,8 @@
       },
       "energyShield": {
         "want": 9143,
-        "got": 8661,
-        "ok": false
+        "got": 9143,
+        "ok": true
       },
       "armour": {
         "want": 928,
@@ -6012,7 +6012,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 10,
+    "derivedMatched": 11,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -6052,8 +6052,8 @@
       },
       "esRecharge": {
         "want": 1142,
-        "got": 1082,
-        "ok": false
+        "got": 1142,
+        "ok": true
       },
       "esRechargeDelay": {
         "want": 5,
@@ -6082,32 +6082,32 @@
       },
       "effectiveHealthPool": {
         "want": 30891,
-        "got": 27070,
+        "got": 28266,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 13291,
-        "got": 11489,
+        "got": 11971,
         "ok": false
       },
       "fireMaxHit": {
         "want": 47139,
-        "got": 40704,
+        "got": 42425,
         "ok": false
       },
       "coldMaxHit": {
         "want": 47139,
-        "got": 40704,
+        "got": 42425,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 48885,
-        "got": 42211,
+        "got": 43996,
         "ok": false
       },
       "chaosMaxHit": {
         "want": 32478,
-        "got": 28266,
+        "got": 29230,
         "ok": false
       }
     }

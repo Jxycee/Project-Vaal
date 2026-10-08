@@ -157,7 +157,7 @@ const DERIVED_FLOOR: Record<string, number> = {
   'armour-life-gemling.json': 10, // round 5 (Iron Reflexes, Heavy Armour); was 9 // of 19
   'es-life-stormweaver.json': 8, // of 19
   'evasion-deadeye.json': 14, // of 19
-  'hybrid-tactician.json': 9, // round 10: Defiance Banner partly counted (bannerPlanted, Banner aura magnitudes); was 7 // of 19
+  'hybrid-tactician.json': 10, // round 8 of the engine loop: 10 (Discipline's EnergyShieldTotal); was 9. Round 10: Defiance Banner partly counted (bannerPlanted, Banner aura magnitudes); was 7 // of 19
   'ordinary-armour-1.json': 9, // of 17
   'ordinary-caster-1.json': 9, // of 17
   'ordinary-caster-2.json': 13, // round 9; was 12 // of 19
@@ -182,15 +182,15 @@ const DERIVED_FLOOR: Record<string, number> = {
   'ordinary-spirit-walker-2.json': 15, // of 19
   'ordinary-titan-1.json': 15, // round 1 of the accuracy loop: Hulking Form (effect of Small Passive Skills), Stone Skin (slot more); was 10 // of 19
   // Round-5 class-coverage set (Runes of Aldur): classes with no fixture yet; FLOOR = the match when added.
-  'ordinary-druid-1.json': 9, // of 19
+  'ordinary-druid-1.json': 11, // of 19
   'ordinary-huntress-1.json': 19, // of 19
   'ordinary-infernalist-1.json': 11, // of 19
   'ordinary-invoker-1.json': 18, // of 19
   'ordinary-mercenary-1.json': 17, // round 2: charms count through their base buff (Sapphire +25% Cold, Topaz +25% Lightning); was 14 // of 19
-  'ordinary-monk-1.json': 12, // of 19
+  'ordinary-monk-1.json': 19, // round 8 of the engine loop: Discipline's EnergyShieldTotal (ES recharge, leech and the max hits follow ES); was 12 // of 19
   'ordinary-shaman-1.json': 10, // round 5; was 9 // of 19
   'ordinary-smith-of-kitava-1.json': 9, // of 17
-  'ordinary-sorceress-1.json': 10, // of 19
+  'ordinary-sorceress-1.json': 11, // of 19
   'ordinary-witchhunter-1.json': 8, // of 17
   'ordinary-warbringer-1.json': 14, // round 5: Rage and Summoned Totems feed Armour/Evasion, so Life/Armour/Evasion match; was 9 (round 3: Blood Magic; was 8) // of 17
 };
@@ -230,15 +230,15 @@ const FLOOR: Record<string, number> = {
   'ordinary-spirit-walker-2.json': 13, // 13 of 13 at the start
   'ordinary-titan-1.json': 13, // round 1 of the accuracy loop: 13 of 13 (Hulking Form scales plain small passives by 50%, floored, never the generic attribute nodes or ascendancy ones; Stone Skin is a body-armour-only more; Kaom's Heart 'You have no Spirit'); was 4 at the start: strength/Life/Mana/ES/Armour/Evasion short, Spirit 200 where PoB has 0 (Grand Spectrum x3, Darkness Enthroned)
   // Round-5 class-coverage set (Runes of Aldur, no Mageblood, no RELIC item): classes with no fixture yet; FLOOR = the match when added.
-  'ordinary-druid-1.json': 12, // round 5 of the engine loop: Ingenuity's "N% increased bonuses gained from left/right Equipped Ring" (lineMods.ts EFFECT_OF_BONUSES_LINE) scales both rings; was 8. Short: Lightning (76/75: "+1% Maximum Lightning Resistance while Shapeshifted" needs the Shapeshifted condition PoB derives from the main skill)
+  'ordinary-druid-1.json': 13, // round 8: 13 of 13, the main skill's form sets Condition:Shapeshifted (skillBuffs.ts withShapeshifted) so Scales of the Wyvern's +1% Maximum Lightning Resistance counts. Round 5 of the engine loop: Ingenuity's "N% increased bonuses gained from left/right Equipped Ring" (lineMods.ts EFFECT_OF_BONUSES_LINE) scales both rings; was 8. Short: Lightning (76/75: "+1% Maximum Lightning Resistance while Shapeshifted" needs the Shapeshifted condition PoB derives from the main skill)
   'ordinary-huntress-1.json': 13, // 13 of 13 at the start
   'ordinary-infernalist-1.json': 13,
   'ordinary-invoker-1.json': 12, // short: Mana (2253/2549)
   'ordinary-mercenary-1.json': 13, // round 2: 13 of 13, an active charm adds its base buff (collect.ts collectCharms: Sapphire +25% Cold, Topaz +25% Lightning, same-base charms merge); was 11
-  'ordinary-monk-1.json': 12, // short: Energy Shield (8225/8387)
+  'ordinary-monk-1.json': 13, // round 8: 13 of 13, Discipline's 'maximum Energy Shield' is PoB's EnergyShieldTotal, added after the increases (L13 = 162)
   'ordinary-shaman-1.json': 12, // round 7: 12 of 13 (Bear Form: the main skill Rampage is a Bear skill, +10 x level + 10 flat Armour). round 5: 11 of 13 (Undying Hate's Conquered Attribute passives +3 to all Attributes, Wisdom of the Maji's Bonded rune lines, Iron Reflexes from the Legacy rune, Heavy Armour); was 5. Short: Lightning (72/75: Purity of Lightning is 39 in PoB, 49.53 here, aura magnitudes not applied)
   'ordinary-smith-of-kitava-1.json': 13,
-  'ordinary-sorceress-1.json': 12, // short: Energy Shield (8661/9143)
+  'ordinary-sorceress-1.json': 13, // round 8: 13 of 13, Discipline L20 (328) x 1.47 Aura magnitudes = 482.16, added after the rounded Energy Shield (EnergyShieldTotal)
   'ordinary-witchhunter-1.json': 11, // short: Evasion (24523/23064: Afterimage's Hit Recently and Hyrri's Ire, Obsessive Rituals' final -50% not read), Chaos resistance (20/24)
   'ordinary-warbringer-1.json': 13, // round 5: 13 of 13 (corrupted-item count excludes jewels, includes flasks and charms; Rage and Summoned Totems multiply Armour and Evasion passives); was 10. round 3: Blood Magic sets Mana 0 (engine.ts); short Life, Armour, Evasion; was 9 // 9 of 13 at the start: Mana 552 where PoB has 0, Armour and Evasion short, Life over
 };

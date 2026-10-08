@@ -134,6 +134,7 @@ export const POOLS: Record<string, Pool[]> = {
   Life: ['life'],
   Mana: ['mana'],
   EnergyShield: ['energyShield'],
+  EnergyShieldTotal: ['energyShieldTotal'],
   Armour: ['armour'],
   Evasion: ['evasion'],
   Spirit: ['spirit'],

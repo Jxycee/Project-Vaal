@@ -31,7 +31,7 @@ import type { GearState } from '../gearState';
 import type { GemState } from '../gemState';
 import { conditionHolds, type BuildConfig } from './buildConfig';
 import { lifeReservation, withDerivedConditions } from './reservation';
-import { shapeshiftContributions, skillBuffContributions } from './skillBuffs';
+import { shapeshiftContributions, skillBuffContributions, withShapeshifted } from './skillBuffs';
 import { readSurrounded } from './surrounded';
 import { totemsSummoned, type TotemMods } from './totems';
 import type { PassiveState } from '../types';
@@ -151,7 +151,7 @@ function collectOnce(
   const assumed: string[] = [];
   // Low Life is derived when the gems reserve enough Life (reservation.ts); the Configuration's own conditions stay as imported.
   const lifeReserved = lifeReservation(input.gems, input.set);
-  const config = withDerivedConditions(input.passive.buildConfig, lifeReserved.percent);
+  const config = withShapeshifted(withDerivedConditions(input.passive.buildConfig, lifeReserved.percent), input.gems);
   // "Per X" stats wait here until every passive is read: a Multiplier's count is the Configuration's (Rage) or derived from the
   // skills and the passives together (Summoned Totems, totems.ts), so it is known only at the end.
   const multiplierCounts: MultiplierCounts = { known: config !== undefined, pending: [] };
