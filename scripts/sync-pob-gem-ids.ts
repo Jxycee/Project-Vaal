@@ -32,3 +32,22 @@ for (const block of lua.split(/\n\t\["Metadata\/Items\//).slice(1)) {
 const file = path.join(process.cwd(), 'src', 'lib', 'pob', 'export', 'pobGemIds.json');
 writeFileSync(file, JSON.stringify(out));
 console.log(`${Object.keys(out).length} gems -> ${file}`);
+
+// The attributes each ACTIVE skill gem requires, as letters (S, D, I): Virtuous Barrier's motes count a socketed skill
+// gem by them (stats/skillBuffs.ts, PoB2 CalcSetup.lua). Support gems are left out; a name two gems share with
+// different requirements is left out; a gem requiring none is left out.
+const attributes: Record<string, string> = {};
+const clash = new Set<string>();
+for (const block of lua.split(/\n\t\["Metadata\/Items\//).slice(1)) {
+  const name = /\n\t\tname = "([^"]+)"/.exec(block)?.[1];
+  if (!name || /\n\t\t\tsupport = true/.test(block)) continue;
+  const req = (k: string) => Number(new RegExp(`\n\t\treq${k} = (\d+)`).exec(block)?.[1] ?? 0);
+  const letters = (req('Str') > 0 ? 'S' : '') + (req('Dex') > 0 ? 'D' : '') + (req('Int') > 0 ? 'I' : '');
+  if (attributes[name] !== undefined && attributes[name] !== letters) clash.add(name);
+  attributes[name] = letters;
+}
+for (const name of clash) delete attributes[name];
+for (const [name, letters] of Object.entries(attributes)) if (letters === '') delete attributes[name];
+const attrFile = path.join(process.cwd(), 'src', 'lib', 'pob', 'data', 'gem-attributes.json');
+writeFileSync(attrFile, JSON.stringify(attributes));
+console.log(`${Object.keys(attributes).length} active gems with attribute requirements -> ${attrFile}`);

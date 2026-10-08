@@ -35,7 +35,7 @@
 
 import buffs from '@/lib/pob/data/skill-buffs.json';
 import type { GemState } from '../gemState';
-import { conditionHolds, NUMBER_INPUTS, type BuildConfig } from './buildConfig';
+import { conditionHolds, MOTE_VARS, moteCounts, NUMBER_INPUTS, type BuildConfig } from './buildConfig';
 import { POOLS as MODIFIER_POOLS } from './lineMods';
 import type { Contribution } from './engine';
 
@@ -105,6 +105,8 @@ export function skillBuffContributions(
   const notCounted: string[] = [];
   const counted: string[] = [];
   const seen = new Set<string>();
+  // Motes: the import's whole-skill-list count (config.multipliers) when there is one, else the loadouts' skills.
+  const motes = moteCounts((gems?.loadouts ?? []).filter((l) => l.skill && l.sets.includes(set)).map((l) => l.skill!.name));
   for (const loadout of gems?.loadouts ?? []) {
     const gem = loadout.skill;
     if (!gem || !loadout.sets.includes(set)) continue;
@@ -130,8 +132,8 @@ export function skillBuffContributions(
         const negate = e.condition?.startsWith('!') ?? false;
         const held = e.condition ? conditionHolds(config, negate ? e.condition.slice(1) : e.condition, negate) : true;
         // A count we read from a Config input is known even when absent (0); any other var is not ours to know.
-        const knownCount = e.multiplier ? Object.values(NUMBER_INPUTS).includes(e.multiplier.var) : true;
-        if (held === undefined || (config === undefined && e.multiplier) || !knownCount) {
+        const knownCount = e.multiplier ? (Object.values(NUMBER_INPUTS).includes(e.multiplier.var) || MOTE_VARS[e.multiplier.var] !== undefined) : true;
+        if (held === undefined || (config === undefined && e.multiplier && MOTE_VARS[e.multiplier.var] === undefined) || !knownCount) {
           if (e.condition) gates.push(`Condition:${e.condition}`);
           if (e.multiplier) gates.push(`Multiplier:${e.multiplier.var}`);
         } else if (!held) {
@@ -153,7 +155,7 @@ export function skillBuffContributions(
       if (value === undefined) continue;
       if (e.effect === 'Aura' && auraEffectPercent !== 0) value = scale(value, 1 + auraEffectPercent / 100);
       if (e.multiplier) {
-        const count = Math.min(config?.multipliers[e.multiplier.var] ?? 0, e.multiplier.limit ?? Infinity);
+        const count = Math.min(config?.multipliers[e.multiplier.var] ?? motes[e.multiplier.var] ?? 0, e.multiplier.limit ?? Infinity);
         if (count === 0) continue;
         value *= count;
       }

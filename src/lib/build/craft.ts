@@ -63,6 +63,12 @@ export interface ItemCraft {
    * when the item came without them (hand-built), and the sockets are then worked out from `runes`. Importer only.
    */
   runeLines?: string[];
+  /**
+   * A unique's ACTUAL base item when it is not the one the wiki lists for the unique: the 0.5 "Runemastered X" /
+   * "Runeforged X" bases carry different defences and Ward from plain X (Alpha's Howl on a Runemastered Armoured Cap has
+   * 178 base Evasion, not 296). The slug of the base line PoB printed. Absent = the unique's own listed base. Importer only.
+   */
+  baseSlug?: string;
 }
 
 /** Bounds the write gate holds `verbatim` to (a unique has at most ~40 lines; none is long). */

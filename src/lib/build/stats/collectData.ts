@@ -15,6 +15,7 @@
 
 import { projectJewelRadius, type JewelRadiusNode } from '@/lib/tree/treeLite';
 import movementPenalties from '@/lib/pob/data/base-movement-penalty.json';
+import baseDefences from '@/lib/pob/data/base-defences.json';
 import type { CollectData } from './collect';
 
 export interface RawCollectFiles {
@@ -35,6 +36,12 @@ export interface RawCollectFiles {
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((s): s is string => typeof s === 'string') : []);
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+
+function pobDefences(name: string, wiki: Record<string, unknown>): { armour: number; evasion: number; energyShield: number; ward: number } {
+  const pob = (baseDefences as unknown as Record<string, [number, number, number, number]>)[name];
+  if (pob) return { armour: pob[0], evasion: pob[1], energyShield: pob[2], ward: pob[3] };
+  return { armour: num(wiki.armour), evasion: num(wiki.evasion), energyShield: num(wiki.energyShield), ward: num(wiki.ward) };
+}
 
 export function makeCollectData(files: RawCollectFiles): CollectData {
   /** Name -> id for passives that carry typed stats and whose name nothing else shares. Built on first use. */
@@ -74,7 +81,8 @@ export function makeCollectData(files: RawCollectFiles): CollectData {
       if (!isObject(detail) || typeof detail.name !== 'string') return undefined;
       const a = isObject(detail.armour) ? detail.armour : null;
       return {
-        armour: a ? { armour: num(a.armour), evasion: num(a.evasion), energyShield: num(a.energyShield), ward: num(a.ward) } : null,
+        // PoB's base defences beat the wiki's where it has the base (they differ on a dozen Runeforged / Runemastered bases).
+        armour: a ? pobDefences(detail.name, a) : null,
         movementPenalty: (movementPenalties as Record<string, number>)[detail.name] ?? 0,
         spirit: num(detail.spirit),
         itemClass: typeof detail.itemClass === 'string' ? detail.itemClass : null,

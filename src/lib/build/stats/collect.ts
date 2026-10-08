@@ -35,7 +35,7 @@ import type { PassiveState } from '../types';
 import { campaignAt } from './campaign';
 import { DEFENCE_WORDS, implicitStats } from './implicits';
 import { isLegacyLine, LEGACY_EFFECT_LINE, legacyContributions } from './legacies';
-import { RADIUS_GRANT_LINE, readLine, type LineMod } from './lineMods';
+import { RADIUS_GRANT_LINE, readLine, readLocalDefenceLine, type LineMod } from './lineMods';
 import type { JewelRadiusNode } from '@/lib/tree/treeLite';
 import { categoryApplies, isKnownCategory, readRuneLine } from './runes';
 import type { Contribution } from './engine';
@@ -450,7 +450,9 @@ function collectItem(
 
   if (item.isUnique) {
     const unique = data.unique(item.name, item.slug);
-    detail = unique ? data.item(unique.baseSlug) : undefined;
+    // The base PoB printed wins over the wiki's listed one: Alpha's Howl on a Runemastered Armoured Cap has 178 base
+    // Evasion + 113 Ward where plain Armoured Cap has 296 (the importer keeps that base in craft.baseSlug).
+    detail = unique ? ((craft?.baseSlug ? data.item(craft.baseSlug) : undefined) ?? data.item(unique.baseSlug)) : undefined;
     wornImplicitLines = unique?.implicitLines ?? [];
     if (!unique || !detail) {
       notCounted.push(`${item.name}: unique — not in our data`);
@@ -555,6 +557,10 @@ function collectItem(
   // global split below reads (runes.ts). A rune we have no data for is named.
   const host = { itemClass: detail.itemClass ?? null, weapon: detail.weapon ?? false, armour: detail.armour !== null };
   let runesUnread = 0;
+  // On an item with armour data a rune's flat "+N to maximum Energy Shield" is the item's OWN Energy Shield (it takes the
+  // item's increases and quality: Morior Invictus (50 + 10) x 5.66 x 1.2 = 408); Spirit on an item with Spirit is local too.
+  const runeStat = (stat: string) =>
+    stat === 'spirit_+%' && detail.spirit > 0 ? 'local_spirit_+%' : stat === 'base_maximum_energy_shield' && detail.armour !== null ? 'local_energy_shield' : stat;
   // PoB's own printed rune lines are its answer for the sockets (effect of Socketed Augment Items, bonded rules and
   // its rune data already applied): they replace the recomputation from rune slugs below. A line is a typed
   // defence stat the same way a data line is, so "increased Armour, Evasion and Energy Shield" stays LOCAL.
@@ -563,7 +569,7 @@ function collectItem(
     const read = readRuneLine(line);
     if (read === null) continue;
     if ('unmodelled' in read) notCounted.push(`${item.name}: rune line "${read.unmodelled}" not counted`);
-    else stats.push([read.stat === 'spirit_+%' && detail.spirit > 0 ? 'local_spirit_+%' : read.stat, read.value]);
+    else stats.push([runeStat(read.stat), read.value]);
   }
   for (const slug of printedRunes ? [] : (craft?.runes ?? [])) {
     const rune = data.rune?.(slug);
@@ -583,7 +589,7 @@ function collectItem(
         if ('unmodelled' in read) notCounted.push(`${item.name}: rune line "${read.unmodelled}" not counted`);
         // "15% increased Spirit" on an item that has Spirit of its own (a sceptre, a body armour) is LOCAL in PoB2:
         // the item's Spirit becomes round(base x 1.15), as the oracle's Palm of the Dreamer shows (100 -> 115).
-        else stats.push([read.stat === 'spirit_+%' && detail.spirit > 0 ? 'local_spirit_+%' : read.stat, read.value]);
+        else stats.push([runeStat(read.stat), read.value]);
       }
     }
   }
@@ -665,7 +671,16 @@ function readVerbatim(
       continue;
     }
     const read = readLine(line);
-    if (read === null) continue;
+    if (read === null) {
+      // An item-local wording the cache lacks ("22% increased Evasion and Energy Shield"): the item's own defence.
+      if (host.defences) {
+        for (const mod of readLocalDefenceLine(line) ?? []) {
+          const bucket = mod.kind === 'flat' ? localFlat : localInc;
+          bucket[mod.pool] = (bucket[mod.pool] ?? 0) + mod.value;
+        }
+      }
+      continue;
+    }
     if ('unmodelled' in read) {
       notCounted.push(`${source}: "${read.unmodelled}" not counted`);
       continue;

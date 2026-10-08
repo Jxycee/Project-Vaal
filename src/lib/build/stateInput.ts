@@ -70,7 +70,7 @@ export { isAllowedIconUrl };
 // mod, 2 ranges per line, 7 implicit lines, 37 unique lines; mod slugs are
 // [a-z0-9_-] (two carry '-'), item slugs [a-z0-9-].
 
-const CRAFT_KEYS = ['rarity', 'name', 'itemLevel', 'quality', 'corrupted', 'implicitValues', 'uniqueValues', 'prefixes', 'suffixes', 'runes', 'verbatim', 'radius', 'runeLines', 'filledSockets'] as const;
+const CRAFT_KEYS = ['rarity', 'name', 'itemLevel', 'quality', 'corrupted', 'implicitValues', 'uniqueValues', 'prefixes', 'suffixes', 'runes', 'verbatim', 'radius', 'runeLines', 'filledSockets', 'baseSlug'] as const;
 const MOD_SLUG_RE = /^[a-z0-9_-]{1,120}$/;
 const MAX_VALUES_PER_ROW = 8;
 const MAX_IMPLICIT_ROWS = 16;
@@ -135,6 +135,8 @@ function cleanCraft(raw: unknown): ItemCraft | null {
   }
   const filledSockets = raw.filledSockets;
   if (filledSockets !== undefined && !(Number.isInteger(filledSockets) && (filledSockets as number) >= 0 && (filledSockets as number) <= MAX_RUNES)) return null;
+  const baseSlug = raw.baseSlug;
+  if (baseSlug !== undefined && (typeof baseSlug !== 'string' || !/^[a-z0-9-]{1,120}$/.test(baseSlug))) return null;
   const radius = raw.radius;
   if (radius !== undefined && (typeof radius !== 'string' || !/^[A-Za-z][A-Za-z ]{0,19}$/.test(radius))) return null;
   return {
@@ -152,6 +154,7 @@ function cleanCraft(raw: unknown): ItemCraft | null {
     ...(radius !== undefined ? { radius: radius as string } : {}),
     ...(filledSockets !== undefined ? { filledSockets: filledSockets as number } : {}),
     ...(runeLines !== undefined ? { runeLines: [...(runeLines as string[])] } : {}),
+    ...(baseSlug !== undefined ? { baseSlug: baseSlug as string } : {}),
   };
 }
 

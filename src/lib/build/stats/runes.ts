@@ -122,7 +122,10 @@ const LINE_STATS: [RegExp, (m: RegExpExecArray) => string][] = [
   [/^\d+(?:\.\d+)?% reduced Spirit$/, () => 'spirit_+%'],
   // Boots runes: "N% increased Movement Speed" is a global MovementSpeed INC (the derived movement speed, engine.ts).
   [/^\d+(?:\.\d+)?% increased Movement Speed$/, () => 'base_movement_velocity_+%'],
-  // Local: the socketed item's own Armour, Evasion and Energy Shield.
+  // Local: the socketed item's own Armour, Evasion and Energy Shield. A flat "+N to Armour / Evasion Rating" rune line
+  // is added to the item's base before its increases and quality (Morior Invictus: (182 + 30) x 5.66 x 1.2 = 1440).
+  [/^[+-]?\d+(?:\.\d+)? to Armour$/, () => 'local_base_physical_damage_reduction_rating'],
+  [/^[+-]?\d+(?:\.\d+)? to Evasion Rating$/, () => 'local_base_evasion_rating'],
   [/^\d+(?:\.\d+)?% increased Armour, Evasion and Energy Shield$/, () => 'local_armour_and_evasion_and_energy_shield_+%'],
 ];
 

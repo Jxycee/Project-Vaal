@@ -43,6 +43,8 @@ export interface PobSkillGroup {
   index: number;
   label: string;
   enabled: boolean;
+  /** A group a passive, item or ascendancy grants (a `source` attribute): not a gem the player sockets. */
+  granted?: boolean;
   gems: PobGem[];
 }
 
@@ -244,6 +246,7 @@ export function parsePobXml(xml: string): { ok: true; build: PobBuild } | { ok: 
         index: i + 1,
         label: skill.getAttribute('label') ?? '',
         enabled: skill.getAttribute('enabled') !== 'false',
+        granted: Boolean(skill.getAttribute('source')),
         gems: childElements(skill, 'Gem').map(parseGem),
       }))
     : [];

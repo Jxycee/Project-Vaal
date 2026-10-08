@@ -30,6 +30,30 @@
 //      and finite non-negative counts; the whole value is dropped, not repaired, when it is not an object.
 // =============================================================================
 
+import gemAttributes from '@/lib/pob/data/gem-attributes.json';
+
+/**
+ * Virtuous Barrier's motes (PoB2 CalcSetup.lua virtuousMoteSkillCount): each attribute starts at 3 and every enabled
+ * ACTIVE skill gem socketed in an enabled group (not one a passive or item grants) adds 2 to the one attribute it
+ * requires, or 1 to each when it requires several. Counted from the whole PoB skill list at import (a loadout holds
+ * one skill, so the second active of a group, which PoB counts, is not in our gem state); skillBuffs.ts falls back to
+ * the loadouts for a build with no import. gem-attributes.json: letters S/D/I per active gem (Cast on Dodge: "DI").
+ */
+export const MOTE_VARS: Readonly<Record<string, 'S' | 'D' | 'I'>> = {
+  StrengthMoteSkillCount: 'S',
+  DexterityMoteSkillCount: 'D',
+  IntelligenceMoteSkillCount: 'I',
+};
+
+export function moteCounts(skills: Iterable<string>): Record<string, number> {
+  const count = { S: 3, D: 3, I: 3 };
+  for (const name of skills) {
+    const letters = (gemAttributes as Record<string, string>)[name] ?? '';
+    for (const letter of letters) count[letter as 'S' | 'D' | 'I'] += letters.length === 1 ? 2 : 1;
+  }
+  return Object.fromEntries(Object.entries(MOTE_VARS).map(([variable, letter]) => [variable, count[letter]]));
+}
+
 export interface BuildConfig {
   /** PoB condition names that are true ("Moving", "BeenHitRecently"), sorted, no duplicates. */
   conditions: string[];

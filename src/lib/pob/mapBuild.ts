@@ -31,7 +31,7 @@ import type { PassiveState } from '@/lib/build/types';
 import type { Catalogue } from './catalogue';
 import { mapGems } from './mapGems';
 import { mapItems, mapJewels } from './mapItems';
-import { buildConfigFromInputs } from '@/lib/build/stats/buildConfig';
+import { buildConfigFromInputs, moteCounts } from '@/lib/build/stats/buildConfig';
 import { mapQuests } from './mapQuests';
 import { mapTree } from './mapTree';
 import type { PobBuild } from './parse';
@@ -149,6 +149,14 @@ export async function mapBuild(pob: PobBuild, catalogue: Catalogue, options: { n
   // The Configuration (conditions ticked, stack counts) decides which conditional modifiers count; carried the
   // same way. No Config in the export = no buildConfig, so the sheet names conditional modifiers instead of guessing.
   const config = pob.configInputs === null ? undefined : buildConfigFromInputs(pob.configInputs);
+  if (config) {
+    const socketed = pob.skillGroups
+      .filter((g) => !g.granted && (g.enabled || g.index === pob.mainSocketGroup))
+      .flatMap((g) => g.gems.filter((x) => x.enabled && x.nameSpec).map((x) => x.nameSpec as string));
+    const motes = moteCounts(socketed);
+    // Kept only when a skill moved a count off its start of 3 (a build with no gems stores nothing).
+    if (Object.values(motes).some((n) => n !== 3)) Object.assign(config.multipliers, motes);
+  }
   if (config) {
     report.push({
       kind: 'note',

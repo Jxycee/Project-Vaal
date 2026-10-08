@@ -201,6 +201,9 @@ async function importItem(
     return item;
   }
   const { craft, notes } = mapCraft(raw, found.isUnique, await items.craftLookupsFor(found.slug));
+  // A unique's printed base line is its real base: a Runemastered/Runeforged one has its own defences (craft.baseSlug).
+  const printedBase = found.isUnique && read.line3 ? items.byName.get(read.line3) : undefined;
+  if (printedBase && !printedBase.isUnique) craft.baseSlug = printedBase.slug;
   for (const note of notes) report.push({ kind: note.kind, area: 'items', message: `${displayName} (${where}): ${note.message}` });
   return { ...item, craft };
 }

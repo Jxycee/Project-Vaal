@@ -54,7 +54,7 @@ export function useDefenceSheets(input: {
 }): { 1: SetResult; 2: SetResult } | { error: string } | null {
   const worn = wornItems(input.gear);
   // Runes are items too: the collector reads their effect lines from the same files (stats/runes.ts).
-  const itemSlugs = [...new Set(worn.flatMap((i) => [i.slug, ...(i.craft?.runes ?? [])]))].sort();
+  const itemSlugs = [...new Set(worn.flatMap((i) => [i.slug, ...(i.craft?.baseSlug ? [i.craft.baseSlug] : []), ...(i.craft?.runes ?? [])]))].sort();
   const modSlugs = [...new Set(worn.flatMap((i) => [...(i.craft?.prefixes ?? []), ...(i.craft?.suffixes ?? [])].map((m) => m.slug)))].sort();
   const uniqueNames = [...new Set(worn.filter((i) => i.isUnique).map((i) => i.name))].sort();
   const key = JSON.stringify([itemSlugs, modSlugs, uniqueNames]);

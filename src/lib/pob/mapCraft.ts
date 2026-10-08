@@ -43,7 +43,7 @@ import {
   type ItemRarity,
 } from '@/lib/build/craft';
 import { isLegacyLine } from '@/lib/build/stats/legacies';
-import { RADIUS_GRANT_LINE, readLine } from '@/lib/build/stats/lineMods';
+import { RADIUS_GRANT_LINE, readLine, readLocalDefenceLine } from '@/lib/build/stats/lineMods';
 import { matchTemplate, stripTags, valueAt } from './craftText';
 
 export interface CraftMod {
@@ -96,7 +96,7 @@ function keepVerbatim(line: string, verbatim: string[]): boolean {
     verbatim.push(text);
     return true;
   }
-  if (!/^Allocates .+/.test(text) && !isLegacyLine(text) && readLine(text) === null) return false;
+  if (!/^Allocates .+/.test(text) && !isLegacyLine(text) && readLine(text) === null && readLocalDefenceLine(text) === null) return false;
   verbatim.push(text);
   return true;
 }

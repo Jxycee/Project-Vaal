@@ -181,6 +181,15 @@ for (const [name, b] of Object.entries(bases)) {
   if (armour && typeof armour.MovementPenalty === 'number' && armour.MovementPenalty > 0) penalties[name] = armour.MovementPenalty;
 }
 writeFileSync(path.join(dir, 'base-movement-penalty.json'), JSON.stringify(penalties));
+// PoB's own base defences, [Armour, Evasion, EnergyShield, Ward] per armour base. The wiki's item files disagree with PoB for
+// a dozen Runeforged / Runemastered bases (Runemastered Crucible Tower Shield: PoB Armour 162 + Ward 35, wiki Armour 0 + Ward 250),
+// and PoB is the standard the engine is held to, so the engine reads these (stats/collectData.ts).
+const defences: Record<string, [number, number, number, number]> = {};
+for (const [name, b] of Object.entries(bases)) {
+  const a = b.armour as { Armour?: number; Evasion?: number; EnergyShield?: number; Ward?: number } | undefined;
+  if (a && (a.Armour || a.Evasion || a.EnergyShield || a.Ward)) defences[name] = [a.Armour ?? 0, a.Evasion ?? 0, a.EnergyShield ?? 0, a.Ward ?? 0];
+}
+writeFileSync(path.join(dir, 'base-defences.json'), JSON.stringify(defences));
 writeFileSync(path.join(dir, 'quest-rewards.json'), JSON.stringify(qr));
 writeFileSync(path.join(dir, 'misc-constants.json'), JSON.stringify({ ...misc, global }));
 console.log(`${Object.keys(bases).length} bases, ${qr.length} quest rewards, ${Object.keys(misc).length} misc tables -> ${dir}`);

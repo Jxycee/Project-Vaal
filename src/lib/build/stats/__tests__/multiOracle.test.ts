@@ -167,7 +167,7 @@ const DERIVED_FLOOR: Record<string, number> = {
   'ordinary-deadeye.json': 13, // of 19
   'ordinary-evasion-1.json': 9, // of 19
   'ordinary-evasion-2.json': 18, // of 19
-  'ordinary-hybrid-1.json': 8, // of 19
+  'ordinary-hybrid-1.json': 9, // round 4: item-local enchant lines (The Vertex); was: // of 19
   'ordinary-hybrid-2.json': 10, // of 19
   'ordinary-life-1.json': 10, // of 19
   'ordinary-oracle.json': 16, // of 17
@@ -177,8 +177,8 @@ const ours = (sheet: DefenceSheet, k: Key): number => (k === 'fire' || k === 'co
 
 // Ratchet: the least number of the 13 stats each build must match. Raise it when a fix lands; never lower it.
 const FLOOR: Record<string, number> = {
-  'armour-life-gemling.json': 7, // Gem Enthusiast now counted; Mageblood, a RELIC body armour and 36 unreadable item lines: item coverage, not the engine
-  'es-life-stormweaver.json': 10, // Kalandra's Touch reflects the opposite ring (collect.ts); a radius jewel's notables (fire, spirit)
+  'armour-life-gemling.json': 8, // Gem Enthusiast now counted; Mageblood, a RELIC body armour and 36 unreadable item lines: item coverage, not the engine
+  'es-life-stormweaver.json': 11, // Kalandra's Touch reflects the opposite ring (collect.ts); a radius jewel's notables (fire, spirit)
   'evasion-deadeye.json': 12, // the weapon set PoB had active (set 2) now read from the code; still short: chaos resistance via a Time-Lost jewel's radius grant
   'hybrid-tactician.json': 8,
   // The ordinary set (board item 30): mid-complexity public builds. The goal is 13 of 13 on every one.
@@ -189,12 +189,12 @@ const FLOOR: Record<string, number> = {
   'ordinary-oracle.json': 13, // 13 of 13: Eldritch Battery moves flat ES into Mana (engine.ts) + PoB's printed rune lines (Blood League 469, Viper Crest 3%)
   // Round-3 pool (31 Forbidden Rites characters fetched with scripts/fetch-oracle-pool.mjs, the 8 best that wear no Mageblood or RELIC item).
   // FLOOR = the match when added; the gaps lists in results.json say what is missing. Shape = the build's defence layer.
-  'ordinary-evasion-1.json': 8, // the PoB code's own weapon set (2) + Charge Regulation's endurance-charge threshold; still short,  Deadeye; five uniques not in our data (Hand of Wisdom and Action, From Nothing, Against the Darkness, Megalomaniac, Heart of the Well)
-  'ordinary-armour-1.json': 10, // Gemling Legionnaire, life/armour/evasion; Runeseeker's Call (-45% less maximum Life rune line) and Virtuous Barrier mote counts
+  'ordinary-evasion-1.json': 13, // 13 of 13 (round 4): a unique whose wiki page lists its base as the first line (Hand of Wisdom and Action) resolves its base; was: // the PoB code's own weapon set (2) + Charge Regulation's endurance-charge threshold; still short,  Deadeye; five uniques not in our data (Hand of Wisdom and Action, From Nothing, Against the Darkness, Megalomaniac, Heart of the Well)
+  'ordinary-armour-1.json': 12, // round 4: Virtuous Barrier motes (buildConfig.moteCounts), the printed Runemastered base (craft.baseSlug), PoB base defences; short: Life (Runeseeker rune 45% less); was: // Gemling Legionnaire, life/armour/evasion; Runeseeker's Call (-45% less maximum Life rune line) and Virtuous Barrier mote counts
   'ordinary-caster-1.json': 12, // Chronomancer; only Mana off (Runeforged Sirenscale Gloves rune line)
-  'ordinary-hybrid-1.json': 8, // Lich, ES + armour; Ancient Aegis body armour armour, Grip of Kulemak not in our data
+  'ordinary-hybrid-1.json': 9, // round 4: item-local enchant lines (The Vertex); was: // Lich, ES + armour; Ancient Aegis body armour armour, Grip of Kulemak not in our data
   'ordinary-caster-2.json': 9, // Stormweaver; untyped unique lines read from their text (Controlled Metamorphosis -(20-5)% to all Elemental Resistances) + the "0% to" cache entry no longer poisons "-15% to Cold Resistance"; still short: Adonia's Ego per-Power-Charge resistances, ES/evasion nodes
-  'ordinary-life-1.json': 11, // weapon set 2 from the code + Gem Enthusiast (support colours); still short: Crimson Power (life from body ES), Morior +8% life; was: Blood Mage, life; Morior per-socket lines now counted; still short: 1% max Life per Corrupted Item Equipped, Alpha's Howl Runemastered cap, node 31223
+  'ordinary-life-1.json': 12, // round 4: the printed Runemastered base (Alpha's Howl); was: // weapon set 2 from the code + Gem Enthusiast (support colours); still short: Crimson Power (life from body ES), Morior +8% life; was: Blood Mage, life; Morior per-socket lines now counted; still short: 1% max Life per Corrupted Item Equipped, Alpha's Howl Runemastered cap, node 31223
   'ordinary-hybrid-2.json': 13, // 13 of 13: Ring 3 (Unfurled Finger), Mystic Attunement's 25% bonus copy of ring/amulet modifiers (collect.ts bonusEffectFromJewellery, floored), Andvarius's untyped -20% line, Grand Spectrum's per-jewel multiplier
   'ordinary-evasion-2.json': 13, // 13 of 13: the PoB code's weapon set (2) puts Palm of the Dreamer and the set-2 passives (Cooked, Chakra of Life) in; Charge Regulation counts with the Configuration's use-endurance-charges switch (skillBuffs.ts)
 };
@@ -284,7 +284,7 @@ beforeAll(async () => {
     const dMatched = dKeys.filter((k) => dGot[k] === dWant[k]).length;
     sheets.set(f, { want, got, matched, dWant, dGot, dMatched, dOf: dKeys.length });
     const gaps = Object.fromEntries(Object.entries(BREAKDOWN_POOLS).map(([idx, pool]) => [pool, missingMods(fx.breakdowns as Breakdowns, pool, idx, collected.contributions)]));
-    results[f] = { gaps, class: fx.class, source: fx.source, matched, of: KEYS.length, stats: Object.fromEntries(KEYS.map((k) => [k, { want: want[k], got: got[k], ok: got[k] === want[k] }])), derivedMatched: dMatched, derivedOf: dKeys.length, derived: Object.fromEntries(dKeys.map((k) => [k, { want: dWant[k], got: dGot[k], ok: dGot[k] === dWant[k] }])) };
+    results[f] = { gaps, notCounted: collected.notCounted, class: fx.class, source: fx.source, matched, of: KEYS.length, stats: Object.fromEntries(KEYS.map((k) => [k, { want: want[k], got: got[k], ok: got[k] === want[k] }])), derivedMatched: dMatched, derivedOf: dKeys.length, derived: Object.fromEntries(dKeys.map((k) => [k, { want: dWant[k], got: dGot[k], ok: dGot[k] === dWant[k] }])) };
   }
   writeFileSync(`${DIR}/results.json`, JSON.stringify(results, null, 2));
 }, 600_000);

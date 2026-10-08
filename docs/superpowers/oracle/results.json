@@ -5,22 +5,26 @@
         "increased 28 from VirtuousBarrierPlayer"
       ],
       "mana": [],
-      "energyShield": [
-        "increased 25 from VirtuousBarrierPlayer"
-      ],
+      "energyShield": [],
       "spirit": [],
-      "evasion": [
-        "increased 25 from VirtuousBarrierPlayer"
-      ],
+      "evasion": [],
       "str": [
         "flat 6 from Apocalypse Bliss, Ruby"
       ],
       "dex": [],
       "int": []
     },
+    "notCounted": [
+      "Morior Invictus: rune line \"+3 to Spirit per Idol socketed in your Equipment\" not counted",
+      "Ruby: \"41% increased Armour, Evasion and Energy Shield from Equipped Shield\" not counted",
+      "Prism of Belief: unique — not in our data",
+      "Unrecognised stat global_item_attribute_requirements_+% (Reduced Attribute Requirements)",
+      "Unrecognised stat intelligence_skill_gem_level_+ (Neurological Implants)",
+      "Unrecognised stat base_reduce_enemy_fire_resistance_% (Ruby)"
+    ],
     "class": "Gemling Legionnaire",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/flyinghigh42-0275/StickyOildUp",
-    "matched": 7,
+    "matched": 8,
     "of": 13,
     "stats": {
       "str": {
@@ -40,7 +44,7 @@
       },
       "life": {
         "want": 4075,
-        "got": 3261,
+        "got": 3838,
         "ok": false
       },
       "mana": {
@@ -50,17 +54,17 @@
       },
       "energyShield": {
         "want": 448,
-        "got": 376,
-        "ok": false
+        "got": 448,
+        "ok": true
       },
       "armour": {
         "want": 38359,
-        "got": 24258,
+        "got": 25678,
         "ok": false
       },
       "evasion": {
         "want": 0,
-        "got": 1170,
+        "got": 1412,
         "ok": false
       },
       "fire": {
@@ -89,7 +93,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 8,
+    "derivedMatched": 9,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -99,7 +103,7 @@
       },
       "evadeChance": {
         "want": 0,
-        "got": 14,
+        "got": 16,
         "ok": false
       },
       "deflectionRating": {
@@ -129,8 +133,8 @@
       },
       "esRecharge": {
         "want": 56,
-        "got": 47,
-        "ok": false
+        "got": 56,
+        "ok": true
       },
       "esRechargeDelay": {
         "want": 3.5088,
@@ -159,32 +163,32 @@
       },
       "effectiveHealthPool": {
         "want": 83813,
-        "got": 34103,
+        "got": 42230,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 8828,
-        "got": 5523,
+        "got": 6312,
         "ok": false
       },
       "fireMaxHit": {
         "want": 28041,
-        "got": 18142,
+        "got": 20810,
         "ok": false
       },
       "coldMaxHit": {
         "want": 27025,
-        "got": 17691,
+        "got": 20318,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 27025,
-        "got": 17691,
+        "got": 20318,
         "ok": false
       },
       "chaosMaxHit": {
         "want": 14791,
-        "got": 11061,
+        "got": 12918,
         "ok": false
       }
     }
@@ -193,13 +197,9 @@
     "gaps": {
       "life": [],
       "mana": [],
-      "energyShield": [
-        "flat 397 from Morior Invictus, Grand Regalia",
-        "flat 107 from 34324"
-      ],
+      "energyShield": [],
       "spirit": [],
       "evasion": [
-        "flat 1289 from Morior Invictus, Grand Regalia",
         "increased 80 from 32354",
         "increased 81 from 53185"
       ],
@@ -207,9 +207,16 @@
       "dex": [],
       "int": []
     },
+    "notCounted": [
+      "Against the Darkness: unique — not in our data",
+      "Megalomaniac: unique — not in our data",
+      "Heart of the Well: unique — not in our data",
+      "Unrecognised stat stun_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Dampening Shield, Hallowed)",
+      "Unrecognised stat ailment_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Dampening Shield, Hallowed)"
+    ],
     "class": "Stormweaver",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/nameking-0380/%E5%97%B6%E5%93%A9%E4%BD%90%E5%BE%B7%E5%B0%8F%E6%B1%BD%E8%BB%8A",
-    "matched": 10,
+    "matched": 11,
     "of": 13,
     "stats": {
       "str": {
@@ -239,17 +246,17 @@
       },
       "energyShield": {
         "want": 8286,
-        "got": 7945,
-        "ok": false
+        "got": 8286,
+        "ok": true
       },
       "armour": {
         "want": 3014,
-        "got": 1624,
+        "got": 1893,
         "ok": false
       },
       "evasion": {
         "want": 13959,
-        "got": 9047,
+        "got": 9928,
         "ok": false
       },
       "fire": {
@@ -278,7 +285,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 5,
+    "derivedMatched": 6,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -288,17 +295,17 @@
       },
       "evadeChance": {
         "want": 67,
-        "got": 54,
+        "got": 57,
         "ok": false
       },
       "deflectionRating": {
         "want": 9352,
-        "got": 6061,
+        "got": 6651,
         "ok": false
       },
       "deflectChance": {
         "want": 66,
-        "got": 45,
+        "got": 48,
         "ok": false
       },
       "ward": {
@@ -318,8 +325,8 @@
       },
       "esRecharge": {
         "want": 1035,
-        "got": 993,
-        "ok": false
+        "got": 1035,
+        "ok": true
       },
       "esRechargeDelay": {
         "want": 3.4483,
@@ -348,32 +355,32 @@
       },
       "effectiveHealthPool": {
         "want": 87491,
-        "got": 59817,
+        "got": 68502,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 8925,
-        "got": 9895,
+        "got": 10262,
         "ok": false
       },
       "fireMaxHit": {
         "want": 30880,
-        "got": 34795,
+        "got": 36017,
         "ok": false
       },
       "coldMaxHit": {
         "want": 29817,
-        "got": 33596,
+        "got": 34776,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 30880,
-        "got": 34795,
+        "got": 36017,
         "ok": false
       },
       "chaosMaxHit": {
         "want": 17964,
-        "got": 23054,
+        "got": 23736,
         "ok": false
       }
     }
@@ -394,6 +401,11 @@
       "dex": [],
       "int": []
     },
+    "notCounted": [
+      "Guiding Palm of the Eye: \"50% of your Base Life Regeneration is granted to Allies in your Presence\" not counted",
+      "Heart of the Well: unique — not in our data",
+      "Megalomaniac: unique — not in our data"
+    ],
     "class": "Deadeye",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/olleyDE-4339/chillamaggiTTVsGlatze",
     "matched": 12,
@@ -578,6 +590,11 @@
       "dex": [],
       "int": []
     },
+    "notCounted": [
+      "Quest rewards you choose: Goddess of Justice (Abandoned Prison)",
+      "Unrecognised stat base_banner_resist_all_elements_%_to_apply (Inspiring Leader)",
+      "Unrecognised stat maximum_life_%_to_convert_to_maximum_energy_shield (Enhanced Barrier)"
+    ],
     "class": "Tactician",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/pjf5845203344-2325/%E5%A4%A9%E7%A9%BA%E6%87%92%E7%8B%BC%E8%93%9D",
     "matched": 8,
@@ -752,7 +769,6 @@
   "ordinary-armour-1.json": {
     "gaps": {
       "life": [
-        "increased 10 from VirtuousBarrierPlayer",
         "more -30 from Runeseeker's Call, Runemastered Runic Fork",
         "more -15 from Runeseeker's Call, Runemastered Runic Fork"
       ],
@@ -760,22 +776,22 @@
         "flat 180 from Runeseeker's Call, Runemastered Runic Fork",
         "flat 360 from Runeseeker's Call, Runemastered Runic Fork"
       ],
-      "energyShield": [
-        "increased 25 from VirtuousBarrierPlayer"
-      ],
+      "energyShield": [],
       "spirit": [],
-      "evasion": [
-        "flat 320 from Alpha's Howl, Runemastered Armoured Cap",
-        "flat 167 from Sierran Inheritance, Runemastered Marabout Garb",
-        "increased 25 from VirtuousBarrierPlayer"
-      ],
+      "evasion": [],
       "str": [],
       "dex": [],
       "int": []
     },
+    "notCounted": [
+      "Runeseeker's Call: rune line \"45% less maximum Life\" not counted",
+      "Prism of Belief: unique — not in our data",
+      "Unrecognised stat global_item_attribute_requirements_+% (Reduced Attribute Requirements)",
+      "Unrecognised stat intelligence_skill_gem_level_+ (Neurological Implants)"
+    ],
     "class": "Gemling Legionnaire",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/dota2enjoyer-1809/KingPinUwU_Youtube",
-    "matched": 10,
+    "matched": 12,
     "of": 13,
     "stats": {
       "str": {
@@ -795,7 +811,7 @@
       },
       "life": {
         "want": 987,
-        "got": 1502,
+        "got": 1644,
         "ok": false
       },
       "mana": {
@@ -810,13 +826,13 @@
       },
       "armour": {
         "want": 997,
-        "got": 741,
-        "ok": false
+        "got": 997,
+        "ok": true
       },
       "evasion": {
         "want": 766,
-        "got": 874,
-        "ok": false
+        "got": 766,
+        "ok": true
       },
       "fire": {
         "want": 75,
@@ -844,7 +860,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 8,
+    "derivedMatched": 9,
     "derivedOf": 17,
     "derived": {
       "enemyAccuracy": {
@@ -854,8 +870,8 @@
       },
       "evadeChance": {
         "want": 8,
-        "got": 9,
-        "ok": false
+        "got": 8,
+        "ok": true
       },
       "deflectionRating": {
         "want": 0,
@@ -869,7 +885,7 @@
       },
       "ward": {
         "want": 373,
-        "got": 468,
+        "got": 841,
         "ok": false
       },
       "lifeRegen": {
@@ -904,32 +920,32 @@
       },
       "effectiveHealthPool": {
         "want": 26259,
-        "got": 17237,
+        "got": 18550,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 5510,
-        "got": 6808,
+        "got": 7348,
         "ok": false
       },
       "fireMaxHit": {
         "want": 19332,
-        "got": 24054,
+        "got": 25893,
         "ok": false
       },
       "coldMaxHit": {
         "want": 19332,
-        "got": 24054,
+        "got": 25893,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 19332,
-        "got": 24054,
+        "got": 25893,
         "ok": false
       },
       "chaosMaxHit": {
         "want": 21652,
-        "got": 26940,
+        "got": 29000,
         "ok": false
       }
     }
@@ -947,6 +963,18 @@
       "dex": [],
       "int": []
     },
+    "notCounted": [
+      "Runeforged Sirenscale Gloves: rune line \"2000 Mana, no more than once every 2 seconds\" not counted",
+      "Prism of Belief: unique — not in our data",
+      "Heart of the Well: unique — not in our data",
+      "Megalomaniac: unique — not in our data",
+      "From Nothing: unique — not in our data",
+      "Unrecognised stat ailment_threshold_+_from_%_maximum_energy_shield (Shimmering Mirage, Stun and Ailment Threshold from Energy Shield, Ailment Threshold from Energy Shield)",
+      "Unrecognised stat stun_threshold_+_from_%_maximum_energy_shield (Abasement, Stun and Ailment Threshold from Energy Shield, Stun Threshold from Energy Shield)",
+      "Unrecognised stat broken_armour_and_sundered_armour_debuff_effect_+% (Tempered Mind)",
+      "Unrecognised stat freeze_applies_cold_resistance_+ (Brain Freeze)",
+      "Unrecognised stat archon_grants_all_elemental_resistance_+% (Invigorating Archon)"
+    ],
     "class": "Chronomancer",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/fishoppa-1492/lullabyTurnBackTime",
     "matched": 12,
@@ -1113,14 +1141,11 @@
       "life": [],
       "mana": [],
       "energyShield": [
-        "flat 408 from Morior Invictus, Grand Regalia",
-        "flat 110 from 34324",
         "increased 29 from Cataclysm Breath, Sapphire",
         "increased 15 from 34006"
       ],
       "spirit": [],
       "evasion": [
-        "flat 1324 from Morior Invictus, Grand Regalia",
         "increased 80 from 32354",
         "increased 78 from 53185"
       ],
@@ -1128,6 +1153,20 @@
       "dex": [],
       "int": []
     },
+    "notCounted": [
+      "Adonia's Ego: \"-9% to all Elemental Resistances per Power Charge\" not counted",
+      "Adonia's Ego: \"-10% to all Elemental Resistances per Power Charge\" not counted",
+      "Heart of the Well: unique — not in our data",
+      "Megalomaniac: unique — not in our data",
+      "From Nothing: unique — not in our data",
+      "Against the Darkness: unique — not in our data",
+      "Unrecognised stat stun_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Dampening Shield)",
+      "Unrecognised stat ailment_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Shimmering Mirage, Dampening Shield, Ailment Threshold from Energy Shield)",
+      "Unrecognised stat broken_armour_and_sundered_armour_debuff_effect_+% (Tempered Mind)",
+      "Unrecognised stat freeze_applies_cold_resistance_+ (Brain Freeze)",
+      "Unrecognised stat archon_grants_all_elemental_resistance_+% (Invigorating Archon)",
+      "Unrecognised stat maximum_life_%_to_convert_to_maximum_energy_shield (Enhanced Barrier)"
+    ],
     "class": "Stormweaver",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/qianqi77-5717/JokerBD",
     "matched": 9,
@@ -1160,17 +1199,17 @@
       },
       "energyShield": {
         "want": 6771,
-        "got": 5538,
+        "got": 5844,
         "ok": false
       },
       "armour": {
         "want": 4176,
-        "got": 2596,
+        "got": 3024,
         "ok": false
       },
       "evasion": {
         "want": 12508,
-        "got": 8004,
+        "got": 8751,
         "ok": false
       },
       "fire": {
@@ -1209,17 +1248,17 @@
       },
       "evadeChance": {
         "want": 57,
-        "got": 46,
+        "got": 48,
         "ok": false
       },
       "deflectionRating": {
         "want": 12615,
-        "got": 8072,
+        "got": 8826,
         "ok": false
       },
       "deflectChance": {
         "want": 63,
-        "got": 47,
+        "got": 50,
         "ok": false
       },
       "ward": {
@@ -1239,7 +1278,7 @@
       },
       "esRecharge": {
         "want": 846,
-        "got": 692,
+        "got": 730,
         "ok": false
       },
       "esRechargeDelay": {
@@ -1269,32 +1308,32 @@
       },
       "effectiveHealthPool": {
         "want": 43686,
-        "got": 31152,
+        "got": 34017,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 7642,
-        "got": 7354,
+        "got": 7700,
         "ok": false
       },
       "fireMaxHit": {
         "want": 19071,
-        "got": 18695,
+        "got": 19500,
         "ok": false
       },
       "coldMaxHit": {
         "want": 21315,
-        "got": 20894,
+        "got": 21794,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 22647,
-        "got": 22200,
+        "got": 23156,
         "ok": false
       },
       "chaosMaxHit": {
         "want": 6228,
-        "got": 6992,
+        "got": 7239,
         "ok": false
       }
     }
@@ -1312,6 +1351,15 @@
       "dex": [],
       "int": []
     },
+    "notCounted": [
+      "Grip of Kulemak: unique — not in our data",
+      "Shavronne's Satchel: \"(20-30)% reduced Flask Life Recovery rate\" not counted",
+      "Shavronne's Satchel: \"Life Recovery from Flasks also applies to Energy Shield\" not counted",
+      "Quest rewards you choose: Seven Pillars (Qimah)",
+      "Unrecognised stat stun_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Dampening Shield)",
+      "Unrecognised stat ailment_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Dampening Shield)",
+      "Unrecognised stat maximum_life_%_to_convert_to_maximum_energy_shield (Enhanced Barrier)"
+    ],
     "class": "Acolyte of Chayula",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/HoangLong1101-3050/DOANXIEMm",
     "matched": 13,
@@ -1496,6 +1544,13 @@
       "dex": [],
       "int": []
     },
+    "notCounted": [
+      "From Nothing: unique — not in our data",
+      "Unrecognised stat stun_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Dampening Shield)",
+      "Unrecognised stat ailment_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Dampening Shield)",
+      "Unrecognised stat base_penetrate_elemental_resistances_% (Stormcharged)",
+      "Unrecognised stat maximum_life_%_to_convert_to_maximum_energy_shield (Enhanced Barrier)"
+    ],
     "class": "Disciple of Varashta",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/KingFud-1121/KingFud_Djinn_FR",
     "matched": 13,
@@ -1680,6 +1735,12 @@
       "dex": [],
       "int": []
     },
+    "notCounted": [
+      "Unrecognised stat stun_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Eldritch Will, Dampening Shield)",
+      "Unrecognised stat ailment_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Eldritch Will, Dampening Shield)",
+      "Unrecognised stat archon_grants_all_elemental_resistance_+% (Invigorating Archon)",
+      "Unrecognised stat maximum_life_%_to_convert_to_maximum_energy_shield (Enhanced Barrier)"
+    ],
     "class": "Disciple of Varashta",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/morloxIC-1573/morlox_v_v",
     "matched": 13,
@@ -1862,6 +1923,9 @@
       "dex": [],
       "int": []
     },
+    "notCounted": [
+      "Heart of the Well: unique — not in our data"
+    ],
     "class": "Deadeye",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/WOualey-0844/BowberKurw%C3%A0",
     "matched": 13,
@@ -2037,24 +2101,27 @@
     "gaps": {
       "life": [],
       "mana": [],
-      "energyShield": [
-        "flat 18 from Hand of Wisdom and Action, Spiral Wraps"
-      ],
+      "energyShield": [],
       "spirit": [],
-      "evasion": [
-        "flat 52 from Hand of Wisdom and Action, Spiral Wraps"
-      ],
+      "evasion": [],
       "str": [],
-      "dex": [
-        "flat 24 from Hand of Wisdom and Action, Spiral Wraps"
-      ],
-      "int": [
-        "flat 23 from Hand of Wisdom and Action, Spiral Wraps"
-      ]
+      "dex": [],
+      "int": []
     },
+    "notCounted": [
+      "The Coming Calamity: \"Enemies in your Presence have no Elemental Resistances\" not counted",
+      "Hand of Wisdom and Action: \"1% increased Attack Speed per 20 Dexterity\" not counted",
+      "Hand of Wisdom and Action: \"Adds 1 to 10 Lightning Damage to Attacks per 20 Intelligence\" not counted",
+      "Tangletongue: \"10% of Skill Mana Costs Converted to Life Costs\" not counted",
+      "Guiding Palm of the Mind: \"50% of your Base Life Regeneration is granted to Allies in your Presence\" not counted",
+      "From Nothing: unique — not in our data",
+      "Against the Darkness: unique — not in our data",
+      "Megalomaniac: unique — not in our data",
+      "Heart of the Well: unique — not in our data"
+    ],
     "class": "Deadeye",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/ADDii-3319/AddiDeadeyeiRemastered",
-    "matched": 8,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -2064,13 +2131,13 @@
       },
       "dex": {
         "want": 189,
-        "got": 165,
-        "ok": false
+        "got": 189,
+        "ok": true
       },
       "int": {
         "want": 377,
-        "got": 354,
-        "ok": false
+        "got": 377,
+        "ok": true
       },
       "life": {
         "want": 1708,
@@ -2079,13 +2146,13 @@
       },
       "mana": {
         "want": 1243,
-        "got": 1195,
-        "ok": false
+        "got": 1243,
+        "ok": true
       },
       "energyShield": {
         "want": 792,
-        "got": 766,
-        "ok": false
+        "got": 792,
+        "ok": true
       },
       "armour": {
         "want": 413,
@@ -2094,8 +2161,8 @@
       },
       "evasion": {
         "want": 1228,
-        "got": 1153,
-        "ok": false
+        "got": 1228,
+        "ok": true
       },
       "fire": {
         "want": 64,
@@ -2123,7 +2190,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 9,
+    "derivedMatched": 12,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -2133,8 +2200,8 @@
       },
       "evadeChance": {
         "want": 12,
-        "got": 11,
-        "ok": false
+        "got": 12,
+        "ok": true
       },
       "deflectionRating": {
         "want": 0,
@@ -2158,13 +2225,13 @@
       },
       "manaRegen": {
         "want": 91,
-        "got": 87,
-        "ok": false
+        "got": 91,
+        "ok": true
       },
       "esRecharge": {
         "want": 99,
-        "got": 95,
-        "ok": false
+        "got": 99,
+        "ok": true
       },
       "esRechargeDelay": {
         "want": 4,
@@ -2193,32 +2260,32 @@
       },
       "effectiveHealthPool": {
         "want": 7119,
-        "got": 5894,
+        "got": 6021,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 3418,
-        "got": 2840,
+        "got": 2866,
         "ok": false
       },
       "fireMaxHit": {
         "want": 8378,
-        "got": 7178,
+        "got": 7244,
         "ok": false
       },
       "coldMaxHit": {
         "want": 8378,
-        "got": 7178,
+        "got": 7244,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 11669,
-        "got": 9998,
+        "got": 10090,
         "ok": false
       },
       "chaosMaxHit": {
         "want": 7003,
-        "got": 5893,
+        "got": 5925,
         "ok": false
       }
     }
@@ -2234,6 +2301,11 @@
       "dex": [],
       "int": []
     },
+    "notCounted": [
+      "Megalomaniac: unique — not in our data",
+      "Quest rewards you choose: Venom Draught (Venom Crypts)",
+      "Unrecognised stat drain_%_max_mana_to_activate_expended_charms (Mind Phylacteries)"
+    ],
     "class": "Ritualist",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/WOSHICHINESE-3392/Arites",
     "matched": 13,
@@ -2411,20 +2483,31 @@
         "3 1 from 56349"
       ],
       "mana": [],
-      "energyShield": [
-        "flat 90 from The Vertex, Tribal Mask"
-      ],
+      "energyShield": [],
       "spirit": [],
-      "evasion": [
-        "flat 260 from The Vertex, Tribal Mask"
-      ],
+      "evasion": [],
       "str": [],
       "dex": [],
       "int": []
     },
+    "notCounted": [
+      "Ancient Aegis: increased Armour from body armour",
+      "Grip of Kulemak: unique — not in our data",
+      "Grip of Kulemak: \"+36% of Armour also applies to Elemental Damage\" not counted",
+      "Grip of Kulemak: unique — not in our data",
+      "Grip of Kulemak: \"+36% of Armour also applies to Elemental Damage\" not counted",
+      "Shavronne's Satchel: \"(20-30)% reduced Flask Life Recovery rate\" not counted",
+      "Shavronne's Satchel: \"Life Recovery from Flasks also applies to Energy Shield\" not counted",
+      "From Nothing: unique — not in our data",
+      "Quest rewards you choose: Tawhoa's Test (Halls of the Dead), Tasalio's Test (Halls of the Dead), Ngamahu's Test (Halls of the Dead)",
+      "Unrecognised stat stun_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Dampening Shield, Sapphire)",
+      "Unrecognised stat ailment_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Dampening Shield, Sapphire)",
+      "Unrecognised stat shield_armour_evasion_energy_shield_+% (Fortified Aegis)",
+      "Unrecognised stat ignore_armour_movement_penalties (Momentum)"
+    ],
     "class": "Lich",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/hagarfloss-9464/DayLaConMot",
-    "matched": 8,
+    "matched": 9,
     "of": 13,
     "stats": {
       "str": {
@@ -2454,7 +2537,7 @@
       },
       "energyShield": {
         "want": 9474,
-        "got": 9134,
+        "got": 9215,
         "ok": false
       },
       "armour": {
@@ -2464,8 +2547,8 @@
       },
       "evasion": {
         "want": 1607,
-        "got": 1564,
-        "ok": false
+        "got": 1607,
+        "ok": true
       },
       "fire": {
         "want": 74,
@@ -2493,7 +2576,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 10,
+    "derivedMatched": 11,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -2508,8 +2591,8 @@
       },
       "deflectionRating": {
         "want": 192,
-        "got": 187,
-        "ok": false
+        "got": 192,
+        "ok": true
       },
       "deflectChance": {
         "want": 2,
@@ -2533,7 +2616,7 @@
       },
       "esRecharge": {
         "want": 1397,
-        "got": 1347,
+        "got": 1359,
         "ok": false
       },
       "esRechargeDelay": {
@@ -2563,27 +2646,27 @@
       },
       "effectiveHealthPool": {
         "want": 141535,
-        "got": 70335,
+        "got": 70958,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 11052,
-        "got": 10369,
+        "got": 10452,
         "ok": false
       },
       "fireMaxHit": {
         "want": 37227,
-        "got": 33909,
+        "got": 34189,
         "ok": false
       },
       "coldMaxHit": {
         "want": 37227,
-        "got": 25779,
+        "got": 25988,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 38411,
-        "got": 35039,
+        "got": 35330,
         "ok": false
       },
       "chaosMaxHit": {
@@ -2606,6 +2689,16 @@
       "dex": [],
       "int": []
     },
+    "notCounted": [
+      "Shavronne's Satchel: \"(20-30)% reduced Flask Life Recovery rate\" not counted",
+      "Shavronne's Satchel: \"Life Recovery from Flasks also applies to Energy Shield\" not counted",
+      "Prism of Belief: unique — not in our data",
+      "Against the Darkness: unique — not in our data",
+      "Quest rewards you choose: Goddess of Justice (Abandoned Prison)",
+      "Unrecognised stat stun_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Dampening Shield)",
+      "Unrecognised stat ailment_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Dampening Shield)",
+      "Unrecognised stat drain_%_max_mana_to_activate_expended_charms (Mind Phylacteries)"
+    ],
     "class": "Ritualist",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/Tomikpomik-4685/forbidden_vivod",
     "matched": 13,
@@ -2786,16 +2879,23 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
-      "evasion": [
-        "flat 395 from Alpha's Howl, Runemastered Armoured Cap"
-      ],
+      "evasion": [],
       "str": [],
       "dex": [],
       "int": []
     },
+    "notCounted": [
+      "Morior Invictus: rune line \"1% increased Maximum Life for each Corrupted Item Equipped\" not counted",
+      "Defiance of Destiny: \"Recover (20-30)% of Missing Life before being Hit by an Enemy\" not counted",
+      "Against the Darkness: unique — not in our data",
+      "From Nothing: unique — not in our data",
+      "Heart of the Well: unique — not in our data",
+      "Megalomaniac: unique — not in our data",
+      "Unrecognised stat base_life_flasks_do_not_recover_life (Sanguine Tides)"
+    ],
     "class": "Blood Mage",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/Shaelmao-0831/Rakurimosa",
-    "matched": 11,
+    "matched": 12,
     "of": 13,
     "stats": {
       "str": {
@@ -2835,8 +2935,8 @@
       },
       "evasion": {
         "want": 1850,
-        "got": 2191,
-        "ok": false
+        "got": 1850,
+        "ok": true
       },
       "fire": {
         "want": 75,
@@ -2864,7 +2964,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 10,
+    "derivedMatched": 12,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -2874,8 +2974,8 @@
       },
       "evadeChance": {
         "want": 17,
-        "got": 20,
-        "ok": false
+        "got": 17,
+        "ok": true
       },
       "deflectionRating": {
         "want": 0,
@@ -2889,8 +2989,8 @@
       },
       "ward": {
         "want": 670,
-        "got": 494,
-        "ok": false
+        "got": 670,
+        "ok": true
       },
       "lifeRegen": {
         "want": 96,
@@ -2934,32 +3034,32 @@
       },
       "effectiveHealthPool": {
         "want": 21021,
-        "got": 14513,
+        "got": 14487,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 7601,
-        "got": 5148,
+        "got": 5324,
         "ok": false
       },
       "fireMaxHit": {
         "want": 26586,
-        "got": 17829,
+        "got": 18457,
         "ok": false
       },
       "coldMaxHit": {
         "want": 26586,
-        "got": 17829,
+        "got": 18457,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 26586,
-        "got": 17829,
+        "got": 18457,
         "ok": false
       },
       "chaosMaxHit": {
         "want": 23410,
-        "got": 15500,
+        "got": 16068,
         "ok": false
       }
     }
@@ -2977,6 +3077,10 @@
       "dex": [],
       "int": []
     },
+    "notCounted": [
+      "Prism of Belief: unique — not in our data",
+      "Heart of the Well: unique — not in our data"
+    ],
     "class": "Oracle",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/perceptionofreality-7468/BABYROSHANCOM",
     "matched": 13,

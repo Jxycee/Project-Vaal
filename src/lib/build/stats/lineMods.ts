@@ -229,3 +229,27 @@ export function readLine(line: string): LineRead | null {
     global: template.global,
   };
 }
+
+/**
+ * A defence line that only exists on an item: the modcache above holds the text PoB parsed for passives and the gear
+ * lines it has seen, and an item-local wording ("22% increased Evasion and Energy Shield", a corrupted implicit on The
+ * Vertex) is often not in it. On an item with armour data these are LOCAL: they add to / scale the item's own
+ * Armour, Evasion and Energy Shield before quality (PoB Item.lua armourData). Percent forms only name the three
+ * defences; anything else (a "per", a condition, an extra word) is not read, never guessed.
+ */
+const LOCAL_WORD: Record<string, Pool> = { Armour: 'armour', 'Evasion Rating': 'evasion', Evasion: 'evasion', 'Energy Shield': 'energyShield' };
+const LOCAL_INC = /^(\d+(?:\.\d+)?)% increased (Armour|Evasion Rating|Evasion|Energy Shield)(?:(?:, | and )(Armour|Evasion Rating|Evasion|Energy Shield))?(?:(?:, | and )(Armour|Evasion Rating|Evasion|Energy Shield))?$/;
+const LOCAL_FLAT = /^\+(\d+(?:\.\d+)?) to (Armour|Evasion Rating|maximum Energy Shield)$/;
+
+export function readLocalDefenceLine(line: string): LineMod[] | null {
+  const text = line.trim();
+  const inc = LOCAL_INC.exec(text);
+  if (inc) {
+    const pools = new Set<Pool>();
+    for (const word of inc.slice(2)) if (word !== undefined) pools.add(LOCAL_WORD[word]);
+    return [...pools].map((pool) => ({ pool, kind: 'increased' as const, value: Number(inc[1]) }));
+  }
+  const flat = LOCAL_FLAT.exec(text);
+  if (flat) return [{ pool: LOCAL_WORD[flat[2].replace('maximum ', '')], kind: 'flat', value: Number(flat[1]) }];
+  return null;
+}

@@ -80,7 +80,8 @@ export async function itemText(item: GearItem, where: string, report: ReportEntr
 
   const lines: string[] = [`Rarity: ${rarity.toUpperCase()}`];
   if (rarity === 'unique') {
-    lines.push(item.name, detail?.uniqueMods?.baseType ?? item.name);
+    const printedBase = craft.baseSlug ? ((await loadDetail('item', craft.baseSlug)) as WikiItemDetail | null) : null;
+    lines.push(item.name, printedBase?.name ?? detail?.uniqueMods?.baseType ?? item.name);
   } else if (rarity === 'rare') {
     lines.push(craft.name || 'New Item', item.name);
   } else if (rarity === 'magic') {
