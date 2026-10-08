@@ -24,6 +24,8 @@ import type { AttributeChoice } from '@poe2-toolkit/tree-core';
 import type { CraftedMod } from '../craft';
 import { GEAR_SLOTS, type GearItem, type GearSlot } from '../gearSlots';
 import type { GearState } from '../gearState';
+import type { GemState } from '../gemState';
+import { skillBuffContributions } from './skillBuffs';
 import type { PassiveState } from '../types';
 import { campaignAt } from './campaign';
 import { DEFENCE_WORDS, implicitStats } from './implicits';
@@ -97,7 +99,7 @@ const NOT_ON_CHARACTER: ReadonlySet<GearSlot> = new Set(['flask1', 'flask2', 'ch
 const ATTRIBUTE_POOL: Record<AttributeChoice, Pool> = { str: 'str', dex: 'dex', int: 'int' };
 
 export function collectContributions(
-  input: { passive: PassiveState; gear: GearState; level: number; set: 1 | 2 },
+  input: { passive: PassiveState; gear: GearState; level: number; set: 1 | 2; gems?: GemState },
   data: CollectData,
 ): Collected {
   const contributions: Contribution[] = [];
@@ -173,6 +175,18 @@ export function collectContributions(
     if (steps * amount !== 0) {
       contributions.push({ pool: rule.pool, kind: 'flat', value: steps * amount, source });
     }
+  }
+
+  // ---- Skill-granted buffs (Auras): once every "increased Aura magnitudes" is known (skillBuffs.ts).
+  const buffs = skillBuffContributions(
+    input.gems,
+    input.set,
+    contributions.filter((c) => c.pool === 'auraEffect' && c.kind === 'increased').reduce((n, c) => n + c.value, 0),
+  );
+  contributions.push(...buffs.contributions);
+  notCounted.push(...buffs.notCounted);
+  if (buffs.counted.length > 0) {
+    assumed.push(`${buffs.counted.join(', ')}: read at the gem's own level; "+N to Level of all skills" from gear is not modelled`);
   }
 
   // ---- Campaign, derived from the level.

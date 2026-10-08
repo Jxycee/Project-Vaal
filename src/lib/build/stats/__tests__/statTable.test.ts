@@ -39,6 +39,7 @@ const POOL_WORDS: Record<Pool, RegExp> = {
   lightningMax: /Maximum (Lightning|Elemental) Resistance|all maximum Resistances/i,
   chaosMax: /Maximum Chaos Resistance|all maximum Resistances/i,
   spirit: /Spirit/,
+  auraEffect: /Aura.*Magnitudes/,
 };
 
 describe.each([

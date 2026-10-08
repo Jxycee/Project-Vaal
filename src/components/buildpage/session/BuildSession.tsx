@@ -520,6 +520,7 @@ export default function BuildSessionProvider({
     level: meta.level,
     passive: livePassive,
     gear,
+    gems,
   });
   const sheets = useMemo<Sheets>(() => (liteError ? { error: liteError } : defence), [liteError, defence]);
   const reserved = useReservedSpirit(gems);

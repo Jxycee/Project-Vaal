@@ -35,7 +35,9 @@ export type Pool =
   | 'coldMax'
   | 'lightningMax'
   | 'chaosMax'
-  | 'spirit';
+  | 'spirit'
+  // Percent increased magnitudes of Aura skills: not a sheet number, it scales skill-granted buffs (skillBuffs.ts).
+  | 'auraEffect';
 
 /**
  * `flat` adds to the pool's base; `increased` adds percent to its "increased"
@@ -124,6 +126,9 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   base_spirit: flat('spirit'),
   base_spirit_from_equipment: flat('spirit'),
   'spirit_+%': inc('spirit'),
+
+  // "Aura Skills have N% increased Magnitudes": scales the Auras' own modifiers (skillBuffs.ts), PoB2 AuraEffect.
+  'aura_effect_+%': inc('auraEffect'),
 };
 
 /** Applied to the carrying item's own base defences / spirit, before quality. */

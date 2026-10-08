@@ -74,7 +74,7 @@ type CacheEntry = { mods: CachedMod[]; rest?: string };
 const NUMBER = /-?\d+(?:\.\d+)?/g;
 
 /** PoB modifier name -> the pools it feeds. */
-const POOLS: Record<string, Pool[]> = {
+export const POOLS: Record<string, Pool[]> = {
   Life: ['life'],
   Mana: ['mana'],
   EnergyShield: ['energyShield'],
@@ -96,6 +96,7 @@ const POOLS: Record<string, Pool[]> = {
   ChaosResistMax: ['chaosMax'],
   ElementalResistMax: ['fireMax', 'coldMax', 'lightningMax'],
   MaxResist: ['fireMax', 'coldMax', 'lightningMax', 'chaosMax'],
+  AuraEffect: ['auraEffect'],
 };
 const KINDS: Record<string, LineMod['kind']> = { BASE: 'flat', INC: 'increased', MORE: 'more' };
 

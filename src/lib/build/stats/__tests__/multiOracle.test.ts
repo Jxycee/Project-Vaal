@@ -71,10 +71,10 @@ const FLOOR: Record<string, number> = {
   'evasion-deadeye.json': 5, // chaos resistance via a Time-Lost jewel's radius grant
   'hybrid-tactician.json': 3,
   // The ordinary set (board item 30): mid-complexity public builds. The goal is 13 of 13 on every one.
-  'ordinary-ci-acolyte.json': 12,
+  'ordinary-ci-acolyte.json': 13, // 13 of 13: Purity of Ice (a socketed Aura) puts +43% Cold Resistance on the character - skillBuffs.ts, scaled by 11% increased Aura magnitudes
   'ordinary-ci-disciple.json': 13, // 13 of 13: Time-Lost Sapphire's "Notable Passive Skills in Radius also grant" x7 (collect.ts radiusGrants) + Warding Fetish's Focus ES
   'ordinary-ci-es-disciple.json': 13, // 13 of 13: Mageblood's legacies (stats/legacies.ts)
-  'ordinary-deadeye.json': 12,
+  'ordinary-deadeye.json': 12, // evasion: Wind Dancer's stacks and The Wild Cat's "while moving" come from PoB's Configuration tab (windDancerStacks, conditionMoving), not imported yet
   'ordinary-oracle.json': 13, // 13 of 13: Eldritch Battery moves flat ES into Mana (engine.ts) + PoB's printed rune lines (Blood League 469, Viper Crest 3%)
 };
 
@@ -132,7 +132,7 @@ beforeAll(async () => {
     const cls = tree.classes.find((c: { name: string }) => c.name === mapped.plan.build.class);
     if (!cls) throw new Error(`${f}: class ${mapped.plan.build.class} not in the tree`);
     const collected = collectContributions(
-      { passive: checkpoint.passive_state, gear: checkpoint.gear_state, level: fx.level, set: fx.useSecondWeaponSet ? 2 : 1 },
+      { passive: checkpoint.passive_state, gear: checkpoint.gear_state, level: fx.level, set: fx.useSecondWeaponSet ? 2 : 1, gems: checkpoint.gem_state },
       data,
     );
     const sheet = computeDefences({

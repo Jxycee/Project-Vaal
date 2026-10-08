@@ -398,7 +398,7 @@
     },
     "class": "Acolyte of Chayula",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/HoangLong1101-3050/DOANXIEMm",
-    "matched": 12,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -448,8 +448,8 @@
       },
       "cold": {
         "want": 75,
-        "got": 43,
-        "ok": false
+        "got": 75,
+        "ok": true
       },
       "lightning": {
         "want": 75,

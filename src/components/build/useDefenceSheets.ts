@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { TreeLite } from '@/lib/tree/treeLite';
 import { GEAR_SLOTS, type GearItem } from '@/lib/build/gearSlots';
 import type { GearState } from '@/lib/build/gearState';
+import type { GemState } from '@/lib/build/gemState';
 import { collectContributions, type Collected } from '@/lib/build/stats/collect';
 import { makeCollectData } from '@/lib/build/stats/collectData';
 import { computeDefences, type DefenceSheet } from '@/lib/build/stats/engine';
@@ -48,6 +49,8 @@ export function useDefenceSheets(input: {
   level: number;
   passive: PassiveState;
   gear: GearState;
+  /** The gem loadouts: skill-granted buffs (Auras) reach the sheet through them. Optional. */
+  gems?: GemState;
 }): { 1: SetResult; 2: SetResult } | { error: string } | null {
   const worn = wornItems(input.gear);
   // Runes are items too: the collector reads their effect lines from the same files (stats/runes.ts).
@@ -83,7 +86,7 @@ export function useDefenceSheets(input: {
     );
     const classBase = cls ? { str: cls.base_str, dex: cls.base_dex, int: cls.base_int } : { str: 0, dex: 0, int: 0 };
     const run = (set: 1 | 2): SetResult => {
-      const collected = collectContributions({ passive: input.passive, gear: input.gear, level: input.level, set }, data);
+      const collected = collectContributions({ passive: input.passive, gear: input.gear, level: input.level, set, gems: input.gems }, data);
       const sheet = computeDefences({
         level: input.level,
         classBase,
@@ -94,5 +97,5 @@ export function useDefenceSheets(input: {
       return { sheet, collected };
     };
     return { 1: run(1), 2: run(2) };
-  }, [loaded, key, input.tree, input.className, input.level, input.passive, input.gear]);
+  }, [loaded, key, input.tree, input.className, input.level, input.passive, input.gear, input.gems]);
 }
