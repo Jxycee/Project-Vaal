@@ -31,7 +31,7 @@ import type { GearState } from '../gearState';
 import type { GemState } from '../gemState';
 import { conditionHolds, type BuildConfig } from './buildConfig';
 import { lifeReservation, withDerivedConditions } from './reservation';
-import { shapeshiftContributions, skillBuffContributions, withShapeshifted } from './skillBuffs';
+import { shapeshiftContributions, mainSkillHits, skillBuffContributions, withShapeshifted } from './skillBuffs';
 import { readSurrounded } from './surrounded';
 import { totemsSummoned, type TotemMods } from './totems';
 import type { PassiveState } from '../types';
@@ -155,7 +155,7 @@ function collectOnce(
   // unless the Configuration ticks it (ordinary-witchhunter-1: Life unreserved, yet "100% increased Evasion Rating when on Full Life"
   // and "10% increased Movement Speed when on Full Life" are in neither PoB total).
   const inoculated = [...(input.set === 1 ? input.passive.set1 : input.passive.set2), ...input.passive.ascendancyNodes].some((id) => data.node(id)?.stats.some(([stat]) => stat === 'keystone_chaos_inoculation') === true);
-  const config = withShapeshifted(withDerivedConditions(input.passive.buildConfig, lifeReserved.percent, inoculated), input.gems);
+  const config = withShapeshifted(withDerivedConditions(input.passive.buildConfig, lifeReserved.percent, inoculated, mainSkillHits(input.gems)), input.gems);
   // "Per X" stats wait here until every passive is read: a Multiplier's count is the Configuration's (Rage) or derived from the
   // skills and the passives together (Summoned Totems, totems.ts), so it is known only at the end.
   const multiplierCounts: MultiplierCounts = { known: config !== undefined, pending: [] };

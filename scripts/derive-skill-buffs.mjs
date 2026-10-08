@@ -132,3 +132,16 @@ for (const skill of Object.values(skills)) {
 for (const [name, key] of nameForms) if (forms[key]) forms[key].push(name);
 writeFileSync('src/lib/pob/data/skill-shapeshift.json', JSON.stringify(forms));
 console.log(Object.entries(forms).map(([f, n]) => f + ' ' + n.length).join(', ') + ' -> skill-shapeshift.json');
+
+// Skills whose use means "you have Hit Recently" (PoB2 ConfigOptions conditionHitRecently tooltip: "automatically considered to
+// have Hit Recently if your main skill Hits and is self-cast"). Kept: an Attack or Damage skill that is not a totem, minion,
+// persistent or triggered skill. A name another skill of a different kind shares is dropped, never guessed.
+const hits = new Map();
+for (const skill of Object.values(skills)) {
+  if (skill.type !== 'active') continue;
+  const t = skill.skillTypes ?? [];
+  const yes = (t.includes('Attack') || t.includes('Damage')) && !['SummonsTotem', 'SummonsAttackTotem', 'Minion', 'CreatesMinion', 'Persistent', 'Triggered'].some((x) => t.includes(x));
+  hits.set(skill.name, hits.has(skill.name) ? hits.get(skill.name) && yes : yes);
+}
+writeFileSync('src/lib/pob/data/skill-hits.json', JSON.stringify([...hits].filter(([, y]) => y).map(([n]) => n).sort()));
+console.log('hitting self-cast skills -> skill-hits.json');

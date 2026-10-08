@@ -48,6 +48,7 @@
 
 import buffs from '@/lib/pob/data/skill-buffs.json';
 import shapeshift from '@/lib/pob/data/skill-shapeshift.json';
+import hitSkills from '@/lib/pob/data/skill-hits.json';
 import supportLevels from '@/lib/pob/data/support-levels.json';
 import { deriveMainSkill, type GemState } from '../gemState';
 import { conditionHolds, MOTE_VARS, moteCounts, NUMBER_INPUTS, type BuildConfig } from './buildConfig';
@@ -210,6 +211,12 @@ export function isShapeshifted(gems: GemState | undefined): boolean {
   if (main === null) return false;
   const forms = shapeshift as Record<'Bear' | 'Wolf' | 'Wyvern', string[]>;
   return forms.Bear.includes(main) || forms.Wolf.includes(main) || forms.Wyvern.includes(main);
+}
+
+/** The main skill Hits and is self-cast (data/skill-hits.json): PoB then counts Hit Recently on its own. */
+export function mainSkillHits(gems: GemState | undefined): boolean {
+  const main = gems ? deriveMainSkill(gems) : null;
+  return main !== null && (hitSkills as string[]).includes(main);
 }
 
 /** The Configuration with Condition:Shapeshifted added when the main skill is a form (failure mode 5). */

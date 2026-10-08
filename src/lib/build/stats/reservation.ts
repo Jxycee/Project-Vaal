@@ -58,17 +58,18 @@ export function lifeReservation(gems: GemState | undefined, set: 1 | 2): { perce
 }
 
 /** The Configuration with the conditions the build's own reservations imply (failure mode 8: none without one). */
-export function withDerivedConditions(config: BuildConfig | undefined, lifeReservedPercent: number, chaosInoculation = false): BuildConfig | undefined {
-  return withHitRecently(withLifeConditions(config, lifeReservedPercent, chaosInoculation));
+export function withDerivedConditions(config: BuildConfig | undefined, lifeReservedPercent: number, chaosInoculation = false, mainSkillHits = false): BuildConfig | undefined {
+  return withHitRecently(withLifeConditions(config, lifeReservedPercent, chaosInoculation), mainSkillHits);
 }
 
 /**
- * A critical hit is a hit: a Configuration that ticks "Have you Crit Recently?" has Hit an Enemy Recently too (ordinary-witchhunter-1
- * ticks only conditionCritRecently, yet Afterimage's "60% increased Evasion Rating if you have Hit an Enemy Recently" is in PoB's total).
- * Nothing ticks HitRecently on its own here, and a build with no Configuration is never given one.
+ * PoB2's conditionHitRecently tooltip: "You will automatically be considered to have Hit Recently if your main skill Hits and is
+ * self-cast." A crit is a hit, so a ticked CritRecently counts too. ordinary-witchhunter-1 ticks neither HitRecently nor relies on
+ * it, yet Afterimage's "60% increased Evasion Rating if you have Hit an Enemy Recently" is in PoB's total. A build with no
+ * Configuration is never given one.
  */
-function withHitRecently(config: BuildConfig | undefined): BuildConfig | undefined {
-  if (!config || !config.conditions.includes('CritRecently') || config.conditions.includes('HitRecently')) return config;
+function withHitRecently(config: BuildConfig | undefined, mainSkillHits: boolean): BuildConfig | undefined {
+  if (!config || !(mainSkillHits || config.conditions.includes('CritRecently')) || config.conditions.includes('HitRecently')) return config;
   return { ...config, conditions: [...config.conditions, 'HitRecently'].sort() };
 }
 
