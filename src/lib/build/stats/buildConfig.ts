@@ -20,8 +20,10 @@
 //      as PoB treats it. Conditional modifiers are not counted and, because the answer is known, not named.
 //   2. Flag set but the modifier is not conditional: nothing to do, it counts as it always did.
 //   3. Unknown condition name (a flag no modifier we model uses, or a modifier whose condition PoB derives itself
-//      such as Low Life or "while you have Energy Shield"): set membership only, so an unused flag is inert and a
-//      derived condition that is not ticked in the Config is not counted. Never guessed true.
+//      such as "while you have Energy Shield"): set membership only, so an unused flag is inert and a derived
+//      condition that is not ticked in the Config is not counted. Never guessed true. The one derived condition we
+//      model is Low Life from Life reservation (reservation.ts adds "LowLife" to the Config's conditions when the
+//      gems reserve enough Life, as PoB's CalcDefence.lua:340-352 does).
 //   4. Build exported without a Config (hand-built, scratch planner, a build saved before this field): there is
 //      no answer, not a "false" one. `buildConfig` is then absent, and every conditional modifier is NAMED in the
 //      sheet's notCounted as needing its condition. Never defaulted to on.

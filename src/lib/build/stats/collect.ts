@@ -30,6 +30,7 @@ import { GEAR_SLOTS, RING_SLOT_3_NODE, type GearItem, type GearSlot } from '../g
 import type { GearState } from '../gearState';
 import type { GemState } from '../gemState';
 import { conditionHolds, type BuildConfig } from './buildConfig';
+import { lifeReservation, withDerivedConditions } from './reservation';
 import { skillBuffContributions } from './skillBuffs';
 import type { PassiveState } from '../types';
 import { campaignAt } from './campaign';
@@ -114,7 +115,12 @@ export function collectContributions(
   const notCounted: string[] = [];
   const unknown = new Map<string, Set<string>>();
   const assumed: string[] = [];
-  const config = input.passive.buildConfig;
+  // Low Life is derived when the gems reserve enough Life (reservation.ts); the Configuration's own conditions stay as imported.
+  const lifeReserved = lifeReservation(input.gems, input.set);
+  const config = withDerivedConditions(input.passive.buildConfig, lifeReserved.percent);
+  if (lifeReserved.skills.length > 0) {
+    assumed.push(`${lifeReserved.skills.join(', ')}: reserves ${lifeReserved.percent}% of Life (Low Life is derived from it); Reservation Efficiency modifiers are not modelled`);
+  }
   const flags = { giantsBlood: false, lordOfTheWilds: false, noSpirit: false, noSpiritFromEquipment: false, chaosInoculation: false, eldritchBattery: false };
 
   // ---- Tree: this set's nodes (shared ones are in both lists) and the ascendancy.
@@ -456,7 +462,9 @@ function addGlobal(
   }
   const effects = GLOBAL_EFFECTS[stat];
   if (effects) {
-    for (const e of effects) out.push({ pool: e.pool, kind: e.kind, value: value * (e.scale ?? 1), source, ...(e.slot ? { slot: e.slot } : {}), ...(e.itemClass ? { itemClass: e.itemClass } : {}) });
+    for (const e of effects) {
+      out.push({ pool: e.pool, kind: e.kind, value: value * (e.scale ?? 1), source, ...(e.slot ? { slot: e.slot } : {}), ...(e.itemClass ? { itemClass: e.itemClass } : {}), ...(e.perAttribute ? { perAttribute: e.perAttribute } : {}) });
+    }
   } else if (NOT_MODELLED[stat]) {
     notCounted.push(`${source}: ${NOT_MODELLED[stat]}`);
   } else if (!LOCAL_EFFECTS[stat] && looksLikeDefenceStat(stat)) {

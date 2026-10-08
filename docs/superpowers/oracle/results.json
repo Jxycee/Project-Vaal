@@ -201,7 +201,6 @@
       "energyShield": [],
       "spirit": [],
       "evasion": [
-        "increased 80 from 32354",
         "increased 81 from 53185"
       ],
       "str": [],
@@ -217,7 +216,7 @@
     ],
     "class": "Stormweaver",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/nameking-0380/%E5%97%B6%E5%93%A9%E4%BD%90%E5%BE%B7%E5%B0%8F%E6%B1%BD%E8%BB%8A",
-    "matched": 11,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -252,13 +251,13 @@
       },
       "armour": {
         "want": 3014,
-        "got": 1893,
-        "ok": false
+        "got": 3014,
+        "ok": true
       },
       "evasion": {
         "want": 13959,
-        "got": 9928,
-        "ok": false
+        "got": 13959,
+        "ok": true
       },
       "fire": {
         "want": 75,
@@ -286,7 +285,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 6,
+    "derivedMatched": 8,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -296,17 +295,17 @@
       },
       "evadeChance": {
         "want": 67,
-        "got": 57,
+        "got": 64,
         "ok": false
       },
       "deflectionRating": {
         "want": 9352,
-        "got": 6651,
-        "ok": false
+        "got": 9352,
+        "ok": true
       },
       "deflectChance": {
         "want": 66,
-        "got": 48,
+        "got": 60,
         "ok": false
       },
       "ward": {
@@ -336,8 +335,8 @@
       },
       "movementSpeed": {
         "want": 139,
-        "got": 129,
-        "ok": false
+        "got": 139,
+        "ok": true
       },
       "enduranceCharges": {
         "want": 3,
@@ -356,27 +355,27 @@
       },
       "effectiveHealthPool": {
         "want": 87491,
-        "got": 68502,
+        "got": 91247,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 8925,
-        "got": 10262,
+        "got": 10369,
         "ok": false
       },
       "fireMaxHit": {
         "want": 30880,
-        "got": 36017,
+        "got": 36034,
         "ok": false
       },
       "coldMaxHit": {
         "want": 29817,
-        "got": 34776,
+        "got": 34793,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 30880,
-        "got": 36017,
+        "got": 36034,
         "ok": false
       },
       "chaosMaxHit": {
@@ -1141,7 +1140,6 @@
       ],
       "spirit": [],
       "evasion": [
-        "increased 80 from 32354",
         "increased 78 from 53185"
       ],
       "str": [],
@@ -1164,7 +1162,7 @@
     ],
     "class": "Stormweaver",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/qianqi77-5717/JokerBD",
-    "matched": 9,
+    "matched": 11,
     "of": 13,
     "stats": {
       "str": {
@@ -1199,13 +1197,13 @@
       },
       "armour": {
         "want": 4176,
-        "got": 3024,
-        "ok": false
+        "got": 4176,
+        "ok": true
       },
       "evasion": {
         "want": 12508,
-        "got": 8751,
-        "ok": false
+        "got": 12508,
+        "ok": true
       },
       "fire": {
         "want": 65,
@@ -1233,7 +1231,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 8,
+    "derivedMatched": 12,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -1243,18 +1241,18 @@
       },
       "evadeChance": {
         "want": 57,
-        "got": 48,
-        "ok": false
+        "got": 57,
+        "ok": true
       },
       "deflectionRating": {
         "want": 12615,
-        "got": 8826,
-        "ok": false
+        "got": 12615,
+        "ok": true
       },
       "deflectChance": {
         "want": 63,
-        "got": 50,
-        "ok": false
+        "got": 63,
+        "ok": true
       },
       "ward": {
         "want": 0,
@@ -1283,8 +1281,8 @@
       },
       "movementSpeed": {
         "want": 134,
-        "got": 124,
-        "ok": false
+        "got": 134,
+        "ok": true
       },
       "enduranceCharges": {
         "want": 3,
@@ -1303,12 +1301,12 @@
       },
       "effectiveHealthPool": {
         "want": 43686,
-        "got": 34017,
+        "got": 45735,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 7642,
-        "got": 7700,
+        "got": 7806,
         "ok": false
       },
       "fireMaxHit": {

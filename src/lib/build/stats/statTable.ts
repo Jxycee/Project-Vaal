@@ -96,6 +96,8 @@ export interface Effect {
   itemClass?: string;
   /** The stat id's number times this is the pool's number (regeneration is stored per minute, shown per second). */
   scale?: number;
+  /** The effect repeats once per `per` points of the final attribute (PoB PerStat), e.g. 3% Evasion per 10 Intelligence. */
+  perAttribute?: { attr: 'str' | 'dex' | 'int'; per: number };
 }
 
 const flat = (...pools: Pool[]): Effect[] => pools.map((pool) => ({ pool, kind: 'flat' }));
@@ -145,6 +147,9 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   'oracle_maximum_life_+%_final': more('life'),
   'oracle_maximum_mana_+%_final': more('mana'),
   'titan_maximum_life_+%_final': more('life'),
+
+  // The Winter Owl: "3% increased Evasion Rating per 10 Intelligence" (PoB PerStat on Int, floor(260 / 10) x 3 = 78).
+  'evasion_+%_per_10_intelligence': [{ pool: 'evasion', kind: 'increased', perAttribute: { attr: 'int', per: 10 } }],
 
   'equipped_jewellery_effect_of_bonuses_+%': inc('effectRing1', 'effectRing2', 'effectRing3', 'effectAmulet'),
 
@@ -269,6 +274,9 @@ export const CONDITIONAL_EFFECTS: Readonly<Record<string, ConditionalEffect>> = 
   'armour_+%_if_you_havent_been_hit_recently': { condition: 'BeenHitRecently', negate: true, effects: inc('armour') },
   'evasion_+%_if_hit_recently': { condition: 'BeenHitRecently', effects: inc('evasion') },
   'evasion_rating_+%_if_have_not_been_hit_recently': { condition: 'BeenHitRecently', negate: true, effects: inc('evasion') },
+  // Defiance: "80% increased Armour and Evasion Rating when on Low Life". LowLife is derived from Life reservation
+  // (reservation.ts) or ticked in the Configuration ("Are you always on Low Life?").
+  'armour_and_evasion_on_low_life_+%': { condition: 'LowLife', effects: inc('armour', 'evasion') },
 };
 
 /** Applied to the carrying item's own base defences / spirit, before quality. */

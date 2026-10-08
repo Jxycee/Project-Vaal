@@ -47,6 +47,8 @@ export interface Contribution {
   slot?: GearSlot;
   /** With a slot: counts only while the item worn there is of this class (collect.ts drops it otherwise). */
   itemClass?: string;
+  /** Counts once per `per` points of the character's final attribute (PoB's PerStat tag), resolved in computeDefences. */
+  perAttribute?: { attr: 'str' | 'dex' | 'int'; per: number };
 }
 
 export interface EngineInput {
@@ -133,16 +135,21 @@ const BASE_RESIST_MAX = 75;
 const MAX_RESIST_CAP = 90;
 const RESIST_FLOOR = -200; // data.misc.ResistFloor
 
-export function computeDefences(input: EngineInput): DefenceSheet {
-  const level = Number.isFinite(input.level) ? Math.min(100, Math.max(1, Math.trunc(input.level))) : 1;
+export function computeDefences(given: EngineInput): DefenceSheet {
+  const level = Number.isFinite(given.level) ? Math.min(100, Math.max(1, Math.trunc(given.level))) : 1;
+  // The attributes first: a per-attribute modifier ("3% increased Evasion Rating per 10 Intelligence") reads the final one.
+  const attrOf = (pool: 'str' | 'dex' | 'int') => {
+    const base = given.classBase[pool] + sum(given.contributions, pool, 'flat', true);
+    return Math.max(Math.round(base * (1 + sum(given.contributions, pool, 'increased', false) / 100) * product(given.contributions, pool)), 0);
+  };
+  const str = attrOf('str');
+  const dex = attrOf('dex');
+  const int = attrOf('int');
+  const input: EngineInput = { ...given, contributions: resolvePerAttribute(given.contributions, { str, dex, int }) };
   const flatOf = (pool: Pool) => sum(input.contributions, pool, 'flat', true);
   const incOf = (pool: Pool) => sum(input.contributions, pool, 'increased', false);
   const moreOf = (pool: Pool) => product(input.contributions, pool);
   const scaled = (base: number, pool: Pool) => base * (1 + incOf(pool) / 100) * moreOf(pool);
-
-  const str = Math.max(Math.round(scaled(input.classBase.str + flatOf('str'), 'str')), 0);
-  const dex = Math.max(Math.round(scaled(input.classBase.dex + flatOf('dex'), 'dex')), 0);
-  const int = Math.max(Math.round(scaled(input.classBase.int + flatOf('int'), 'int')), 0);
 
   const lifePerStr = input.flags.giantsBlood ? 1 : 2;
   const ci = input.flags.chaosInoculation === true;
@@ -188,6 +195,19 @@ export function computeDefences(input: EngineInput): DefenceSheet {
     spirit: Math.max(Math.round(spirit), 0),
   };
   return { ...sheet, derived: computeDerived(input, sheet, { flatOf, incOf, moreOf }) };
+}
+
+/**
+ * PoB's PerStat tag on an attribute (ModStore.lua): the modifier counts floor(attribute / per) times. "3% increased Evasion
+ * Rating per 10 Intelligence" at 260 Intelligence is 26 x 3 = 78. A contribution without the tag is returned as it was.
+ */
+function resolvePerAttribute(list: readonly Contribution[], attrs: Record<'str' | 'dex' | 'int', number>): Contribution[] {
+  return list.map((c) => {
+    if (!c.perAttribute) return c;
+    const { attr, per } = c.perAttribute;
+    const { perAttribute: _tag, ...rest } = c;
+    return { ...rest, value: c.value * Math.floor(attrs[attr] / per) };
+  });
 }
 
 /** Sum of one kind for one pool. `withSlots` false skips slot-tagged contributions. */
