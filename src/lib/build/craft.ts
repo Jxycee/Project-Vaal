@@ -38,7 +38,31 @@ export interface ItemCraft {
   suffixes: CraftedMod[];
   /** SoulCore item slugs (runes, soul cores), in socket order. */
   runes: string[];
+  /**
+   * Mod lines the item really shows that the wiki-slug model above cannot hold: a desecrated or
+   * corrupted mod the base's pool lacks, a unique our data never typed, a roll past its tier cap,
+   * an "Allocates X" enchant. Final text with the roll filled in ("+9 to all Attributes"), read by
+   * stats/lineMods.ts. Absent when there are none. Only the PoB importer writes it.
+   */
+  verbatim?: string[];
+  /**
+   * A jewel's radius label as PoB prints it ("Very Large"), after any "Upgrades Radius to X" line. What a Time-Lost
+   * jewel's "Notable / Small Passive Skills in Radius also grant ..." verbatim lines reach (stats/collect.ts).
+   * Absent on everything else. Only the PoB importer writes it.
+   */
+  radius?: string;
+  /**
+   * The rune and soul core lines PoB printed on the item ("{rune}64% increased Armour, Evasion and Energy Shield"),
+   * tags removed, Bonded display lines included. PoB's own mods for the sockets, after the item's "increased effect
+   * of Socketed Augment Items" and its rune data, so they beat recomputing from `runes` (stats/collect.ts). Absent
+   * when the item came without them (hand-built), and the sockets are then worked out from `runes`. Importer only.
+   */
+  runeLines?: string[];
 }
+
+/** Bounds the write gate holds `verbatim` to (a unique has at most ~40 lines; none is long). */
+export const MAX_VERBATIM_LINES = 48;
+export const MAX_VERBATIM_LENGTH = 200;
 
 /**
  * Item quality cap. Not the "usual 20": real items exceed it (the momentsZX

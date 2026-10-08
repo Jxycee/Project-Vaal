@@ -15,7 +15,7 @@ const NODES: Record<number, { name: string; stats: [string, number][]; attribute
   3: { name: 'Attribute', stats: [['display_passive_attribute_text', 1]], attribute: true },
   4: { name: 'Attribute', stats: [['display_passive_attribute_text', 1]], attribute: true },
   5: { name: "Giant's Blood", stats: [['keystone_giants_blood', 1]] },
-  6: { name: 'Lead me through Grace...', stats: [['cannot_gain_spirit_from_equipment', 1], ['+1_spirit_per_X_evasion_rating_on_body_armour', 20]] },
+  6: { name: 'Lead me through Grace...', stats: [['cannot_gain_spirit_from_equipment', 1], ['spirit_+_per_empty_charm_slot', 20]] },
   7: { name: 'Offence', stats: [['attack_speed_+%', 5]] },
   [NO_SPIRIT_NODE]: { name: 'Embrace the Darkness', stats: [['base_darkness', 100]] },
   30: { name: 'Jewel Socket', stats: [] },
@@ -141,13 +141,13 @@ describe('collectContributions — the tree', () => {
   });
 
   it("sets the Giant's Blood, cannot-gain-Spirit and no-Spirit flags from allocated nodes", () => {
-    expect(run(tree({ set1: [5, 6, NO_SPIRIT_NODE] })).flags).toEqual({ giantsBlood: true, lordOfTheWilds: false, noSpirit: true, noSpiritFromEquipment: true });
-    expect(run(tree({ set1: [1] })).flags).toEqual({ giantsBlood: false, lordOfTheWilds: false, noSpirit: false, noSpiritFromEquipment: false });
+    expect(run(tree({ set1: [5, 6, NO_SPIRIT_NODE] })).flags).toEqual({ giantsBlood: true, lordOfTheWilds: false, noSpirit: true, noSpiritFromEquipment: true, chaosInoculation: false, eldritchBattery: false });
+    expect(run(tree({ set1: [1] })).flags).toEqual({ giantsBlood: false, lordOfTheWilds: false, noSpirit: false, noSpiritFromEquipment: false, chaosInoculation: false, eldritchBattery: false });
   });
 
   it('names a defence stat it does not model, by node; stays silent about offence', () => {
     const r = run(tree({ set1: [6, 7] }));
-    expect(r.notCounted).toContain('Lead me through Grace...: Spirit from body armour Evasion');
+    expect(r.notCounted).toContain('Lead me through Grace...: Spirit per empty charm slot');
     expect(r.notCounted.join(' ')).not.toContain('Offence');
   });
 });

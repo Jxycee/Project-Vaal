@@ -4,7 +4,9 @@ import { getCatalogue } from '@/lib/pob/catalogue';
 import { decodePobCode } from '@/lib/pob/decode';
 import { mapBuild } from '@/lib/pob/mapBuild';
 import { parsePobXml } from '@/lib/pob/parse';
+import { buildConfigFromInputs } from '../buildConfig';
 import { collectContributions, type Collected } from '../collect';
+import type { BuildConfig } from '../buildConfig';
 import type { Pool } from '../statTable';
 import { makeCollectData } from '../collectData';
 import { computeDefences, type DefenceSheet } from '../engine';
@@ -23,6 +25,10 @@ import { computeDefences, type DefenceSheet } from '../engine';
 //   2. The engine returns NaN or a negative pool: caught by the sanity block.
 //   3. A stat that matched before stops matching: the per-build FLOOR below only ever goes up.
 //   4. A fixture with no PoB code or no stats (API shape changed): the shape block fails.
+//   5. A conditional modifier counted regardless of the build's PoB Configuration (or never counted): the
+//      "configuration gates conditional modifiers" block re-runs ordinary-deadeye (its Wild Cat "40% increased
+//      Evasion Rating while moving" and Wind Dancer x3 stacks are the whole gap) with the Configuration as
+//      imported, with Moving unticked, with no Configuration at all, and with the stack count removed.
 //
 // Artifact: docs/superpowers/oracle/results.json, rewritten every run: per build, per stat, expected vs
 // ours, and the match count. Diffing it is the accuracy report.
@@ -66,10 +72,16 @@ const ours = (sheet: DefenceSheet, k: Key): number => (k === 'fire' || k === 'co
 
 // Ratchet: the least number of the 13 stats each build must match. Raise it when a fix lands; never lower it.
 const FLOOR: Record<string, number> = {
-  'armour-life-gemling.json': 0, // Mageblood, a RELIC body armour and 36 unreadable item lines: item coverage, not the engine
-  'es-life-stormweaver.json': 4,
-  'evasion-deadeye.json': 4,
+  'armour-life-gemling.json': 2, // Mageblood, a RELIC body armour and 36 unreadable item lines: item coverage, not the engine
+  'es-life-stormweaver.json': 7, // Kalandra's Touch reflects the opposite ring (collect.ts); a radius jewel's notables (fire, spirit)
+  'evasion-deadeye.json': 5, // chaos resistance via a Time-Lost jewel's radius grant
   'hybrid-tactician.json': 3,
+  // The ordinary set (board item 30): mid-complexity public builds. The goal is 13 of 13 on every one.
+  'ordinary-ci-acolyte.json': 13, // 13 of 13: Purity of Ice (a socketed Aura) puts +43% Cold Resistance on the character - skillBuffs.ts, scaled by 11% increased Aura magnitudes
+  'ordinary-ci-disciple.json': 13, // 13 of 13: Time-Lost Sapphire's "Notable Passive Skills in Radius also grant" x7 (collect.ts radiusGrants) + Warding Fetish's Focus ES
+  'ordinary-ci-es-disciple.json': 13, // 13 of 13: Mageblood's legacies (stats/legacies.ts)
+  'ordinary-deadeye.json': 13, // 13 of 13: the PoB Configuration (conditionMoving, windDancerStacks) gates The Wild Cat and Wind Dancer (buildConfig.ts) + Beastial Skin's body armour Evasion
+  'ordinary-oracle.json': 13, // 13 of 13: Eldritch Battery moves flat ES into Mana (engine.ts) + PoB's printed rune lines (Blood League 469, Viper Crest 3%)
 };
 
 // PoB's own per-stat build-up (breakdowns.stats[i].mods = [kind 0 flat|1 inc|2 more, value, sourceIndex]) says WHICH
@@ -99,6 +111,8 @@ function missingMods(b: Breakdowns, pool: Pool, idx: string, mine: Collected['co
 
 const results: Record<string, unknown> = {};
 const sheets = new Map<string, { want: Record<Key, number>; got: Record<Key, number>; matched: number }>();
+/** Re-runs a fixture's pipeline with its PoB Configuration replaced (undefined = the build came without one). */
+const reruns = new Map<string, (config: BuildConfig | undefined) => { sheet: DefenceSheet; collected: Collected }>();
 
 beforeAll(async () => {
   const json = (p: string) => JSON.parse(readFileSync(p, 'utf8'));
@@ -125,17 +139,23 @@ beforeAll(async () => {
     const checkpoint = mapped.plan.checkpoints[mapped.plan.checkpoints.length - 1];
     const cls = tree.classes.find((c: { name: string }) => c.name === mapped.plan.build.class);
     if (!cls) throw new Error(`${f}: class ${mapped.plan.build.class} not in the tree`);
-    const collected = collectContributions(
-      { passive: checkpoint.passive_state, gear: checkpoint.gear_state, level: fx.level, set: fx.useSecondWeaponSet ? 2 : 1 },
-      data,
-    );
-    const sheet = computeDefences({
-      level: fx.level,
-      classBase: { str: cls.base_str, dex: cls.base_dex, int: cls.base_int },
-      contributions: collected.contributions,
-      resistancePenalty: collected.resistancePenalty,
-      flags: collected.flags,
-    });
+    const run = (config: BuildConfig | undefined) => {
+      const { buildConfig: _imported, ...rest } = checkpoint.passive_state;
+      const collected = collectContributions(
+        { passive: config ? { ...rest, buildConfig: config } : rest, gear: checkpoint.gear_state, level: fx.level, set: fx.useSecondWeaponSet ? 2 : 1, gems: checkpoint.gem_state },
+        data,
+      );
+      const sheet = computeDefences({
+        level: fx.level,
+        classBase: { str: cls.base_str, dex: cls.base_dex, int: cls.base_int },
+        contributions: collected.contributions,
+        resistancePenalty: collected.resistancePenalty,
+        flags: collected.flags,
+      });
+      return { sheet, collected };
+    };
+    reruns.set(f, run);
+    const { sheet, collected } = run(checkpoint.passive_state.buildConfig);
     const want = expected(fx.defensiveStats);
     const got = Object.fromEntries(KEYS.map((k) => [k, ours(sheet, k)])) as Record<Key, number>;
     const matched = KEYS.filter((k) => got[k] === want[k]).length;
@@ -154,6 +174,46 @@ describe('multi-build oracle (poe.ninja PoB simulation)', () => {
       expect(fx.pob.length, `${f} has no PoB code`).toBeGreaterThan(1000);
       for (const v of Object.values(expected(fx.defensiveStats))) expect(typeof v, `${f} is missing a stat`).toBe('number');
     }
+  });
+
+  describe('the PoB Configuration gates conditional modifiers (ordinary-deadeye.json)', () => {
+    const f = 'ordinary-deadeye.json';
+    const imported = () => sheets.get(f)!;
+    const rerun = (config: BuildConfig | undefined) => reruns.get(f)!(config);
+    const asImported = () => {
+      const fx = JSON.parse(readFileSync(`${DIR}/${f}`, 'utf8')) as Fixture;
+      return { fx, config: undefined as BuildConfig | undefined };
+    };
+
+    it('the export carried the Moving flag and 3 Wind Dancer stacks', async () => {
+      const { fx } = asImported();
+      const parsed = parsePobXml((decodePobCode(fx.pob.trim()) as { ok: true; xml: string }).xml);
+      if (!parsed.ok) throw new Error('parse');
+      const config = buildConfigFromInputs(parsed.build.configInputs ?? []);
+      expect(config.conditions).toContain('Moving');
+      expect(config.multipliers.WindDancerStacks).toBe(3);
+    });
+    const ticked: BuildConfig = { conditions: ['Moving'], multipliers: { WindDancerStacks: 3 } };
+    it('Moving unticked: the Wild Cat does not count (and nothing is claimed unknown)', () => {
+      const off = rerun({ ...ticked, conditions: [] });
+      expect(off.sheet.evasion).toBeLessThan(imported().want.evasion);
+      expect(off.collected.notCounted.join('|')).not.toMatch(/Moving/);
+    });
+    it('no stacks: Wind Dancer adds nothing, Moving alone leaves Evasion short of PoB', () => {
+      const none = rerun({ conditions: ['Moving'], multipliers: {} });
+      expect(none.sheet.evasion).toBeLessThan(imported().want.evasion);
+      expect(none.sheet.evasion).toBeGreaterThan(rerun({ conditions: [], multipliers: {} }).sheet.evasion);
+    });
+    it('stacks past the skill limit are capped at it', () => {
+      expect(rerun({ ...ticked, multipliers: { WindDancerStacks: 99 } }).sheet.evasion).toBe(imported().want.evasion);
+    });
+    it('no Configuration at all: the sheet NAMES what needs it instead of guessing', () => {
+      const none = rerun(undefined);
+      expect(none.sheet.evasion).toBeLessThan(imported().want.evasion);
+      const named = none.collected.notCounted.join('|');
+      expect(named).toMatch(/The Wild Cat.*needs Moving/);
+      expect(named).toMatch(/Wind Dancer.*needs/);
+    });
   });
 
   for (const f of FILES) {

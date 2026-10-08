@@ -171,6 +171,8 @@ export default function BuildSessionProvider({
   // Quest reward choices (quest id -> option id). Their own state rather than
   // part of treeState: PassiveTree reports treeState and would overwrite them.
   const [questChoices, setQuestChoices] = useState<Record<string, string>>(() => parsePassiveState(row.passive_state).questChoices ?? {});
+  // The imported Path of Building configuration is not editable here, but every save must carry it (stats/buildConfig.ts).
+  const buildConfig = useMemo(() => parsePassiveState(row.passive_state).buildConfig, [row.passive_state]);
   const [gear, setGear] = useState<GearState>(() => parseGearState(row.gear_state));
   const [gems, setGems] = useState<GemState>(() => parseGemState(row.gem_state));
   const [meta, setMetaState] = useState<BuildMeta>(() => ({
@@ -498,8 +500,8 @@ export default function BuildSessionProvider({
   // ---- Structural validation + derived view models ---------------------
   // Derived, nothing here is stored.
   const livePassive = useMemo(
-    () => toPassiveState(treeState.main, treeState.ascendancyNodes, treeState.attributeChoices, questChoices),
-    [treeState, questChoices],
+    () => toPassiveState(treeState.main, treeState.ascendancyNodes, treeState.attributeChoices, questChoices, buildConfig),
+    [treeState, questChoices, buildConfig],
   );
   const craftData = useCraftData(gear);
   const warnings = useMemo(
@@ -520,6 +522,7 @@ export default function BuildSessionProvider({
     level: meta.level,
     passive: livePassive,
     gear,
+    gems,
   });
   const sheets = useMemo<Sheets>(() => (liteError ? { error: liteError } : defence), [liteError, defence]);
   const reserved = useReservedSpirit(gems);
@@ -590,7 +593,7 @@ export default function BuildSessionProvider({
           // exists to protect a save path that legitimately doesn't touch a
           // field, which this one isn't.
           notes: sentMeta.notes,
-          passive_state: toPassiveState(sent.tree.main, sent.tree.ascendancyNodes, sent.tree.attributeChoices, sent.quest),
+          passive_state: toPassiveState(sent.tree.main, sent.tree.ascendancyNodes, sent.tree.attributeChoices, sent.quest, buildConfig),
           gear_state: sent.gear,
           gem_state: sent.gem,
           // Always sent, string or null — deriveMainSkill returns null (not
@@ -625,7 +628,7 @@ export default function BuildSessionProvider({
       setBaseline({
         class: sent.tree.className,
         ascendancy: sent.tree.ascendancyId ?? null,
-        passive_state: toPassiveState(sent.tree.main, sent.tree.ascendancyNodes, sent.tree.attributeChoices, sent.quest),
+        passive_state: toPassiveState(sent.tree.main, sent.tree.ascendancyNodes, sent.tree.attributeChoices, sent.quest, buildConfig),
         gear_state: sent.gear,
         gem_state: sent.gem,
         meta: sentMeta,
@@ -668,7 +671,7 @@ export default function BuildSessionProvider({
       saveInFlight.current = false;
       if (!scratchCreated.current) setSaving(false);
     }
-  }, [canEdit, scratch, treeState, gear, gems, questChoices, meta, row.id, draftBuildId, checkpointId, router]);
+  }, [canEdit, scratch, treeState, gear, gems, questChoices, buildConfig, meta, row.id, draftBuildId, checkpointId, router]);
 
   // ---- Discard / draft prompt actions -----------------------------------
   const discard = useCallback(() => {

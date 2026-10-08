@@ -316,7 +316,8 @@ describe('mapItems — the real build against the real catalogue', async () => {
   });
 
   it('marks the three magic bases as inferred, and loses no item outright', () => {
-    expect(report.filter((r) => r.kind === 'inferred')).toHaveLength(3);
+    // (Lines kept as written are also 'inferred'; the magic-base notes are the ones about a name.)
+    expect(report.filter((r) => r.kind === 'inferred' && r.message.includes('read from its name'))).toHaveLength(3);
     // Every "dropped" entry is about details on an item that WAS imported.
     const dropped = report.filter((r) => r.kind === 'dropped');
     expect(dropped.every((r) => r.message.includes('not kept'))).toBe(true);

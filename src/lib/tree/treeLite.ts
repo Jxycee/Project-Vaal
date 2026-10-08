@@ -22,10 +22,60 @@ export interface TreeLiteClass {
   base_int: number;
 }
 
+/** One passive near a jewel socket: its id, its distance from the socket, and its kind (0 notable, 1 small). */
+export type JewelRadiusNode = [id: number, distance: number, kind: 0 | 1];
+
 export interface TreeLite {
   nodes: Record<string, TreeLiteNode>;
   jewelSlots: (string | number)[];
   classes: TreeLiteClass[];
+  /**
+   * Per jewel socket id, every notable and small passive within JEWEL_RADIUS_REACH of it (the Time-Lost jewels'
+   * "Notable / Small Passive Skills in Radius also grant ..." lines read it; stats/collect.ts). Optional: a lite
+   * file written before it existed simply names the radius jewels it cannot count.
+   */
+  jewelRadius?: Record<string, JewelRadiusNode[]>;
+}
+
+/**
+ * The largest radius a fixed Time-Lost jewel can reach: PoB2 Very Large = 1500 x PassiveTreeJewelDistanceMultiplier 1.2
+ * (Data.lua jewelRadii "0_1", misc-constants.json). The smaller rings are read off the stored distances.
+ */
+export const JEWEL_RADIUS_REACH = 1800;
+
+interface RadiusSourceNode {
+  x?: number;
+  y?: number;
+  isNotable?: boolean;
+  isKeystone?: boolean;
+  isMastery?: boolean;
+  isJewelSocket?: boolean;
+  isGenericAttribute?: boolean;
+  isBlighted?: boolean;
+  isAscendancyStart?: boolean;
+  isMultipleChoiceOption?: boolean;
+}
+
+/**
+ * Notables and smalls near each jewel socket. PoB2's node types: Notable, and Normal-and-not-an-attribute for
+ * Small (ModParser.lua "^(%w+) Passive Skills in Radius also grant"); sockets, keystones, masteries, blighted
+ * nodes and attribute passives are never in either set (PassiveTree.lua nodesInRadius skips blighted and mastery).
+ */
+export function projectJewelRadius(nodes: Record<string, unknown>): Record<string, JewelRadiusNode[]> {
+  const all = Object.entries(nodes).filter(([id]) => id !== 'root') as [string, RadiusSourceNode][];
+  const out: Record<string, JewelRadiusNode[]> = {};
+  for (const [socketId, socket] of all) {
+    if (!socket.isJewelSocket || socket.x === undefined || socket.y === undefined) continue;
+    const near: JewelRadiusNode[] = [];
+    for (const [id, n] of all) {
+      if (id === socketId || n.x === undefined || n.y === undefined) continue;
+      if (n.isKeystone || n.isMastery || n.isJewelSocket || n.isBlighted || n.isGenericAttribute || n.isAscendancyStart || n.isMultipleChoiceOption) continue;
+      const distance = Math.hypot(n.x - socket.x, n.y - socket.y);
+      if (distance <= JEWEL_RADIUS_REACH) near.push([Number(id), Math.round(distance * 10) / 10, n.isNotable ? 0 : 1]);
+    }
+    out[socketId] = near.sort((a, b) => a[0] - b[0]);
+  }
+  return out;
 }
 
 export function projectTreeLite(full: GggTreeJson): TreeLite {
@@ -45,5 +95,5 @@ export function projectTreeLite(full: GggTreeJson): TreeLite {
     base_dex: c.base_dex,
     base_int: c.base_int,
   }));
-  return { nodes, jewelSlots: full.jewelSlots ?? [], classes };
+  return { nodes, jewelSlots: full.jewelSlots ?? [], classes, jewelRadius: projectJewelRadius(full.nodes as Record<string, unknown>) };
 }

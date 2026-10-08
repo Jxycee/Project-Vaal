@@ -102,8 +102,11 @@ export async function itemText(item: GearItem, where: string, report: ReportEntr
     for (const name of runeNames) lines.push(`Rune: ${name}`);
   }
 
+  if (craft.radius) lines.push(`Radius: ${craft.radius}`);
   const implicits = (detail?.implicitMods ?? []).map((template, i) => renderLine(template, rowValues(template, craft.implicitValues[i])));
-  lines.push(`Implicits: ${implicits.length}`, ...implicits);
+  // PoB prints the rune lines it applied as {enchant}{rune} implicits, ahead of the base's own (mapCraft reads them back).
+  const runeImplicits = (craft.runeLines ?? []).map((line) => `{enchant}{rune}${line}`);
+  lines.push(`Implicits: ${runeImplicits.length + implicits.length}`, ...runeImplicits, ...implicits);
 
   if (rarity === 'unique') {
     (detail?.uniqueMods?.explicitMods ?? []).forEach((template, i) => lines.push(renderLine(template, rowValues(template, craft.uniqueValues[i]))));
@@ -116,6 +119,8 @@ export async function itemText(item: GearItem, where: string, report: ReportEntr
     }
     lines.push(...modLines(mod, crafted.values, label, report));
   }
+  // Lines kept as written (mapCraft's verbatim): written back as the explicit lines they were read from.
+  lines.push(...(craft.verbatim ?? []));
   if (craft.corrupted) lines.push('Corrupted');
   return lines.join('\n');
 }

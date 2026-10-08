@@ -35,7 +35,9 @@ export type Pool =
   | 'coldMax'
   | 'lightningMax'
   | 'chaosMax'
-  | 'spirit';
+  | 'spirit'
+  // Percent increased magnitudes of Aura skills: not a sheet number, it scales skill-granted buffs (skillBuffs.ts).
+  | 'auraEffect';
 
 /**
  * `flat` adds to the pool's base; `increased` adds percent to its "increased"
@@ -73,6 +75,12 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   // on top of the global increase (CalcDefence.lua:1445-1453).
   'maximum_energy_shield_from_body_armour_+%': incFromSlot('body', 'energyShield'),
   'energy_shield_from_helmet_+%': incFromSlot('head', 'energyShield'),
+  // "N% increased Evasion Rating from Equipped Body Armour" (Beastial Skin, 100): the same SlotName tag. Found on
+  // ordinary-deadeye, where it is the 1472 Evasion PoB's total holds beyond base x increased x more.
+  'body_armour_evasion_rating_+%': incFromSlot('body', 'evasion'),
+  // "N% increased Energy Shield from Focus" - PoB2's SlotName tag on the off-hand slot. A focus sits in the off
+  // hand of whichever weapon set is worn; only that set's item carries flats, so both slots are listed.
+  'energy_shield_from_focus_+%': [...incFromSlot('weapon1_off', 'energyShield'), ...incFromSlot('weapon2_off', 'energyShield')],
   // "final" stats are "more"/"less" multipliers (ModParser.lua:67-69), applied
   // after increased (CalcDefence.lua:91, 96). Oracle's Harmony Within is -15
   // ("15% less maximum Life / Mana"); Titan's Mysterious Lineage is +15.
@@ -121,6 +129,34 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   base_spirit: flat('spirit'),
   base_spirit_from_equipment: flat('spirit'),
   'spirit_+%': inc('spirit'),
+
+  // "Aura Skills have N% increased Magnitudes": scales the Auras' own modifiers (skillBuffs.ts), PoB2 AuraEffect.
+  'aura_effect_+%': inc('auraEffect'),
+};
+
+/**
+ * Tree stats that count only while a PoB condition is true (Condition:<name>, set in the build's Configuration,
+ * buildConfig.ts). `negate` = counts while it is NOT true ("if you haven't been Hit Recently"). The names are
+ * PoB's: "Moving" is what conditionMoving sets, confirmed on ordinary-deadeye; the rest follow the same
+ * "condition<Name>" rule and the cached text of the same lines in modcache.json (Bleeding, Ignited, Stationary,
+ * BeenHitRecently). A stat id left out is not counted and is not named (it looks like noise to
+ * looksLikeDefenceStat, as it did before). statTable.test.ts checks each id exists and names its pool.
+ */
+export interface ConditionalEffect {
+  condition: string;
+  negate?: boolean;
+  effects: Effect[];
+}
+export const CONDITIONAL_EFFECTS: Readonly<Record<string, ConditionalEffect>> = {
+  'evasion_rating_+%_while_moving': { condition: 'Moving', effects: inc('evasion') },
+  'armour_+%_while_stationary': { condition: 'Stationary', effects: inc('armour') },
+  'armour_+%_while_bleeding': { condition: 'Bleeding', effects: inc('armour') },
+  'armour_+%_while_ignited': { condition: 'Ignited', effects: inc('armour') },
+  'base_maximum_fire_damage_resistance_%_while_ignited': { condition: 'Ignited', effects: flat('fireMax') },
+  'armour_+%_if_have_been_hit_recently': { condition: 'BeenHitRecently', effects: inc('armour') },
+  'armour_+%_if_you_havent_been_hit_recently': { condition: 'BeenHitRecently', negate: true, effects: inc('armour') },
+  'evasion_+%_if_hit_recently': { condition: 'BeenHitRecently', effects: inc('evasion') },
+  'evasion_rating_+%_if_have_not_been_hit_recently': { condition: 'BeenHitRecently', negate: true, effects: inc('evasion') },
 };
 
 /** Applied to the carrying item's own base defences / spirit, before quality. */
@@ -139,19 +175,39 @@ export const LOCAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
 };
 
 /**
+ * Passives that scale off ANOTHER item's own defence: "+1 to Evasion Rating per 1 Item Energy Shield on
+ * Equipped Helmet" (PoB2 PerStat tag, modcache.json: div = the per-step size, amount = the value; the
+ * stat is floor(item defence / div) steps, ModStore.lua). `valueIs` says which of the two the node's
+ * number is: the fixed one is `fixed`. The item defence is the item's final own figure (local mods and
+ * quality included), which the collector holds once every item is read.
+ */
+export interface PerItemDefence {
+  pool: Pool;
+  slot: GearSlot;
+  from: 'armour' | 'evasion' | 'energyShield';
+  valueIs: 'amount' | 'div';
+  fixed: number;
+}
+export const PER_ITEM_DEFENCE: Readonly<Record<string, PerItemDefence>> = {
+  'maximum_energy_shield_+1_per_x_body_armour_evasion_rating': { pool: 'energyShield', slot: 'body', from: 'evasion', valueIs: 'div', fixed: 1 },
+  'evasion_rating_+_per_1_helmet_energy_shield': { pool: 'evasion', slot: 'head', from: 'energyShield', valueIs: 'amount', fixed: 1 },
+  'evasion_rating_+_per_1_armour_on_gloves': { pool: 'evasion', slot: 'gloves', from: 'armour', valueIs: 'amount', fixed: 1 },
+  'armour_+_per_1_boots_energy_shield': { pool: 'armour', slot: 'boots', from: 'energyShield', valueIs: 'amount', fixed: 1 },
+  'energy_shield_+_per_8_helmet_armour': { pool: 'energyShield', slot: 'head', from: 'armour', valueIs: 'amount', fixed: 8 },
+  '+1_spirit_per_X_evasion_rating_on_body_armour': { pool: 'spirit', slot: 'body', from: 'evasion', valueIs: 'div', fixed: 1 },
+  '+1_spirit_per_X_energy_shield_on_body_armour': { pool: 'spirit', slot: 'body', from: 'energyShield', valueIs: 'div', fixed: 1 },
+};
+
+/**
  * Stats that change a defence this engine reports but that it does NOT
  * model yet. Any allocated or equipped source carrying one is listed on the
  * stat sheet by name, so a number is never silently missing a contribution.
  */
 export const NOT_MODELLED: Readonly<Record<string, string>> = {
-  '+1_spirit_per_X_evasion_rating_on_body_armour': 'Spirit from body armour Evasion',
-  '+1_spirit_per_X_energy_shield_on_body_armour': 'Spirit from body armour Energy Shield',
   'spirit_+_per_empty_charm_slot': 'Spirit per empty charm slot',
   'body_armour_grants_spirit_+%': 'increased Spirit from body armour',
   'ascendancy_beidats_will_spirit_+_per_X_maximum_life': 'Spirit per maximum Life',
   'body_armour_+%': 'increased Armour from body armour',
-  'body_armour_evasion_rating_+%': 'increased Evasion from body armour',
-  'energy_shield_from_focus_+%': 'increased Energy Shield from a Focus',
   base_physical_damage_reduction_rating_no_display: 'hidden Armour',
   'maximum_fire_resistance_+%_if_at_least_5_red_supports_socketed': 'Maximum Fire Resistance with 5 red supports socketed',
 };

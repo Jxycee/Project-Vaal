@@ -31,6 +31,7 @@ import type { PassiveState } from '@/lib/build/types';
 import type { Catalogue } from './catalogue';
 import { mapGems } from './mapGems';
 import { mapItems, mapJewels } from './mapItems';
+import { buildConfigFromInputs } from '@/lib/build/stats/buildConfig';
 import { mapQuests } from './mapQuests';
 import { mapTree } from './mapTree';
 import type { PobBuild } from './parse';
@@ -139,8 +140,25 @@ export async function mapBuild(pob: PobBuild, catalogue: Catalogue, options: { n
   // Quest reward choices are one PoB config for the whole build; each checkpoint
   // carries them and its own level decides which have been reached.
   const quests = mapQuests(pob.questInputs);
-  const questChoices = () => (Object.keys(quests.value).length > 0 ? { questChoices: { ...quests.value } } : {});
+  const questChoices = () => ({
+    ...(Object.keys(quests.value).length > 0 ? { questChoices: { ...quests.value } } : {}),
+    ...(config ? { buildConfig: structuredClone(config) } : {}),
+  });
   report.push(...quests.report);
+
+  // The Configuration (conditions ticked, stack counts) decides which conditional modifiers count; carried the
+  // same way. No Config in the export = no buildConfig, so the sheet names conditional modifiers instead of guessing.
+  const config = pob.configInputs === null ? undefined : buildConfigFromInputs(pob.configInputs);
+  if (config) {
+    report.push({
+      kind: 'note',
+      area: 'build',
+      message:
+        config.conditions.length > 0 || Object.keys(config.multipliers).length > 0
+          ? `Path of Building's configuration came across: ${[...config.conditions, ...Object.entries(config.multipliers).map(([k, v]) => `${k} x${v}`)].join(', ')}. Modifiers that depend on those count on the stat sheet.`
+          : "Path of Building's configuration had no conditions ticked, so modifiers that need one (for example \"while moving\") are not counted.",
+    });
+  }
 
   const checkpoints: ImportCheckpoint[] = [];
   const copy = () => ({ gear_state: structuredClone(gearState), gem_state: structuredClone(gems.value) });

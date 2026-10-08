@@ -1,6 +1,6 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { GLOBAL_EFFECTS, LOCAL_EFFECTS, looksLikeDefenceStat, NOT_MODELLED, type Pool } from '../statTable';
+import { CONDITIONAL_EFFECTS, GLOBAL_EFFECTS, LOCAL_EFFECTS, looksLikeDefenceStat, NOT_MODELLED, type Pool } from '../statTable';
 
 // The stat table is hand-written, so every entry is checked against real
 // data: the id must exist in our tree or mod files, AND the display text of
@@ -39,7 +39,18 @@ const POOL_WORDS: Record<Pool, RegExp> = {
   lightningMax: /Maximum (Lightning|Elemental) Resistance|all maximum Resistances/i,
   chaosMax: /Maximum Chaos Resistance|all maximum Resistances/i,
   spirit: /Spirit/,
+  auraEffect: /Aura.*Magnitudes/,
 };
+
+describe('conditional stat table — against real data', () => {
+  for (const [stat, { effects, condition }] of Object.entries(CONDITIONAL_EFFECTS)) {
+    it(`${stat} exists, names ${effects.map((e) => e.pool).join(', ')} (gated by ${condition})`, () => {
+      const texts = (textsFor.get(stat) ?? []).map((t) => t.replace(/\[[^|\]]*\|([^\]]*)\]/g, '$1').replace(/\[([^\]]*)\]/g, '$1'));
+      expect(texts.length, `${stat} is in neither the tree nor the mod files`).toBeGreaterThan(0);
+      for (const { pool } of effects) expect(texts.some((t) => POOL_WORDS[pool].test(t)), `no text for ${stat} mentions ${pool}`).toBe(true);
+    });
+  }
+});
 
 describe.each([
   ['global', GLOBAL_EFFECTS],

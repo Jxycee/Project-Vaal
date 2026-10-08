@@ -19,6 +19,11 @@
     "sync:tree-lite": "tsx scripts/sync-tree-lite.ts",
     "sync:mod-tiers": "tsx scripts/sync-mod-tiers.ts",
     "sync:pob-gem-ids": "tsx scripts/sync-pob-gem-ids.ts",
+    "sync:pob-uniques": "tsx scripts/sync-pob-uniques.ts",
+    "sync:pob-modcache": "tsx scripts/sync-pob-modcache.ts",
+    "sync:pob-jewel-rune-charm": "tsx scripts/sync-pob-jewel-rune-charm.ts",
+    "sync:pob-skills": "tsx scripts/sync-pob-skills.ts",
+    "sync:pob-bases": "tsx scripts/sync-pob-bases.ts",
     "db:types": "npx supabase gen types typescript --project-id mjxadehorflhncendqiy > src/types/database.ts",
     "db:schema": "tsx scripts/dump-schema.ts"
   },

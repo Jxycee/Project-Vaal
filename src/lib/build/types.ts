@@ -1,5 +1,6 @@
 import type { AttributeChoice, WeaponSetAllocation } from '@poe2-toolkit/tree-core';
 import type { Database } from '@/types/database';
+import type { BuildConfig } from './stats/buildConfig';
 
 /** Matches the CHECK constraint on public.builds.visibility. */
 export type BuildVisibility = 'private' | 'unlisted' | 'public';
@@ -29,6 +30,12 @@ export interface PassiveState {
    * every row saved before this key existed reads exactly as it did.
    */
   questChoices?: Record<string, string>;
+  /**
+   * The Path of Building Configuration an import carried: the conditions that are true and the multiplier counts
+   * (stats/buildConfig.ts). It decides whether conditional modifiers ("while moving") count. ABSENT when the
+   * build did not come with one: then conditional modifiers are named on the sheet, never assumed on or off.
+   */
+  buildConfig?: BuildConfig;
 }
 
 /**
