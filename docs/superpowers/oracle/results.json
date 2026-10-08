@@ -593,7 +593,7 @@
     ],
     "class": "Tactician",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/pjf5845203344-2325/%E5%A4%A9%E7%A9%BA%E6%87%92%E7%8B%BC%E8%93%9D",
-    "matched": 10,
+    "matched": 11,
     "of": 13,
     "stats": {
       "str": {
@@ -623,8 +623,8 @@
       },
       "energyShield": {
         "want": 4729,
-        "got": 4730,
-        "ok": false
+        "got": 4729,
+        "ok": true
       },
       "armour": {
         "want": 5207,
@@ -662,7 +662,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 10,
+    "derivedMatched": 14,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -732,33 +732,33 @@
       },
       "effectiveHealthPool": {
         "want": 26777,
-        "got": 26613,
+        "got": 26610,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 8357,
-        "got": 8346,
+        "got": 8345,
         "ok": false
       },
       "fireMaxHit": {
         "want": 28096,
-        "got": 28100,
-        "ok": false
+        "got": 28096,
+        "ok": true
       },
       "coldMaxHit": {
         "want": 28096,
-        "got": 28100,
-        "ok": false
+        "got": 28096,
+        "ok": true
       },
       "lightningMaxHit": {
         "want": 28096,
-        "got": 28100,
-        "ok": false
+        "got": 28096,
+        "ok": true
       },
       "chaosMaxHit": {
         "want": 22010,
-        "got": 22012,
-        "ok": false
+        "got": 22010,
+        "ok": true
       }
     }
   },

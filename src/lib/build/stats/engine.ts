@@ -183,7 +183,8 @@ export function computeDefences(given: EngineInput): DefenceSheet {
     for (const slot of slotted) {
       total += sumSlot(input.contributions, pool, 'flat', slot) * (1 + (incOf(pool) + sumSlot(input.contributions, pool, 'increased', slot)) / 100) * product(input.contributions, pool, slot);
     }
-    return Math.max(Math.round(Math.round(total) + afterScaling), 0);
+    // EnergyShieldTotal's fraction is dropped (floor), not rounded: tactician 4226 + 503.66 is PoB's 4729, sorceress 8661 + 482.16 is 9143.
+    return Math.max(Math.floor(Math.round(total) + afterScaling), 0);
   };
 
   const resist = (pool: Pool, maxPool: Pool, penalty: number): Resistance => {
