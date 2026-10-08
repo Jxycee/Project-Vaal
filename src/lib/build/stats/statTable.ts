@@ -37,7 +37,28 @@ export type Pool =
   | 'chaosMax'
   | 'spirit'
   // Percent increased magnitudes of Aura skills: not a sheet number, it scales skill-granted buffs (skillBuffs.ts).
-  | 'auraEffect';
+  | 'auraEffect'
+  // The derived defence stats (engine.ts; DERIVED in multiOracle.test.ts). They are PoB's own modifier names in
+  // lower camel case: a pool's `flat` is its BASE, `increased` its INC, `more` its MORE.
+  | 'maxEndurance'
+  | 'maxFrenzy'
+  | 'maxPower'
+  | 'movementSpeed'
+  | 'esRecharge'
+  | 'esRechargeFaster'
+  | 'lifeRegen'
+  | 'lifeRegenPercent'
+  | 'deflection'
+  | 'evasionToDeflection'
+  | 'armourToDeflection'
+  | 'blindEffect'
+  | 'physReduction'
+  | 'armourToPhysical'
+  | 'armourToFire'
+  | 'armourToCold'
+  | 'armourToLightning'
+  | 'armourToChaos'
+  | 'ward';
 
 /**
  * `flat` adds to the pool's base; `increased` adds percent to its "increased"
@@ -48,11 +69,14 @@ export interface Effect {
   pool: Pool;
   kind: 'flat' | 'increased' | 'more';
   slot?: GearSlot;
+  /** The stat id's number times this is the pool's number (regeneration is stored per minute, shown per second). */
+  scale?: number;
 }
 
 const flat = (...pools: Pool[]): Effect[] => pools.map((pool) => ({ pool, kind: 'flat' }));
 const inc = (...pools: Pool[]): Effect[] => pools.map((pool) => ({ pool, kind: 'increased' }));
 const more = (...pools: Pool[]): Effect[] => pools.map((pool) => ({ pool, kind: 'more' }));
+const perMinute = (pool: Pool, kind: Effect['kind']): Effect[] => [{ pool, kind, scale: 1 / 60 }];
 const incFromSlot = (slot: GearSlot, ...pools: Pool[]): Effect[] => pools.map((pool) => ({ pool, kind: 'increased', slot }));
 
 export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
@@ -129,6 +153,39 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   base_spirit: flat('spirit'),
   base_spirit_from_equipment: flat('spirit'),
   'spirit_+%': inc('spirit'),
+
+  // ---- Derived defence stats (engine.ts). Each id is checked against the tree/mod text by statTable.test.ts.
+  // "+N to Maximum Endurance / Frenzy / Power Charges": PoB2 EnduranceChargesMax etc. (modcache.json), CalcPerform.lua:869-887.
+  max_endurance_charges: flat('maxEndurance'),
+  max_frenzy_charges: flat('maxFrenzy'),
+  max_power_charges: flat('maxPower'),
+  // "N% increased Movement Speed": MovementSpeed INC, CalcDefence.lua:1926.
+  'base_movement_velocity_+%': inc('movementSpeed'),
+  // "N% increased Energy Shield Recharge Rate" and "N% faster start of Energy Shield Recharge": CalcDefence.lua:1796, 1837-1838.
+  'energy_shield_recharge_rate_+%': inc('esRecharge'),
+  'energy_shield_delay_-%': inc('esRechargeFaster'),
+  // Life regeneration is stored per minute and shown per second: "Regenerate 0.2% of maximum Life per second" is 12,
+  // "1 Life Regeneration per second" is 60 (mod files and the tree both).
+  'life_regeneration_rate_per_minute_%': perMinute('lifeRegenPercent', 'flat'),
+  base_life_regeneration_rate_per_minute: perMinute('lifeRegen', 'flat'),
+  'life_regeneration_rate_+%': inc('lifeRegen'),
+  // "Gain Deflection Rating equal to N% of Evasion Rating / Armour", "N% increased Deflection Rating": CalcDefence.lua:1565.
+  'base_deflection_rating_%_of_evasion_rating': flat('evasionToDeflection'),
+  'base_deflection_rating_%_of_armour': flat('armourToDeflection'),
+  'deflection_rating_+%': inc('deflection'),
+  // "+N to maximum Runic Ward" / "N% increased maximum Runic Ward": CalcDefence.lua:1306-1311.
+  base_maximum_ward: flat('ward'),
+  'maximum_ward_+%': inc('ward'),
+  // "N% increased Blind Effect": scales the enemy's -20% Accuracy, CalcPerform.lua:744-753.
+  'blind_effect_+%': inc('blindEffect'),
+  // "N% additional Physical Damage Reduction": PhysicalDamageReduction BASE, CalcDefence.lua:1914.
+  'base_additional_physical_damage_reduction_%': flat('physReduction'),
+  // "+N% of Armour also applies to Fire / Cold / Lightning / Chaos / Elemental Damage": ArmourAppliesTo<Type>DamageTaken.
+  'armour_%_applies_to_fire_cold_lightning_damage': flat('armourToFire', 'armourToCold', 'armourToLightning'),
+  'base_armour_%_applies_to_fire_damage': flat('armourToFire'),
+  'base_armour_%_applies_to_cold_damage': flat('armourToCold'),
+  'base_armour_%_applies_to_lightning_damage': flat('armourToLightning'),
+  'base_armour_%_applies_to_chaos_damage': flat('armourToChaos'),
 
   // "Aura Skills have N% increased Magnitudes": scales the Auras' own modifiers (skillBuffs.ts), PoB2 AuraEffect.
   'aura_effect_+%': inc('auraEffect'),

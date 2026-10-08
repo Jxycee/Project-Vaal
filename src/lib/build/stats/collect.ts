@@ -335,7 +335,7 @@ function addGlobal(
   }
   const effects = GLOBAL_EFFECTS[stat];
   if (effects) {
-    for (const e of effects) out.push({ pool: e.pool, kind: e.kind, value, source, ...(e.slot ? { slot: e.slot } : {}) });
+    for (const e of effects) out.push({ pool: e.pool, kind: e.kind, value: value * (e.scale ?? 1), source, ...(e.slot ? { slot: e.slot } : {}) });
   } else if (NOT_MODELLED[stat]) {
     notCounted.push(`${source}: ${NOT_MODELLED[stat]}`);
   } else if (!LOCAL_EFFECTS[stat] && looksLikeDefenceStat(stat)) {

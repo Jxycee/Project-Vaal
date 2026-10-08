@@ -33,8 +33,11 @@ import path from 'node:path';
 const URL = 'https://raw.githubusercontent.com/PathOfBuildingCommunity/PathOfBuilding-PoE2/dev/src/Data/ModCache.lua';
 
 // Defence + attributes + spirit. Resist names in PoB: FireResist, FireResistMax, ElementalResist...
+// The derived defence stats (engine.ts: movement speed, charges, regen, ES recharge, deflection, ward, blind, flat
+// physical reduction, armour applying to elemental damage) are kept too, so a quest reward or unique line that PoB
+// parses into them is readable (lineMods.ts POOLS says which of these the engine models).
 export const KEEP =
-  /^(Life|Mana|EnergyShield|Armour|Evasion|Spirit|Str|Dex|Int|Deflection|Ward|AllAttributes|(Fire|Cold|Lightning|Chaos|Elemental)Resist(Max)?|(Fire|Cold|Lightning|Chaos|Elemental)?MaxResist|MaxElementalResist)$/;
+  /^(Life|Mana|EnergyShield|Armour|Evasion|Spirit|Str|Dex|Int|Deflection|Ward|AllAttributes|(Fire|Cold|Lightning|Chaos|Elemental)Resist(Max)?|(Fire|Cold|Lightning|Chaos|Elemental)?MaxResist|MaxElementalResist|MovementSpeed|LifeRegen|LifeRegenPercent|EnergyShieldRecharge|EnergyShieldRechargeFaster|(Power|Frenzy|Endurance)ChargesMax|DeflectionRating|EvasionGainAsDeflection|ArmourGainAsDeflection|DeflectEffect|BlindEffect|PhysicalDamageReduction|ArmourDefense|ArmourAppliesTo(Physical|Fire|Cold|Lightning|Chaos)DamageTaken)$/;
 
 type Lua = null | boolean | number | string | Lua[] | { [k: string]: Lua };
 
