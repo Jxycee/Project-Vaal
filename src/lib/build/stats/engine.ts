@@ -53,6 +53,8 @@ export interface EngineInput {
     lordOfTheWilds: boolean;
     /** Embrace the Darkness: "You have no Spirit". */
     noSpirit: boolean;
+    /** Chaos Inoculation: "Maximum Life becomes 1, Immune to Chaos Damage" (PoB2 reports 100% chaos resistance). */
+    chaosInoculation?: boolean;
   };
 }
 
@@ -95,7 +97,8 @@ export function computeDefences(input: EngineInput): DefenceSheet {
   const int = Math.max(Math.round(scaled(input.classBase.int + flatOf('int'), 'int')), 0);
 
   const lifePerStr = input.flags.giantsBlood ? 1 : 2;
-  const life = Math.max(Math.round(scaled(12 * level + 16 + str * lifePerStr + flatOf('life'), 'life')), 1);
+  const ci = input.flags.chaosInoculation === true;
+  const life = ci ? 1 : Math.max(Math.round(scaled(12 * level + 16 + str * lifePerStr + flatOf('life'), 'life')), 1);
   const mana = Math.max(Math.round(scaled(4 * level + 30 + int * 2 + flatOf('mana'), 'mana')), 1);
 
   // Each slot's item gets the global increase plus its own slot's (CalcDefence.lua:1445-1453);
@@ -132,7 +135,7 @@ export function computeDefences(input: EngineInput): DefenceSheet {
     fire: resist('fireRes', 'fireMax', input.resistancePenalty),
     cold: resist('coldRes', 'coldMax', input.resistancePenalty),
     lightning: resist('lightningRes', 'lightningMax', input.resistancePenalty),
-    chaos: resist('chaosRes', 'chaosMax', 0),
+    chaos: ci ? { value: 100, max: 100, uncapped: 100 } : resist('chaosRes', 'chaosMax', 0),
     spirit: Math.max(Math.round(spirit), 0),
   };
 }

@@ -73,7 +73,7 @@ const NUMBER_TOKEN = /\((-?\d+(?:\.\d+)?)-(-?\d+(?:\.\d+)?)\)|(-?\d+(?:\.\d+)?)/
 
 export interface Collected {
   contributions: Contribution[];
-  flags: { giantsBlood: boolean; lordOfTheWilds: boolean; noSpirit: boolean; noSpiritFromEquipment: boolean };
+  flags: { giantsBlood: boolean; lordOfTheWilds: boolean; noSpirit: boolean; noSpiritFromEquipment: boolean; chaosInoculation: boolean };
   resistancePenalty: number;
   act: string;
   notCounted: string[];
@@ -91,7 +91,7 @@ export function collectContributions(
   const notCounted: string[] = [];
   const unknown = new Map<string, Set<string>>();
   const assumed: string[] = [];
-  const flags = { giantsBlood: false, lordOfTheWilds: false, noSpirit: false, noSpiritFromEquipment: false };
+  const flags = { giantsBlood: false, lordOfTheWilds: false, noSpirit: false, noSpiritFromEquipment: false, chaosInoculation: false };
 
   // ---- Tree: this set's nodes (shared ones are in both lists) and the ascendancy.
   const nodes = new Set([...(input.set === 1 ? input.passive.set1 : input.passive.set2), ...input.passive.ascendancyNodes]);
@@ -109,6 +109,7 @@ export function collectContributions(
     for (const [stat, value] of node.stats) {
       if (stat === 'keystone_giants_blood') flags.giantsBlood = true;
       else if (stat === 'keystone_lord_of_the_wilds') flags.lordOfTheWilds = true;
+      else if (stat === 'keystone_chaos_inoculation') flags.chaosInoculation = true;
       else if (stat === 'cannot_gain_spirit_from_equipment') flags.noSpiritFromEquipment = true;
       addGlobal(contributions, notCounted, unknown, stat, value, node.name);
     }

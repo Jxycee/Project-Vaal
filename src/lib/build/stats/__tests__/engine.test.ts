@@ -143,3 +143,36 @@ describe('computeDefences — increased from one equipped slot (PoB2 CalcDefence
     expect(d.energyShield).toBe(125);
   });
 });
+
+// Chaos Inoculation (PoB2 CalcPerform/CalcDefence: ChaosInoculation sets Life to 1
+// and makes the character immune to chaos, which PoB reports as 100% chaos resistance).
+// Failure modes: (1) life stays scaled by Str/flat/increased; (2) chaos resistance
+// is left as the raw sum, so a CI character looks chaos-vulnerable; (3) the flag
+// leaks into other pools (ES, mana, elemental resists); (4) chaos max stays 75.
+describe('computeDefences — Chaos Inoculation', () => {
+  const ci = { giantsBlood: false, lordOfTheWilds: false, noSpirit: false, chaosInoculation: true };
+  const rich = [c('life', 500), c('life', 40, 'increased'), c('chaosRes', -30), c('energyShield', 900), c('mana', 100), c('fireRes', 40)];
+
+  it('sets Life to 1 whatever Life modifiers exist', () => {
+    expect(computeDefences(input({ flags: ci, contributions: rich })).life).toBe(1);
+  });
+
+  it('makes chaos resistance 100 with max 100, even from a negative sum', () => {
+    const d = computeDefences(input({ flags: ci, contributions: rich }));
+    expect(d.chaos).toEqual({ value: 100, max: 100, uncapped: 100 });
+  });
+
+  it('leaves ES, Mana and the elemental resistances untouched', () => {
+    const base = computeDefences(input({ contributions: rich }));
+    const d = computeDefences(input({ flags: ci, contributions: rich }));
+    expect(d.energyShield).toBe(base.energyShield);
+    expect(d.mana).toBe(base.mana);
+    expect(d.fire).toEqual(base.fire);
+  });
+
+  it('without the flag, Life and chaos are the ordinary sums', () => {
+    const d = computeDefences(input({ contributions: rich }));
+    expect(d.life).toBeGreaterThan(500);
+    expect(d.chaos.value).toBe(-30);
+  });
+});

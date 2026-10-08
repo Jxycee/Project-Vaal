@@ -426,7 +426,7 @@
     },
     "class": "Acolyte of Chayula",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/HoangLong1101-3050/DOANXIEMm",
-    "matched": 7,
+    "matched": 9,
     "of": 13,
     "stats": {
       "str": {
@@ -446,8 +446,8 @@
       },
       "life": {
         "want": 1,
-        "got": 1421,
-        "ok": false
+        "got": 1,
+        "ok": true
       },
       "mana": {
         "want": 1194,
@@ -486,8 +486,8 @@
       },
       "chaos": {
         "want": 100,
-        "got": 7,
-        "ok": false
+        "got": 100,
+        "ok": true
       },
       "spirit": {
         "want": 208,
@@ -529,7 +529,7 @@
     },
     "class": "Disciple of Varashta",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/KingFud-1121/KingFud_Djinn_FR",
-    "matched": 8,
+    "matched": 10,
     "of": 13,
     "stats": {
       "str": {
@@ -549,8 +549,8 @@
       },
       "life": {
         "want": 1,
-        "got": 1411,
-        "ok": false
+        "got": 1,
+        "ok": true
       },
       "mana": {
         "want": 1161,
@@ -589,8 +589,8 @@
       },
       "chaos": {
         "want": 100,
-        "got": 8,
-        "ok": false
+        "got": 100,
+        "ok": true
       },
       "spirit": {
         "want": 322,
@@ -614,7 +614,7 @@
     },
     "class": "Disciple of Varashta",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/morloxIC-1573/morlox_v_v",
-    "matched": 8,
+    "matched": 10,
     "of": 13,
     "stats": {
       "str": {
@@ -634,8 +634,8 @@
       },
       "life": {
         "want": 1,
-        "got": 1697,
-        "ok": false
+        "got": 1,
+        "ok": true
       },
       "mana": {
         "want": 1149,
@@ -674,8 +674,8 @@
       },
       "chaos": {
         "want": 100,
-        "got": 25,
-        "ok": false
+        "got": 100,
+        "ok": true
       },
       "spirit": {
         "want": 346,
@@ -810,7 +810,7 @@
     },
     "class": "Oracle",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/perceptionofreality-7468/BABYROSHANCOM",
-    "matched": 5,
+    "matched": 7,
     "of": 13,
     "stats": {
       "str": {
@@ -830,8 +830,8 @@
       },
       "life": {
         "want": 1,
-        "got": 1525,
-        "ok": false
+        "got": 1,
+        "ok": true
       },
       "mana": {
         "want": 5175,
@@ -870,8 +870,8 @@
       },
       "chaos": {
         "want": 100,
-        "got": 0,
-        "ok": false
+        "got": 100,
+        "ok": true
       },
       "spirit": {
         "want": 279,
