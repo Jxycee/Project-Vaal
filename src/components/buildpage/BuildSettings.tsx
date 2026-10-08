@@ -399,7 +399,7 @@ function SettingsSheet({ buildId, visibility, tags, edit, checkpointIds, activeC
           ) : null}
 
           <p className="pt-2 text-xs text-muted-foreground">
-            Or make a file for the game's own Build Planner. Save it in Documents/My Games/Path of Exile 2/BuildPlanner and it shows up in game. It carries the
+            Or make a file for the game&apos;s own Build Planner. Save it in Documents/My Games/Path of Exile 2/BuildPlanner and it shows up in game. It carries the
             passive tree (with both weapon sets) and the skill gems of the checkpoint you are viewing, not items.
           </p>
           <button type="button" onClick={exportBuildFile} disabled={pending} className={BUTTON}>
