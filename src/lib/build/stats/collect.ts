@@ -13,7 +13,7 @@
 // (1 + quality/100)), and that is what reaches the character. When the tree
 // says "Cannot gain Spirit from Equipment", every Spirit an item grants is
 // dropped, as PoB2 does (src/Modules/CalcSetup.lua:1470-1476, 1684).
-// Flasks and charms are left out: their stats apply while used, not always.
+// Flasks are left out: their stats apply while used, not always. Charms count through their base buff (collectCharms).
 // Runes follow PoB2 Item.lua:2179-2198 per item type, see runes.ts.
 // A stat id the table does not know is not dropped silently: if it looks like it
 // could move a reported number (statTable.ts looksLikeDefenceStat) it is named
@@ -43,6 +43,7 @@ import { categoryApplies, isKnownCategory, readRuneLine } from './runes';
 import type { Contribution } from './engine';
 import { CONDITIONAL_EFFECTS, GLOBAL_EFFECTS, LOCAL_EFFECTS, looksLikeDefenceStat, MULTIPLIED_EFFECTS, NOT_MODELLED, PER_ITEM_DEFENCE, SUPPORT_THRESHOLD, type PerItemDefence, type Pool } from './statTable';
 import supportColours from '@/lib/pob/data/support-colours.json';
+import charmBuffs from '@/lib/pob/data/charm-buffs.json';
 
 /**
  * Embrace the Darkness: "You have no Spirit". Its typed stats (base_darkness
@@ -236,6 +237,7 @@ export function collectContributions(
     if (slot) wornAt.set(slot, { from, to: contributions.length, name: item.name });
   }
   for (const { item, socket } of radiusJewels) radiusGrants(item, socket, nodes, data, contributions, notCounted, config);
+  collectCharms(input.gear, data, contributions, notCounted, assumed, config);
   // "N% increased ... from Equipped Shield" carries PoB's Condition UsingShield: a focus in the same off-hand slot
   // is not a shield, so the increase must not scale its Energy Shield. Dropped when the slot's item is another class.
   for (let i = contributions.length - 1; i >= 0; i--) {
@@ -929,6 +931,58 @@ function readVerbatim(
       }
     }
   }
+}
+
+// CHARMS. PoB2 (CalcPerform.lua mergeCharms) adds the buff of every charm in an ACTIVE charm slot to the character: a
+// Sapphire Charm is "+25% to Cold Resistance", a Ruby Charm +25% Fire, a Topaz +25% Lightning, an Amethyst +18% Chaos
+// (Item.lua base.charm.buff, charm-buffs.json). The oracle's mercenary-1 (Breath of the Mountains, Valako's Roar) was 25
+// short on Cold and Lightning with nothing else wrong.
+//
+// How this can go wrong, decided first:
+//   1. Two charms of the SAME base (two Sapphire Charms, a unique and a plain one) stack: PoB merges a base's buff by
+//      modifier, keeping the larger value (mergeBuff), so the second adds nothing. Different bases do add.
+//   2. A third-slot charm beyond the charm limit counted: the limit is 3 slots in the game; a build cannot wear more.
+//   3. An inactive charm counted: the importer does not read a slot's active flag (parse.ts), so every charm worn is
+//      treated as active, which is PoB's own default and what every oracle fixture carries. Named in `assumed`.
+//   4. A buff line that is no defence (Immune to Poison, 15% increased Rarity) read as one: readLine types only what it
+//      knows, and the rest is ignored the way a unique's offence lines are.
+//   5. "N% increased Charm Effect" (a belt or passive) scales the buff in PoB; it is not modelled, so such a build is
+//      short by that share, never over.
+function collectCharms(
+  gear: GearState,
+  data: CollectData,
+  contributions: Contribution[],
+  notCounted: string[],
+  assumed: string[],
+  config: BuildConfig | undefined,
+): void {
+  const table = charmBuffs as Record<string, { name: string; lines: string[] }>;
+  /** Per base: each modifier's larger value (PoB mergeBuff), so a second charm of the same base adds nothing. */
+  const perBase = new Map<string, Map<string, Contribution>>();
+  for (const slot of ['charm1', 'charm2', 'charm3'] as const) {
+    const item = gear[slot];
+    if (!item) continue;
+    const baseSlug = item.isUnique ? (item.craft?.baseSlug ?? data.unique(item.name, item.slug)?.baseSlug) : item.slug;
+    const base = baseSlug === undefined ? undefined : table[baseSlug];
+    if (!base) continue;
+    const read: Contribution[] = [];
+    readVerbatim(base.lines, `${base.name} (charm)`, { defences: false, spirit: false }, {}, {}, read, notCounted, () => undefined, config, { sockets: 0, gear: {}, level: 0 });
+    const best = perBase.get(baseSlug as string) ?? new Map<string, Contribution>();
+    for (const c of read) {
+      const key = `${c.pool}|${c.kind}`;
+      const have = best.get(key);
+      if (!have || c.value > have.value) best.set(key, c);
+    }
+    perBase.set(baseSlug as string, best);
+  }
+  let counted = 0;
+  for (const best of perBase.values()) {
+    for (const c of best.values()) {
+      contributions.push(c);
+      counted++;
+    }
+  }
+  if (counted > 0) assumed.push(`Charms: every charm worn is counted as active (the slot's active flag is not read); "increased Charm Effect" is not modelled`);
 }
 
 /**

@@ -4575,7 +4575,7 @@
     ],
     "class": "Mercenary",
     "source": "https://poe.ninja/poe2/builds/runesofaldur/character/Prize0520-4408/PrizeGem",
-    "matched": 11,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -4625,13 +4625,13 @@
       },
       "cold": {
         "want": 75,
-        "got": 74,
-        "ok": false
+        "got": 75,
+        "ok": true
       },
       "lightning": {
         "want": 75,
-        "got": 65,
-        "ok": false
+        "got": 75,
+        "ok": true
       },
       "chaos": {
         "want": 21,
@@ -4644,7 +4644,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 14,
+    "derivedMatched": 17,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -4714,8 +4714,8 @@
       },
       "effectiveHealthPool": {
         "want": 3517,
-        "got": 3348,
-        "ok": false
+        "got": 3517,
+        "ok": true
       },
       "physicalMaxHit": {
         "want": 1526,
@@ -4729,13 +4729,13 @@
       },
       "coldMaxHit": {
         "want": 5421,
-        "got": 5234,
-        "ok": false
+        "got": 5421,
+        "ok": true
       },
       "lightningMaxHit": {
         "want": 5421,
-        "got": 3995,
-        "ok": false
+        "got": 5421,
+        "ok": true
       },
       "chaosMaxHit": {
         "want": 1894,

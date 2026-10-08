@@ -186,7 +186,7 @@ const DERIVED_FLOOR: Record<string, number> = {
   'ordinary-huntress-1.json': 19, // of 19
   'ordinary-infernalist-1.json': 11, // of 19
   'ordinary-invoker-1.json': 18, // of 19
-  'ordinary-mercenary-1.json': 14, // of 19
+  'ordinary-mercenary-1.json': 17, // round 2: charms count through their base buff (Sapphire +25% Cold, Topaz +25% Lightning); was 14 // of 19
   'ordinary-monk-1.json': 12, // of 19
   'ordinary-shaman-1.json': 9, // of 19
   'ordinary-smith-of-kitava-1.json': 8, // of 17
@@ -234,7 +234,7 @@ const FLOOR: Record<string, number> = {
   'ordinary-huntress-1.json': 13, // 13 of 13 at the start
   'ordinary-infernalist-1.json': 12, // short: Spirit (234/380)
   'ordinary-invoker-1.json': 12, // short: Mana (2253/2549)
-  'ordinary-mercenary-1.json': 11, // short: Cold and Lightning resistance (74/75, 65/75)
+  'ordinary-mercenary-1.json': 13, // round 2: 13 of 13, an active charm adds its base buff (collect.ts collectCharms: Sapphire +25% Cold, Topaz +25% Lightning, same-base charms merge); was 11
   'ordinary-monk-1.json': 12, // short: Energy Shield (8225/8387)
   'ordinary-shaman-1.json': 5, // short: attributes, Life, Mana, Armour, Evasion, Lightning (Armour 8691/17541, Evasion 1291/0)
   'ordinary-smith-of-kitava-1.json': 9, // short: Armour, Evasion, Cold and Lightning resistance (-24/87)
