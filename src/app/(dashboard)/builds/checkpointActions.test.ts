@@ -233,6 +233,11 @@ describe('renameCheckpoint', () => {
     expect(await renameCheckpoint(CP_A, 'Endgame')).toEqual(NOT_FOUND);
     expect(refreshMock).not.toHaveBeenCalled();
   });
+
+  it('rejects an empty name before writing', async () => {
+    expect(await renameCheckpoint(CP_A, '  ')).toEqual({ ok: false, error: 'Name cannot be empty.' });
+    expect(writes()).toHaveLength(0);
+  });
 });
 
 describe('deleteCheckpoint', () => {

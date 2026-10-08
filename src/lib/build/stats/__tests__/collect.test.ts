@@ -333,6 +333,10 @@ describe('collectContributions — runes (PoB2 Item.lua:2179-2198, 2378-2391)', 
     expect(total(run(tree(), gear({ weapon1_main: item('longbow', 'Longbow', 'Bow', { rarity: 'rare', runes: ['adept'] }) })), 'dex')).toBe(9);
   });
 
+  it('counts a global armour line at its value (resistance) and one rune per socket', () => {
+    expect(total(run(tree(), gear({ body: vest(['adept', 'adept']) })), 'fireRes')).toBe(26);
+  });
+
   it("never reads a Bonded line — PoB2 builds it for display only (Item.lua:2146)", () => {
     const r = run(tree(), gear({ body: vest(['adept']) }));
     expect(total(r, 'life')).toBe(0);
@@ -380,6 +384,12 @@ describe('collectContributions - quest choices', () => {
     const line = r.notCounted.find((l) => l.startsWith('Quest rewards you choose: '));
     expect(line).toContain('Medallion (Valley of the Titans)');
     expect(line).not.toContain("Ngamahu's Test");
+  });
+
+  it('with no choices at all behaves exactly as before: every reached quest listed, none counted', () => {
+    const r = run(tree(), gear(), 98);
+    expect(r.notCounted.find((l) => l.startsWith('Quest rewards you choose: '))).toContain('Seven Pillars (Qimah)');
+    expect(total(r, 'str') + total(r, 'int')).toBe(0);
   });
 
   it('names a chosen reward the engine cannot model', () => {

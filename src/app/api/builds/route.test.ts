@@ -147,6 +147,14 @@ describe('POST /api/builds — creating a row', () => {
     expect(typeof payload.share_token).toBe('string');
   });
 
+  it('defaults an absent league and passive_state rather than writing undefined', async () => {
+    await POST(req({ name: 'Test build', class: 'Witch', level: 42 }));
+
+    const payload = insertMock.mock.calls[0][0] as Record<string, unknown>;
+    expect(payload.league).toBe('Standard');
+    expect(payload.passive_state).toEqual({ set1: [], set2: [], ascendancyNodes: [] });
+  });
+
   it('trims notes and stores a whitespace-only value as null', async () => {
     await POST(req(validBody({ notes: '  Good against tanky bosses.  ' })));
     expect((insertMock.mock.calls[0][0] as Record<string, unknown>).notes).toBe('Good against tanky bosses.');

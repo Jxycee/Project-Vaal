@@ -227,6 +227,10 @@ describe('mapBuild — the real build', async () => {
     expect(last.ascendancyNodes).toHaveLength(8);
   });
 
+  it('opens on the first checkpoint and says PoB was showing the last', () => {
+    expect(report.some((r) => r.kind === 'note' && r.message.includes('Nivel 94'))).toBe(true);
+  });
+
   it('produces state every write gate accepts unchanged', () => {
     for (const c of checkpoints) {
       for (const [gate, value] of [

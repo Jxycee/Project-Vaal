@@ -53,6 +53,11 @@ describe('validateSyncResult', () => {
     // an intentional filter outcome, it is a broken pipeline.
     expect(() => validateSyncResult([], 100, { allowShrink: true })).toThrow(/empty/i);
   });
+
+  it('still refuses duplicate slugs even with allowShrink', () => {
+    expect(() => validateSyncResult([entry('a'), entry('a')], 2, { allowShrink: true }))
+      .toThrow(/duplicate/i);
+  });
 });
 
 describe('ddsPathToIconKey', () => {
@@ -126,6 +131,12 @@ describe('findPreviousVersionDir / findPreviousCount', () => {
     expect(findPreviousCount(root, '2026-08-21', 'skill')).toBe(1118);
   });
 
+  it('returns 0 / null when the current version directory exists but is empty', () => {
+    mkdirSync(path.join(root, '2026-08-21'), { recursive: true });
+    expect(findPreviousVersionDir(root, '2026-08-21')).toBeNull();
+    expect(findPreviousCount(root, '2026-08-21', 'skill')).toBe(0);
+  });
+
   it('returns 0 / null on a genuine first-ever sync (wiki root does not exist yet)', () => {
     const missingRoot = path.join(root, 'does-not-exist');
     expect(findPreviousVersionDir(missingRoot, '2026-08-21')).toBeNull();
@@ -154,6 +165,14 @@ describe('dedupeSlug', () => {
   it('falls back to a numeric suffix if the disambiguated slug also collides', () => {
     const used = new Set<string>(['x', 'x-y']);
     expect(dedupeSlug('x', 'y', used)).toBe('x-y-2');
+  });
+
+  it('never returns a slug already in the used set', () => {
+    const used = new Set<string>();
+    const a = dedupeSlug('sword-slash', 'SkillGemPlayerDefault1HSword', used);
+    const b = dedupeSlug('sword-slash', 'SkillGemPlayerDefault2HSword', used);
+    const c = dedupeSlug('sword-slash', 'SkillGemPlayerDefaultSwordSword', used);
+    expect(new Set([a, b, c]).size).toBe(3);
   });
 });
 

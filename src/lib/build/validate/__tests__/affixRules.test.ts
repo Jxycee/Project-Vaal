@@ -177,9 +177,10 @@ describe('validateCrafts — what it must leave alone', () => {
 
 describe('socketLimitFor — PoB2 socketLimit by base group', () => {
   it.each([
-    ['Two Hand Sword', 4], ['Bow', 4], ['Talisman', 4], ['Body Armour', 4],
-    ['Dagger', 3], ['Shield', 3], ['Focii', 3], ['Helmet', 3], ['Boots', 3],
-    ['Ring', null], ['Quiver', null], ['Jewel', null],
+    ['Two Hand Sword', 4], ['Bow', 4], ['Crossbow', 4], ['Staff', 4], ['Warstaff', 4], ['Talisman', 4], ['Body Armour', 4],
+    ['One Hand Axe', 3], ['Dagger', 3], ['Spear', 3], ['Sceptre', 3], ['Wand', 3], ['Shield', 3], ['Buckler', 3],
+    ['Focus', 3], ['Focii', 3], ['Helmet', 3], ['Gloves', 3], ['Boots', 3],
+    ['Ring', null], ['Amulet', null], ['Belt', null], ['Quiver', null], ['Jewel', null],
   ])('%s → %s', (category, limit) => {
     expect(socketLimitFor({ category, slug: 'x' })).toBe(limit);
   });

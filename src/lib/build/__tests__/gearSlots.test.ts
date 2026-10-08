@@ -25,6 +25,25 @@ describe('categoriesForSlot', () => {
     expect(categoriesForSlot('weapon2_off')).toContain('Focus');
   });
 
+  it('weapon main slots carry every other original weapon category too', () => {
+    const expected = [
+      'One Hand Sword', 'Two Hand Sword', 'One Hand Axe', 'Two Hand Axe',
+      'One Hand Mace', 'Two Hand Mace', 'Mace', 'Bow', 'Crossbow', 'Claw',
+      'Dagger', 'Flail', 'Spear', 'Sceptre', 'Wand', 'Staff', 'Warstaff',
+    ];
+    for (const category of expected) {
+      expect(categoriesForSlot('weapon1_main')).toContain(category);
+      expect(categoriesForSlot('weapon2_main')).toContain(category);
+    }
+  });
+
+  it('weapon off slots also carry Shield, Buckler and Quiver', () => {
+    for (const category of ['Shield', 'Buckler', 'Quiver']) {
+      expect(categoriesForSlot('weapon1_off')).toContain(category);
+      expect(categoriesForSlot('weapon2_off')).toContain(category);
+    }
+  });
+
   // Slice 3: PoB2's off-hand rule (ItemsTab.lua IsItemValidForSlot) allows a
   // Sceptre, any `one_hand_weapon` (dual wield), and — with Giant's Blood —
   // a two-handed axe, mace or sword. Pairings the rule forbids are warned

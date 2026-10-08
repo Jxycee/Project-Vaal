@@ -164,6 +164,9 @@ describe('mapGems — output', () => {
     expect(value.loadouts[1].skill?.slug).toBe('skill-b');
   });
 
+  it('uses both weapon sets by default — PoB groups carry no weapon set here', () => {
+    expect(mapGems([group(1, [gem('SkillGemA')])], null, catalogue).value.loadouts[0].sets).toEqual([1, 2]);
+  });
 });
 
 describe('mapGems — write gate', () => {
