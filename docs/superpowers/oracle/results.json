@@ -953,9 +953,7 @@
   "ordinary-caster-1.json": {
     "gaps": {
       "life": [],
-      "mana": [
-        "increased 1 from 21984"
-      ],
+      "mana": [],
       "energyShield": [],
       "spirit": [],
       "evasion": [],
@@ -977,7 +975,7 @@
     ],
     "class": "Chronomancer",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/fishoppa-1492/lullabyTurnBackTime",
-    "matched": 12,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -1002,8 +1000,8 @@
       },
       "mana": {
         "want": 4532,
-        "got": 4497,
-        "ok": false
+        "got": 4532,
+        "ok": true
       },
       "energyShield": {
         "want": 0,
@@ -1081,7 +1079,7 @@
       },
       "manaRegen": {
         "want": 685,
-        "got": 590,
+        "got": 594,
         "ok": false
       },
       "movementSpeed": {

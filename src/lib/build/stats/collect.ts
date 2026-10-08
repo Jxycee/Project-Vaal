@@ -177,12 +177,15 @@ export function collectContributions(
   const wornAt = new Map<GearSlot, { from: number; to: number; name: string }>();
   // Gear-counted multipliers (lineMods.ts GEAR_MULTIPLIERS): PoB adds Multiplier:GrandSpectrum 1 per Grand Spectrum worn.
   const gearCounts: Record<string, number> = { GrandSpectrum: equipped.filter((e) => e.item.name.includes('Grand Spectrum')).length };
+  /** Radius jewels wait until every item has allocated what it grants (Megalomaniac's "Allocates X"): PoB counts a node in the radius however it was allocated. */
+  const radiusJewels: { item: GearItem; socket: number }[] = [];
   for (const { item, slot, socket } of equipped) {
     const from = contributions.length;
     collectItem(item, slot, data, flags, contributions, notCounted, unknown, assumed, allocate, config, gearCounts);
-    if (socket !== undefined) radiusGrants(item, socket, nodes, data, contributions, notCounted, config);
+    if (socket !== undefined) radiusJewels.push({ item, socket });
     if (slot) wornAt.set(slot, { from, to: contributions.length, name: item.name });
   }
+  for (const { item, socket } of radiusJewels) radiusGrants(item, socket, nodes, data, contributions, notCounted, config);
   reflectOppositeRing(wornAt, contributions);
   bonusEffectFromJewellery(wornAt, contributions);
 
@@ -257,6 +260,8 @@ export function collectContributions(
  *   4. The granted line is an offence line: the importer never keeps it (mapCraft keepVerbatim), so it is not here.
  *   5. The granted line is a defence line PoB parses with a condition or scaling: named.
  *   6. The jewel's socket is not allocated: never reaches here (the jewel is not worn).
+ *   8. Another item allocates a passive inside the radius (Megalomaniac's "Allocates X") and sits in a later socket:
+ *      radius jewels are measured after every item is read, so the order of sockets never changes the count.
  *   7. Attribute passives, keystones, masteries, sockets and blighted nodes are in neither set (treeLite.ts).
  */
 const RADIUS_OUTER: Readonly<Record<string, number>> = { Small: 1000, Medium: 1150, Large: 1300, 'Very Large': 1500 };
