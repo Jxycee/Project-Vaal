@@ -1,0 +1,92 @@
+# .github/workflows/pob-sync-drift.yml
+#
+# Failure modes this guards against / must not become:
+#   1. It must NEVER commit, push or open a PR. A push to main deploys
+#      production, and PoB data lands in the stat engine, so every change needs
+#      a human plus an oracle run. Hence `contents: read` and nothing else.
+#   2. Silent drift: the job passes while PoB2 moved on. Any change after the
+#      sync scripts run FAILS the job so GitHub notifies the repo owner.
+#   3. Silent upstream breakage: a sync script that cannot fetch or parse fails
+#      the job too (steps run fail-fast), which is also the right alert.
+#   4. Untracked new files (a script writing a new data file) must count as
+#      drift; `git add -N` makes them show in diff/numstat without staging
+#      content. The index change only lives on the throwaway runner.
+#   5. No untrusted input in run: blocks. No event payload fields, no inputs.
+#
+# sync:mod-tiers is deliberately absent: it derives from our own wiki data, not
+# from PoB2, so it cannot drift against upstream.
+name: PoB data drift
+on:
+  schedule:
+    - cron: '0 5 * * 1'   # weekly, Monday 05:00 UTC (after sync-wiki at 04:00)
+  workflow_dispatch:
+
+concurrency:
+  group: pob-sync-drift
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Re-sync PoB2 data
+        run: |
+          set -e
+          npm run sync:pob-uniques
+          npm run sync:pob-modcache
+          npm run sync:pob-jewel-rune-charm
+          npm run sync:pob-skills
+          npm run sync:pob-bases
+          npm run sync:pob-gem-ids
+      - name: Report drift
+        id: drift
+        run: |
+          set -e
+          git add -A -N
+          git diff --stat
+          git status --short
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No drift: src/lib/pob/data matches PoB2." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          git diff > pob-drift.patch
+          {
+            echo "## PoB2 data drift"
+            echo
+            echo "Re-running the sync scripts changed tracked data. Nothing was committed."
+            echo
+            echo "| File | Added | Removed |"
+            echo "| --- | ---: | ---: |"
+            git diff --numstat | awk '{ printf "| `%s` | %s | %s |\n", $3, $1, $2 }'
+            echo
+            echo '```'
+            git diff --stat
+            echo '```'
+            echo
+            echo "Full patch: artifact \`pob-drift-patch\`. How to apply: docs/superpowers/specs/2026-10-08-pob-resync.md"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: steps.drift.outputs.changed == 'true'
+        with:
+          name: pob-drift-patch
+          path: pob-drift.patch
+          retention-days: 30
+      - name: Fail on drift
+        if: steps.drift.outputs.changed == 'true'
+        run: |
+          echo "::error::PoB2 data drifted from src/lib/pob/data. See the job summary and the pob-drift-patch artifact. Apply locally, run the oracle, review."
+          exit 1
