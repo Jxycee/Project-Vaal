@@ -12,8 +12,17 @@ import { readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+// One synced mod row (jewel, charm, corrupted, veiled or rune); only the fields this test reads are typed.
+interface ModRow {
+  id?: string;
+  name?: string;
+  text: string[];
+  bonded?: { text: string[] };
+  ranges: [number, number][];
+  [key: string]: unknown;
+}
 const dir = path.join(__dirname, '..');
-const load = (n: string) => JSON.parse(readFileSync(path.join(dir, `${n}.json`), 'utf8')) as Record<string, any>[];
+const load = (n: string) => JSON.parse(readFileSync(path.join(dir, `${n}.json`), 'utf8')) as ModRow[];
 
 const jewel = load('mod-jewel');
 const runes = load('mod-runes');
@@ -70,7 +79,7 @@ describe('PoB2 jewel / rune / charm / corrupted / veiled data', () => {
     });
     const bonded = runes.filter((r) => r.bonded);
     expect(bonded.length).toBe(479);
-    expect(bonded.some((r) => r.bonded.text.includes('+5% to Quality of all Skills'))).toBe(true);
+    expect(bonded.some((r) => r.bonded?.text.includes('+5% to Quality of all Skills'))).toBe(true);
     const twoLine = runes.find((r) => r.text.includes('1% increased Spirit for each Corrupted Item Equipped'));
     expect(twoLine?.text).toHaveLength(2);
     expect(twoLine?.socketBound).toBe(true);
