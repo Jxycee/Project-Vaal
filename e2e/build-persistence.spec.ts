@@ -12,6 +12,7 @@ import {
   softOpenBuild,
   testBuildName,
   treeState,
+  waitForTreeApi,
 } from './helpers';
 
 // Regression cover for the data-loss bugs that took six fix rounds to stabilise
@@ -128,6 +129,8 @@ test('a build id that is malformed or not ours reports not-found without a 500, 
   // the saved confirmation suppressed, because it renders only when there is no
   // error. Indistinguishable from a hard failure. The page is still on the
   // not-found state from the loop above.
+  // The tree hook mounts after the not-found message paints; reading it earlier is a race.
+  await waitForTreeApi(page);
   await allocateNodes(page, await nodesNearStart(page, 2));
   await saveBuild(page, { name: testBuildName('after-notfound'), level: 7, league: 'Standard' });
 
