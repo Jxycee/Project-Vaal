@@ -3,70 +3,47 @@
  *
  * PoB's tree (TreeData/<v>/tree.json, MIT) marks some nodes `isSwitchable` with `options[<class or ascendancy
  * name>]`. PassiveSpec.lua:1518 replaces the node by `options[class]`, else `options[ascendancy]`, else keeps
- * the base node. Druid, Witch, Huntress and Abyssal Lich have such nodes: e.g. a Druid's "Aura Skills have 5%
- * increased Magnitudes" is, for that class, "8% increased Damage". GGG's tree export lists only the base node,
- * so a Druid's aura nodes were counted as aura magnitude the in-game tree does not give her.
+ * the base node. Druid, Witch, Huntress and Abyssal Lich have such nodes: a Druid's "Aura Skills have 5% increased
+ * Magnitudes" is, for that class, "8% increased Damage". GGG's tree export lists only the base node, so a Druid's
+ * aura nodes were counted as aura magnitude the in-game tree does not give her (ordinary-shaman-1: Purity of
+ * Lightning 49.53 here, 39 in PoB, Lightning resistance 75 vs 72).
  *
- * Output: { treeVersion, nodes: { "<base node id>": { "<class or ascendancy>": { id, name, stats: [[statId, value], ...] } } } }
- * Stats are typed from the same GGPK PassiveSkills + Stats tables sync-stats.ts reads (keyed by PassiveSkillGraphId =
- * the option's id), so they join the same vocabulary as node-stats.json. An option with no id (Abyssal Lich nodes
- * that are simply removed) is written as `null`: the node gives nothing for that class.
+ * Output: { treeVersion, nodes: { "<base node id>": { "<class or ascendancy>": { id, name, lines } | null } } }
+ * `lines` is the option's display text as PoB prints it (no markup), read by the engine like any item line
+ * (lineMods.readLine). An option PoB gives no id (an Abyssal Lich node that is simply removed) is `null`: the
+ * node gives that ascendancy nothing. `ascendancyIds` maps the editor's ascendancy id ("Witch3b") to the name PoB keys
+ * its options by ("Abyssal Lich"), for the names that are option keys; a PoB import stores the name itself.
  *
  * Re-run after PoB2 or the tree moves: npm run sync:pob-switchable-nodes
  */
-import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { buildNodeStats, type NodeStat } from './typedStats';
+import { TREE_VERSION } from '../src/lib/tree/version';
 
 const POB_TREE_VERSION = '0_5';
 const URL = `https://raw.githubusercontent.com/PathOfBuildingCommunity/PathOfBuilding-PoE2/dev/src/TreeData/${POB_TREE_VERSION}/tree.json`;
-const PATCH = '4.5.5.3';
-const EXTRACT_DIR = path.join(process.cwd(), 'scripts', 'wiki', '.extract-stats');
-const TABLES = [
-  { name: 'PassiveSkills', columns: ['Id', 'PassiveSkillGraphId', 'Stats', 'Stat1Value', 'Stat2Value', 'Stat3Value', 'Stat4Value', 'Stat5Value', 'Stat6Value', 'Stat7Value'] },
-  { name: 'Stats', columns: ['Id'] },
-];
 
-type PobNode = { skill: number; isSwitchable?: boolean; options?: Record<string, { id?: number; name?: string }> };
-type Option = { id: number; name: string; stats: NodeStat[] } | null;
-
-function readTable<T>(dir: string, name: string): T[] {
-  return JSON.parse(readFileSync(path.join(dir, `${name}.json`), 'utf8')) as T[];
-}
+type PobNode = { skill: number; isSwitchable?: boolean; options?: Record<string, { id?: number; name?: string; stats?: string[] }> };
+type Option = { id: number; name: string; lines: string[] } | null;
 
 async function main(): Promise<void> {
   const response = await fetch(URL);
   if (!response.ok) throw new Error(`${URL}: ${response.status}`);
   const pob = (await response.json()) as { nodes: Record<string, PobNode> };
 
-  const tablesDir = path.join(EXTRACT_DIR, PATCH, 'tables', 'English');
-  if (!existsSync(tablesDir)) {
-    const runDir = path.join(EXTRACT_DIR, PATCH);
-    mkdirSync(runDir, { recursive: true });
-    writeFileSync(path.join(runDir, 'config.json'), JSON.stringify({ patch: PATCH, translations: ['English'], files: [], tables: TABLES }, null, 2));
-    execFileSync('npx', ['pathofexile-dat'], { cwd: runDir, stdio: 'inherit', shell: true });
-  }
-
-  const switchable = Object.values(pob.nodes).filter((n) => n.isSwitchable && n.options);
-  const optionIds = switchable.flatMap((n) => Object.values(n.options!).map((o) => o.id)).filter((id): id is number => typeof id === 'number');
-  const typed = buildNodeStats(readTable(tablesDir, 'PassiveSkills'), readTable(tablesDir, 'Stats'), optionIds);
-
   const nodes: Record<string, Record<string, Option>> = {};
-  for (const node of switchable) {
+  for (const node of Object.values(pob.nodes)) {
+    if (!node.isSwitchable || !node.options) continue;
     const entry: Record<string, Option> = {};
-    for (const [who, option] of Object.entries(node.options!)) {
-      if (typeof option.id !== 'number') {
-        entry[who] = null;
-        continue;
-      }
-      const stats = typed[String(option.id)];
-      if (!stats) throw new Error(`option ${option.id} (${who} on node ${node.skill}) has no PassiveSkills row`);
-      entry[who] = { id: option.id, name: option.name ?? '', stats };
+    for (const [who, option] of Object.entries(node.options)) {
+      entry[who] = typeof option.id === 'number' ? { id: option.id, name: option.name ?? '', lines: option.stats ?? [] } : null;
     }
     nodes[String(node.skill)] = entry;
   }
-  writeFileSync(path.join(process.cwd(), 'src', 'lib', 'pob', 'data', 'switchable-nodes.json'), JSON.stringify({ treeVersion: POB_TREE_VERSION, nodes }));
+  const keys = new Set(Object.values(nodes).flatMap((entry) => Object.keys(entry)));
+  const tree = JSON.parse(readFileSync(path.join(process.cwd(), 'public', 'data', 'tree', TREE_VERSION, 'data.json'), 'utf8')) as { classes: { ascendancies?: { id: string; name: string }[] }[] };
+  const ascendancyIds = Object.fromEntries(tree.classes.flatMap((c) => c.ascendancies ?? []).filter((a) => keys.has(a.name) && a.id !== a.name).map((a) => [a.id, a.name]));
+  writeFileSync(path.join(process.cwd(), 'src', 'lib', 'pob', 'data', 'switchable-nodes.json'), JSON.stringify({ treeVersion: POB_TREE_VERSION, ascendancyIds, nodes }));
   console.log(`switchable-nodes.json: ${Object.keys(nodes).length} nodes`);
 }
 

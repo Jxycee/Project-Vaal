@@ -236,7 +236,7 @@ const FLOOR: Record<string, number> = {
   'ordinary-invoker-1.json': 13, // round 8: 13 of 13, the printed rune line '+1 to maximum Mana per 2 Item Energy Shield on Equipped Helmet' (statTable.ts readPerItemLine, resolved with the passives' per-item rules)
   'ordinary-mercenary-1.json': 13, // round 2: 13 of 13, an active charm adds its base buff (collect.ts collectCharms: Sapphire +25% Cold, Topaz +25% Lightning, same-base charms merge); was 11
   'ordinary-monk-1.json': 13, // round 8: 13 of 13, Discipline's 'maximum Energy Shield' is PoB's EnergyShieldTotal, added after the increases (L13 = 162)
-  'ordinary-shaman-1.json': 12, // round 7: 12 of 13 (Bear Form: the main skill Rampage is a Bear skill, +10 x level + 10 flat Armour). round 5: 11 of 13 (Undying Hate's Conquered Attribute passives +3 to all Attributes, Wisdom of the Maji's Bonded rune lines, Iron Reflexes from the Legacy rune, Heavy Armour); was 5. Short: Lightning (72/75: Purity of Lightning is 39 in PoB, 49.53 here, aura magnitudes not applied)
+  'ordinary-shaman-1.json': 13, // round 9: 13 of 13, class-switchable passives (switchableNodes.ts, PoB PassiveSpec.lua:1518): a Druid's three 'Aura Skills have 5% increased Magnitudes' nodes and Bolstering Presence are 'N% increased Damage' for her, so Purity of Lightning is 39 not 49.53 (Lightning 72); was 12. round 7: 12 of 13 (Bear Form: the main skill Rampage is a Bear skill, +10 x level + 10 flat Armour). round 5: 11 of 13 (Undying Hate's Conquered Attribute passives +3 to all Attributes, Wisdom of the Maji's Bonded rune lines, Iron Reflexes from the Legacy rune, Heavy Armour); was 5
   'ordinary-smith-of-kitava-1.json': 13,
   'ordinary-sorceress-1.json': 13, // round 8: 13 of 13, Discipline L20 (328) x 1.47 Aura magnitudes = 482.16, added after the rounded Energy Shield (EnergyShieldTotal)
   'ordinary-witchhunter-1.json': 13, // round 8: 13 of 13. Full Life is Chaos Inoculation's, not every unreserved character's (Hyrri's Ire's Full Life rune lines are in neither PoB total); a CritRecently tick implies HitRecently (Afterimage); 'doubled if you have not been Hit Recently' (Hyrri's Ire) and Obsessive Rituals' final -50% are read; a Time-Lost jewel's Notable effect scales its 'also grant' lines (+5% Chaos Resistance x 1.24 = 6)
@@ -304,7 +304,7 @@ beforeAll(async () => {
     const run = (config: BuildConfig | undefined) => {
       const { buildConfig: _imported, ...rest } = checkpoint.passive_state;
       const collected = collectContributions(
-        { passive: config ? { ...rest, buildConfig: config } : rest, gear: checkpoint.gear_state, level: fx.level, set: parsed.build.useSecondWeaponSet ? 2 : 1, gems: checkpoint.gem_state },
+        { passive: config ? { ...rest, buildConfig: config } : rest, gear: checkpoint.gear_state, level: fx.level, set: parsed.build.useSecondWeaponSet ? 2 : 1, gems: checkpoint.gem_state, className: mapped.plan.build.class, ascendancy: mapped.plan.build.ascendancy },
         data,
       );
       const sheet = computeDefences({

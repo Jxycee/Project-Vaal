@@ -46,6 +46,8 @@ export function useDefenceSheets(input: {
   /** null while the tree export is still loading (the shared page fetches it behind a tap). */
   tree: TreeLite | null;
   className: string | undefined;
+  /** The ascendancy as stored (a name from an import, an id from the editor): class-switchable passives read it (switchableNodes.ts). */
+  ascendancy?: string | null;
   level: number;
   passive: PassiveState;
   gear: GearState;
@@ -86,7 +88,7 @@ export function useDefenceSheets(input: {
     );
     const classBase = cls ? { str: cls.base_str, dex: cls.base_dex, int: cls.base_int } : { str: 0, dex: 0, int: 0 };
     const run = (set: 1 | 2): SetResult => {
-      const collected = collectContributions({ passive: input.passive, gear: input.gear, level: input.level, set, gems: input.gems }, data);
+      const collected = collectContributions({ passive: input.passive, gear: input.gear, level: input.level, set, gems: input.gems, className: input.className, ascendancy: input.ascendancy }, data);
       const sheet = computeDefences({
         level: input.level,
         classBase,
@@ -97,5 +99,5 @@ export function useDefenceSheets(input: {
       return { sheet, collected };
     };
     return { 1: run(1), 2: run(2) };
-  }, [loaded, key, input.tree, input.className, input.level, input.passive, input.gear, input.gems]);
+  }, [loaded, key, input.tree, input.className, input.ascendancy, input.level, input.passive, input.gear, input.gems]);
 }

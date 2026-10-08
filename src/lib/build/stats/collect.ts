@@ -39,6 +39,7 @@ import { campaignAt } from './campaign';
 import { DEFENCE_WORDS, implicitStats } from './implicits';
 import { isLegacyLine, LEGACY_EFFECT_LINE, legacyContributions } from './legacies';
 import { RADIUS_GRANT_LINE, readLine, readLocalDefenceLine, type LineMod } from './lineMods';
+import { switchedNode } from './switchableNodes';
 import type { JewelRadiusNode } from '@/lib/tree/treeLite';
 import { categoryApplies, isKnownCategory, readRuneLine } from './runes';
 import type { Contribution } from './engine';
@@ -128,7 +129,7 @@ const ATTRIBUTE_POOL: Record<AttributeChoice, Pool> = { str: 'str', dex: 'dex', 
  * already say so, one more pass runs with the condition on. A build with no Configuration is never given one.
  */
 export function collectContributions(
-  input: { passive: PassiveState; gear: GearState; level: number; set: 1 | 2; gems?: GemState },
+  input: { passive: PassiveState; gear: GearState; level: number; set: 1 | 2; gems?: GemState; className?: string; ascendancy?: string | null },
   data: CollectData,
 ): Collected {
   const first = collectOnce(input, data);
@@ -142,7 +143,7 @@ export function collectContributions(
 }
 
 function collectOnce(
-  input: { passive: PassiveState; gear: GearState; level: number; set: 1 | 2; gems?: GemState },
+  input: { passive: PassiveState; gear: GearState; level: number; set: 1 | 2; gems?: GemState; className?: string; ascendancy?: string | null },
   data: CollectData,
 ): Collected {
   const contributions: Contribution[] = [];
@@ -197,6 +198,22 @@ function collectOnce(
       return;
     }
     const effect = nodeEffect.get(id) ?? (node.small === true && !input.passive.ascendancyNodes.includes(id) ? smallEffect : 0);
+    // A class-switchable passive is, for this class, the option PoB gives it (switchableNodes.ts): read like an item line.
+    const switched = switchedNode(id, input.className, input.ascendancy);
+    if (switched) {
+      for (const line of switched.lines) {
+        const read = readLine(line);
+        if (read === null) continue;
+        if ('unmodelled' in read) {
+          notCounted.push(`${switched.name}: "${read.unmodelled}" not counted`);
+          continue;
+        }
+        for (const mod of gate(read.mods, config, line, switched.name, notCounted)) {
+          contributions.push({ pool: mod.pool, kind: mod.kind, value: effect === 0 ? mod.value : scaleNodeValue(mod.value, effect), source: switched.name, ...(mod.slot ? { slot: mod.slot } : {}), ...(mod.itemClass ? { itemClass: mod.itemClass } : {}), ...(mod.allElemental ? { allElemental: true as const } : {}) });
+        }
+      }
+      return;
+    }
     for (const [stat, rawValue] of node.stats) {
       const value = effect === 0 ? rawValue : scaleNodeValue(rawValue, effect);
       if (stat === 'keystone_giants_blood') flags.giantsBlood = true;

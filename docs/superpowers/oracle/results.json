@@ -2488,6 +2488,7 @@
       "int": []
     },
     "notCounted": [
+      "Bastion of the Forest: \"+15% of Armour also applies to Elemental Damage\" not counted",
       "Quest rewards you choose: Venom Draught (Venom Crypts)",
       "Unrecognised stat base_reduce_enemy_cold_resistance_% (The Pandemonius)"
     ],
@@ -2632,7 +2633,7 @@
       },
       "effectiveHealthPool": {
         "want": 13562,
-        "got": 12906,
+        "got": 12602,
         "ok": false
       },
       "physicalMaxHit": {
@@ -2642,17 +2643,17 @@
       },
       "fireMaxHit": {
         "want": 11699,
-        "got": 11407,
+        "got": 11245,
         "ok": false
       },
       "coldMaxHit": {
         "want": 12151,
-        "got": 11840,
+        "got": 11667,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 11754,
-        "got": 11445,
+        "got": 11274,
         "ok": false
       },
       "chaosMaxHit": {
@@ -5566,7 +5567,7 @@
     ],
     "class": "Shaman",
     "source": "https://poe.ninja/poe2/builds/runesofaldur/character/Yorkerk-4812/WhichMonstersTasteGood",
-    "matched": 12,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -5621,8 +5622,8 @@
       },
       "lightning": {
         "want": 72,
-        "got": 75,
-        "ok": false
+        "got": 72,
+        "ok": true
       },
       "chaos": {
         "want": 75,
@@ -5705,7 +5706,7 @@
       },
       "effectiveHealthPool": {
         "want": 51499,
-        "got": 26322,
+        "got": 25955,
         "ok": false
       },
       "physicalMaxHit": {
@@ -5725,7 +5726,7 @@
       },
       "lightningMaxHit": {
         "want": 24230,
-        "got": 18484,
+        "got": 16836,
         "ok": false
       },
       "chaosMaxHit": {
