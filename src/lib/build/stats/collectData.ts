@@ -14,6 +14,7 @@
 // =============================================================================
 
 import { projectJewelRadius, type JewelRadiusNode } from '@/lib/tree/treeLite';
+import movementPenalties from '@/lib/pob/data/base-movement-penalty.json';
 import type { CollectData } from './collect';
 
 export interface RawCollectFiles {
@@ -73,7 +74,8 @@ export function makeCollectData(files: RawCollectFiles): CollectData {
       if (!isObject(detail) || typeof detail.name !== 'string') return undefined;
       const a = isObject(detail.armour) ? detail.armour : null;
       return {
-        armour: a ? { armour: num(a.armour), evasion: num(a.evasion), energyShield: num(a.energyShield) } : null,
+        armour: a ? { armour: num(a.armour), evasion: num(a.evasion), energyShield: num(a.energyShield), ward: num(a.ward) } : null,
+        movementPenalty: (movementPenalties as Record<string, number>)[detail.name] ?? 0,
         spirit: num(detail.spirit),
         itemClass: typeof detail.itemClass === 'string' ? detail.itemClass : null,
         weapon: isObject(detail.weapon),

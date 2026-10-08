@@ -95,14 +95,18 @@ describe('choice quests — what a recorded choice counts', () => {
     expect(c.choiceRewardsNotCounted).toContain("Tawhoa's Test (Halls of the Dead)");
   });
 
-  it('a chosen Seven Pillars trade-off subtracts; an unmodelled defensive option is named, not counted', () => {
+  it('a chosen Seven Pillars trade-off subtracts, and the Tribal Medicine elemental option counts all three of its lines', () => {
     const c = campaignAt(98, { 'seven-pillars': 'experience-trade', 'tribal-medicine': 'elemental-armour' });
     expect(c.choiceRewards.map((r) => [r.stat, r.value])).toEqual([
+      ['armour_%_applies_to_fire_cold_lightning_damage', 15],
+      ['base_deflection_rating_%_of_evasion_rating', 12],
+      ['energy_shield_delay_-%', 12],
       ['base_resist_all_elements_%', -5],
       ['global_armour_evasion_energy_shield_+%', -15],
       ['all_attributes_+%', -5],
+      ['base_movement_velocity_+%', -3],
     ]);
-    expect(c.choiceRewardsUnmodelled).toEqual([expect.stringContaining('Tribal Medicine (Eye of Hinekora): ')]);
+    expect(c.choiceRewardsUnmodelled).toEqual([]);
   });
 
   it('every option of every quest has a unique id within its quest, and a unique PoB text', () => {

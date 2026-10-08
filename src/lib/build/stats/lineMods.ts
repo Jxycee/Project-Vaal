@@ -43,8 +43,8 @@
 //      the modifiers: the template is dropped, not resolved by order.
 //   5. A line with more than one number ("Adds 13 to 22 Cold damage"): never
 //      matches a one-number template, reads as unmodelled/ignored.
-//   6. A modifier name we do not report (Ward, Deflection): not turned into a
-//      contribution; the line reads as unmodelled so it is named.
+//   6. A modifier name we do not report: not turned into a contribution; the line reads as unmodelled so it is
+//      named. (Ward, Deflection, movement speed, charges and regeneration ARE reported now - POOLS below.)
 //   7. Fragments of a wrapped line ("enemy affected by Abyssal Wasting") or a
 //      pure offence line: no template, so null = "not a defence line", silently
 //      ignored by the caller (it is only named when it LOOKS like a defence).
@@ -108,7 +108,23 @@ export const POOLS: Record<string, Pool[]> = {
   ElementalResistMax: ['fireMax', 'coldMax', 'lightningMax'],
   MaxResist: ['fireMax', 'coldMax', 'lightningMax', 'chaosMax'],
   AuraEffect: ['auraEffect'],
+  // The derived defence stats (engine.ts). Values stay in PoB's own units: percent points, life regen per second.
+  MovementSpeed: ['movementSpeed'],
+  LifeRegen: ['lifeRegen'],
+  LifeRegenPercent: ['lifeRegenPercent'],
+  EnergyShieldRecharge: ['esRecharge'],
+  EnergyShieldRechargeFaster: ['esRechargeFaster'],
+  EnduranceChargesMax: ['maxEndurance'],
+  FrenzyChargesMax: ['maxFrenzy'],
+  PowerChargesMax: ['maxPower'],
+  DeflectionRating: ['deflection'],
+  EvasionGainAsDeflection: ['evasionToDeflection'],
+  ArmourGainAsDeflection: ['armourToDeflection'],
+  BlindEffect: ['blindEffect'],
+  PhysicalDamageReduction: ['physReduction'],
+  Ward: ['ward'],
 };
+
 const KINDS: Record<string, LineMod['kind']> = { BASE: 'flat', INC: 'increased', MORE: 'more' };
 
 interface Template {

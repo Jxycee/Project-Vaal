@@ -59,7 +59,9 @@ export interface CollectData {
   nodeByName?(name: string): number | undefined;
   item(slug: string):
     | {
-        armour: { armour: number; evasion: number; energyShield: number } | null;
+        armour: { armour: number; evasion: number; energyShield: number; ward?: number } | null;
+        /** The armour base's movement speed penalty as a fraction (0.03 = 3% slower), 0 for none (base-movement-penalty.json). */
+        movementPenalty?: number;
         spirit: number;
         implicits?: [string, number, number][][];
         /** The item file's implicit display lines — what `implicits` describes. */
@@ -335,7 +337,7 @@ function addGlobal(
   }
   const effects = GLOBAL_EFFECTS[stat];
   if (effects) {
-    for (const e of effects) out.push({ pool: e.pool, kind: e.kind, value, source, ...(e.slot ? { slot: e.slot } : {}) });
+    for (const e of effects) out.push({ pool: e.pool, kind: e.kind, value: value * (e.scale ?? 1), source, ...(e.slot ? { slot: e.slot } : {}) });
   } else if (NOT_MODELLED[stat]) {
     notCounted.push(`${source}: ${NOT_MODELLED[stat]}`);
   } else if (!LOCAL_EFFECTS[stat] && looksLikeDefenceStat(stat)) {
@@ -522,6 +524,16 @@ function collectItem(
   ] as const) {
     const value = itemDefence(pool, base);
     if (value !== 0) contributions.push({ pool, kind: 'flat', value, source: item.name, ...(slot ? { slot } : {}) });
+  }
+  // Runic Ward is a base stat of the Runeforged armour bases (Item.lua armourData.Ward, CalcDefence.lua:1218): it
+  // gets the item's quality like the other three, and the slot tag so a slot increase can scale it later.
+  const wardBase = armour?.ward ?? 0;
+  if (wardBase > 0) {
+    contributions.push({ pool: 'ward', kind: 'flat', value: Math.round(wardBase * (1 + quality / 100)), source: item.name, ...(slot ? { slot } : {}) });
+  }
+  // An armour base's movement penalty (Item.lua: MovementSpeed BASE -penalty); the engine reads it as a percent.
+  if (slot && (detail.movementPenalty ?? 0) > 0) {
+    contributions.push({ pool: 'movementSpeed', kind: 'flat', value: -(detail.movementPenalty ?? 0) * 100, source: item.name });
   }
   if (detail.spirit > 0) {
     contributions.push({ pool: 'spirit', kind: 'flat', value: Math.round(detail.spirit * (1 + (localInc.spirit ?? 0) / 100)), source: item.name });

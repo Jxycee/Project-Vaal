@@ -392,9 +392,11 @@ describe('collectContributions - quest choices', () => {
     expect(total(r, 'str') + total(r, 'int')).toBe(0);
   });
 
-  it('names a chosen reward the engine cannot model', () => {
+  it('counts a chosen reward into the derived pools, naming nothing', () => {
     const r = run(tree({ questChoices: { 'tribal-medicine': 'elemental-armour' } }), gear(), 98);
-    expect(r.notCounted.some((l) => l.startsWith('Tribal Medicine (Eye of Hinekora): '))).toBe(true);
+    expect(total(r, 'armourToFire')).toBe(15);
+    expect(total(r, 'evasionToDeflection')).toBe(12);
+    expect(r.notCounted.some((l) => l.startsWith('Tribal Medicine (Eye of Hinekora): '))).toBe(false);
   });
 
   it('ignores a junk stored choice instead of crashing', () => {

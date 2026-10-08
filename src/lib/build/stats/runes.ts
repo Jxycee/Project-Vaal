@@ -120,6 +120,8 @@ const LINE_STATS: [RegExp, (m: RegExpExecArray) => string][] = [
   [/^\d+(?:\.\d+)?% reduced maximum Mana$/, () => 'maximum_mana_+%'],
   [/^\d+(?:\.\d+)?% increased Spirit$/, () => 'spirit_+%'],
   [/^\d+(?:\.\d+)?% reduced Spirit$/, () => 'spirit_+%'],
+  // Boots runes: "N% increased Movement Speed" is a global MovementSpeed INC (the derived movement speed, engine.ts).
+  [/^\d+(?:\.\d+)?% increased Movement Speed$/, () => 'base_movement_velocity_+%'],
   // Local: the socketed item's own Armour, Evasion and Energy Shield.
   [/^\d+(?:\.\d+)?% increased Armour, Evasion and Energy Shield$/, () => 'local_armour_and_evasion_and_energy_shield_+%'],
 ];

@@ -31,6 +31,7 @@ describe('makeCollectData', () => {
     expect(d().item('amethyst-ring')).toEqual({
       armour: null,
       spirit: 0,
+      movementPenalty: 0,
       itemClass: 'Ring',
       weapon: false,
       implicits: [[['base_chaos_damage_resistance_%', 7, 13]]],

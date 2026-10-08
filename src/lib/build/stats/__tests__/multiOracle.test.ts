@@ -68,6 +68,103 @@ function expected(d: Record<string, number>): Record<Key, number> {
   };
 }
 
+// The derived defence stats (board item 26), kept apart from the 13 so the 13/13 target and its FLOOR keep their meaning.
+// A key is compared only when the fixture has it (damageReductions.physical is absent on a no-armour build). poe.ninja
+// prints a hit that nothing can kill as 2147483647, which the engine reports as Infinity.
+const DERIVED = [
+  'enemyAccuracy',
+  'evadeChance',
+  'deflectionRating',
+  'deflectChance',
+  'ward',
+  'lifeRegen',
+  'manaRegen',
+  'esRecharge',
+  'esRechargeDelay',
+  'movementSpeed',
+  'enduranceCharges',
+  'frenzyCharges',
+  'powerCharges',
+  'physicalMaxHit',
+  'fireMaxHit',
+  'coldMaxHit',
+  'lightningMaxHit',
+  'chaosMaxHit',
+] as const;
+type DKey = (typeof DERIVED)[number];
+const IMMUNE = 2147483647;
+
+function expectedDerived(d: Record<string, unknown>): Partial<Record<DKey, number>> {
+  const n = (v: unknown) => (typeof v === 'number' ? v : undefined);
+  const recovery = d.recovery as { regen?: { mana?: number }; recharge?: { energyShield?: number; delay?: number } } | undefined;
+  return {
+    enemyAccuracy: n(d.enemyAccuracy),
+    evadeChance: n(d.evadeChance),
+    deflectionRating: n(d.deflectionRating),
+    deflectChance: n(d.deflectChance),
+    ward: n(d.ward),
+    lifeRegen: n(d.lifeRegen),
+    manaRegen: n(recovery?.regen?.mana),
+    esRecharge: n(recovery?.recharge?.energyShield),
+    esRechargeDelay: n(recovery?.recharge?.delay),
+    movementSpeed: n(d.movementSpeed),
+    enduranceCharges: n(d.enduranceCharges),
+    frenzyCharges: n(d.frenzyCharges),
+    powerCharges: n(d.powerCharges),
+    physicalMaxHit: n(d.physicalMaximumHitTaken),
+    fireMaxHit: n(d.fireMaximumHitTaken),
+    coldMaxHit: n(d.coldMaximumHitTaken),
+    lightningMaxHit: n(d.lightningMaximumHitTaken),
+    chaosMaxHit: n(d.chaosMaximumHitTaken),
+  };
+}
+
+function oursDerived(sheet: DefenceSheet): Record<DKey, number> {
+  const x = sheet.derived;
+  const hit = (v: number) => (v === Infinity ? IMMUNE : v);
+  return {
+    enemyAccuracy: x.enemyAccuracy,
+    evadeChance: x.evadeChance,
+    deflectionRating: x.deflectionRating,
+    deflectChance: x.deflectChance,
+    ward: x.ward,
+    lifeRegen: x.lifeRegen,
+    manaRegen: x.manaRegen,
+    esRecharge: x.esRecharge,
+    esRechargeDelay: x.esRechargeDelay,
+    movementSpeed: x.movementSpeed,
+    enduranceCharges: x.enduranceCharges,
+    frenzyCharges: x.frenzyCharges,
+    powerCharges: x.powerCharges,
+    physicalMaxHit: hit(x.maxHit.physical),
+    fireMaxHit: hit(x.maxHit.fire),
+    coldMaxHit: hit(x.maxHit.cold),
+    lightningMaxHit: hit(x.maxHit.lightning),
+    chaosMaxHit: hit(x.maxHit.chaos),
+  };
+}
+
+/** Ratchet for the derived keys: the least number each build must match. Raise it when a fix lands; never lower it. */
+const DERIVED_FLOOR: Record<string, number> = {
+  'armour-life-gemling.json': 8, // of 18
+  'es-life-stormweaver.json': 5, // of 18
+  'evasion-deadeye.json': 7, // of 18
+  'hybrid-tactician.json': 6, // of 18
+  'ordinary-armour-1.json': 8, // of 16
+  'ordinary-caster-1.json': 9, // of 16
+  'ordinary-caster-2.json': 6, // of 18
+  'ordinary-ci-acolyte.json': 18, // of 18
+  'ordinary-ci-disciple.json': 17, // of 18
+  'ordinary-ci-es-disciple.json': 11, // of 18
+  'ordinary-deadeye.json': 13, // of 18
+  'ordinary-evasion-1.json': 8, // of 18
+  'ordinary-evasion-2.json': 6, // of 18
+  'ordinary-hybrid-1.json': 8, // of 18
+  'ordinary-hybrid-2.json': 8, // of 18
+  'ordinary-life-1.json': 9, // of 18
+  'ordinary-oracle.json': 15, // of 16
+};
+
 const ours = (sheet: DefenceSheet, k: Key): number => (k === 'fire' || k === 'cold' || k === 'lightning' || k === 'chaos' ? sheet[k].value : sheet[k]);
 
 // Ratchet: the least number of the 13 stats each build must match. Raise it when a fix lands; never lower it.
@@ -93,6 +190,7 @@ const FLOOR: Record<string, number> = {
   'ordinary-hybrid-2.json': 5, // Ritualist, ES + evasion; Andvarius -20% all resistances, Shavronne's Satchel, uniques not in our data
   'ordinary-evasion-2.json': 1, // Ritualist, evasion; Andvarius, Charge Regulation (endurance-charge threshold), Megalomaniac
 };
+
 
 // PoB's own per-stat build-up (breakdowns.stats[i].mods = [kind 0 flat|1 inc|2 more, value, sourceIndex]) says WHICH
 // modifiers PoB counts that we do not. Stat index -> our pool, and the diff itself.
@@ -120,7 +218,7 @@ function missingMods(b: Breakdowns, pool: Pool, idx: string, mine: Collected['co
 }
 
 const results: Record<string, unknown> = {};
-const sheets = new Map<string, { want: Record<Key, number>; got: Record<Key, number>; matched: number }>();
+const sheets = new Map<string, { want: Record<Key, number>; got: Record<Key, number>; matched: number; dWant: Partial<Record<DKey, number>>; dGot: Record<DKey, number>; dMatched: number; dOf: number }>();
 /** Re-runs a fixture's pipeline with its PoB Configuration replaced (undefined = the build came without one). */
 const reruns = new Map<string, (config: BuildConfig | undefined) => { sheet: DefenceSheet; collected: Collected }>();
 
@@ -161,6 +259,7 @@ beforeAll(async () => {
         contributions: collected.contributions,
         resistancePenalty: collected.resistancePenalty,
         flags: collected.flags,
+        ...(config ? { config } : {}),
       });
       return { sheet, collected };
     };
@@ -169,9 +268,13 @@ beforeAll(async () => {
     const want = expected(fx.defensiveStats);
     const got = Object.fromEntries(KEYS.map((k) => [k, ours(sheet, k)])) as Record<Key, number>;
     const matched = KEYS.filter((k) => got[k] === want[k]).length;
-    sheets.set(f, { want, got, matched });
+    const dWant = expectedDerived(fx.defensiveStats);
+    const dGot = oursDerived(sheet);
+    const dKeys = DERIVED.filter((k) => dWant[k] !== undefined);
+    const dMatched = dKeys.filter((k) => dGot[k] === dWant[k]).length;
+    sheets.set(f, { want, got, matched, dWant, dGot, dMatched, dOf: dKeys.length });
     const gaps = Object.fromEntries(Object.entries(BREAKDOWN_POOLS).map(([idx, pool]) => [pool, missingMods(fx.breakdowns as Breakdowns, pool, idx, collected.contributions)]));
-    results[f] = { gaps, class: fx.class, source: fx.source, matched, of: KEYS.length, stats: Object.fromEntries(KEYS.map((k) => [k, { want: want[k], got: got[k], ok: got[k] === want[k] }])) };
+    results[f] = { gaps, class: fx.class, source: fx.source, matched, of: KEYS.length, stats: Object.fromEntries(KEYS.map((k) => [k, { want: want[k], got: got[k], ok: got[k] === want[k] }])), derivedMatched: dMatched, derivedOf: dKeys.length, derived: Object.fromEntries(dKeys.map((k) => [k, { want: dWant[k], got: dGot[k], ok: dGot[k] === dWant[k] }])) };
   }
   writeFileSync(`${DIR}/results.json`, JSON.stringify(results, null, 2));
 }, 600_000);
@@ -231,10 +334,15 @@ describe('multi-build oracle (poe.ninja PoB simulation)', () => {
       const s = sheets.get(f)!;
       for (const k of KEYS) expect(Number.isFinite(s.got[k]), `${k} is not finite`).toBe(true);
       for (const k of ['life', 'mana', 'energyShield', 'armour', 'evasion', 'spirit'] as const) expect(s.got[k], `${k} is negative`).toBeGreaterThanOrEqual(0);
+      for (const k of DERIVED) expect(Number.isNaN(s.dGot[k]), `${k} is NaN`).toBe(false);
     });
     it(`${f}: matches at least ${FLOOR[f] ?? 0} of ${KEYS.length} stats`, () => {
       const s = sheets.get(f)!;
       expect(s.matched, `matched ${s.matched}: see ${DIR}/results.json`).toBeGreaterThanOrEqual(FLOOR[f] ?? 0);
+    });
+    it(`${f}: matches at least ${DERIVED_FLOOR[f] ?? 0} of its derived stats`, () => {
+      const s = sheets.get(f)!;
+      expect(s.dMatched, `matched ${s.dMatched} of ${s.dOf}: see ${DIR}/results.json`).toBeGreaterThanOrEqual(DERIVED_FLOOR[f] ?? 0);
     });
   }
 });
