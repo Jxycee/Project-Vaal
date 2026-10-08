@@ -115,3 +115,7 @@ git clone --depth 1 -b dev https://github.com/PathOfBuildingCommunity/PathOfBuil
 POB_SCRATCH=<scratch dir> OUT=out.json node spike/pob-lua-wasm/harness.mjs <scratch>/pob docs/superpowers/oracle/ordinary-*.json
 node spike/pob-lua-wasm/compare.mjs out.json docs/superpowers/oracle
 ```
+
+## Reference probe (follow-on, branch `tools/pob-probe`)
+
+The decision after the spike: Project Vaal keeps its own TypeScript engine; PoB-in-wasm is consulted only to see where our engine has a gap. `spike/pob-lua-wasm/probe.mjs` is that tool: for one or more builds (oracle fixture, raw PoB code or XML) it prints PoB's output values (EHP, max hits, evade/deflect, regen, movement speed), the enemy assumptions PoB used (level, accuracy, per-type damage, boss preset), per-pool modifier breakdowns (base/increased/more with PoB's source labels and per-slot gear base), and the Config inputs and conditions PoB parsed. Setup, usage and caveats: `spike/pob-lua-wasm/README.md`. Output is a hint for where to read PoB's source, never an answer.
