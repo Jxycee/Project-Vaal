@@ -272,8 +272,10 @@ function computeDerived(input: EngineInput, sheet: Omit<DefenceSheet, 'derived'>
   const { flatOf, incOf, moreOf } = h;
   const tables = monsterTables as unknown as { monsterAccuracyTable: number[] };
 
-  // Enemy Accuracy: the level-82 table entry; a Blinded enemy has m_floor(-20 x (1 + Blind effect)) % more
-  // (CalcPerform.lua:744-753 for the player's own Blind; the enemy side follows the same -20% base).
+  // Enemy Accuracy: the level-82 table entry; a Blinded enemy has m_floor(-20 x (1 + Blind effect)) % more. That -20%
+  // MORE is what ConfigOptions.lua:1758's tooltip says Blind does and it fits the ratios of every blinded fixture, but the
+  // enemy-side code in PoB was not located (CalcPerform.lua:744-753 is the player's own Blind). Marks ("Marked for
+  // Sickness": 10% reduced Accuracy) and the rest of the blinded builds' shortfall are not modelled.
   let accuracy = tables.monsterAccuracyTable[ENEMY_LEVEL - 1] ?? 0;
   if (input.config?.conditions.includes('EnemyBlinded')) {
     accuracy *= 1 + Math.floor(-20 * (1 + incOf('blindEffect') / 100)) / 100;
@@ -314,12 +316,10 @@ function computeDerived(input: EngineInput, sheet: Omit<DefenceSheet, 'derived'>
   // Maximum hit: CalcDefence.lua:3595-3760, solved in reverse from the hit pool.
   const life = input.flags.chaosInoculation === true ? 1 : sheet.life;
   // Mind over Matter (:2947-2991): MoM% of damage comes off Mana first, so Life behaves as life / (1 - MoM) until the
-  // Mana that backs it runs out. Harmony Within's flag is a full 100% while Mana exceeds Life (30904).
+  // Mana that backs it runs out. The keystone is DamageTakenFromManaBeforeLife 100 (statTable.ts).
   const momOf = (type: HitType) => {
-    // Eldritch Battery: the Mana it converts to is the pool the oracle build's hits come off (5175 + 1 Life = 5176).
-    const harmony = input.flags.eldritchBattery === true || (flatOf('momHarmony') > 0 && sheet.mana > life) ? 100 : 0;
     const elemental = type === 'fire' || type === 'cold' || type === 'lightning' ? flatOf('momElemental') : 0;
-    return Math.min(flatOf('mom') + elemental + harmony, 100);
+    return Math.min(flatOf('mom') + elemental, 100);
   };
   const effectiveLife = (type: HitType) => {
     const mom = momOf(type);

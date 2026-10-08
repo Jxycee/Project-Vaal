@@ -61,11 +61,10 @@ export type Pool =
   | 'ward'
   // PoB's "Defences" increased: the global Armour, Evasion and Energy Shield line also scales Runic Ward (CalcDefence.lua:1224, 1310).
   | 'defences'
-  // "N% of Damage is taken from Mana before Life" (PoB DamageTakenFromManaBeforeLife, CalcDefence.lua:2947), its
-  // elemental-only form, and Harmony Within's "while your Mana is higher than your Life" form (a flag, counted as 100).
+  // "N% of Damage is taken from Mana before Life" (PoB DamageTakenFromManaBeforeLife, CalcDefence.lua:2947) and its
+  // elemental-only form.
   | 'mom'
   | 'momElemental'
-  | 'momHarmony'
   // "N% of your current Energy Shield is added to your Armour for determining your Physical Damage Reduction"
   // (EnergyShieldAppliesToPhysicalDamageTaken, CalcDefence.lua:2570).
   | 'esToPhysical'
@@ -216,7 +215,12 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   // physical reduction. Both reach the maximum-hit pools (engine.ts).
   'base_damage_removed_from_mana_before_life_%': flat('mom'),
   'elemental_damage_removed_from_mana_before_life_%': flat('momElemental'),
-  hit_damage_remove_from_mana_before_life_while_mana_higher_than_life: flat('momHarmony'),
+  // The Mind Over Matter keystone: "All Damage is taken from Mana before Life" (ModParser.lua:2440, DamageTakenFromManaBeforeLife
+  // BASE 100) and "50% less Mana Recovery Rate" (a MORE on mana regeneration, CalcDefence.lua:1722).
+  keystone_mana_shield: [
+    { pool: 'mom', kind: 'flat', scale: 100 },
+    { pool: 'manaRegen', kind: 'more', scale: -50 },
+  ],
   'current_energy_shield_%_as_physical_damage_reduction': flat('esToPhysical'),
 
   // "Aura Skills have N% increased Magnitudes": scales the Auras' own modifiers (skillBuffs.ts), PoB2 AuraEffect.
@@ -299,6 +303,8 @@ export const NOT_MODELLED: Readonly<Record<string, string>> = {
   'body_armour_+%': 'increased Armour from body armour',
   base_physical_damage_reduction_rating_no_display: 'hidden Armour',
   'maximum_fire_resistance_+%_if_at_least_5_red_supports_socketed': 'Maximum Fire Resistance with 5 red supports socketed',
+  // Harmony Within: ModCache.lua:8219-8221 leaves this sentence unparsed, so Path of Building 2 counts nothing for it either.
+  hit_damage_remove_from_mana_before_life_while_mana_higher_than_life: 'Hit damage taken from Mana before Life while Mana is higher than Life (Path of Building 2 does not parse this line)',
 };
 
 const ID_WORDS = /(^|_)(life|mana|energy_shield|evasion|armour|strength|dexterity|intelligence|attributes?|spirit|resist(ances?)?)(_|$)/;

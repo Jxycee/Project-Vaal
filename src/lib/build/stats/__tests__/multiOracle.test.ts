@@ -344,13 +344,10 @@ describe('multi-build oracle (poe.ninja PoB simulation)', () => {
       for (const k of ['life', 'mana', 'energyShield', 'armour', 'evasion', 'spirit'] as const) expect(s.got[k], `${k} is negative`).toBeGreaterThanOrEqual(0);
       for (const k of DERIVED) expect(Number.isNaN(s.dGot[k]), `${k} is NaN`).toBe(false);
     });
-    it(`${f}: matches at least ${FLOOR[f] ?? 0} of ${KEYS.length} stats`, () => {
+    it(`${f}: matches at least ${FLOOR[f] ?? 0} of ${KEYS.length} stats and ${DERIVED_FLOOR[f] ?? 0} derived`, () => {
       const s = sheets.get(f)!;
       expect(s.matched, `matched ${s.matched}: see ${DIR}/results.json`).toBeGreaterThanOrEqual(FLOOR[f] ?? 0);
-    });
-    it(`${f}: matches at least ${DERIVED_FLOOR[f] ?? 0} of its derived stats`, () => {
-      const s = sheets.get(f)!;
-      expect(s.dMatched, `matched ${s.dMatched} of ${s.dOf}: see ${DIR}/results.json`).toBeGreaterThanOrEqual(DERIVED_FLOOR[f] ?? 0);
+      expect(s.dMatched, `derived matched ${s.dMatched} of ${s.dOf}: see ${DIR}/results.json`).toBeGreaterThanOrEqual(DERIVED_FLOOR[f] ?? 0);
     });
   }
 });

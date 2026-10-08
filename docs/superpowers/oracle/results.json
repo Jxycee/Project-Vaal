@@ -713,7 +713,7 @@
       },
       "manaRegen": {
         "want": 34,
-        "got": 64,
+        "got": 32,
         "ok": false
       },
       "esRecharge": {
@@ -748,32 +748,32 @@
       },
       "effectiveHealthPool": {
         "want": 26777,
-        "got": 14203,
+        "got": 17073,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 8357,
-        "got": 6204,
+        "got": 7272,
         "ok": false
       },
       "fireMaxHit": {
         "want": 28096,
-        "got": 21054,
+        "got": 24861,
         "ok": false
       },
       "coldMaxHit": {
         "want": 28096,
-        "got": 21054,
+        "got": 24861,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 28096,
-        "got": 21054,
+        "got": 24861,
         "ok": false
       },
       "chaosMaxHit": {
         "want": 22010,
-        "got": 4921,
+        "got": 6237,
         "ok": false
       }
     }
@@ -908,7 +908,7 @@
       },
       "manaRegen": {
         "want": 304,
-        "got": 333,
+        "got": 166,
         "ok": false
       },
       "movementSpeed": {
@@ -1107,32 +1107,32 @@
       },
       "effectiveHealthPool": {
         "want": 1525,
-        "got": 9778,
+        "got": 2684,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 967,
-        "got": 6199,
+        "got": 1702,
         "ok": false
       },
       "fireMaxHit": {
         "want": 1860,
-        "got": 11921,
+        "got": 3273,
         "ok": false
       },
       "coldMaxHit": {
         "want": 1860,
-        "got": 11921,
+        "got": 3273,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 1825,
-        "got": 11696,
+        "got": 3211,
         "ok": false
       },
       "chaosMaxHit": {
         "want": 1974,
-        "got": 12651,
+        "got": 3473,
         "ok": false
       }
     }
@@ -3177,7 +3177,7 @@
       },
       "manaRegen": {
         "want": 545,
-        "got": 509,
+        "got": 254,
         "ok": false
       },
       "movementSpeed": {
