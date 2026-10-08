@@ -1,6 +1,6 @@
 'use client';
 
-// Checkpoint mutations (switch, reorder, rename, two-tap delete, add), shared
+// Checkpoint mutations (switch, reorder, rename, two-tap delete, add, duplicate), shared
 // by CheckpointSwitcher's manage view (the build page, slice 3). Extracted
 // from the old full-screen checkpoint editor's `run`, `move`, rename and
 // delete handlers, plus its Add button's inline logic — no
@@ -13,11 +13,12 @@
 // re-renders the current route with fresh checkpoint rows — this hook does
 // NOT also call the client router's refresh(): the old editor never did
 // either, and the two would be redundant.
-import { useCallback, useState, useTransition } from 'react';
+import { useCallback, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   addCheckpoint,
   deleteCheckpoint,
+  duplicateCheckpoint,
   renameCheckpoint,
   reorderCheckpoints,
   type CheckpointStateInput,
@@ -57,6 +58,7 @@ export function useCheckpointActions({
   armedDeleteId: string | null;
   requestDelete(id: string): void;
   add(name: string, level: number, onDone?: () => void): void;
+  duplicate(id: string): void;
 } {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -144,5 +146,29 @@ export function useCheckpointActions({
     [buildId, activeId, currentState, goTo],
   );
 
-  return { pending, error, goTo, move, rename, armedDeleteId, requestDelete, add };
+  // A ref, not `pending`: two taps in the same frame both see pending=false
+  // before React re-renders, and each would insert a copy.
+  const duplicating = useRef(false);
+  const duplicate = useCallback(
+    (id: string) => {
+      if (!buildId || duplicating.current) return;
+      duplicating.current = true;
+      setError(null);
+      startTransition(async () => {
+        try {
+          const result = await callAction(() => duplicateCheckpoint(buildId, id));
+          if (!result.ok) {
+            setError(result.error);
+            return;
+          }
+          goTo(result.id);
+        } finally {
+          duplicating.current = false;
+        }
+      });
+    },
+    [buildId, goTo],
+  );
+
+  return { pending, error, goTo, move, rename, armedDeleteId, requestDelete, add, duplicate };
 }

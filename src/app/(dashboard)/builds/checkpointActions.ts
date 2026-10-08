@@ -188,6 +188,113 @@ export async function addCheckpoint(
   return { ok: true, id: inserted.id };
 }
 
+const COPY_SUFFIX = ' (copy)';
+
+/** "<name> (copy)", with the base trimmed so the whole still fits the 80-character CHECK. */
+// Not exported: a 'use server' file may only export async functions.
+function copyName(name: string): string {
+  const base = name.length + COPY_SUFFIX.length > MAX_NAME_LENGTH ? name.slice(0, MAX_NAME_LENGTH - COPY_SUFFIX.length) : name;
+  return `${base.trimEnd()}${COPY_SUFFIX}`;
+}
+
+/**
+ * Duplicates one checkpoint: its saved passive, gear and gem state and its
+ * level become a new checkpoint placed right after it, named "<name> (copy)".
+ * The original row is never written.
+ *
+ * Copies the SAVED row, not the editor's unsaved edits (unlike addCheckpoint's
+ * `state`): "duplicate this one" means the one the list shows. There is no
+ * per-build checkpoint cap in the schema or in addCheckpoint, so none is
+ * enforced here either; names are not unique in this table (a copy of a copy is
+ * "X (copy) (copy)"), matching addCheckpoint.
+ *
+ * Same ownership path as addCheckpoint: the build is checked against the
+ * signed-in user first, then the insert goes through the owner-only RLS policy.
+ *
+ * Placement is two steps — append at max(position)+1, then the same
+ * reorder_build_checkpoints call a manual move uses — because the position
+ * uniqueness is only deferred inside one transaction. If the reorder fails the
+ * copy still exists, at the end; that is reported as success, not as a failure
+ * that would invite a second tap and a second copy.
+ */
+export async function duplicateCheckpoint(
+  buildId: string,
+  checkpointId: string,
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  if (!isUuid(buildId) || !isUuid(checkpointId)) return NOT_FOUND;
+
+  const { data: userData } = await getCachedUser();
+  if (!userData.user) return NOT_FOUND;
+
+  const supabase = await createClient();
+
+  const { data: owned, error: ownedError } = await supabase
+    .from('builds')
+    .select('id')
+    .eq('id', buildId)
+    .eq('user_id', userData.user.id)
+    .maybeSingle();
+  if (ownedError) {
+    console.error('Failed to check build ownership:', ownedError);
+    return { ok: false, error: "Couldn't duplicate that checkpoint." };
+  }
+  if (!owned) return NOT_FOUND;
+
+  // Scoped to this build, like addCheckpoint's copyFrom.
+  const { data: source, error: sourceError } = await supabase
+    .from('build_checkpoints')
+    .select('name, level, passive_state, gear_state, gem_state')
+    .eq('id', checkpointId)
+    .eq('build_id', buildId)
+    .maybeSingle();
+  if (sourceError) {
+    console.error('Failed to read the checkpoint to duplicate:', sourceError);
+    return { ok: false, error: "Couldn't duplicate that checkpoint." };
+  }
+  if (!source) return NOT_FOUND;
+
+  const { data: rows, error: rowsError } = await supabase
+    .from('build_checkpoints')
+    .select('id, position')
+    .eq('build_id', buildId)
+    .order('position', { ascending: true });
+  if (rowsError || !rows) {
+    console.error('Failed to read checkpoint positions:', rowsError);
+    return { ok: false, error: "Couldn't duplicate that checkpoint." };
+  }
+  const position = rows.length > 0 ? rows[rows.length - 1].position + 1 : 0;
+
+  const { data: inserted, error: insertError } = await supabase
+    .from('build_checkpoints')
+    .insert({
+      build_id: buildId,
+      position,
+      name: copyName(source.name),
+      level: source.level,
+      passive_state: source.passive_state as Json,
+      gear_state: source.gear_state as Json,
+      gem_state: source.gem_state as Json,
+    })
+    .select('id')
+    .single();
+  if (insertError) {
+    if ((insertError as { code?: string }).code === '23505') {
+      return { ok: false, error: 'Another change landed at the same time. Try again.' };
+    }
+    console.error('Failed to duplicate checkpoint:', insertError);
+    return { ok: false, error: "Couldn't duplicate that checkpoint." };
+  }
+
+  const ids = rows.map((r) => r.id);
+  const at = ids.indexOf(checkpointId);
+  ids.splice(at + 1, 0, inserted.id);
+  const { error: reorderError } = await supabase.rpc('reorder_build_checkpoints', { p_build_id: buildId, p_ids: ids });
+  if (reorderError) console.error('Duplicated checkpoint left at the end of the order:', reorderError);
+
+  refresh();
+  return { ok: true, id: inserted.id };
+}
+
 export async function renameCheckpoint(id: string, name: string): Promise<ActionResult> {
   if (!isUuid(id)) return NOT_FOUND;
 
