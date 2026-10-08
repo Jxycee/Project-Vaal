@@ -130,7 +130,8 @@ function resolve(read: ReadItem, items: ItemLookup): Resolved {
   };
 
   switch (read.rarity) {
-    case 'UNIQUE': {
+    case 'UNIQUE':
+    case 'RELIC': {
       const unique = read.line2 ? items.byName.get(read.line2) : undefined;
       if (unique?.isUnique) return { found: unique, displayName: unique.name, note: null };
       const base = baseByName(read.line3);
