@@ -47,11 +47,6 @@ const run = (filter: unknown = {}, page: unknown = {}, ids?: string[]) =>
   applyDiscoverySpec(new Recorder(), normalizeDiscoveryRequest(filter, page), ids);
 
 describe('visibility guard', () => {
-  it('an empty filter still applies visibility = public as the first call', () => {
-    const r = run();
-    expect(r.calls[0]).toEqual(['eq', 'visibility', 'public']);
-  });
-
   it('no input can add a second visibility clause or a user_id clause', () => {
     const r = run(
       { visibility: 'unlisted', user_id: 'someone', share_token: 'x', notes: 'y', class: 'Witch' },

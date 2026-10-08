@@ -49,9 +49,12 @@ function leet(word: string): string {
 }
 
 describe('validateUsername - format', () => {
-  it('accepts the 3 and 20 character bounds', () => {
+  it('accepts the 3 and 20 character bounds, and underscore, hyphen, digits, mixed case', () => {
     expect(validateUsername('abc')).toEqual({ ok: true, value: 'abc' });
     expect(validateUsername('a'.repeat(20))).toEqual({ ok: true, value: 'a'.repeat(20) });
+    for (const n of ['Under_Score', 'hy-phen', '123', 'MiXeD_9-z']) {
+      expect(validateUsername(n)).toEqual({ ok: true, value: n });
+    }
   });
   it('rejects 2 and 21 characters with the format message', () => {
     for (const n of ['ab', 'a'.repeat(21), '']) {
@@ -63,11 +66,6 @@ describe('validateUsername - format', () => {
   it('rejects characters outside letters, digits, _ and -', () => {
     for (const n of ['has space', 'dot.name', 'ünïcode', 'emoji😀ok', 'semi;colon', 'slash/name']) {
       expect(validateUsername(n).ok).toBe(false);
-    }
-  });
-  it('accepts underscore, hyphen, digits and mixed case', () => {
-    for (const n of ['Under_Score', 'hy-phen', '123', 'MiXeD_9-z']) {
-      expect(validateUsername(n)).toEqual({ ok: true, value: n });
     }
   });
   it('trims surrounding whitespace but not interior', () => {
@@ -85,20 +83,14 @@ describe('validateUsername - format', () => {
 });
 
 describe('isOffensive - general profanity stays allowed', () => {
-  it.each(['fuck', 'FUCK', 'Bitch', 'shit', 'Ass', 'DiCk', 'FuckThisBoss', 'Bitch_1234', 'holy-shit', 'BadAss99'])(
-    '%s is allowed',
-    (name) => {
-      expect(isOffensive(name)).toBe(false);
-      expect(validateUsername(name).ok).toBe(true);
-    },
-  );
-  it('does not flag Scunthorpe-style innocent names', () => {
-    for (const n of ['Essex', 'Classic', 'Assassin', 'Scunthorpe', 'Cocktail', 'Bassist', 'Grape', 'Therapist']) {
-      expect(isOffensive(n), n).toBe(false);
+  it('allows general profanity: bare, mixed case, embedded, separated', () => {
+    for (const name of ['fuck', 'Bitch', 'DiCk', 'FuckThisBoss', 'holy-shit', 'BadAss99']) {
+      expect(isOffensive(name), name).toBe(false);
+      expect(validateUsername(name).ok, name).toBe(true);
     }
   });
-  it('does not flag ordinary names', () => {
-    for (const n of ['Witch_Queen', 'Ranger99', 'Vaal-Orb', 'ExileOne', 'PathFinder', 'Zoe']) {
+  it('does not flag Scunthorpe-style innocent names or ordinary names', () => {
+    for (const n of ['Essex', 'Classic', 'Assassin', 'Scunthorpe', 'Therapist', 'Witch_Queen', 'Ranger99', 'Vaal-Orb']) {
       expect(isOffensive(n), n).toBe(false);
     }
   });

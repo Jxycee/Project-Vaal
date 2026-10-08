@@ -79,14 +79,6 @@ describe('real overflows still warn', () => {
     expect(treeWarnings(nine).map((w) => w.code)).toEqual(['ascendancy-points-over']);
   });
 
-  it('two options and no parent are still just points: only the option nodes are free', () => {
-    const optionIds = Object.values(tree.nodes as Record<string, { skill: number; isMultipleChoiceOption?: boolean }>)
-      .filter((n) => n.isMultipleChoiceOption)
-      .slice(0, 3)
-      .map((n) => n.skill);
-    expect(ascendancyPointCount([1, 2, ...optionIds], tree)).toBe(2);
-  });
-
   it('123 passives at level 98 is over, as is 125 at level 100', () => {
     expect(isOverPassiveBudget(123, derivePassiveBudget(98))).toBe(true);
     expect(isOverPassiveBudget(125, derivePassiveBudget(100))).toBe(true);

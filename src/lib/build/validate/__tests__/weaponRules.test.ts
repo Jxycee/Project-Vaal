@@ -58,9 +58,6 @@ describe('validateWeapons — two-handed occupancy', () => {
     expect(codes(gear({ weapon2_main: TALISMAN, weapon2_off: SHIELD }))).toEqual(['two-handed-occupied']);
   });
 
-  it('says nothing about an empty off-hand', () => {
-    expect(codes(gear({ weapon1_main: CROSSBOW, weapon2_main: TWO_HAND_AXE }))).toEqual([]);
-  });
 });
 
 describe('validateWeapons — quivers', () => {

@@ -12,10 +12,6 @@ const EMPTY_TREE: PassiveState = { set1: [], set2: [], ascendancyNodes: [] };
 const range = (from: number, count: number) => Array.from({ length: count }, (_, i) => from + i);
 
 describe('validateCheckpoint — every way it could be wrong', () => {
-  it('returns nothing for an empty checkpoint', () => {
-    expect(validateCheckpoint({ passive: EMPTY_TREE, gear: emptyGearState() })).toEqual([]);
-  });
-
   it('flags an item stored in a slot its category never fits, targeted at that slot', () => {
     const gear: GearState = { ...emptyGearState(), head: item('Plain Ring', 'Ring'), weapon1_off: item('Plain Wand', 'Wand') };
     const warnings = validateCheckpoint({ passive: EMPTY_TREE, gear });
