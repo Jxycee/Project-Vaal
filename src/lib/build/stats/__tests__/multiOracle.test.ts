@@ -181,6 +181,17 @@ const DERIVED_FLOOR: Record<string, number> = {
   'ordinary-spirit-walker-1.json': 12, // of 19
   'ordinary-spirit-walker-2.json': 15, // of 19
   'ordinary-titan-1.json': 15, // round 1 of the accuracy loop: Hulking Form (effect of Small Passive Skills), Stone Skin (slot more); was 10 // of 19
+  // Round-5 class-coverage set (Runes of Aldur): classes with no fixture yet; FLOOR = the match when added.
+  'ordinary-druid-1.json': 9, // of 19
+  'ordinary-huntress-1.json': 19, // of 19
+  'ordinary-infernalist-1.json': 11, // of 19
+  'ordinary-invoker-1.json': 18, // of 19
+  'ordinary-mercenary-1.json': 14, // of 19
+  'ordinary-monk-1.json': 12, // of 19
+  'ordinary-shaman-1.json': 9, // of 19
+  'ordinary-smith-of-kitava-1.json': 8, // of 17
+  'ordinary-sorceress-1.json': 10, // of 19
+  'ordinary-witchhunter-1.json': 7, // of 17
   'ordinary-warbringer-1.json': 14, // round 5: Rage and Summoned Totems feed Armour/Evasion, so Life/Armour/Evasion match; was 9 (round 3: Blood Magic; was 8) // of 17
 };
 
@@ -218,6 +229,17 @@ const FLOOR: Record<string, number> = {
   'ordinary-spirit-walker-1.json': 13, // round 4 of the accuracy loop: 13 of 13 (Uhtred's Exodus: +3 gem levels with no other support, so Charge Regulation reads 21% more not 20%: skillBuffs.ts, support-levels.json); was 10: ES, Armour, Evasion off by 1 to 6
   'ordinary-spirit-walker-2.json': 13, // 13 of 13 at the start
   'ordinary-titan-1.json': 13, // round 1 of the accuracy loop: 13 of 13 (Hulking Form scales plain small passives by 50%, floored, never the generic attribute nodes or ascendancy ones; Stone Skin is a body-armour-only more; Kaom's Heart 'You have no Spirit'); was 4 at the start: strength/Life/Mana/ES/Armour/Evasion short, Spirit 200 where PoB has 0 (Grand Spectrum x3, Darkness Enthroned)
+  // Round-5 class-coverage set (Runes of Aldur, no Mageblood, no RELIC item): classes with no fixture yet; FLOOR = the match when added.
+  'ordinary-druid-1.json': 8, // short: Int, Life, Mana, Lightning, Chaos
+  'ordinary-huntress-1.json': 13, // 13 of 13 at the start
+  'ordinary-infernalist-1.json': 12, // short: Spirit (234/380)
+  'ordinary-invoker-1.json': 12, // short: Mana (2253/2549)
+  'ordinary-mercenary-1.json': 11, // short: Cold and Lightning resistance (74/75, 65/75)
+  'ordinary-monk-1.json': 12, // short: Energy Shield (8225/8387)
+  'ordinary-shaman-1.json': 5, // short: attributes, Life, Mana, Armour, Evasion, Lightning (Armour 8691/17541, Evasion 1291/0)
+  'ordinary-smith-of-kitava-1.json': 9, // short: Armour, Evasion, Cold and Lightning resistance (-24/87)
+  'ordinary-sorceress-1.json': 12, // short: Energy Shield (8661/9143)
+  'ordinary-witchhunter-1.json': 11, // short: Evasion (20875/23064), Chaos resistance (20/24)
   'ordinary-warbringer-1.json': 13, // round 5: 13 of 13 (corrupted-item count excludes jewels, includes flasks and charms; Rage and Summoned Totems multiply Armour and Evasion passives); was 10. round 3: Blood Magic sets Mana 0 (engine.ts); short Life, Armour, Evasion; was 9 // 9 of 13 at the start: Mana 552 where PoB has 0, Armour and Evasion short, Life over
 };
 

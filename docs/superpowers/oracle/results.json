@@ -2451,6 +2451,199 @@
       }
     }
   },
+  "ordinary-druid-1.json": {
+    "gaps": {
+      "life": [
+        "flat 192 from Loath Keep, Masked Greathelm",
+        "flat 29 from Many Sources:^x88FFFF28% Ring 1 Bonus Effect",
+        "flat 31 from Many Sources:^x88FFFF30% Ring 2 Bonus Effect"
+      ],
+      "mana": [],
+      "energyShield": [],
+      "spirit": [],
+      "evasion": [],
+      "str": [],
+      "dex": [],
+      "int": [
+        "flat 9 from Many Sources:^x88FFFF28% Ring 1 Bonus Effect",
+        "flat 9 from Many Sources:^x88FFFF30% Ring 2 Bonus Effect"
+      ]
+    },
+    "notCounted": [
+      "Quest rewards you choose: Venom Draught (Venom Crypts)",
+      "Unrecognised stat base_reduce_enemy_cold_resistance_% (The Pandemonius)"
+    ],
+    "class": "Druid",
+    "source": "https://poe.ninja/poe2/builds/runesofaldur/character/DpsFudge-6069/SplitMind",
+    "matched": 8,
+    "of": 13,
+    "stats": {
+      "str": {
+        "want": 178,
+        "got": 178,
+        "ok": true
+      },
+      "dex": {
+        "want": 67,
+        "got": 67,
+        "ok": true
+      },
+      "int": {
+        "want": 125,
+        "got": 107,
+        "ok": false
+      },
+      "life": {
+        "want": 2562,
+        "got": 2499,
+        "ok": false
+      },
+      "mana": {
+        "want": 616,
+        "got": 581,
+        "ok": false
+      },
+      "energyShield": {
+        "want": 171,
+        "got": 171,
+        "ok": true
+      },
+      "armour": {
+        "want": 14256,
+        "got": 14256,
+        "ok": true
+      },
+      "evasion": {
+        "want": 9,
+        "got": 9,
+        "ok": true
+      },
+      "fire": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "cold": {
+        "want": 77,
+        "got": 77,
+        "ok": true
+      },
+      "lightning": {
+        "want": 76,
+        "got": 68,
+        "ok": false
+      },
+      "chaos": {
+        "want": 57,
+        "got": 49,
+        "ok": false
+      },
+      "spirit": {
+        "want": 100,
+        "got": 100,
+        "ok": true
+      }
+    },
+    "derivedMatched": 9,
+    "derivedOf": 19,
+    "derived": {
+      "enemyAccuracy": {
+        "want": 2114,
+        "got": 2114,
+        "ok": true
+      },
+      "evadeChance": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "deflectionRating": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "deflectChance": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "ward": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "lifeRegen": {
+        "want": 48,
+        "got": 57,
+        "ok": false
+      },
+      "manaRegen": {
+        "want": 32,
+        "got": 23,
+        "ok": false
+      },
+      "esRecharge": {
+        "want": 25,
+        "got": 21,
+        "ok": false
+      },
+      "esRechargeDelay": {
+        "want": 1.8182,
+        "got": 3.6364,
+        "ok": false
+      },
+      "movementSpeed": {
+        "want": 97,
+        "got": 97,
+        "ok": true
+      },
+      "enduranceCharges": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "frenzyCharges": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "powerCharges": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "effectiveHealthPool": {
+        "want": 13562,
+        "got": 11753,
+        "ok": false
+      },
+      "physicalMaxHit": {
+        "want": 3767,
+        "got": 3699,
+        "ok": false
+      },
+      "fireMaxHit": {
+        "want": 11699,
+        "got": 11177,
+        "ok": false
+      },
+      "coldMaxHit": {
+        "want": 12151,
+        "got": 11594,
+        "ok": false
+      },
+      "lightningMaxHit": {
+        "want": 11754,
+        "got": 8910,
+        "ok": false
+      },
+      "chaosMaxHit": {
+        "want": 6157,
+        "got": 5068,
+        "ok": false
+      }
+    }
+  },
   "ordinary-evasion-1.json": {
     "gaps": {
       "life": [],
@@ -2827,6 +3020,199 @@
       "chaosMaxHit": {
         "want": 4012,
         "got": 4012,
+        "ok": true
+      }
+    }
+  },
+  "ordinary-huntress-1.json": {
+    "gaps": {
+      "life": [
+        "3 1 from 56349"
+      ],
+      "mana": [],
+      "energyShield": [],
+      "spirit": [],
+      "evasion": [],
+      "str": [],
+      "dex": [],
+      "int": []
+    },
+    "notCounted": [
+      "Wondertrap: \"50% increased Rarity of Items found when on Low Life\" not counted",
+      "Lifesprig: \"Leeches 1% of maximum Life when you Cast a Spell\" not counted",
+      "Lifesprig: implicit \"Grants Skill: Level (1-20) Mana Drain\" not counted",
+      "The Eternal Spark: \"40% increased Mana Regeneration Rate while stationary\" not counted",
+      "Quest rewards you choose: Venom Draught (Venom Crypts), Seven Pillars (Qimah)",
+      "Unrecognised stat stun_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Dampening Shield)",
+      "Unrecognised stat ailment_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Dampening Shield)"
+    ],
+    "class": "Huntress",
+    "source": "https://poe.ninja/poe2/builds/runesofaldur/character/MTHGarcia-3963/AURABOTTHEGUILD",
+    "matched": 13,
+    "of": 13,
+    "stats": {
+      "str": {
+        "want": 54,
+        "got": 54,
+        "ok": true
+      },
+      "dex": {
+        "want": 66,
+        "got": 66,
+        "ok": true
+      },
+      "int": {
+        "want": 359,
+        "got": 359,
+        "ok": true
+      },
+      "life": {
+        "want": 1,
+        "got": 1,
+        "ok": true
+      },
+      "mana": {
+        "want": 1194,
+        "got": 1194,
+        "ok": true
+      },
+      "energyShield": {
+        "want": 2229,
+        "got": 2229,
+        "ok": true
+      },
+      "armour": {
+        "want": 322,
+        "got": 322,
+        "ok": true
+      },
+      "evasion": {
+        "want": 280,
+        "got": 280,
+        "ok": true
+      },
+      "fire": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "cold": {
+        "want": 47,
+        "got": 47,
+        "ok": true
+      },
+      "lightning": {
+        "want": 80,
+        "got": 80,
+        "ok": true
+      },
+      "chaos": {
+        "want": 100,
+        "got": 100,
+        "ok": true
+      },
+      "spirit": {
+        "want": 143,
+        "got": 143,
+        "ok": true
+      }
+    },
+    "derivedMatched": 19,
+    "derivedOf": 19,
+    "derived": {
+      "enemyAccuracy": {
+        "want": 2114,
+        "got": 2114,
+        "ok": true
+      },
+      "evadeChance": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "deflectionRating": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "deflectChance": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "ward": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "lifeRegen": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "manaRegen": {
+        "want": 89,
+        "got": 89,
+        "ok": true
+      },
+      "esRecharge": {
+        "want": 284,
+        "got": 284,
+        "ok": true
+      },
+      "esRechargeDelay": {
+        "want": 2.4691,
+        "got": 2.4691,
+        "ok": true
+      },
+      "movementSpeed": {
+        "want": 119,
+        "got": 119,
+        "ok": true
+      },
+      "enduranceCharges": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "frenzyCharges": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "powerCharges": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "effectiveHealthPool": {
+        "want": 4887,
+        "got": 4887,
+        "ok": true
+      },
+      "physicalMaxHit": {
+        "want": 2261,
+        "got": 2261,
+        "ok": true
+      },
+      "fireMaxHit": {
+        "want": 7964,
+        "got": 7964,
+        "ok": true
+      },
+      "coldMaxHit": {
+        "want": 3982,
+        "got": 3982,
+        "ok": true
+      },
+      "lightningMaxHit": {
+        "want": 9696,
+        "got": 9696,
+        "ok": true
+      },
+      "chaosMaxHit": {
+        "want": 2147483647,
+        "got": 2147483647,
         "ok": true
       }
     }
@@ -3215,6 +3601,396 @@
         "want": 21475,
         "got": 21414,
         "ok": false
+      },
+      "chaosMaxHit": {
+        "want": 2147483647,
+        "got": 2147483647,
+        "ok": true
+      }
+    }
+  },
+  "ordinary-infernalist-1.json": {
+    "gaps": {
+      "life": [
+        "flat 180 from Brimstone Brow, Imperial Greathelm",
+        "flat 166 from Corpse Clutches, Runeforged Knightly Mitts"
+      ],
+      "mana": [
+        "flat 90 from Runeseeker's Call, Runemastered Runic Fork",
+        "flat 180 from Runeseeker's Call, Runemastered Runic Fork"
+      ],
+      "energyShield": [],
+      "spirit": [
+        "flat 140 from 46644"
+      ],
+      "evasion": [],
+      "str": [],
+      "dex": [],
+      "int": []
+    },
+    "notCounted": [
+      "Beidat's Will: Spirit per maximum Life",
+      "Heart of the Well: unique — not in our data",
+      "Unrecognised stat base_reduce_enemy_cold_resistance_% (Glaciation)"
+    ],
+    "class": "Infernalist",
+    "source": "https://poe.ninja/poe2/builds/runesofaldur/character/iternus-0992/StickOnThePlan",
+    "matched": 12,
+    "of": 13,
+    "stats": {
+      "str": {
+        "want": 250,
+        "got": 250,
+        "ok": true
+      },
+      "dex": {
+        "want": 35,
+        "got": 35,
+        "ok": true
+      },
+      "int": {
+        "want": 158,
+        "got": 158,
+        "ok": true
+      },
+      "life": {
+        "want": 3512,
+        "got": 3512,
+        "ok": true
+      },
+      "mana": {
+        "want": 1211,
+        "got": 1211,
+        "ok": true
+      },
+      "energyShield": {
+        "want": 234,
+        "got": 234,
+        "ok": true
+      },
+      "armour": {
+        "want": 4836,
+        "got": 4836,
+        "ok": true
+      },
+      "evasion": {
+        "want": 11,
+        "got": 11,
+        "ok": true
+      },
+      "fire": {
+        "want": 76,
+        "got": 76,
+        "ok": true
+      },
+      "cold": {
+        "want": 76,
+        "got": 76,
+        "ok": true
+      },
+      "lightning": {
+        "want": 76,
+        "got": 76,
+        "ok": true
+      },
+      "chaos": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "spirit": {
+        "want": 380,
+        "got": 234,
+        "ok": false
+      }
+    },
+    "derivedMatched": 11,
+    "derivedOf": 19,
+    "derived": {
+      "enemyAccuracy": {
+        "want": 2114,
+        "got": 2114,
+        "ok": true
+      },
+      "evadeChance": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "deflectionRating": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "deflectChance": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "ward": {
+        "want": 119,
+        "got": 119,
+        "ok": true
+      },
+      "lifeRegen": {
+        "want": 105,
+        "got": 0,
+        "ok": false
+      },
+      "manaRegen": {
+        "want": 96,
+        "got": 55,
+        "ok": false
+      },
+      "esRecharge": {
+        "want": 29,
+        "got": 29,
+        "ok": true
+      },
+      "esRechargeDelay": {
+        "want": 4,
+        "got": 4,
+        "ok": true
+      },
+      "movementSpeed": {
+        "want": 129,
+        "got": 129,
+        "ok": true
+      },
+      "enduranceCharges": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "frenzyCharges": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "powerCharges": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "effectiveHealthPool": {
+        "want": 13602,
+        "got": 13686,
+        "ok": false
+      },
+      "physicalMaxHit": {
+        "want": 5488,
+        "got": 5183,
+        "ok": false
+      },
+      "fireMaxHit": {
+        "want": 15632,
+        "got": 16978,
+        "ok": false
+      },
+      "coldMaxHit": {
+        "want": 15810,
+        "got": 16978,
+        "ok": false
+      },
+      "lightningMaxHit": {
+        "want": 15810,
+        "got": 16978,
+        "ok": false
+      },
+      "chaosMaxHit": {
+        "want": 16214,
+        "got": 17668,
+        "ok": false
+      }
+    }
+  },
+  "ordinary-invoker-1.json": {
+    "gaps": {
+      "life": [
+        "3 1 from 56349"
+      ],
+      "mana": [
+        "flat 180 from Horror Call, Omen Sceptre",
+        "flat 249 from Carrion Horn, Ancestral Tiara"
+      ],
+      "energyShield": [],
+      "spirit": [],
+      "evasion": [],
+      "str": [],
+      "dex": [],
+      "int": []
+    },
+    "notCounted": [
+      "Ancestral Tiara: rune line \"+1 to maximum Mana per 2 Item Energy Shield on Equipped Helmet\" not counted",
+      "Unrecognised stat stun_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Dampening Shield, Sapphire)",
+      "Unrecognised stat ailment_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Dampening Shield)",
+      "Unrecognised stat base_reduce_enemy_cold_resistance_% (Glaciation)",
+      "Unrecognised stat critical_strikes_ignore_positive_elemental_resistances (Sunder my Enemies...)",
+      "Unrecognised stat base_spirit_reservation_efficiency_+% (Vile Robe)"
+    ],
+    "class": "Invoker",
+    "source": "https://poe.ninja/poe2/builds/runesofaldur/character/Tomnus-1549/PoTayToms",
+    "matched": 12,
+    "of": 13,
+    "stats": {
+      "str": {
+        "want": 83,
+        "got": 83,
+        "ok": true
+      },
+      "dex": {
+        "want": 81,
+        "got": 81,
+        "ok": true
+      },
+      "int": {
+        "want": 321,
+        "got": 321,
+        "ok": true
+      },
+      "life": {
+        "want": 1,
+        "got": 1,
+        "ok": true
+      },
+      "mana": {
+        "want": 2549,
+        "got": 2253,
+        "ok": false
+      },
+      "energyShield": {
+        "want": 9585,
+        "got": 9585,
+        "ok": true
+      },
+      "armour": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "evasion": {
+        "want": 12,
+        "got": 12,
+        "ok": true
+      },
+      "fire": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "cold": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "lightning": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "chaos": {
+        "want": 100,
+        "got": 100,
+        "ok": true
+      },
+      "spirit": {
+        "want": 403,
+        "got": 403,
+        "ok": true
+      }
+    },
+    "derivedMatched": 18,
+    "derivedOf": 19,
+    "derived": {
+      "enemyAccuracy": {
+        "want": 2114,
+        "got": 2114,
+        "ok": true
+      },
+      "evadeChance": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "deflectionRating": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "deflectChance": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "ward": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "lifeRegen": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "manaRegen": {
+        "want": 470,
+        "got": 268,
+        "ok": false
+      },
+      "esRecharge": {
+        "want": 1437,
+        "got": 1437,
+        "ok": true
+      },
+      "esRechargeDelay": {
+        "want": 5,
+        "got": 5,
+        "ok": true
+      },
+      "movementSpeed": {
+        "want": 142,
+        "got": 142,
+        "ok": true
+      },
+      "enduranceCharges": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "frenzyCharges": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "powerCharges": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "effectiveHealthPool": {
+        "want": 22668,
+        "got": 22668,
+        "ok": true
+      },
+      "physicalMaxHit": {
+        "want": 9586,
+        "got": 9586,
+        "ok": true
+      },
+      "fireMaxHit": {
+        "want": 34236,
+        "got": 34236,
+        "ok": true
+      },
+      "coldMaxHit": {
+        "want": 34236,
+        "got": 34236,
+        "ok": true
+      },
+      "lightningMaxHit": {
+        "want": 34236,
+        "got": 34236,
+        "ok": true
       },
       "chaosMaxHit": {
         "want": 2147483647,
@@ -3786,6 +4562,380 @@
       }
     }
   },
+  "ordinary-mercenary-1.json": {
+    "gaps": {
+      "life": [],
+      "mana": [],
+      "energyShield": [],
+      "spirit": [],
+      "evasion": [],
+      "str": [],
+      "dex": [],
+      "int": []
+    },
+    "notCounted": [
+      "Quest rewards you choose: Venom Draught (Venom Crypts), Seven Pillars (Qimah)",
+      "Unrecognised stat ignore_armour_movement_penalties (Momentum)",
+      "Unrecognised stat local_attribute_requirements_+% (Twin Crossbow)"
+    ],
+    "class": "Mercenary",
+    "source": "https://poe.ninja/poe2/builds/runesofaldur/character/Prize0520-4408/PrizeGem",
+    "matched": 11,
+    "of": 13,
+    "stats": {
+      "str": {
+        "want": 80,
+        "got": 80,
+        "ok": true
+      },
+      "dex": {
+        "want": 128,
+        "got": 128,
+        "ok": true
+      },
+      "int": {
+        "want": 47,
+        "got": 47,
+        "ok": true
+      },
+      "life": {
+        "want": 1475,
+        "got": 1475,
+        "ok": true
+      },
+      "mana": {
+        "want": 513,
+        "got": 513,
+        "ok": true
+      },
+      "energyShield": {
+        "want": 43,
+        "got": 43,
+        "ok": true
+      },
+      "armour": {
+        "want": 82,
+        "got": 82,
+        "ok": true
+      },
+      "evasion": {
+        "want": 1084,
+        "got": 1084,
+        "ok": true
+      },
+      "fire": {
+        "want": 72,
+        "got": 72,
+        "ok": true
+      },
+      "cold": {
+        "want": 75,
+        "got": 74,
+        "ok": false
+      },
+      "lightning": {
+        "want": 75,
+        "got": 65,
+        "ok": false
+      },
+      "chaos": {
+        "want": 21,
+        "got": 21,
+        "ok": true
+      },
+      "spirit": {
+        "want": 100,
+        "got": 100,
+        "ok": true
+      }
+    },
+    "derivedMatched": 14,
+    "derivedOf": 19,
+    "derived": {
+      "enemyAccuracy": {
+        "want": 1691,
+        "got": 1691,
+        "ok": true
+      },
+      "evadeChance": {
+        "want": 13,
+        "got": 13,
+        "ok": true
+      },
+      "deflectionRating": {
+        "want": 628,
+        "got": 628,
+        "ok": true
+      },
+      "deflectChance": {
+        "want": 6,
+        "got": 6,
+        "ok": true
+      },
+      "ward": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "lifeRegen": {
+        "want": 22,
+        "got": 6,
+        "ok": false
+      },
+      "manaRegen": {
+        "want": 25,
+        "got": 25,
+        "ok": true
+      },
+      "esRecharge": {
+        "want": 5,
+        "got": 5,
+        "ok": true
+      },
+      "esRechargeDelay": {
+        "want": 4,
+        "got": 4,
+        "ok": true
+      },
+      "movementSpeed": {
+        "want": 118,
+        "got": 114,
+        "ok": false
+      },
+      "enduranceCharges": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "frenzyCharges": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "powerCharges": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "effectiveHealthPool": {
+        "want": 3517,
+        "got": 3348,
+        "ok": false
+      },
+      "physicalMaxHit": {
+        "want": 1526,
+        "got": 1526,
+        "ok": true
+      },
+      "fireMaxHit": {
+        "want": 4897,
+        "got": 4897,
+        "ok": true
+      },
+      "coldMaxHit": {
+        "want": 5421,
+        "got": 5234,
+        "ok": false
+      },
+      "lightningMaxHit": {
+        "want": 5421,
+        "got": 3995,
+        "ok": false
+      },
+      "chaosMaxHit": {
+        "want": 1894,
+        "got": 1894,
+        "ok": true
+      }
+    }
+  },
+  "ordinary-monk-1.json": {
+    "gaps": {
+      "life": [],
+      "mana": [],
+      "energyShield": [],
+      "spirit": [],
+      "evasion": [],
+      "str": [],
+      "dex": [],
+      "int": []
+    },
+    "notCounted": [
+      "Unrecognised stat ailment_threshold_+_from_%_maximum_energy_shield (Shimmering Mirage, Dampening Shield, Stun and Ailment Threshold from Energy Shield, Ailment Threshold from Energy Shield)",
+      "Unrecognised stat stun_threshold_+_from_%_maximum_energy_shield (Abasement, Dampening Shield, Stun and Ailment Threshold from Energy Shield, Stun Threshold from Energy Shield)",
+      "Unrecognised stat local_attribute_requirements_+% (Adherent's Raiment)"
+    ],
+    "class": "Monk",
+    "source": "https://poe.ninja/poe2/builds/runesofaldur/character/LittleQ-4442/%E6%AD%A6%E5%9C%A3%E7%AA%9D%E7%93%9C",
+    "matched": 12,
+    "of": 13,
+    "stats": {
+      "str": {
+        "want": 162,
+        "got": 162,
+        "ok": true
+      },
+      "dex": {
+        "want": 73,
+        "got": 73,
+        "ok": true
+      },
+      "int": {
+        "want": 177,
+        "got": 177,
+        "ok": true
+      },
+      "life": {
+        "want": 1582,
+        "got": 1582,
+        "ok": true
+      },
+      "mana": {
+        "want": 855,
+        "got": 855,
+        "ok": true
+      },
+      "energyShield": {
+        "want": 8387,
+        "got": 8225,
+        "ok": false
+      },
+      "armour": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "evasion": {
+        "want": 46,
+        "got": 46,
+        "ok": true
+      },
+      "fire": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "cold": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "lightning": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "chaos": {
+        "want": 63,
+        "got": 63,
+        "ok": true
+      },
+      "spirit": {
+        "want": 211,
+        "got": 211,
+        "ok": true
+      }
+    },
+    "derivedMatched": 12,
+    "derivedOf": 19,
+    "derived": {
+      "enemyAccuracy": {
+        "want": 2114,
+        "got": 2114,
+        "ok": true
+      },
+      "evadeChance": {
+        "want": 1,
+        "got": 1,
+        "ok": true
+      },
+      "deflectionRating": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "deflectChance": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "ward": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "lifeRegen": {
+        "want": 28,
+        "got": 28,
+        "ok": true
+      },
+      "manaRegen": {
+        "want": 43,
+        "got": 43,
+        "ok": true
+      },
+      "esRecharge": {
+        "want": 1268,
+        "got": 1244,
+        "ok": false
+      },
+      "esRechargeDelay": {
+        "want": 3.252,
+        "got": 3.252,
+        "ok": true
+      },
+      "movementSpeed": {
+        "want": 139,
+        "got": 139,
+        "ok": true
+      },
+      "enduranceCharges": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "frenzyCharges": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "powerCharges": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "effectiveHealthPool": {
+        "want": 20662,
+        "got": 20326,
+        "ok": false
+      },
+      "physicalMaxHit": {
+        "want": 9969,
+        "got": 9807,
+        "ok": false
+      },
+      "fireMaxHit": {
+        "want": 35604,
+        "got": 35025,
+        "ok": false
+      },
+      "coldMaxHit": {
+        "want": 35604,
+        "got": 35025,
+        "ok": false
+      },
+      "lightningMaxHit": {
+        "want": 35604,
+        "got": 35025,
+        "ok": false
+      },
+      "chaosMaxHit": {
+        "want": 15609,
+        "got": 15391,
+        "ok": false
+      }
+    }
+  },
   "ordinary-oracle.json": {
     "gaps": {
       "life": [
@@ -4349,6 +5499,601 @@
         "want": 2147483647,
         "got": 2147483647,
         "ok": true
+      }
+    }
+  },
+  "ordinary-shaman-1.json": {
+    "gaps": {
+      "life": [
+        "flat 12 from Wrath Grasp, Runeforged Bound Cuffs",
+        "flat 45 from Wrath Grasp, Runeforged Bound Cuffs",
+        "flat 75 from Wrath Grasp, Runeforged Bound Cuffs",
+        "flat 12 from Plague Track, Vaal Greaves",
+        "flat 20 from Plague Track, Vaal Greaves",
+        "flat 80 from Morior Invictus, Grand Regalia",
+        "flat 20 from Act 1: Ogham Manor"
+      ],
+      "mana": [
+        "flat 12 from Wrath Grasp, Runeforged Bound Cuffs",
+        "flat 20 from Wrath Grasp, Runeforged Bound Cuffs",
+        "flat 12 from Plague Track, Vaal Greaves",
+        "flat 20 from Plague Track, Vaal Greaves",
+        "flat 80 from Morior Invictus, Grand Regalia"
+      ],
+      "energyShield": [],
+      "spirit": [
+        "more -50 from 61942"
+      ],
+      "evasion": [],
+      "str": [
+        "flat 3 from 26196",
+        "flat 3 from 26196",
+        "flat 3 from 26196"
+      ],
+      "dex": [
+        "flat 3 from 26196",
+        "flat 3 from 26196",
+        "flat 3 from 26196"
+      ],
+      "int": [
+        "flat 3 from 26196",
+        "flat 3 from 26196",
+        "flat 3 from 26196"
+      ]
+    },
+    "notCounted": [
+      "Heart of the Well: unique — not in our data",
+      "From Nothing: unique — not in our data",
+      "Prism of Belief: unique — not in our data",
+      "Unrecognised stat armour_+_from_%_strength_requirements_from_boots_gloves_helmets (Heavy Armour)",
+      "Unrecognised stat ignore_armour_movement_penalties (Momentum)"
+    ],
+    "class": "Shaman",
+    "source": "https://poe.ninja/poe2/builds/runesofaldur/character/Yorkerk-4812/WhichMonstersTasteGood",
+    "matched": 5,
+    "of": 13,
+    "stats": {
+      "str": {
+        "want": 218,
+        "got": 209,
+        "ok": false
+      },
+      "dex": {
+        "want": 86,
+        "got": 77,
+        "ok": false
+      },
+      "int": {
+        "want": 108,
+        "got": 99,
+        "ok": false
+      },
+      "life": {
+        "want": 3234,
+        "got": 3046,
+        "ok": false
+      },
+      "mana": {
+        "want": 864,
+        "got": 710,
+        "ok": false
+      },
+      "energyShield": {
+        "want": 427,
+        "got": 427,
+        "ok": true
+      },
+      "armour": {
+        "want": 17541,
+        "got": 8691,
+        "ok": false
+      },
+      "evasion": {
+        "want": 0,
+        "got": 1291,
+        "ok": false
+      },
+      "fire": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "cold": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "lightning": {
+        "want": 72,
+        "got": 75,
+        "ok": false
+      },
+      "chaos": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "spirit": {
+        "want": 128,
+        "got": 128,
+        "ok": true
+      }
+    },
+    "derivedMatched": 9,
+    "derivedOf": 19,
+    "derived": {
+      "enemyAccuracy": {
+        "want": 2114,
+        "got": 2114,
+        "ok": true
+      },
+      "evadeChance": {
+        "want": 0,
+        "got": 13,
+        "ok": false
+      },
+      "deflectionRating": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "deflectChance": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "ward": {
+        "want": 450,
+        "got": 450,
+        "ok": true
+      },
+      "lifeRegen": {
+        "want": 64,
+        "got": 0,
+        "ok": false
+      },
+      "manaRegen": {
+        "want": 88,
+        "got": 58,
+        "ok": false
+      },
+      "esRecharge": {
+        "want": 53,
+        "got": 53,
+        "ok": true
+      },
+      "esRechargeDelay": {
+        "want": 4,
+        "got": 4,
+        "ok": true
+      },
+      "movementSpeed": {
+        "want": 165,
+        "got": 158,
+        "ok": false
+      },
+      "enduranceCharges": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "frenzyCharges": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "powerCharges": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "effectiveHealthPool": {
+        "want": 51499,
+        "got": 20456,
+        "ok": false
+      },
+      "physicalMaxHit": {
+        "want": 8141,
+        "got": 5248,
+        "ok": false
+      },
+      "fireMaxHit": {
+        "want": 26467,
+        "got": 16909,
+        "ok": false
+      },
+      "coldMaxHit": {
+        "want": 26467,
+        "got": 16909,
+        "ok": false
+      },
+      "lightningMaxHit": {
+        "want": 24230,
+        "got": 16909,
+        "ok": false
+      },
+      "chaosMaxHit": {
+        "want": 21904,
+        "got": 17159,
+        "ok": false
+      }
+    }
+  },
+  "ordinary-smith-of-kitava-1.json": {
+    "gaps": {
+      "life": [],
+      "mana": [
+        "3 0 from 51749"
+      ],
+      "energyShield": [],
+      "spirit": [],
+      "evasion": [
+        "increased 20 from 45585",
+        "increased 20 from 55617"
+      ],
+      "str": [],
+      "dex": [],
+      "int": []
+    },
+    "notCounted": [
+      "Grip of Kulemak: unique — not in our data",
+      "Sacred Flame: \"Allies in your Presence Regenerate (2-3)% of their Maximum Life per second\" not counted",
+      "Sacred Flame: \"Enemies in your Presence Resist Elemental Damage based on their Lowest Resistance\" not counted",
+      "Against the Darkness: unique — not in our data",
+      "Megalomaniac: unique — not in our data",
+      "Heart of the Well: unique — not in our data",
+      "Scavenged Plating: Armour more needs Multiplier:ScavengedPlatingStacks (a Path of Building configuration setting), so it was not counted",
+      "Unrecognised stat broken_armour_and_sundered_armour_debuff_effect_+% (The Molten One's Gift, Armour Break Effect)",
+      "Unrecognised stat ignore_armour_movement_penalties (Momentum)",
+      "Unrecognised stat modifiers_to_maximum_fire_resistance_apply_to_maximum_cold_and_lightning_resistance (Forged in Flame)",
+      "Unrecognised stat modifiers_to_fire_resistance_also_apply_to_cold_lightning_resistance_at_%_value (Coal Stoker)"
+    ],
+    "class": "Smith of Kitava",
+    "source": "https://poe.ninja/poe2/builds/runesofaldur/character/Aberattio-9076/Andwinn",
+    "matched": 9,
+    "of": 13,
+    "stats": {
+      "str": {
+        "want": 192,
+        "got": 192,
+        "ok": true
+      },
+      "dex": {
+        "want": 103,
+        "got": 103,
+        "ok": true
+      },
+      "int": {
+        "want": 159,
+        "got": 159,
+        "ok": true
+      },
+      "life": {
+        "want": 2491,
+        "got": 2491,
+        "ok": true
+      },
+      "mana": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "energyShield": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "armour": {
+        "want": 11489,
+        "got": 9251,
+        "ok": false
+      },
+      "evasion": {
+        "want": 374,
+        "got": 305,
+        "ok": false
+      },
+      "fire": {
+        "want": 87,
+        "got": 87,
+        "ok": true
+      },
+      "cold": {
+        "want": 87,
+        "got": -24,
+        "ok": false
+      },
+      "lightning": {
+        "want": 87,
+        "got": -24,
+        "ok": false
+      },
+      "chaos": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "spirit": {
+        "want": 322,
+        "got": 322,
+        "ok": true
+      }
+    },
+    "derivedMatched": 8,
+    "derivedOf": 17,
+    "derived": {
+      "enemyAccuracy": {
+        "want": 2114,
+        "got": 2114,
+        "ok": true
+      },
+      "evadeChance": {
+        "want": 4,
+        "got": 3,
+        "ok": false
+      },
+      "deflectionRating": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "deflectChance": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "ward": {
+        "want": 735,
+        "got": 735,
+        "ok": true
+      },
+      "lifeRegen": {
+        "want": 100,
+        "got": 59,
+        "ok": false
+      },
+      "manaRegen": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "movementSpeed": {
+        "want": 153,
+        "got": 131,
+        "ok": false
+      },
+      "enduranceCharges": {
+        "want": 5,
+        "got": 5,
+        "ok": true
+      },
+      "frenzyCharges": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "powerCharges": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "effectiveHealthPool": {
+        "want": 27333,
+        "got": 6654,
+        "ok": false
+      },
+      "physicalMaxHit": {
+        "want": 4499,
+        "got": 3976,
+        "ok": false
+      },
+      "fireMaxHit": {
+        "want": 23222,
+        "got": 20825,
+        "ok": false
+      },
+      "coldMaxHit": {
+        "want": 23222,
+        "got": 3164,
+        "ok": false
+      },
+      "lightningMaxHit": {
+        "want": 23222,
+        "got": 3164,
+        "ok": false
+      },
+      "chaosMaxHit": {
+        "want": 14338,
+        "got": 12904,
+        "ok": false
+      }
+    }
+  },
+  "ordinary-sorceress-1.json": {
+    "gaps": {
+      "life": [],
+      "mana": [],
+      "energyShield": [],
+      "spirit": [],
+      "evasion": [],
+      "str": [],
+      "dex": [],
+      "int": []
+    },
+    "notCounted": [
+      "Sacrosanctum: \"Damage taken Recouped as Life is also Recouped as Energy Shield\" not counted",
+      "Megalomaniac: unique — not in our data",
+      "Unrecognised stat stun_threshold_+_from_%_maximum_energy_shield (Dampening Shield, Stun and Ailment Threshold from Energy Shield)",
+      "Unrecognised stat ailment_threshold_+_from_%_maximum_energy_shield (Dampening Shield, Stun and Ailment Threshold from Energy Shield)"
+    ],
+    "class": "Sorceress",
+    "source": "https://poe.ninja/poe2/builds/runesofaldur/character/DonDiLiu1210-3985/%E4%B8%80%E5%80%8B%E7%B5%90%E6%89%93%E5%BB%BF%E5%9B%9B%E5%80%8B%E9%8C%A2%E8%AA%92%E5%B0%8F%E8%BF%AA%E5%85%AC",
+    "matched": 12,
+    "of": 13,
+    "stats": {
+      "str": {
+        "want": 71,
+        "got": 71,
+        "ok": true
+      },
+      "dex": {
+        "want": 97,
+        "got": 97,
+        "ok": true
+      },
+      "int": {
+        "want": 161,
+        "got": 161,
+        "ok": true
+      },
+      "life": {
+        "want": 1441,
+        "got": 1441,
+        "ok": true
+      },
+      "mana": {
+        "want": 1119,
+        "got": 1119,
+        "ok": true
+      },
+      "energyShield": {
+        "want": 9143,
+        "got": 8661,
+        "ok": false
+      },
+      "armour": {
+        "want": 928,
+        "got": 928,
+        "ok": true
+      },
+      "evasion": {
+        "want": 512,
+        "got": 512,
+        "ok": true
+      },
+      "fire": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "cold": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "lightning": {
+        "want": 76,
+        "got": 76,
+        "ok": true
+      },
+      "chaos": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "spirit": {
+        "want": 442,
+        "got": 442,
+        "ok": true
+      }
+    },
+    "derivedMatched": 10,
+    "derivedOf": 19,
+    "derived": {
+      "enemyAccuracy": {
+        "want": 2114,
+        "got": 2114,
+        "ok": true
+      },
+      "evadeChance": {
+        "want": 5,
+        "got": 5,
+        "ok": true
+      },
+      "deflectionRating": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "deflectChance": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "ward": {
+        "want": 176,
+        "got": 176,
+        "ok": true
+      },
+      "lifeRegen": {
+        "want": 36,
+        "got": 0,
+        "ok": false
+      },
+      "manaRegen": {
+        "want": 33,
+        "got": 22,
+        "ok": false
+      },
+      "esRecharge": {
+        "want": 1142,
+        "got": 1082,
+        "ok": false
+      },
+      "esRechargeDelay": {
+        "want": 5,
+        "got": 5,
+        "ok": true
+      },
+      "movementSpeed": {
+        "want": 96,
+        "got": 96,
+        "ok": true
+      },
+      "enduranceCharges": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "frenzyCharges": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "powerCharges": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "effectiveHealthPool": {
+        "want": 30891,
+        "got": 27070,
+        "ok": false
+      },
+      "physicalMaxHit": {
+        "want": 13291,
+        "got": 11489,
+        "ok": false
+      },
+      "fireMaxHit": {
+        "want": 47139,
+        "got": 40704,
+        "ok": false
+      },
+      "coldMaxHit": {
+        "want": 47139,
+        "got": 40704,
+        "ok": false
+      },
+      "lightningMaxHit": {
+        "want": 48885,
+        "got": 42211,
+        "ok": false
+      },
+      "chaosMaxHit": {
+        "want": 32478,
+        "got": 28266,
+        "ok": false
       }
     }
   },
@@ -5107,6 +6852,193 @@
         "want": 11904,
         "got": 11904,
         "ok": true
+      }
+    }
+  },
+  "ordinary-witchhunter-1.json": {
+    "gaps": {
+      "life": [],
+      "mana": [],
+      "energyShield": [],
+      "spirit": [],
+      "evasion": [
+        "increased 30 from 11257",
+        "increased 30 from 22556",
+        "increased 60 from 4716",
+        "increased 20 from 55617",
+        "increased 20 from 56910",
+        "more 100 from Hyrri's Ire, Armoured Vest",
+        "more -50 from 38601"
+      ],
+      "str": [],
+      "dex": [],
+      "int": []
+    },
+    "notCounted": [
+      "Hyrri's Ire: \"Evasion Rating is doubled if you have not been Hit Recently\" not counted",
+      "Prism of Belief: unique — not in our data",
+      "Against the Darkness: unique — not in our data",
+      "Heart of the Well: unique — not in our data",
+      "Unrecognised stat witchhunter_armour_evasion_+%_final (Obsessive Rituals)"
+    ],
+    "class": "Witchhunter",
+    "source": "https://poe.ninja/poe2/builds/runesofaldur/character/Laza_K-6442/Laza_K",
+    "matched": 11,
+    "of": 13,
+    "stats": {
+      "str": {
+        "want": 167,
+        "got": 167,
+        "ok": true
+      },
+      "dex": {
+        "want": 178,
+        "got": 178,
+        "ok": true
+      },
+      "int": {
+        "want": 46,
+        "got": 46,
+        "ok": true
+      },
+      "life": {
+        "want": 1673,
+        "got": 1673,
+        "ok": true
+      },
+      "mana": {
+        "want": 628,
+        "got": 628,
+        "ok": true
+      },
+      "energyShield": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "armour": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "evasion": {
+        "want": 23064,
+        "got": 20875,
+        "ok": false
+      },
+      "fire": {
+        "want": 45,
+        "got": 45,
+        "ok": true
+      },
+      "cold": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "lightning": {
+        "want": 70,
+        "got": 70,
+        "ok": true
+      },
+      "chaos": {
+        "want": 24,
+        "got": 20,
+        "ok": false
+      },
+      "spirit": {
+        "want": 130,
+        "got": 130,
+        "ok": true
+      }
+    },
+    "derivedMatched": 7,
+    "derivedOf": 17,
+    "derived": {
+      "enemyAccuracy": {
+        "want": 1606,
+        "got": 1691,
+        "ok": false
+      },
+      "evadeChance": {
+        "want": 74,
+        "got": 72,
+        "ok": false
+      },
+      "deflectionRating": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "deflectChance": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "ward": {
+        "want": 102,
+        "got": 102,
+        "ok": true
+      },
+      "lifeRegen": {
+        "want": 1,
+        "got": 0,
+        "ok": false
+      },
+      "manaRegen": {
+        "want": 25,
+        "got": 25,
+        "ok": true
+      },
+      "movementSpeed": {
+        "want": 160,
+        "got": 158,
+        "ok": false
+      },
+      "enduranceCharges": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "frenzyCharges": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "powerCharges": {
+        "want": 3,
+        "got": 3,
+        "ok": true
+      },
+      "effectiveHealthPool": {
+        "want": 58126,
+        "got": 11075,
+        "ok": false
+      },
+      "physicalMaxHit": {
+        "want": 8695,
+        "got": 1775,
+        "ok": false
+      },
+      "fireMaxHit": {
+        "want": 14991,
+        "got": 3060,
+        "ok": false
+      },
+      "coldMaxHit": {
+        "want": 31054,
+        "got": 6339,
+        "ok": false
+      },
+      "lightningMaxHit": {
+        "want": 26348,
+        "got": 5379,
+        "ok": false
+      },
+      "chaosMaxHit": {
+        "want": 11441,
+        "got": 2219,
+        "ok": false
       }
     }
   }
