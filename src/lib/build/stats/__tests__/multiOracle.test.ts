@@ -171,6 +171,17 @@ const DERIVED_FLOOR: Record<string, number> = {
   'ordinary-hybrid-2.json': 10, // of 19
   'ordinary-life-1.json': 12, // of 19
   'ordinary-oracle.json': 16, // of 17
+  // Round-4 class-coverage pool (docs/superpowers/oracle, fetched with scripts/fetch-oracle-pool.mjs): classes the set lacked.
+  'ordinary-amazon-1.json': 15, // of 19
+  'ordinary-amazon-2.json': 9, // round 3: Stalking Panther (slot mores); was 7 // of 19
+  'ordinary-martial-artist-1.json': 8, // round 1 of the accuracy loop: Fists of Stone per-level defences; was 7 // of 19
+  'ordinary-martial-artist-2.json': 13, // round 1 of the accuracy loop: Fists of Stone per-level defences and a jewel's Effect of Notable Passive Skills in Radius; was 6 // of 19
+  'ordinary-pathfinder-1.json': 12, // of 19
+  'ordinary-pathfinder-2.json': 14, // round 3: FullLife derived; was 13 // of 19
+  'ordinary-spirit-walker-1.json': 12, // of 19
+  'ordinary-spirit-walker-2.json': 15, // of 19
+  'ordinary-titan-1.json': 15, // round 1 of the accuracy loop: Hulking Form (effect of Small Passive Skills), Stone Skin (slot more); was 10 // of 19
+  'ordinary-warbringer-1.json': 14, // round 5: Rage and Summoned Totems feed Armour/Evasion, so Life/Armour/Evasion match; was 9 (round 3: Blood Magic; was 8) // of 17
 };
 
 const ours = (sheet: DefenceSheet, k: Key): number => (k === 'fire' || k === 'cold' || k === 'lightning' || k === 'chaos' ? sheet[k].value : sheet[k]);
@@ -197,6 +208,17 @@ const FLOOR: Record<string, number> = {
   'ordinary-life-1.json': 13, // 13 of 13 (round 6): Crimson Power (life = 100% of body armour ES, PercentStat), Multiplier:CorruptedItem (Morior Invictus rune line); was 12. Round 4: the printed Runemastered base (Alpha's Howl); was: // weapon set 2 from the code + Gem Enthusiast (support colours); still short: Crimson Power (life from body ES), Morior +8% life; was: Blood Mage, life; Morior per-socket lines now counted; still short: 1% max Life per Corrupted Item Equipped, Alpha's Howl Runemastered cap, node 31223
   'ordinary-hybrid-2.json': 13, // 13 of 13: Ring 3 (Unfurled Finger), Mystic Attunement's 25% bonus copy of ring/amulet modifiers (collect.ts bonusEffectFromJewellery, floored), Andvarius's untyped -20% line, Grand Spectrum's per-jewel multiplier
   'ordinary-evasion-2.json': 13, // 13 of 13: the PoB code's weapon set (2) puts Palm of the Dreamer and the set-2 passives (Cooked, Chakra of Life) in; Charge Regulation counts with the Configuration's use-endurance-charges switch (skillBuffs.ts)
+  // Round-4 class-coverage set: 10 characters (no Mageblood, no RELIC item) of classes the ordinary set lacked; FLOOR = the match when added.
+  'ordinary-amazon-1.json': 13, // 13 of 13 at the start (Kustu, evasion/ES)
+  'ordinary-amazon-2.json': 13, // round 3: 13 of 13, Stalking Panther doubles helmet/gloves/boots Evasion and halves body (statTable.ts); was 12 // round 2: 12 of 13; a verbatim "N% increased ... from Equipped Body Armour" line (Heart of the Well) scopes to the body slot; was 11, short ES (4123/4800) and Evasion (15605/30956)
+  'ordinary-martial-artist-1.json': 13, // round 6: the Arm 1/2 and Leg 1/2 (Transcendent Limb) slots are now read, so Evasive Leg's 26% increased Evasion counts; before: 12 of 13 // round 1 of the accuracy loop: 12 of 13 (Way of the Stonefist's Fists of Stone: its per-player-level defences count and the unique's untransformed lines do not); short: Evasion (the Evasive Leg limb slot); was 9 at the start: short Mana, ES, Evasion; Armour 60 where PoB has 0
+  'ordinary-martial-artist-2.json': 13, // round 1 of the accuracy loop: 13 of 13 (Fists of Stone per-level defences; a Time-Lost jewel's 22% increased Effect of Notable Passive Skills in Radius scales its notables, floored); was 5 at the start: attributes, Life (over), Mana, ES, Evasion short; Armour 34 where PoB has 0
+  'ordinary-pathfinder-1.json': 13, // 13 of 13 at the start (zzzuzaha2, flask/charm build)
+  'ordinary-pathfinder-2.json': 13, // round 3: 13 of 13, High Alert counts because an unreserved-Life character is on Full Life (reservation.ts); was 12 // 12 of 13 at the start: short Evasion (3899/4586)
+  'ordinary-spirit-walker-1.json': 13, // round 4 of the accuracy loop: 13 of 13 (Uhtred's Exodus: +3 gem levels with no other support, so Charge Regulation reads 21% more not 20%: skillBuffs.ts, support-levels.json); was 10: ES, Armour, Evasion off by 1 to 6
+  'ordinary-spirit-walker-2.json': 13, // 13 of 13 at the start
+  'ordinary-titan-1.json': 13, // round 1 of the accuracy loop: 13 of 13 (Hulking Form scales plain small passives by 50%, floored, never the generic attribute nodes or ascendancy ones; Stone Skin is a body-armour-only more; Kaom's Heart 'You have no Spirit'); was 4 at the start: strength/Life/Mana/ES/Armour/Evasion short, Spirit 200 where PoB has 0 (Grand Spectrum x3, Darkness Enthroned)
+  'ordinary-warbringer-1.json': 13, // round 5: 13 of 13 (corrupted-item count excludes jewels, includes flasks and charms; Rage and Summoned Totems multiply Armour and Evasion passives); was 10. round 3: Blood Magic sets Mana 0 (engine.ts); short Life, Armour, Evasion; was 9 // 9 of 13 at the start: Mana 552 where PoB has 0, Armour and Evasion short, Life over
 };
 
 

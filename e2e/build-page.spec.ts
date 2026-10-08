@@ -10,7 +10,7 @@ import {
 // Slice 1 of the build-profile redesign (specs/2026-09-27-build-profile-
 // redesign-design.md): /builds/[shareToken] becomes one tabbed page for the
 // owner and readers. Seeded with the 8-checkpoint PoB fixture pob-import.spec
-// already proves (first checkpoint level 31, last level 94 with Life 2692).
+// already proves (first checkpoint level 31, last level 94 with Life 2584).
 const TABS = ['Overview', 'Gear', 'Skills', 'Tree', 'Stats'] as const;
 
 async function openTab(page: Page, tab: (typeof TABS)[number]): Promise<void> {
@@ -78,15 +78,15 @@ test.describe('build page (read mode)', () => {
     await page.goto(`/builds/${token}?tab=stats&checkpoint=${lastId}`);
     await expect(page.getByRole('tab', { name: 'Stats', exact: true })).toHaveAttribute('aria-selected', 'true');
     await expect(levelLine).toContainText('Level 94');
-    await expect(page.getByTestId('stats-panel').getByTestId('stat-life')).toHaveText('2692', { timeout: 60_000 });
-    await expect(page.getByTestId('header-stat-life')).toContainText('2692');
+    await expect(page.getByTestId('stats-panel').getByTestId('stat-life')).toHaveText('2584', { timeout: 60_000 });
+    await expect(page.getByTestId('header-stat-life')).toContainText('2584');
 
     // The pair: a different stage of the same link shows different numbers.
     await page.goto(`/builds/${token}?tab=stats&checkpoint=${firstId}`);
     await expect(levelLine).toContainText('Level 31');
     const firstLife = page.getByTestId('stats-panel').getByTestId('stat-life');
     await expect(firstLife).toHaveText(/^\d+$/, { timeout: 60_000 });
-    expect(await firstLife.textContent()).not.toBe('2692');
+    expect(await firstLife.textContent()).not.toBe('2584');
 
     // A checkpoint id that is not this build's falls back to the first, and the URL is rewritten.
     await page.goto(`/builds/${token}?checkpoint=00000000-0000-0000-0000-000000000000`);

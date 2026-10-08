@@ -72,6 +72,10 @@ export interface BuildConfig {
 /** Count inputs we turn into Multipliers: the config var -> the Multiplier name PoB's option applies. */
 export const NUMBER_INPUTS: Readonly<Record<string, string>> = {
   windDancerStacks: 'WindDancerStacks',
+  // "Rage:" (ConfigOptions.lua multiplierRage -> Multiplier:RageStack): read by "Every Rage also grants 1% increased Armour".
+  multiplierRage: 'RageStack',
+  // "# of Summoned Totems (if not maximum):" overrides the count the skills give (totems.ts).
+  TotemsSummoned: 'TotemsSummoned',
 };
 
 /**

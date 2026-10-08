@@ -7,6 +7,7 @@ import type { WeaponSet } from '@poe2-toolkit/tree-core';
 import type { Resistance } from '@/lib/build/stats/engine';
 import type { ReservedSpiritResult } from '@/components/build/useReservedSpirit';
 import type { SetResult } from '@/components/build/useDefenceSheets';
+import DefencesGroup from '@/components/build/DefencesGroup';
 
 function resistanceText(r: Resistance): string {
   return r.uncapped === r.value ? `${r.value}% (max ${r.max}%)` : `${r.value}% (max ${r.max}%, ${r.uncapped}% before the cap)`;
@@ -63,6 +64,7 @@ export default function StatsPanel({
             </div>
           ))}
         </dl>
+        <DefencesGroup derived={sheet.derived} energyShield={sheet.energyShield} />
         {collected.notCounted.length > 0 ? (
           <section className="border-t border-border px-3 py-2 text-xs text-muted-foreground">
             <h3 className="mb-1 text-foreground">Not counted</h3>

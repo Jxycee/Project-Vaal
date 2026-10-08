@@ -153,6 +153,17 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   'oracle_maximum_life_+%_final': more('life'),
   'oracle_maximum_mana_+%_final': more('mana'),
   'titan_maximum_life_+%_final': more('life'),
+  // The Titan's Stone Skin: "50% more Armour from Equipped Body Armour" - a more with PoB's SlotName tag, so it multiplies the body
+  // armour's Armour alone (engine.ts defence()), on top of the global more.
+  'ascendancy_titan_damage_reduction_rating_from_body_armour_+%_final': [{ pool: 'armour', kind: 'more', slot: 'body' }],
+  // The Amazon's Stalking Panther: "Evasion Rating from Equipped Helmet, Gloves and Boots is doubled" / "... Body Armour is halved".
+  // PoB's modcache parses them as a SlotName MORE of +100 / -50 on Evasion, so they are slot-scoped mores (value 1 each, scaled).
+  double_evasion_rating_from_gloves_helmets_boots: [
+    { pool: 'evasion', kind: 'more', slot: 'head', scale: 100 },
+    { pool: 'evasion', kind: 'more', slot: 'gloves', scale: 100 },
+    { pool: 'evasion', kind: 'more', slot: 'boots', scale: 100 },
+  ],
+  halve_evasion_rating_from_body: [{ pool: 'evasion', kind: 'more', slot: 'body', scale: -50 }],
 
   // The Winter Owl: "3% increased Evasion Rating per 10 Intelligence" (PoB PerStat on Int, floor(260 / 10) x 3 = 78).
   'evasion_+%_per_10_intelligence': [{ pool: 'evasion', kind: 'increased', perAttribute: { attr: 'int', per: 10 } }],
@@ -283,10 +294,28 @@ export const CONDITIONAL_EFFECTS: Readonly<Record<string, ConditionalEffect>> = 
   // "if you've consumed a Frenzy Charge Recently": modcache.json gives Multiplier:RemovableFrenzyCharge, and PoB counted the
   // node once (20, not 20 x 3 charges) on evasion-deadeye, whose Configuration only ticks "use Frenzy Charges".
   'evasion_rating_+%_if_consumed_frenzy_charge_recently': { condition: 'UseFrenzyCharges', effects: inc('evasion') },
+  // High Alert: "50% increased Evasion Rating when on Full Life". FullLife is derived from unreserved Life (reservation.ts).
+  'evasion_rating_+%_when_on_full_life': { condition: 'FullLife', effects: inc('evasion') },
   'evasion_rating_+%_if_have_not_been_hit_recently': { condition: 'BeenHitRecently', negate: true, effects: inc('evasion') },
   // Defiance: "80% increased Armour and Evasion Rating when on Low Life". LowLife is derived from Life reservation
   // (reservation.ts) or ticked in the Configuration ("Are you always on Low Life?").
   'armour_and_evasion_on_low_life_+%': { condition: 'LowLife', effects: inc('armour', 'evasion') },
+};
+
+/**
+ * Tree stats that repeat once per count of a PoB Multiplier ("Every Rage also grants 1% increased Armour": 1 x Rage;
+ * "10% increased Armour and Evasion Rating per Summoned Totem in your Presence": 10 x totems). The count comes from the
+ * build's Configuration (multiplierRage -> RageStack) or, for TotemsSummoned, from the skills (totems.ts).
+ * No count known for the name = counts nothing and is named in notCounted, never defaulted. Rage's own cap (30) is the
+ * Configuration's number; it is not re-applied. Checked on ordinary-warbringer-1: 30 Rage x 1 and 1 totem x 10 on Armour.
+ */
+export interface MultipliedEffect {
+  multiplier: string;
+  effects: Effect[];
+}
+export const MULTIPLIED_EFFECTS: Readonly<Record<string, MultipliedEffect>> = {
+  'armour_+%_per_rage': { multiplier: 'RageStack', effects: inc('armour') },
+  'armour_and_evasion_rating_+%_per_active_totem_in_presence': { multiplier: 'TotemsSummoned', effects: inc('armour', 'evasion') },
 };
 
 /** Applied to the carrying item's own base defences / spirit, before quality. */

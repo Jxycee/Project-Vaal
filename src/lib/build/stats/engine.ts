@@ -72,6 +72,8 @@ export interface EngineInput {
      * into Mana's base, Mana's own increased and more apply to it, and Energy Shield's do not.
      */
     eldritchBattery?: boolean;
+    /** Blood Magic: "You have no Mana" (PoB OVERRIDE 0 on Mana: warbringer oracle shows 0, not the usual floor of 1). */
+    bloodMagic?: boolean;
   };
   /** The build's PoB Configuration (conditions such as EnemyBlinded). Absent = unknown, which reads as nothing ticked. */
   config?: BuildConfig;
@@ -159,18 +161,18 @@ export function computeDefences(given: EngineInput): DefenceSheet {
   const lifeToEs = ci ? 0 : Math.min(Math.max(flatOf('lifeToEnergyShield'), 0), 100);
   const life = ci ? 1 : Math.max(Math.round(scaled(lifeBase, 'life') * (1 - lifeToEs / 100)), 1);
   const converted = input.flags.eldritchBattery === true;
-  const mana = Math.max(Math.round(scaled(4 * level + 30 + int * 2 + flatOf('mana') + (converted ? flatOf('energyShield') : 0), 'mana')), 1);
+  const mana = input.flags.bloodMagic ? 0 : Math.max(Math.round(scaled(4 * level + 30 + int * 2 + flatOf('mana') + (converted ? flatOf('energyShield') : 0), 'mana')), 1);
 
   // Each slot's item gets the global increase plus its own slot's (CalcDefence.lua:1445-1453);
   // everything else (class base, global flats) gets the global one only. With no slot-scoped
   // increase this is the same number as scaling the grand total.
   const defence = (pool: Pool, base = 0) => {
     const slotted = slotsOf(input.contributions, pool);
-    let total = (base + sum(input.contributions, pool, 'flat', false)) * (1 + incOf(pool) / 100);
+    let total = (base + sum(input.contributions, pool, 'flat', false)) * (1 + incOf(pool) / 100) * moreOf(pool);
     for (const slot of slotted) {
-      total += sumSlot(input.contributions, pool, 'flat', slot) * (1 + (incOf(pool) + sumSlot(input.contributions, pool, 'increased', slot)) / 100);
+      total += sumSlot(input.contributions, pool, 'flat', slot) * (1 + (incOf(pool) + sumSlot(input.contributions, pool, 'increased', slot)) / 100) * product(input.contributions, pool, slot);
     }
-    return Math.max(Math.round(total * moreOf(pool)), 0);
+    return Math.max(Math.round(total), 0);
   };
 
   const resist = (pool: Pool, maxPool: Pool, penalty: number): Resistance => {
@@ -234,11 +236,13 @@ function sumSlot(list: readonly Contribution[], pool: Pool, kind: Contribution['
  * (ModDB.lua MoreInternal: result * round(modResult, 2); the highPrecisionMods exceptions are BASE crit/regen, none of them
  * a more). Runeseeker's Call: 30% less x 15% less = 0.595 -> 0.60, which is why PoB's Life is 987 and not 979.
  */
-function product(list: readonly Contribution[], pool: Pool): number {
+function product(list: readonly Contribution[], pool: Pool, slot?: GearSlot): number {
   let total = 1;
   let any = false;
   for (const c of list) {
-    if (c.pool === pool && c.kind === 'more' && Number.isFinite(c.value)) {
+    // A slot-tagged more (the Titan's Stone Skin: 50% more Armour from Equipped Body Armour) multiplies that item alone;
+    // the pool's own more (slot undefined) never includes it. A slot asked for gets the global more AND its own.
+    if (c.pool === pool && c.kind === 'more' && Number.isFinite(c.value) && (c.slot === undefined || c.slot === slot)) {
       total *= 1 + c.value / 100;
       any = true;
     }

@@ -59,7 +59,13 @@ export function lifeReservation(gems: GemState | undefined, set: 1 | 2): { perce
 
 /** The Configuration with the conditions the build's own reservations imply (failure mode 8: none without one). */
 export function withDerivedConditions(config: BuildConfig | undefined, lifeReservedPercent: number): BuildConfig | undefined {
-  if (!config || lifeReservedPercent <= 0) return config;
+  if (!config) return config;
+  // Full Life: PoB counts a character whose Life is not reserved at all as on Full Life without the "Are you always on
+  // Full Life?" tick (ordinary-pathfinder-2: High Alert's "50% increased Evasion Rating when on Full Life" is in PoB's
+  // total with conditionFullLife unticked). Any Life reservation, or an always-Low-Life tick, rules it out.
+  if (lifeReservedPercent <= 0) {
+    return config.conditions.includes('FullLife') || config.conditions.includes('LowLife') ? config : { ...config, conditions: [...config.conditions, 'FullLife'].sort() };
+  }
   const unreserved = (100 - lifeReservedPercent) / 100;
   if (unreserved > LOW_POOL_THRESHOLD || config.conditions.includes('LowLife')) return config;
   return { ...config, conditions: [...config.conditions, 'LowLife'].sort() };

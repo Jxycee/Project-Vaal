@@ -292,7 +292,9 @@ async function craftLookups(slug: string, byName: Map<string, CatalogueItem>): P
       .filter((c): c is { m: ModCatalogue['mods'][number]; source: 'normal' | 'desecrated' | 'essence' } => c.source !== null)
       .sort((a, b) => SOURCE_RANK[a.source] - SOURCE_RANK[b.source] || a.m.level - b.m.level)
       .map((c) => bySlug.get(c.m.slug)!),
-    base: detail ? { implicitLines: detail.implicitMods ?? [], uniqueLines: detail.uniqueMods?.explicitMods ?? [] } : null,
+    base: detail
+      ? { implicitLines: detail.implicitMods ?? [], uniqueLines: detail.uniqueMods?.explicitMods ?? [], ...(detail.uniqueMods?.baseType ? { baseType: detail.uniqueMods.baseType } : {}) }
+      : null,
     runeSlugByName: (name) => {
       const entry = byName.get(name);
       return entry && entry.category === 'SoulCore' ? entry.slug : null;
