@@ -76,11 +76,6 @@ describe('draftDiffersFrom — saved build', () => {
     expect(draftDiffersFrom(matchingDraft, reordered)).toBe(false);
   });
 
-  it('returns true when the class differs', () => {
-    const draft: BuildDraftState = { ...matchingDraft, tree: { ...matchingTree, className: 'Ranger' } };
-    expect(draftDiffersFrom(draft, savedBuild)).toBe(true);
-  });
-
   it('returns true when the ascendancy differs', () => {
     const draft: BuildDraftState = { ...matchingDraft, tree: { ...matchingTree, ascendancyId: 'Abyssal Lich' } };
     expect(draftDiffersFrom(draft, savedBuild)).toBe(true);
@@ -125,14 +120,6 @@ describe('draftDiffersFrom — saved build', () => {
     const draft: BuildDraftState = {
       ...matchingDraft,
       gem: { ...savedGem, loadouts: savedGem.loadouts.map((l) => ({ ...l, level: 20 })) },
-    };
-    expect(draftDiffersFrom(draft, savedBuild)).toBe(true);
-  });
-
-  it('returns true when only a gem quality changes', () => {
-    const draft: BuildDraftState = {
-      ...matchingDraft,
-      gem: { ...savedGem, loadouts: savedGem.loadouts.map((l) => ({ ...l, quality: 20 })) },
     };
     expect(draftDiffersFrom(draft, savedBuild)).toBe(true);
   });

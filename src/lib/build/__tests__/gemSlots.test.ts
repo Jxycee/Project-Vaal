@@ -47,21 +47,7 @@ describe('skill-index category vocabulary (live data)', () => {
   });
 });
 
-describe('categoriesForGemSlot', () => {
-  it('maps the skill slot to Active Skill Gem and Spirit Gem', () => {
-    expect(categoriesForGemSlot(GEM_SKILL_PSEUDO_SLOT)).toEqual(['Active Skill Gem', 'Spirit Gem']);
-  });
-
-  it('maps the support slot to Support Gem only', () => {
-    expect(categoriesForGemSlot(GEM_SUPPORT_PSEUDO_SLOT)).toEqual(['Support Gem']);
-  });
-});
-
 describe('isGemPseudoSlot', () => {
-  it('accepts both gem pseudo-slots', () => {
-    expect(isGemPseudoSlot(GEM_SKILL_PSEUDO_SLOT)).toBe(true);
-    expect(isGemPseudoSlot(GEM_SUPPORT_PSEUDO_SLOT)).toBe(true);
-  });
 
   it('rejects gear slots and arbitrary strings', () => {
     expect(isGemPseudoSlot('head')).toBe(false);

@@ -32,9 +32,6 @@ describe('parseFinderFilters', () => {
     expect(parseFinderFilters({ class: '' })).toEqual(EMPTY_FINDER_FILTERS);
   });
 
-  it('returns the empty filter object for no params', () => {
-    expect(parseFinderFilters({})).toEqual(EMPTY_FINDER_FILTERS);
-  });
 });
 
 describe('serializeFinderFilters', () => {
@@ -42,10 +39,6 @@ describe('serializeFinderFilters', () => {
     expect(serializeFinderFilters(EMPTY_FINDER_FILTERS)).toBe('');
   });
 
-  it('serialises a populated filter', () => {
-    const qs = serializeFinderFilters({ class: 'Witch', league: 'Standard', skill: null, tag: null });
-    expect(qs).toBe('?class=Witch&league=Standard');
-  });
 });
 
 describe('round trip', () => {

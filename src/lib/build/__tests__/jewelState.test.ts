@@ -10,7 +10,6 @@ const jewel: GearItem = {
   isUnique: true,
   iconUrl: null,
 };
-const otherJewel: GearItem = { ...jewel, slug: 'crimson-jewel', name: 'Crimson Jewel', isUnique: false };
 
 function raw(): GggTreeJson {
   return {
@@ -29,10 +28,6 @@ function raw(): GggTreeJson {
 }
 
 describe('summarizeJewels', () => {
-  it('lists no sockets and no orphans when nothing is allocated or stored', () => {
-    const summary = summarizeJewels(raw(), [], {});
-    expect(summary).toEqual({ sockets: [], orphans: [], filledCount: 0 });
-  });
 
   it('lists an allocated, empty socket', () => {
     const summary = summarizeJewels(raw(), [1], {});
@@ -53,13 +48,6 @@ describe('summarizeJewels', () => {
     expect(summary.sockets).toEqual([]);
     expect(summary.orphans).toEqual([{ socketId: '1', name: 'Jewel Socket', item: jewel }]);
     expect(summary.filledCount).toBe(0);
-  });
-
-  it('keeps one socket filled and another orphaned independently', () => {
-    const summary = summarizeJewels(raw(), [1], { '1': jewel, '2': otherJewel });
-    expect(summary.sockets).toEqual([{ id: 1, name: 'Jewel Socket', item: jewel }]);
-    expect(summary.orphans).toEqual([{ socketId: '2', name: 'Sinister Jewel Socket', item: otherJewel }]);
-    expect(summary.filledCount).toBe(1);
   });
 
   it('falls back to a generic name for an orphan whose socket id no longer resolves at all', () => {

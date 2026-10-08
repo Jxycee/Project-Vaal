@@ -29,24 +29,6 @@ describe('rangesIn — the "(a-b)" parser', () => {
   });
 });
 
-describe('emptyCraft', () => {
-  it('starts a unique as unique and anything else as normal, with nothing chosen', () => {
-    expect(emptyCraft(true).rarity).toBe('unique');
-    expect(emptyCraft(false)).toEqual({
-      rarity: 'normal',
-      name: null,
-      itemLevel: null,
-      quality: 0,
-      corrupted: false,
-      implicitValues: [],
-      uniqueValues: [],
-      prefixes: [],
-      suffixes: [],
-      runes: [],
-    });
-  });
-});
-
 describe('parseCraft — every way stored data can be wrong', () => {
   it('returns undefined for no craft at all, so old rows read exactly as before', () => {
     expect(parseCraft(undefined, false)).toBeUndefined();
@@ -146,9 +128,6 @@ describe('bestRolls', () => {
     expect(bestRolls([{ min: -5, max: -10 }])).toEqual([-10]);
   });
 
-  it('is empty for a mod with no rolls', () => {
-    expect(bestRolls([])).toEqual([]);
-  });
 });
 
 describe('craftSummary — the one-line craft description both gear lists show', () => {

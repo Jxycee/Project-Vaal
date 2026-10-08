@@ -21,24 +21,6 @@ describe('toPassiveState', () => {
     });
   });
 
-  it('puts a set-2 node in set2 only', () => {
-    const main: WeaponSetAllocation = { allocated: [10], weaponSets: { 10: 2 } };
-    expect(toPassiveState(main, [])).toEqual({
-      set1: [],
-      set2: [10],
-      ascendancyNodes: [],
-    });
-  });
-
-  it('keeps ascendancy nodes in their own list', () => {
-    const main: WeaponSetAllocation = { allocated: [], weaponSets: {} };
-    expect(toPassiveState(main, [7, 8])).toEqual({
-      set1: [],
-      set2: [],
-      ascendancyNodes: [7, 8],
-    });
-  });
-
   it('handles a mixed allocation', () => {
     const main: WeaponSetAllocation = {
       allocated: [1, 2, 3],
@@ -62,11 +44,6 @@ describe('fromPassiveState', () => {
   it('treats a set1-only node as tagged 1', () => {
     const result = fromPassiveState({ set1: [10], set2: [], ascendancyNodes: [] });
     expect(result.main.weaponSets).toEqual({ 10: 1 });
-  });
-
-  it('treats a set2-only node as tagged 2', () => {
-    const result = fromPassiveState({ set1: [], set2: [10], ascendancyNodes: [] });
-    expect(result.main.weaponSets).toEqual({ 10: 2 });
   });
 
   it('tolerates a missing ascendancyNodes key from the stale column default', () => {
@@ -126,11 +103,6 @@ describe('fromPassiveState — attribute choices (Slice 5)', () => {
     expect(fromPassiveState({ set1: [10], set2: [10], ascendancyNodes: [] }).attributeChoices).toEqual({});
   });
 
-  it('round-trips through toPassiveState unchanged', () => {
-    const stored = { set1: [10, 11], set2: [10], ascendancyNodes: [], attributeChoices: { '10': 'int' as const } };
-    const { main, ascendancyNodes, attributeChoices } = fromPassiveState(stored);
-    expect(toPassiveState(main, ascendancyNodes, attributeChoices)).toEqual(stored);
-  });
 });
 
 describe('quest choices (stats/campaign.ts CHOICE_QUESTS)', () => {

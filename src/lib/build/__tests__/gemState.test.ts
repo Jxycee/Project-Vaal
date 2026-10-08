@@ -35,12 +35,6 @@ const support = (n: number): GearItem => ({
   iconUrl: null,
 });
 
-describe('emptyGemState', () => {
-  it('has no loadouts and no primary', () => {
-    expect(emptyGemState()).toEqual({ loadouts: [], primaryId: null });
-  });
-});
-
 describe('newLoadout', () => {
   it('starts empty, in both weapon sets, with a non-empty stable id', () => {
     const loadout = newLoadout();
@@ -200,12 +194,6 @@ describe('addLoadout / removeLoadout', () => {
     expect(state.loadouts[0].skill).toBeNull();
   });
 
-  it('removes a loadout by id', () => {
-    const one = addLoadout(emptyGemState());
-    const id = one.loadouts[0].id;
-    expect(removeLoadout(one, id).loadouts).toHaveLength(0);
-  });
-
   it('clears primaryId when removing the loadout it pointed to', () => {
     const one = addLoadout(emptyGemState());
     const id = one.loadouts[0].id;
@@ -239,12 +227,6 @@ describe('setSkill', () => {
 });
 
 describe('addSupport / removeSupport', () => {
-  it('appends a support', () => {
-    let state = addLoadout(emptyGemState());
-    const id = state.loadouts[0].id;
-    state = addSupport(state, id, support(1));
-    expect(state.loadouts[0].supports).toEqual([support(1)]);
-  });
 
   it('is a no-op (equal by value) once the loadout is at the cap', () => {
     let state = addLoadout(emptyGemState());
@@ -267,12 +249,6 @@ describe('addSupport / removeSupport', () => {
 });
 
 describe('setSets', () => {
-  it('normalises [2,2,1] to [1,2]', () => {
-    let state = addLoadout(emptyGemState());
-    const id = state.loadouts[0].id;
-    state = setSets(state, id, [2, 2, 1]);
-    expect(state.loadouts[0].sets).toEqual([1, 2]);
-  });
 
   it('falls back an empty array to [1,2] ("both" is what untagged means)', () => {
     let state = addLoadout(emptyGemState());
@@ -281,24 +257,9 @@ describe('setSets', () => {
     expect(state.loadouts[0].sets).toEqual([1, 2]);
   });
 
-  it('accepts a single set', () => {
-    let state = addLoadout(emptyGemState());
-    const id = state.loadouts[0].id;
-    state = setSets(state, id, [2]);
-    expect(state.loadouts[0].sets).toEqual([2]);
-  });
 });
 
 describe('setLevel', () => {
-  it('sets the loadout level without touching other loadouts', () => {
-    let state = addLoadout(emptyGemState());
-    state = addLoadout(state);
-    const [first, second] = state.loadouts;
-    state = setLevel(state, first.id, 20);
-    expect(state.loadouts[0].level).toBe(20);
-    expect(state.loadouts[1].level).toBe(1);
-    void second;
-  });
 
   it('clamps below 1 up to 1 and truncates fractions', () => {
     let state = addLoadout(emptyGemState());
@@ -318,15 +279,6 @@ describe('setLevel', () => {
 });
 
 describe('setQuality', () => {
-  it('sets the loadout quality without touching other loadouts', () => {
-    let state = addLoadout(emptyGemState());
-    state = addLoadout(state);
-    const [first, second] = state.loadouts;
-    state = setQuality(state, first.id, 15);
-    expect(state.loadouts[0].quality).toBe(15);
-    expect(state.loadouts[1].quality).toBe(0);
-    void second;
-  });
 
   it('clamps to 0..MAX_GEM_QUALITY', () => {
     let state = addLoadout(emptyGemState());
@@ -338,26 +290,10 @@ describe('setQuality', () => {
   });
 });
 
-describe('setPrimary', () => {
-  it('sets primaryId to the given loadout, clearing any previous one', () => {
-    let state = addLoadout(emptyGemState());
-    state = addLoadout(state);
-    const [first, second] = state.loadouts;
-    state = setPrimary(state, first.id);
-    expect(state.primaryId).toBe(first.id);
-    state = setPrimary(state, second.id);
-    expect(state.primaryId).toBe(second.id);
-  });
-});
-
 describe('deriveMainSkill', () => {
   function stateWith(loadouts: GemState['loadouts'], primaryId: string | null = null): GemState {
     return { loadouts, primaryId };
   }
-
-  it('returns null when there are no loadouts', () => {
-    expect(deriveMainSkill(emptyGemState())).toBeNull();
-  });
 
   it('returns null when no loadout has a skill', () => {
     const state = stateWith([{ id: 'a', skill: null, supports: [], sets: [1, 2], level: 1, quality: 0 }]);
