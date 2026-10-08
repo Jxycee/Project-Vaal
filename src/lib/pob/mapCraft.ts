@@ -25,7 +25,8 @@
 // - A line none of that can hold (a mod the base's pool lacks, a unique we never
 //   typed, a roll past its tier cap, "Allocates X") is kept as written in
 //   `craft.verbatim` when stats/lineMods.ts can read it, instead of being
-//   dropped or clamped; the text is PoB's own shown value, so it is exact.
+//   dropped or clamped; the text is PoB's own shown value, so it is exact. Mageblood's
+//   "Legacy of X" lines are kept this way too, every copy (stats/legacies.ts).
 // =============================================================================
 
 import {
@@ -41,6 +42,7 @@ import {
   type ItemCraft,
   type ItemRarity,
 } from '@/lib/build/craft';
+import { isLegacyLine } from '@/lib/build/stats/legacies';
 import { readLine } from '@/lib/build/stats/lineMods';
 import { matchTemplate, stripTags, valueAt } from './craftText';
 
@@ -87,7 +89,7 @@ function resolveLine(line: string): string {
  */
 function keepVerbatim(line: string, verbatim: string[]): boolean {
   const text = resolveLine(line);
-  if (!/^Allocates .+/.test(text) && readLine(text) === null) return false;
+  if (!/^Allocates .+/.test(text) && !isLegacyLine(text) && readLine(text) === null) return false;
   verbatim.push(text);
   return true;
 }

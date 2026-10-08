@@ -63,7 +63,7 @@
       },
       "armour": {
         "want": 38359,
-        "got": 12302,
+        "got": 24258,
         "ok": false
       },
       "evasion": {
@@ -589,7 +589,7 @@
     },
     "class": "Disciple of Varashta",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/morloxIC-1573/morlox_v_v",
-    "matched": 10,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -634,18 +634,18 @@
       },
       "fire": {
         "want": 75,
-        "got": 74,
-        "ok": false
+        "got": 75,
+        "ok": true
       },
       "cold": {
         "want": 75,
-        "got": 70,
-        "ok": false
+        "got": 75,
+        "ok": true
       },
       "lightning": {
         "want": 75,
-        "got": 43,
-        "ok": false
+        "got": 75,
+        "ok": true
       },
       "chaos": {
         "want": 100,

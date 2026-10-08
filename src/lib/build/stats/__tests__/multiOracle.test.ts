@@ -73,7 +73,7 @@ const FLOOR: Record<string, number> = {
   // The ordinary set (board item 30): mid-complexity public builds. The goal is 13 of 13 on every one.
   'ordinary-ci-acolyte.json': 12,
   'ordinary-ci-disciple.json': 11,
-  'ordinary-ci-es-disciple.json': 10,
+  'ordinary-ci-es-disciple.json': 13, // 13 of 13: Mageblood's legacies (stats/legacies.ts)
   'ordinary-deadeye.json': 12,
   'ordinary-oracle.json': 7,
 };

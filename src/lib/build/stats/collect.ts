@@ -27,6 +27,7 @@ import type { GearState } from '../gearState';
 import type { PassiveState } from '../types';
 import { campaignAt } from './campaign';
 import { DEFENCE_WORDS, implicitStats } from './implicits';
+import { isLegacyLine, LEGACY_EFFECT_LINE, legacyContributions } from './legacies';
 import { readLine } from './lineMods';
 import { categoryApplies, isKnownCategory, readRuneLine } from './runes';
 import type { Contribution } from './engine';
@@ -225,7 +226,24 @@ function collectItem(
     }
     const alternatives = new Map<string, string[]>();
     let assumedRoll = false;
+    // Mageblood: the wiki lists all 14 legacies as sentences, the item wears a few by name (kept verbatim,
+    // every copy). PoB builds their modifiers by name and duplicate count: legacies.ts.
+    let legacyEffect: number | undefined;
     unique.lines.forEach((line, i) => {
+      const effectLine = LEGACY_EFFECT_LINE.exec(line.text);
+      if (effectLine) {
+        const row = craft?.uniqueValues[i] ?? [];
+        legacyEffect = row[0] ?? (effectLine[3] !== undefined ? Number(effectLine[3]) : (Number(effectLine[1]) + Number(effectLine[2])) / 2);
+      }
+    });
+    const worn = (craft?.verbatim ?? []).filter(isLegacyLine);
+    if (worn.length > 0) {
+      const unknownLegacies: string[] = [];
+      contributions.push(...legacyContributions(worn, legacyEffect, item.name, unknownLegacies));
+      for (const name of unknownLegacies) notCounted.push(`${item.name}: Legacy of ${name} is not in this builder's legacy table, so it was not counted`);
+    }
+    unique.lines.forEach((line, i) => {
+      if (worn.length > 0 && (/^Legacy of \w+ /.test(line.text) || LEGACY_EFFECT_LINE.test(line.text))) return;
       const key = statKey(line.stats);
       if (key !== null && (seen.get(key) ?? 0) > 1) {
         alternatives.set(key, [...(alternatives.get(key) ?? []), line.text]);
