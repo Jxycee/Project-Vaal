@@ -85,6 +85,14 @@ export const CHARGE_INPUTS: Readonly<Record<string, string>> = {
   usePowerCharges: 'UsePowerCharges',
 };
 
+/**
+ * Switches PoB names without the "condition" prefix. bannerPlanted -> Condition:BannerPlanted (a planted Banner's aura is
+ * on the character: Defiance Banner's more Armour and Evasion, the hybrid-tactician oracle).
+ */
+export const FLAG_INPUTS: Readonly<Record<string, string>> = {
+  bannerPlanted: 'BannerPlanted',
+};
+
 const NAME = /^[A-Za-z][A-Za-z0-9]{0,63}$/;
 const MAX_ENTRIES = 256;
 
@@ -108,6 +116,7 @@ export function buildConfigFromInputs(inputs: readonly ConfigInput[]): BuildConf
       conditions.add(input.name.slice('condition'.length));
     }
     if (input.boolean === true && CHARGE_INPUTS[input.name] !== undefined) conditions.add(CHARGE_INPUTS[input.name]);
+    if (input.boolean === true && FLAG_INPUTS[input.name] !== undefined) conditions.add(FLAG_INPUTS[input.name]);
     const multiplier = NUMBER_INPUTS[input.name];
     if (multiplier !== undefined && input.number !== null && input.number > 0) multipliers[multiplier] = input.number;
   }

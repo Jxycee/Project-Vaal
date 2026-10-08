@@ -190,6 +190,16 @@ export function collectContributions(
       if (opens && !jewel.craft?.absentLines?.includes(i)) for (const id of (data.sinisterSockets?.() ?? []).slice(0, Number(opens[1]))) nodes.add(id);
     });
   }
+  // A worn item that allocates a jewel socket by name ("Allocates Zarokh's Gift", a Sinister socket) opens it for the
+  // jewel in it: PoB counts the jewel however its socket was allocated. Only a name that is a socket holding a jewel is
+  // resolved here; every other "Allocates X" is read with its item (allocate above).
+  for (const { item } of equipped) {
+    for (const line of item.craft?.verbatim ?? []) {
+      const name = /^Allocates (.+)$/.exec(line.trim())?.[1];
+      const id = name === undefined ? undefined : data.nodeByName?.(name);
+      if (id !== undefined && input.gear.jewels[String(id)] !== undefined) nodes.add(id);
+    }
+  }
   for (const [socket, jewel] of Object.entries(input.gear.jewels)) {
     if (nodes.has(Number(socket))) equipped.push({ item: jewel, socket: Number(socket) });
   }
@@ -255,6 +265,7 @@ export function collectContributions(
     input.gems,
     input.set,
     contributions.filter((c) => c.pool === 'auraEffect' && c.kind === 'increased').reduce((n, c) => n + c.value, 0),
+    contributions.filter((c) => c.pool === 'bannerAuraEffect' && c.kind === 'increased').reduce((n, c) => n + c.value, 0),
     config,
   );
   contributions.push(...buffs.contributions);

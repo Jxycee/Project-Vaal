@@ -392,10 +392,7 @@
       "energyShield": [],
       "spirit": [],
       "evasion": [
-        "increased 25 from Evasive Leg",
-        "increased 20 from 19880",
-        "increased 20 from 49356",
-        "increased 20 from 51707"
+        "increased 25 from Evasive Leg"
       ],
       "str": [],
       "dex": [],
@@ -447,7 +444,7 @@
       },
       "evasion": {
         "want": 35368,
-        "got": 29725,
+        "got": 33708,
         "ok": false
       },
       "fire": {
@@ -486,17 +483,17 @@
       },
       "evadeChance": {
         "want": 77,
-        "got": 74,
+        "got": 76,
         "ok": false
       },
       "deflectionRating": {
         "want": 16191,
-        "got": 12484,
+        "got": 14157,
         "ok": false
       },
       "deflectChance": {
         "want": 72,
-        "got": 62,
+        "got": 67,
         "ok": false
       },
       "ward": {
@@ -546,7 +543,7 @@
       },
       "effectiveHealthPool": {
         "want": 63542,
-        "got": 54088,
+        "got": 60278,
         "ok": false
       },
       "physicalMaxHit": {
@@ -630,12 +627,12 @@
       },
       "armour": {
         "want": 5207,
-        "got": 3254,
+        "got": 5077,
         "ok": false
       },
       "evasion": {
         "want": 2311,
-        "got": 1444,
+        "got": 2253,
         "ok": false
       },
       "fire": {
@@ -664,7 +661,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 7,
+    "derivedMatched": 9,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -674,18 +671,18 @@
       },
       "evadeChance": {
         "want": 20,
-        "got": 14,
-        "ok": false
+        "got": 20,
+        "ok": true
       },
       "deflectionRating": {
         "want": 1041,
-        "got": 650,
+        "got": 1015,
         "ok": false
       },
       "deflectChance": {
         "want": 8,
-        "got": 5,
-        "ok": false
+        "got": 8,
+        "ok": true
       },
       "ward": {
         "want": 0,
@@ -734,12 +731,12 @@
       },
       "effectiveHealthPool": {
         "want": 26777,
-        "got": 21582,
+        "got": 24845,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 8357,
-        "got": 7676,
+        "got": 7840,
         "ok": false
       },
       "fireMaxHit": {

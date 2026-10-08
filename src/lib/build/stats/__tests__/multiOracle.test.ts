@@ -157,7 +157,7 @@ const DERIVED_FLOOR: Record<string, number> = {
   'armour-life-gemling.json': 9, // of 19
   'es-life-stormweaver.json': 8, // of 19
   'evasion-deadeye.json': 14, // of 19
-  'hybrid-tactician.json': 7, // of 19
+  'hybrid-tactician.json': 9, // round 10: Defiance Banner partly counted (bannerPlanted, Banner aura magnitudes); was 7 // of 19
   'ordinary-armour-1.json': 9, // of 17
   'ordinary-caster-1.json': 9, // of 17
   'ordinary-caster-2.json': 13, // round 9; was 12 // of 19

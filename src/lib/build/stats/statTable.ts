@@ -38,6 +38,8 @@ export type Pool =
   | 'spirit'
   // Percent increased magnitudes of Aura skills: not a sheet number, it scales skill-granted buffs (skillBuffs.ts).
   | 'auraEffect'
+  // Percent increased magnitudes of Banner skills only ("banner_aura_effect_+%"): added to auraEffect for a Banner, not for other Auras.
+  | 'bannerAuraEffect'
   // The derived defence stats (engine.ts; DERIVED in multiOracle.test.ts). They are PoB's own modifier names in
   // lower camel case: a pool's `flat` is its BASE, `increased` its INC, `more` its MORE.
   | 'maxEndurance'
@@ -253,6 +255,7 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
 
   // "Aura Skills have N% increased Magnitudes": scales the Auras' own modifiers (skillBuffs.ts), PoB2 AuraEffect.
   'aura_effect_+%': inc('auraEffect'),
+  'banner_aura_effect_+%': inc('bannerAuraEffect'),
 };
 
 /**
@@ -277,6 +280,9 @@ export const CONDITIONAL_EFFECTS: Readonly<Record<string, ConditionalEffect>> = 
   'armour_+%_if_have_been_hit_recently': { condition: 'BeenHitRecently', effects: inc('armour') },
   'armour_+%_if_you_havent_been_hit_recently': { condition: 'BeenHitRecently', negate: true, effects: inc('armour') },
   'evasion_+%_if_hit_recently': { condition: 'BeenHitRecently', effects: inc('evasion') },
+  // "if you've consumed a Frenzy Charge Recently": modcache.json gives Multiplier:RemovableFrenzyCharge, and PoB counted the
+  // node once (20, not 20 x 3 charges) on evasion-deadeye, whose Configuration only ticks "use Frenzy Charges".
+  'evasion_rating_+%_if_consumed_frenzy_charge_recently': { condition: 'UseFrenzyCharges', effects: inc('evasion') },
   'evasion_rating_+%_if_have_not_been_hit_recently': { condition: 'BeenHitRecently', negate: true, effects: inc('evasion') },
   // Defiance: "80% increased Armour and Evasion Rating when on Low Life". LowLife is derived from Life reservation
   // (reservation.ts) or ticked in the Configuration ("Are you always on Low Life?").

@@ -29,6 +29,11 @@
 //   9. A charge threshold ("StatThreshold:EnduranceCharges:1", Charge Regulation) holds when the Configuration ticks
 //      the matching "use charges" switch and the threshold is within the base maximum of 3; off when it is not
 //      ticked; named in notCounted with no Configuration at all.
+//  10. A Banner (skillTypes "Banner") is scaled by "increased Aura magnitudes" PLUS "increased Banner Aura magnitudes"
+//      (the pool bannerAuraEffect); its buff counts only with the Configuration's "Is your Banner planted?"
+//      (bannerPlanted -> Condition:BannerPlanted). KNOWN GAP: PoB's Defiance Banner on hybrid-tactician is exactly 60%
+//      more (30 x 2.00), we reach 56.1 (30 x 1.87): the remaining 13% is PoB's Valour (Config bannerValour 50), whose
+//      rule is in PoB's Lua and not in the synced data. Left short rather than guessed.
 //   8. "+N to Level of all skills" from gear is not modelled: the table is read at the gem's own level, which
 //      is exactly right only when no such modifier is worn. (An assumption, listed in `assumed` when it applies.)
 // =============================================================================
@@ -52,7 +57,7 @@ interface BuffEffect {
   values?: number[];
   needs?: string[];
 }
-type BuffSkill = { name: string; effects: BuffEffect[] };
+type BuffSkill = { name: string; /** A Banner skill: also scaled by "increased Banner Aura magnitudes". */ banner?: boolean; effects: BuffEffect[] };
 
 const KINDS: Record<string, Contribution['kind']> = { BASE: 'flat', INC: 'increased', MORE: 'more' };
 
@@ -98,6 +103,8 @@ export function skillBuffContributions(
   set: 1 | 2,
   /** The summed "increased Aura magnitudes" percent from the tree and gear. */
   auraEffectPercent: number,
+  /** The summed "increased Banner Aura magnitudes"; added to the Aura magnitudes for a Banner skill only. */
+  bannerEffectPercent = 0,
   /** The build's Path of Building Configuration; undefined = it came without one. */
   config?: BuildConfig,
 ): { contributions: Contribution[]; notCounted: string[]; counted: string[] } {
@@ -153,7 +160,8 @@ export function skillBuffContributions(
         }
       }
       if (value === undefined) continue;
-      if (e.effect === 'Aura' && auraEffectPercent !== 0) value = scale(value, 1 + auraEffectPercent / 100);
+      const effectPercent = auraEffectPercent + (skill.banner ? bannerEffectPercent : 0);
+      if (e.effect === 'Aura' && effectPercent !== 0) value = scale(value, 1 + effectPercent / 100);
       if (e.multiplier) {
         const count = Math.min(config?.multipliers[e.multiplier.var] ?? motes[e.multiplier.var] ?? 0, e.multiplier.limit ?? Infinity);
         if (count === 0) continue;
