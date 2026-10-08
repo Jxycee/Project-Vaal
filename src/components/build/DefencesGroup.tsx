@@ -28,6 +28,31 @@ function hit(n: number | undefined): string {
   return n === Infinity ? 'Immune' : whole(n);
 }
 
+// Row ids whose figure is close to Path of Building 2's but not yet exact. Measured by the multi-oracle run
+// (docs/superpowers/oracle/results.json, 37 real builds): EHP and the physical/fire/cold/lightning max hits run 2-10%
+// low on most builds, chaos max hit, life regen, mana regen and evade chance miss on 13-16 of 37. Deflection, charges
+// and ES recharge match. Remove an id here when the oracle matches that stat; this set should shrink over time.
+const APPROXIMATE: ReadonlySet<string> = new Set([
+  'stat-evade-chance',
+  'stat-life-regen',
+  'stat-mana-regen',
+  'stat-ehp',
+  'stat-maxhit-physical',
+  'stat-maxhit-fire',
+  'stat-maxhit-cold',
+  'stat-maxhit-lightning',
+  'stat-maxhit-chaos',
+]);
+
+const APPROX_HINT = "Close to Path of Building's figure but not exact yet; known gaps: block, suppression, damage-taken modifiers, conversion.";
+
+/** Marks a row approximate: "≈" before a real number (not "Immune" or a dash) and the extra hint sentence. */
+function flagApprox(r: Row): Row {
+  if (!APPROXIMATE.has(r.id)) return r;
+  const numeric = r.value !== 'Immune' && !r.value.includes('—');
+  return { ...r, value: numeric ? `≈${r.value}` : r.value, hint: `${r.hint} ${APPROX_HINT}` };
+}
+
 interface Row {
   id: string;
   label: string;
@@ -87,7 +112,7 @@ function rowsOf(d: DerivedStats, energyShield: number): Row[] {
 export default function DefencesGroup({ derived, energyShield }: { derived: DerivedStats | undefined; energyShield: number }) {
   const [open, setOpen] = useState<string | null>(null);
   if (!derived) return null;
-  const rows = rowsOf(derived, energyShield);
+  const rows = rowsOf(derived, energyShield).map(flagApprox);
   return (
     <section className="border-t border-border" data-testid="stat-defences">
       <h3 className="px-3 pt-3 text-xs text-foreground">Defences</h3>
