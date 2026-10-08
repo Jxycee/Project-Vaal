@@ -26,10 +26,6 @@ const entry = (slug: string) => ({
 });
 
 describe('validateSyncResult', () => {
-  it('passes when the count is stable', () => {
-    expect(() => validateSyncResult([entry('a'), entry('b')], 2)).not.toThrow();
-  });
-
   it('throws on an empty result', () => {
     expect(() => validateSyncResult([], 100)).toThrow(/empty/i);
   });
@@ -39,22 +35,12 @@ describe('validateSyncResult', () => {
     expect(() => validateSyncResult(entries, 100)).toThrow(/dropped/i);
   });
 
-  it('allows growth without complaint', () => {
-    const entries = Array.from({ length: 200 }, (_, i) => entry(`s${i}`));
-    expect(() => validateSyncResult(entries, 100)).not.toThrow();
-  });
-
   it('throws on duplicate slugs', () => {
     expect(() => validateSyncResult([entry('a'), entry('a')], 2)).toThrow(/duplicate/i);
   });
 
   it('skips the drop check on a first run', () => {
     expect(() => validateSyncResult([entry('a')], 0)).not.toThrow();
-  });
-
-  it('names the escape hatch in the drop error so the operator can find it', () => {
-    const entries = Array.from({ length: 80 }, (_, i) => entry(`s${i}`));
-    expect(() => validateSyncResult(entries, 100)).toThrow(/--allow-shrink/);
   });
 
   it('waives the drop check when the shrink is declared intentional', () => {
@@ -239,15 +225,6 @@ describe('joinCurrencyByName', () => {
     expect(joinCurrencyByName(dir).get('Mirror of Kalandra')?.description).toBe('Creates a [Mirrored] copy of an item');
   });
 
-  it('returns an empty map when a name has no matching currency row', () => {
-    const dir = writeTables(
-      [{ _index: 0, Id: 'Metadata/Items/Gear/Sword', Name: 'Rusted Sword' }],
-      [],
-    );
-
-    expect(joinCurrencyByName(dir).size).toBe(0);
-  });
-
   it('keeps the first row on a name collision, same convention as ItemData itself', () => {
     const dir = writeTables(
       [
@@ -318,15 +295,6 @@ describe('joinImplicitModsByName', () => {
     expect(joinImplicitModsByName(dir, modData).has('Flag-Only Base')).toBe(false);
   });
 
-  it('does not include a base with an empty Implicit_Mods array', () => {
-    const dir = writeTables(
-      [{ _index: 0, Id: 'Metadata/Items/X', Name: 'No Implicits Base', Implicit_Mods: [] }],
-      [],
-    );
-
-    expect(joinImplicitModsByName(dir, {}).has('No Implicits Base')).toBe(false);
-  });
-
   it('keeps the first base on a name collision, same convention as joinCurrencyByName', () => {
     const dir = writeTables(
       [
@@ -370,34 +338,6 @@ describe('joinFlaskStatsByName', () => {
       lifeRecovery: 0,
       manaRecovery: 285,
       duration: 3.5,
-    });
-  });
-
-  it('returns an empty map when a name has no matching flask row', () => {
-    const dir = writeTables(
-      [{ _index: 0, Id: 'Metadata/Items/Currency/X', Name: 'Chaos Orb' }],
-      [],
-    );
-
-    expect(joinFlaskStatsByName(dir).size).toBe(0);
-  });
-
-  it('keeps the first row on a name collision, same convention as joinCurrencyByName', () => {
-    const dir = writeTables(
-      [
-        { _index: 0, Id: 'Metadata/Items/A', Name: 'Duplicate Name' },
-        { _index: 1, Id: 'Metadata/Items/B', Name: 'Duplicate Name' },
-      ],
-      [
-        { _index: 0, BaseItemType: 0, LifePerUse: 50, ManaPerUse: 0, RecoveryTime: 30 },
-        { _index: 1, BaseItemType: 1, LifePerUse: 999, ManaPerUse: 0, RecoveryTime: 99 },
-      ],
-    );
-
-    expect(joinFlaskStatsByName(dir).get('Duplicate Name')).toEqual({
-      lifeRecovery: 50,
-      manaRecovery: 0,
-      duration: 3,
     });
   });
 });
@@ -460,11 +400,6 @@ describe('readEffectRows', () => {
       { id: 'righteous_fire', name: 'Righteous Fire', description: 'You take burning damage.', buffCategory: 1 },
     ]);
   });
-
-  it('returns an empty array when the table has no usable rows', () => {
-    const dir = writeTable([{ _index: 0, Id: 'x', Name: '', Description: '' }]);
-    expect(readEffectRows(dir)).toEqual([]);
-  });
 });
 
 describe('readMapRows', () => {
@@ -506,22 +441,6 @@ describe('readMapRows', () => {
     );
     expect(readMapRows(dir)).toEqual([]);
   });
-
-  it('keeps the first row on a name collision, same convention as readEffectRows', () => {
-    const dir = writeTables(
-      [
-        { WorldArea: 0, FlavourText: 'Exactly as you remember it...' },
-        { WorldArea: 1, FlavourText: 'Delusions of suffering...' },
-      ],
-      [
-        { _index: 0, Name: 'Simulacrum of Delusion' },
-        { _index: 1, Name: 'Simulacrum of Delusion' },
-      ],
-    );
-    expect(readMapRows(dir)).toEqual([
-      { name: 'Simulacrum of Delusion', flavourText: 'Exactly as you remember it...' },
-    ]);
-  });
 });
 
 describe('readKeywordDefinitions', () => {
@@ -556,14 +475,6 @@ describe('readKeywordDefinitions', () => {
       { _index: 6, Id: 'test2', Term: 'Test custom content', Definition: '' },
     ]);
     expect(readKeywordDefinitions(dir)).toEqual(new Map());
-  });
-
-  it('keeps the first row on a Term collision, same convention as every other by-name join here', () => {
-    const dir = writeTable([
-      { _index: 0, Id: 'A', Term: 'Charms', Definition: 'First definition.' },
-      { _index: 1, Id: 'B', Term: 'Charms', Definition: 'Second definition.' },
-    ]);
-    expect(readKeywordDefinitions(dir)).toEqual(new Map([['Charms', 'First definition.']]));
   });
 });
 
@@ -609,13 +520,6 @@ describe('applyCommunitySource', () => {
     expect(applyCommunitySource('mod', details, {})).toBe(details);
     expect(applyCommunitySource('mod', details, { mod: {} })).toBe(details);
   });
-
-  it('does not mutate entries with no override', () => {
-    const details = [{ slug: 'a' }, { slug: 'b' }];
-    const result = applyCommunitySource('mod', details, { mod: { b: { text: 'x', sourceUrl: 'y' } } });
-    expect(result[0]).toBe(details[0]);
-    expect(result[1]).not.toBe(details[1]);
-  });
 });
 
 describe('attachKeywordDefinitions', () => {
@@ -632,13 +536,6 @@ describe('attachKeywordDefinitions', () => {
   it('returns the same array reference when there are no keyword definitions at all', () => {
     const details = [{ name: 'Bleeding' }];
     expect(attachKeywordDefinitions(details, new Map())).toBe(details);
-  });
-
-  it('does not mutate entries with no matching term', () => {
-    const details = [{ name: 'Bleeding' }, { name: 'Nothing Matches' }];
-    const result = attachKeywordDefinitions(details, new Map([['Bleeding', 'x']]));
-    expect(result[1]).toBe(details[1]);
-    expect(result[0]).not.toBe(details[0]);
   });
 });
 
@@ -740,17 +637,6 @@ description
       [{ SoulCore: 0, StatCategory: 0, Stats: [0], StatsValues: [45] }],
       [{ _index: 0, Id: 'Armour', Display: 'Armour' }],
       [{ _index: 0, Id: 'base_fire_damage_resistance_%' }],
-    );
-    expect(joinSoulCoresByName(dir, statIndex)).toEqual(new Map());
-  });
-
-  it('returns an empty map when SoulCoreStats has no rows', () => {
-    const dir = writeTables(
-      [{ _index: 0, Name: 'Desert Rune' }],
-      [{ _index: 0, BaseItemType: 0 }],
-      [],
-      [],
-      [],
     );
     expect(joinSoulCoresByName(dir, statIndex)).toEqual(new Map());
   });

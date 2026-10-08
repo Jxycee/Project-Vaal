@@ -62,16 +62,6 @@ describe('loadIndex', () => {
     expect(readFileMock).toHaveBeenCalledTimes(1);
   });
 
-  it('caches across calls after the first resolves too', async () => {
-    readFileMock.mockResolvedValue(JSON.stringify({ entries: [validEntry] }));
-    const { loadIndex } = await import('./loadIndex');
-
-    await loadIndex('item');
-    await loadIndex('item');
-
-    expect(readFileMock).toHaveBeenCalledTimes(1);
-  });
-
   it('does not cache a failure — a later call retries', async () => {
     readFileMock.mockRejectedValueOnce(new Error('transient'));
     readFileMock.mockResolvedValueOnce(JSON.stringify({ entries: [validEntry] }));

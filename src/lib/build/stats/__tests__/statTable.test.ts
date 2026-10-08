@@ -42,32 +42,30 @@ const POOL_WORDS: Record<Pool, RegExp> = {
   auraEffect: /Aura.*Magnitudes/,
 };
 
-describe('conditional stat table — against real data', () => {
-  for (const [stat, { effects, condition }] of Object.entries(CONDITIONAL_EFFECTS)) {
-    it(`${stat} exists, names ${effects.map((e) => e.pool).join(', ')} (gated by ${condition})`, () => {
-      const texts = (textsFor.get(stat) ?? []).map((t) => t.replace(/\[[^|\]]*\|([^\]]*)\]/g, '$1').replace(/\[([^\]]*)\]/g, '$1'));
-      expect(texts.length, `${stat} is in neither the tree nor the mod files`).toBeGreaterThan(0);
-      for (const { pool } of effects) expect(texts.some((t) => POOL_WORDS[pool].test(t)), `no text for ${stat} mentions ${pool}`).toBe(true);
-    });
-  }
-});
+const strip = (t: string) => t.replace(/\[[^|\]]*\|([^\]]*)\]/g, '$1').replace(/\[([^\]]*)\]/g, '$1');
 
-describe.each([
-  ['global', GLOBAL_EFFECTS],
-  ['local', LOCAL_EFFECTS],
-])('%s stat table — against real data', (_label, table) => {
+/** Every (stat, pool) pair whose id is missing from our data or whose text never names the pool. */
+const mismatches = (table: Record<string, { pool: Pool }[]>) => {
+  const bad: string[] = [];
   for (const [stat, effects] of Object.entries(table)) {
-    it(`${stat} exists in our data and its text names ${effects.map((e) => e.pool).join(', ')}`, () => {
-      const texts = textsFor.get(stat);
-      expect(texts, `${stat} is in neither the tree nor the mod files`).toBeDefined();
-      for (const { pool } of effects) {
-        expect(
-          texts!.some((t) => POOL_WORDS[pool].test(t.replace(/\[[^|\]]*\|([^\]]*)\]/g, '$1').replace(/\[([^\]]*)\]/g, '$1'))),
-          `no text for ${stat} mentions ${pool}`,
-        ).toBe(true);
-      }
-    });
+    const texts = (textsFor.get(stat) ?? []).map(strip);
+    if (texts.length === 0) bad.push(`${stat}: in neither the tree nor the mod files`);
+    else for (const { pool } of effects) if (!texts.some((t) => POOL_WORDS[pool].test(t))) bad.push(`${stat}: no text mentions ${pool}`);
   }
+  return bad;
+};
+
+// One test per table (not per stat id): every entry is still checked, and a failure lists every bad id.
+describe('stat tables — against real data', () => {
+  it('every conditional entry exists in our data and its text names each pool it maps to', () => {
+    expect(mismatches(Object.fromEntries(Object.entries(CONDITIONAL_EFFECTS).map(([s, { effects }]) => [s, effects])))).toEqual([]);
+  });
+  it('every global entry exists in our data and its text names each pool it maps to', () => {
+    expect(mismatches(GLOBAL_EFFECTS)).toEqual([]);
+  });
+  it('every local entry exists in our data and its text names each pool it maps to', () => {
+    expect(mismatches(LOCAL_EFFECTS)).toEqual([]);
+  });
 });
 
 describe('stat table — shape', () => {
@@ -89,20 +87,25 @@ describe('stat table — shape', () => {
 });
 
 describe('looksLikeDefenceStat — which unmapped ids are worth naming on the sheet', () => {
-  it.each(['maximum_life_+%_final', 'base_maximum_spirit', 'future_resist_all_+%', 'dexterity_+%', 'maximum_energy_shield_from_gloves_+%', 'base_physical_damage_reduction_rating_extra'])(
-    'names %s',
-    (id) => expect(looksLikeDefenceStat(id)).toBe(true),
-  );
+  it('names defence ids across the pool kinds', () => {
+    for (const id of ['maximum_life_+%_final', 'base_maximum_spirit', 'future_resist_all_+%', 'dexterity_+%', 'maximum_energy_shield_from_gloves_+%', 'base_physical_damage_reduction_rating_extra']) {
+      expect(looksLikeDefenceStat(id), id).toBe(true);
+    }
+  });
 
   // Real ids from the reference characters: offence, conditionals, recovery rates and conversions.
-  it.each([
-    'attack_speed_+%',
-    'attack_damage_+%_when_on_low_life',
-    'mana_regeneration_rate_+%',
-    'life_leech_from_physical_attack_damage_permyriad',
-    'armour_break_amount_+%',
-    '%_maximum_life_as_focus',
-    'base_movement_velocity_+%',
-    'display_passive_attribute_text',
-  ])('stays silent about %s', (id) => expect(looksLikeDefenceStat(id)).toBe(false));
+  it('stays silent about offence, conditionals, recovery rates and conversions', () => {
+    for (const id of [
+      'attack_speed_+%',
+      'attack_damage_+%_when_on_low_life',
+      'mana_regeneration_rate_+%',
+      'life_leech_from_physical_attack_damage_permyriad',
+      'armour_break_amount_+%',
+      '%_maximum_life_as_focus',
+      'base_movement_velocity_+%',
+      'display_passive_attribute_text',
+    ]) {
+      expect(looksLikeDefenceStat(id), id).toBe(false);
+    }
+  });
 });

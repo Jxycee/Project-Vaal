@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { closeGemEditor, gotoBuilds, openEditor, openTree } from './helpers';
+import { closeGemEditor, openEditor, openTree } from './helpers';
 
 declare global {
   interface Window {
@@ -67,19 +67,8 @@ test.describe('mobile layout', () => {
     });
   });
 
-  test('interactive controls meet the minimum tap target size', async ({ page }) => {
-    await gotoBuilds(page);
-
-    // Scoped to <main>: the shared app chrome (header, bottom nav) is not this
-    // page's concern and is asserted separately, so a chrome regression does
-    // not fail every page's test at once.
-    const result = await page.evaluate(
-      (min) => window.__measureTapTargets!('main', min),
-      MIN_TAP_PX,
-    );
-    expect(result.scanned, 'no controls found inside <main> on /builds').toBeGreaterThan(0);
-    expect(result.tooSmall, `controls under ${MIN_TAP_PX}px on /builds`).toEqual([]);
-  });
+  // /builds' tap targets (the whole of <main>, populated) and its horizontal
+  // overflow are asserted by library.spec.ts "cards: one link each...".
 
   test('the build page editors meet the minimum tap target size', async ({ page }) => {
     // The /builds check above cannot see any of this: the jewels and gem-group
@@ -142,17 +131,8 @@ test.describe('mobile layout', () => {
     // is now comparing an empty list against an empty list.
     expect(measured, 'expected at least one z-10 overlay on the tree').toBeGreaterThanOrEqual(1);
     expect(outside, 'tree overlays outside the canvas').toEqual([]);
-  });
 
-  test('no horizontal page scroll', async ({ page }) => {
-    // Waits that mean something, rather than `networkidle`: /builds is ready
-    // when the list is, and /tree when the canvas hook is installed. The
-    // service worker plus Next's dev connections make "quiet network" a poor
-    // proxy for either.
-    await gotoBuilds(page);
-    await expectNoOverflow(page, '/builds');
-
-    await openTree(page);
+    // /tree must not scroll sideways either (waits on the canvas hook, not networkidle).
     await expectNoOverflow(page, '/tree');
   });
 });

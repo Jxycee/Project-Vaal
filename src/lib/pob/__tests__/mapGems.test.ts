@@ -167,7 +167,9 @@ describe('mapGems — output', () => {
   it('uses both weapon sets by default — PoB groups carry no weapon set here', () => {
     expect(mapGems([group(1, [gem('SkillGemA')])], null, catalogue).value.loadouts[0].sets).toEqual([1, 2]);
   });
+});
 
+describe('mapGems — write gate', () => {
   it('produces state the write gate accepts unchanged', () => {
     const { value } = mapGems([group(1, [gem('SkillGemA', { level: 20, quality: 20 }), gem('SupportGem1')])], 1, catalogue);
     const gated = cleanGemStateInput(value);

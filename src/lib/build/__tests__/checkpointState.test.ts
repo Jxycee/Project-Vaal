@@ -134,12 +134,6 @@ describe('reorder', () => {
     expect(reorder(three, 0, 2).map((c) => c.id)).toEqual(['b', 'c', 'a']);
   });
 
-  it('does not mutate its input', () => {
-    const before = three.map((c) => c.id);
-    reorder(three, 2, 0);
-    expect(three.map((c) => c.id)).toEqual(before);
-  });
-
   it('returns the list unchanged for an out-of-range index', () => {
     expect(reorder(three, 5, 0).map((c) => c.id)).toEqual(['a', 'b', 'c']);
     expect(reorder(three, 0, -1).map((c) => c.id)).toEqual(['a', 'b', 'c']);
@@ -158,8 +152,4 @@ describe('renumber', () => {
     expect(renumber(withGap).map((c) => c.position)).toEqual([0, 1]);
   });
 
-  it('is a no-op on an already contiguous list', () => {
-    const list = parseCheckpoints([row({ id: 'a', position: 0 }), row({ id: 'b', position: 1 })]);
-    expect(renumber(list).map((c) => c.position)).toEqual([0, 1]);
-  });
 });

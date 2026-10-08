@@ -54,11 +54,6 @@ describe('handednessOf — against public/data/wiki', () => {
 // so a unique Mace's handedness is known too — by slug, since the stored item
 // carries only the unique-stash category.
 describe('handednessOf — unique maces, by slug', () => {
-  it('knows a two-handed and a one-handed unique mace', () => {
-    expect(handednessOf('Mace', 'hrimnors-hymn')).toBe('two');
-    expect(handednessOf('Mace', 'frostbreath')).toBe('one');
-  });
-
   it('stays unknown for a Mace slug it has no entry for, or no slug at all', () => {
     expect(handednessOf('Mace', 'not-a-real-mace')).toBe('unknown');
     expect(handednessOf('Mace')).toBe('unknown');

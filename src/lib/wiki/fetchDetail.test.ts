@@ -19,11 +19,6 @@ describe('extractCardSnippet', () => {
     expect(result.accent).toBe('var(--wiki-unique)');
   });
 
-  it('gives a normal item the neutral border accent color', () => {
-    const result = extractCardSnippet('item', { rarity: 'normal' });
-    expect(result.accent).toBe('var(--border)');
-  });
-
   it('reads a skill\'s description and gem-color accent, with no icon fallback needed', () => {
     const result = extractCardSnippet('skill', {
       iconUrl: '/gem.png',

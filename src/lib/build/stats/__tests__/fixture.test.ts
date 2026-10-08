@@ -71,11 +71,8 @@ const from = (source: string, pool: string) =>
   collected.contributions.filter((c) => c.source === source && c.pool === pool && c.kind === 'flat').reduce((n, c) => n + c.value, 0);
 
 describe('the fixture build — each armour piece, against PoB2 current bases x the item formula', () => {
-  it('Paragon Greathelm: Armour 357 at 20% quality -> 428', () => {
+  it('Paragon Greathelm: Armour 357 -> 428 and Vaal Greaves: Armour 268 -> 322, both at 20% quality', () => {
     expect(from('Paragon Greathelm', 'armour')).toBe(Math.round(357 * 1.2));
-  });
-
-  it('Vaal Greaves: Armour 268 at 20% quality -> 322', () => {
     expect(from('Vaal Greaves', 'armour')).toBe(Math.round(268 * 1.2));
   });
 

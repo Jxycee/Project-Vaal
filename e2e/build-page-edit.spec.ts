@@ -173,7 +173,7 @@ test.describe('build page edit in place', () => {
     await expect(levelLine(page)).toContainText('Hardcore');
   });
 
-  test('no bogus restore prompt', async ({ page, context }) => {
+  test("no bogus restore prompt, and an unsaved draft survives an owner's visit in view mode", async ({ page, context }) => {
     const editUrl = `/builds/${token}?edit=1`;
 
     // ---- Negative: a clean revisit shows no draft notice at all.
@@ -209,7 +209,21 @@ test.describe('build page edit in place', () => {
 
     await waitForDraft(page, buildId, checkpointId);
 
-    // A draft exists in localStorage going into this reload, which is
+    // Regression for a data-loss bug: BuildSession used to read/write the
+    // localStorage draft whenever `canEdit` was true, regardless of edit mode.
+    // An owner with an unsaved edit who opened the SAME build in VIEW mode (no
+    // ?edit=1 -- e.g. following their own share link) had the draft read
+    // effect load it and the draft-write effect immediately overwrite it with
+    // the freshly-seeded saved state, destroying the unsaved work with no
+    // notice (view mode never renders draft-notice). So visit the build in
+    // view mode first -- Tree tab so PassiveTree and the session fully mount,
+    // then Overview -- and require the draft to still be offered afterwards.
+    await goto(page, `/builds/${token}?tab=tree`);
+    await waitForTreeApi(page);
+    await goto(page, `/builds/${token}`);
+    await expect(page.getByTestId('header-stats')).toBeVisible({ timeout: 30_000 });
+
+    // A draft exists in localStorage going into this load, which is
     // exactly the condition that used to trip a React hydration mismatch
     // (BuildSession read the draft in a lazy useState initialiser — the
     // server render always saw no localStorage, the client's hydration
@@ -223,9 +237,9 @@ test.describe('build page edit in place', () => {
       if (/hydrat/i.test(err.message)) hydrationMessages.push(err.message);
     });
 
-    await page.reload();
-    await expect(page.getByTestId('draft-notice')).toBeVisible();
-    expect(hydrationMessages, 'hydration mismatch while reloading with an existing draft').toEqual([]);
+    await goto(page, editUrl);
+    await expect(page.getByTestId('draft-notice'), 'the view-mode visit destroyed the unsaved draft').toBeVisible({ timeout: 30_000 });
+    expect(hydrationMessages, 'hydration mismatch while loading with an existing draft').toEqual([]);
     await page.getByTestId('draft-notice').getByRole('button', { name: 'Restore' }).click();
 
     await page.getByRole('tab', { name: 'Tree', exact: true }).click();
@@ -402,55 +416,6 @@ test.describe('build page edit in place', () => {
 
     // Leave the build clean: discard the restored draft rather than saving
     // it, so this test doesn't change what any later run finds.
-    await page.getByRole('button', { name: 'Done' }).click();
-    await expect(page.getByTestId('unsaved-choice')).toBeVisible();
-    await page.getByTestId('unsaved-choice').getByRole('button', { name: 'Discard' }).click();
-  });
-
-  test("unsaved edits survive an owner's visit in view mode", async ({ page }) => {
-    // Regression test for a data-loss bug: BuildSession used to read/write
-    // the localStorage draft whenever `canEdit` was true, regardless of edit
-    // mode. So an owner with an unsaved edit who later opened the SAME build
-    // in VIEW mode (no ?edit=1 -- e.g. following their own share link) would
-    // have the draft read effect load the draft, and then the draft-write
-    // effect immediately overwrite it with the freshly-seeded (saved) state
-    // -- destroying the unsaved work with no notice ever shown (view mode
-    // never renders draft-notice). Self-contained, with its own
-    // reload/discard cycle, so it can't disturb the other tests' build-state
-    // assumptions; last in the serial describe for the same reason.
-    await goto(page, `/builds/${token}?edit=1&tab=tree`);
-    await waitForTreeApi(page);
-    const checkpointId = new URL(page.url()).searchParams.get('checkpoint') ?? undefined;
-
-    const taken = new Set((await treeState(page)).allocated);
-    const [nodeId] = (await nodesNearStart(page, 12)).filter((id) => !taken.has(id));
-    expect(nodeId, 'no unallocated node near the start to add').toBeTruthy();
-    const before = (await treeState(page)).allocated.length;
-    await allocateNodes(page, [nodeId]);
-    await expect
-      .poll(async () => (await treeState(page)).allocated.length, { message: 'unsaved allocation never landed' })
-      .toBe(before + 1);
-    await waitForDraft(page, buildId, checkpointId);
-
-    // View mode: no ?edit=1. Visit the Tree tab first so PassiveTree and the
-    // session fully mount and any effects run, then Overview, waiting for a
-    // real per-page signal rather than a fixed sleep each time.
-    await goto(page, `/builds/${token}?tab=tree`);
-    await waitForTreeApi(page);
-    await goto(page, `/builds/${token}`);
-    await expect(page.getByTestId('header-stats')).toBeVisible({ timeout: 30_000 });
-
-    // Back into edit mode: the draft must still be there, offered back.
-    await goto(page, `/builds/${token}?edit=1&tab=tree`);
-    await expect(page.getByTestId('draft-notice')).toBeVisible({ timeout: 30_000 });
-    await page.getByTestId('draft-notice').getByRole('button', { name: 'Restore' }).click();
-
-    await page.getByRole('tab', { name: 'Tree', exact: true }).click();
-    await waitForTreeApi(page);
-    const restored = await treeState(page);
-    expect(restored.allocated, 'the view-mode visit destroyed the unsaved node').toContain(nodeId);
-
-    // Clean up: leave the build as the earlier tests expect.
     await page.getByRole('button', { name: 'Done' }).click();
     await expect(page.getByTestId('unsaved-choice')).toBeVisible();
     await page.getByTestId('unsaved-choice').getByRole('button', { name: 'Discard' }).click();

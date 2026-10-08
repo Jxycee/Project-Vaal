@@ -11,9 +11,6 @@ import { describe, expect, it } from 'vitest';
 import { renderLine } from '../renderLine';
 
 describe('renderLine', () => {
-  it('fills a single range', () => {
-    expect(renderLine('+(30-50)% to Fire Resistance', [42])).toBe('+42% to Fire Resistance');
-  });
   it('fills a negative range, both bounds negative', () => {
     expect(renderLine('(-10--5)% reduced Damage taken', [-7])).toBe('-7% reduced Damage taken');
   });

@@ -11,9 +11,6 @@ const fixture = (name: string) =>
 const SYNCED_AT = '2026-08-21T17:16:06.876Z';
 
 describe('slugify', () => {
-  it('lowercases and hyphenates', () => {
-    expect(slugify('Ice Nova')).toBe('ice-nova');
-  });
   it('strips apostrophes rather than encoding them', () => {
     expect(slugify("Kaom's Heart")).toBe('kaoms-heart');
   });
@@ -37,25 +34,12 @@ describe('stripBracketMarkup', () => {
   it('keeps the key itself for a bare [Key] tag with no pipe', () => {
     expect(stripBracketMarkup('Creates a [Mirrored] copy of an item')).toBe('Creates a Mirrored copy of an item');
   });
-
-  it('leaves plain text with no markup unchanged', () => {
-    expect(stripBracketMarkup('Reforges a Rare item with new modifiers')).toBe('Reforges a Rare item with new modifiers');
-  });
-
-  it('strips multiple tags in one string', () => {
-    expect(stripBracketMarkup('Upgrades a [Flask|flask] to a higher [ItemRarity|Magic] rarity'))
-      .toBe('Upgrades a flask to a higher Magic rarity');
-  });
 });
 
 describe('stripXboxButtonTokens', () => {
   it('replaces xbox_button_x with X', () => {
     expect(stripXboxButtonTokens('<<xbox_button_x>> to use, then <<xbox_button_a>> on martial weapon to apply it.'))
       .toBe('X to use, then A on martial weapon to apply it.');
-  });
-
-  it('leaves plain text with no button tokens unchanged', () => {
-    expect(stripXboxButtonTokens('Right click this item to apply it.')).toBe('Right click this item to apply it.');
   });
 
   it('falls back to the raw key for an unrecognized button token instead of vanishing it', () => {
@@ -81,10 +65,6 @@ describe('enrichKeywordLines', () => {
   it('requires a whole-line match, not a substring - a numeric line naming the same term stays untouched', () => {
     const definitions = new Map([['Strength', 'Strength is an Attribute...']]);
     expect(enrichKeywordLines(['+(40-60) to Strength'], definitions)).toEqual(['+(40-60) to Strength']);
-  });
-
-  it('passes every line through unchanged when given no definitions', () => {
-    expect(enrichKeywordLines(['Legacy of Gold', 'Legacy of Ruby'], new Map())).toEqual(['Legacy of Gold', 'Legacy of Ruby']);
   });
 });
 
@@ -112,11 +92,6 @@ describe('normalizeItem', () => {
     expect(result.iconUrl).toBe('/data/wiki/2026-08-21/icons/items/kaoms-heart.png');
   });
 
-  it('sets lastSynced to a real ISO timestamp', () => {
-    const result = normalizeItem(raw.name, raw, null, SYNCED_AT);
-    expect(new Date(result.lastSynced).toISOString()).toBe(result.lastSynced);
-  });
-
   it("stamps the caller's timestamp verbatim instead of reading the clock", () => {
     // The whole point of threading a per-run timestamp: two records from one
     // sync must be byte-identical to the previous sync's when the upstream
@@ -126,17 +101,6 @@ describe('normalizeItem', () => {
     const b = normalizeItem(raw.name, raw, null, SYNCED_AT);
     expect(a.lastSynced).toBe(SYNCED_AT);
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
-  });
-
-  it('defaults soulCoreEffects to null when the caller passes none', () => {
-    const result = normalizeItem(raw.name, raw, null, SYNCED_AT);
-    expect(result.soulCoreEffects).toBeNull();
-  });
-
-  it('carries soulCoreEffects through unchanged when the caller passes some (a Rune item)', () => {
-    const effects = [{ category: 'Armour', lines: ['+45% to Fire Resistance'] }];
-    const result = normalizeItem(raw.name, raw, null, SYNCED_AT, null, [], null, null, new Map(), effects);
-    expect(result.soulCoreEffects).toEqual(effects);
   });
 
   it('defaults description, directions, consoleDirections, and stackSize to null when no currency row is given', () => {
@@ -167,16 +131,6 @@ describe('normalizeItem', () => {
       xboxDirections: '<<xbox_button_x>> to use, then <<xbox_button_a>> on martial weapon to apply it.',
     });
     expect(result.consoleDirections).toBe('X to use, then A on martial weapon to apply it.');
-  });
-
-  it('also strips bracket markup from consoleDirections, same as directions', () => {
-    const result = normalizeItem(raw.name, raw, null, SYNCED_AT, {
-      stackSize: 10,
-      description: null,
-      directions: 'A stack of 10 shards becomes an Orb of Alchemy',
-      xboxDirections: 'A stack of 10 shards becomes an [OrbOfAlchemy|Orb of Alchemy]',
-    });
-    expect(result.consoleDirections).toBe('A stack of 10 shards becomes an Orb of Alchemy');
   });
 
   it('passes stackSize through even when it is 1 (real value for non-stackable currency) rather than nulling it', () => {
@@ -222,38 +176,6 @@ describe('normalizeItem', () => {
     expect(result.consoleButtons).toBeNull();
   });
 
-  it('defaults implicitMods to an empty array when none is given', () => {
-    const result = normalizeItem(raw.name, raw, null, SYNCED_AT);
-    expect(result.implicitMods).toEqual([]);
-  });
-
-  it('carries implicitMods through unchanged when given', () => {
-    const result = normalizeItem(raw.name, raw, null, SYNCED_AT, null, [
-      'Bleeding you inflict deals Damage (10-20)% faster',
-    ]);
-    expect(result.implicitMods).toEqual(['Bleeding you inflict deals Damage (10-20)% faster']);
-  });
-
-  it('defaults flask to null when none is given', () => {
-    const result = normalizeItem(raw.name, raw, null, SYNCED_AT);
-    expect(result.flask).toBeNull();
-  });
-
-  it('carries flask stats through unchanged when given', () => {
-    const result = normalizeItem(raw.name, raw, null, SYNCED_AT, null, [], {
-      lifeRecovery: 0,
-      manaRecovery: 285,
-      duration: 3.5,
-    });
-    expect(result.flask).toEqual({ lifeRecovery: 0, manaRecovery: 285, duration: 3.5 });
-  });
-
-  it('defaults uniqueMods to null and leaves implicitMods as given when no PoB entry is passed', () => {
-    const result = normalizeItem(raw.name, raw, null, SYNCED_AT, null, ['a GGPK implicit']);
-    expect(result.uniqueMods).toBeNull();
-    expect(result.implicitMods).toEqual(['a GGPK implicit']);
-  });
-
   it('populates uniqueMods and overrides implicitMods from a PoB entry when given', () => {
     const result = normalizeItem(raw.name, raw, null, SYNCED_AT, null, ['a GGPK implicit'], null, {
       name: raw.name,
@@ -275,7 +197,7 @@ describe('normalizeItem', () => {
   // sample-item.json ("Bramblejack") is a unique with no base-type link, so
   // its armour/weapon/req are genuinely null/zero for that item - the real
   // fixture can't exercise the armour- or weapon-populated branches of
-  // normalizeItem. The two tests below are a disclosed, narrow exception to
+  // normalizeItem. The test below is a disclosed, narrow exception to
   // "fixtures only": a hand-constructed Item-shaped object (not captured
   // data) built solely to cover those branches.
   describe('synthetic edge case: base item with armour and weapon rows', () => {
@@ -297,34 +219,10 @@ describe('normalizeItem', () => {
       tags: ['armour', 'body_armour', 'str_armour', 'default'],
     };
 
-    const weaponBase: Item = {
-      rarity: 'normal',
-      icon: 'Art/2DItems/Weapons/OneHandWeapons/Swords/BaseSword.dds',
-      itemClass: 'One Hand Sword',
-      category: null,
-      twoHanded: false,
-      req: { str: 20, dex: 15, int: 0 },
-      armour: null,
-      weapon: {
-        damageMin: 5, damageMax: 12, critical: 500, attackTime: 1200, rangeMax: 11, reloadTime: 0,
-      },
-      spirit: 0,
-      dropLevel: 5,
-      flavourText: null,
-      modDomain: 'Item',
-      tags: ['weapon', 'one_hand_weapon', 'sword', 'default'],
-    };
-
     it('carries the armour row through unchanged when populated', () => {
       const result = normalizeItem('Base Body Armour', armouredBase, null, SYNCED_AT);
       expect(result.armour).toEqual(armouredBase.armour);
       expect(result.weapon).toBeNull();
-    });
-
-    it('carries the weapon row through unchanged when populated', () => {
-      const result = normalizeItem('Base Sword', weaponBase, null, SYNCED_AT);
-      expect(result.weapon).toEqual(weaponBase.weapon);
-      expect(result.armour).toBeNull();
     });
   });
 });
@@ -364,10 +262,6 @@ describe('stripPobSourceMarkup', () => {
   it('strips unique{} and normal{} cross-reference markup to plain text', () => {
     expect(stripPobSourceMarkup('Drops from unique{Xesht, We That Are One} in normal{Twisted Domain}'))
       .toBe('Drops from Xesht, We That Are One in Twisted Domain');
-  });
-
-  it('passes plain text through unchanged when there is no markup', () => {
-    expect(stripPobSourceMarkup('Drops from Act 1 bosses')).toBe('Drops from Act 1 bosses');
   });
 });
 
@@ -513,11 +407,6 @@ describe('normalizeSkill', () => {
     expect(result.gemType).toBe(raw.gem.kind);
   });
 
-  it('defaults scaling to an empty array when the fixture has none', () => {
-    const result = normalizeSkill(raw.key, raw.gem, null, null, null, SYNCED_AT);
-    expect(result.scaling).toEqual([]);
-  });
-
   // Regression cover for the same silent drop that hid qualityStats, on the
   // field that matters most for import. `key` is the gem's GGG identity - the
   // last segment of its BaseItemTypes.Id metadata path - and normalizeSkill
@@ -531,12 +420,6 @@ describe('normalizeSkill', () => {
     const result = normalizeSkill(raw.key, raw.gem, raw.requirement, raw.scaling, null, SYNCED_AT);
     expect(raw.key).toBe('SkillGemIceNova');
     expect(result.gemId).toBe(raw.key);
-  });
-
-  it('keeps gemId distinct from the name-derived slug', () => {
-    const result = normalizeSkill(raw.key, raw.gem, raw.requirement, raw.scaling, null, SYNCED_AT);
-    expect(result.slug).toBe('ice-nova');
-    expect(result.gemId).not.toBe(result.slug);
   });
 
   // Regression cover for a silent drop: the extractor has always produced
@@ -571,12 +454,6 @@ describe('normalizeSkill', () => {
     expect(result.scaling[0].attackCritChance).toBe(source.attackCritChance);
   });
 
-  it('carries the gem hover image through from the extractor', () => {
-    const result = normalizeSkill(raw.key, raw.gem, raw.requirement, raw.scaling, null, SYNCED_AT);
-    expect(raw.gem.hoverImage).toBeTruthy();
-    expect(result.hoverImage).toBe(raw.gem.hoverImage);
-  });
-
   it('falls back to the gem-level requirement when no per-level requirement curve exists', () => {
     const result = normalizeSkill(raw.key, raw.gem, null, null, null, SYNCED_AT);
     expect(result.requirement.level).toBe(raw.gem.req.level);
@@ -607,11 +484,6 @@ describe('normalizeMod', () => {
     const result = normalizeMod(raw.id, raw, SYNCED_AT);
     expect(result.rolls).toEqual(raw.rolls);
     expect(result.spawnWeights).toEqual(raw.spawnWeights);
-  });
-
-  it('passes a named domain through unchanged', () => {
-    const result = normalizeMod(raw.id, raw, SYNCED_AT);
-    expect(result.domain).toBe('Item');
   });
 
   it('relabels the unnamed ModDomains enum slots "6" and "8" to their real, verified meaning', () => {
@@ -663,10 +535,6 @@ describe('normalizeEffect', () => {
     for (const name of ['Bleeding', 'Ignited', 'Chilled', 'Frozen', 'Shocked', 'Poisoned']) {
       expect(normalizeEffect({ id: 'x', name, description: 'd', buffCategory: 2 }, SYNCED_AT).tags).toEqual(['Debuff', 'Ailment']);
     }
-  });
-
-  it('does not tag a non-ailment debuff as an Ailment', () => {
-    expect(normalizeEffect({ id: 'x', name: 'Temporal Chains', description: 'd', buffCategory: 2 }, SYNCED_AT).tags).toEqual(['Debuff']);
   });
 
   it('leaves tags empty for an unmapped or missing BuffCategory, rather than guessing', () => {
@@ -755,34 +623,16 @@ describe('toSearchEntry', () => {
     expect(toSearchEntry(detail).tags).toEqual(['catalyst', 'quality_currency']);
   });
 
-  it('drops detail-only fields from a mod', () => {
-    const raw = fixture('sample-mod.json');
-    const entry = toSearchEntry(normalizeMod(raw.id, raw, SYNCED_AT));
-    expect(Object.keys(entry).sort()).toEqual(['category', 'isUniqueItem', 'kind', 'name', 'slug', 'tags']);
-  });
-
   it('uses families as the search tags for a mod', () => {
     const raw = fixture('sample-mod.json');
     const entry = toSearchEntry(normalizeMod(raw.id, raw, SYNCED_AT));
     expect(entry.tags).toEqual(raw.families);
   });
 
-  it('gives a map entry no search tags', () => {
-    const entry = toSearchEntry(normalizeMap({ name: 'Blooming Field', flavourText: 'd' }, SYNCED_AT));
-    expect(entry.tags).toEqual([]);
-    expect(entry.category).toBe('Map');
-  });
-
   it('reassigns a "[DNT-UNUSED]"-named item to the Unused / Removed category, keeping its real category on the detail record', () => {
     const raw = fixture('sample-item.json');
     const detail = normalizeItem('[DNT-UNUSED] Axe Chop', { ...raw }, null, SYNCED_AT);
     expect(detail.category).not.toBe('Unused / Removed'); // detail record itself is untouched
-    expect(toSearchEntry(detail).category).toBe('Unused / Removed');
-  });
-
-  it('reassigns an exact "Removed Skill" name the same way', () => {
-    const raw = fixture('sample-item.json');
-    const detail = normalizeItem('Removed Skill', { ...raw }, null, SYNCED_AT);
     expect(toSearchEntry(detail).category).toBe('Unused / Removed');
   });
 

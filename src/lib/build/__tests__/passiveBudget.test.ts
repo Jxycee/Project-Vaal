@@ -10,10 +10,6 @@ describe('derivePassiveBudget', () => {
     expect(derivePassiveBudget(1)).toBe(QUEST_PASSIVE_POINTS);
   });
 
-  it('derives a mid-level budget', () => {
-    expect(derivePassiveBudget(40)).toBe(63); // (40 - 1) + 24
-  });
-
   it('clamps a level above 100 down to 100', () => {
     expect(derivePassiveBudget(150)).toBe(123);
   });

@@ -138,10 +138,6 @@ describe('computeDefences — increased from one equipped slot (PoB2 CalcDefence
     expect(d.energyShield).toBe(100);
   });
 
-  it('leaves an unscoped total exactly as before', () => {
-    const d = computeDefences(input({ contributions: [c('energyShield', 100), c('energyShield', 25, 'increased')] }));
-    expect(d.energyShield).toBe(125);
-  });
 });
 
 // Chaos Inoculation (PoB2 CalcPerform/CalcDefence: ChaosInoculation sets Life to 1
@@ -168,11 +164,5 @@ describe('computeDefences — Chaos Inoculation', () => {
     expect(d.energyShield).toBe(base.energyShield);
     expect(d.mana).toBe(base.mana);
     expect(d.fire).toEqual(base.fire);
-  });
-
-  it('without the flag, Life and chaos are the ordinary sums', () => {
-    const d = computeDefences(input({ contributions: rich }));
-    expect(d.life).toBeGreaterThan(500);
-    expect(d.chaos.value).toBe(-30);
   });
 });

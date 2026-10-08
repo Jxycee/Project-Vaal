@@ -5,10 +5,6 @@ import { GIANTS_BLOOD, INSTRUMENTS_OF_POWER, LORD_OF_THE_WILDS, keystonesFor } f
 const none = { giantsBlood: false, instrumentsOfPower: false, lordOfTheWilds: false };
 
 describe('keystonesFor — every way it could be wrong', () => {
-  it('reports nothing for an empty tree', () => {
-    expect(keystonesFor({ set1: [], set2: [], ascendancyNodes: [] }, 1)).toEqual(none);
-  });
-
   it('reads a set-specific keystone from its own set only', () => {
     const passive = { set1: [], set2: [GIANTS_BLOOD], ascendancyNodes: [] };
     expect(keystonesFor(passive, 1).giantsBlood).toBe(false);

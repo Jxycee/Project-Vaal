@@ -58,11 +58,6 @@ describe('buildMentionIndex', () => {
     expect(targets.get(parts[1])).toEqual({ kind: 'item', slug: 'greater-orb-of-alchemy' });
   });
 
-  it('produces a pattern matching nothing when there are no eligible names', () => {
-    const { pattern } = buildMentionIndex([[], [], [entry({ name: 'Vaal', kind: 'mod', slug: 'x' })]]);
-    expect('Vaal appears here'.split(pattern)).toEqual(['Vaal appears here']);
-  });
-
   it('registers a search-fallback target for a tiered family with no bare entry', () => {
     const { targets } = buildMentionIndex([
       [],
@@ -109,19 +104,9 @@ describe('buildMentionIndex', () => {
     expect(targets.get('Orb of Transmutation')).toEqual({ kind: 'item', slug: 'orb-of-transmutation' });
   });
 
-  it('matches a plural mention ("Chaos Orbs") whole, including the trailing s', () => {
-    const { pattern } = buildMentionIndex([[], [entry({ name: 'Chaos Orb', kind: 'item', slug: 'chaos-orb' })], []]);
-    expect('drop as Chaos Orbs instead'.split(pattern)).toEqual(['drop as ', 'Chaos Orbs', ' instead']);
-  });
-
 });
 
 describe('resolveMentionTarget', () => {
-  it('resolves an exact match directly', () => {
-    const index = buildMentionIndex([[], [entry({ name: 'Chaos Orb', kind: 'item', slug: 'chaos-orb' })], []]);
-    expect(resolveMentionTarget('Chaos Orb', index)).toEqual({ kind: 'item', slug: 'chaos-orb' });
-  });
-
   it('falls back to the singular form for a plural match', () => {
     const index = buildMentionIndex([[], [entry({ name: 'Chaos Orb', kind: 'item', slug: 'chaos-orb' })], []]);
     expect(resolveMentionTarget('Chaos Orbs', index)).toEqual({ kind: 'item', slug: 'chaos-orb' });

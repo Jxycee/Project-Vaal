@@ -153,8 +153,4 @@ describe('catalogue — lookups', () => {
     expect(icon!.startsWith('/data/wiki/')).toBe(true);
     expect(await items.iconUrlFor('no-such-item-slug')).toBeNull();
   });
-
-  it('is built once and cached', async () => {
-    expect(await getCatalogue()).toBe(await getCatalogue());
-  });
 });

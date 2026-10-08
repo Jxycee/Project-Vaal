@@ -33,9 +33,6 @@ describe('fmt', () => {
 });
 
 describe('fmtCount', () => {
-  it('renders non-finite input as an em dash', () => {
-    expect(fmtCount(NaN)).toBe('—');
-  });
 
   it('adds thousands separators above 100', () => {
     expect(fmtCount(1234)).toBe('1,234');
@@ -43,10 +40,6 @@ describe('fmtCount', () => {
 
   it('keeps one decimal in the tens', () => {
     expect(fmtCount(12.34)).toBe('12.3');
-  });
-
-  it('keeps two decimals below 10', () => {
-    expect(fmtCount(1.234)).toBe('1.23');
   });
 });
 

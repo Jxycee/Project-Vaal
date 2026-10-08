@@ -52,12 +52,11 @@ test.describe('landing page, gilded frame', () => {
 
   // Desktop and tablet-landscape sizes, short laptop windows included: the
   // whole page, legal links and all, fits the viewport with no vertical scroll.
+  // Smallest, a common laptop, and largest: the sizes between them (1280x640,
+  // 1440x900, 1920x1080) take the same CSS branches, so they are not repeated.
   for (const [width, height] of [
     [1024, 600],
-    [1280, 640],
     [1366, 768],
-    [1440, 900],
-    [1920, 1080],
     [2560, 1440],
   ] as const) {
     test(`${width}x${height}: fits the viewport, no vertical scroll`, async ({ page }) => {

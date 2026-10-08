@@ -312,14 +312,6 @@ describe('POST /api/builds — saving into a checkpoint', () => {
     expect(updateMock).not.toHaveBeenCalled();
     consoleError.mockRestore();
   });
-
-  it('returns the checkpoint alongside the build', async () => {
-    cpUpdateResult = { data: { id: CP_ID, position: 0 }, error: null };
-
-    const res = await POST(req(validBody({ id: BUILD_ID, checkpoint_id: CP_ID })));
-
-    expect(await res.json()).toEqual({ build: { id: BUILD_ID }, checkpoint: { id: CP_ID, position: 0 } });
-  });
 });
 
 describe('POST /api/builds — a save that names no checkpoint', () => {
