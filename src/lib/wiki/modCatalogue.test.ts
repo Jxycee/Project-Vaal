@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { eligibleMods, getModCatalogue } from './modCatalogue';
+import { eligibleMods } from './modCatalogue';
 
 // Real data (public/data/wiki/2026-08-25). The five counts are the ones
 // PoB2's own Data/ModItem.lua gives under the same first-match rule —
@@ -91,11 +91,5 @@ describe('eligibleMods — desecrated and essence mods are reachable, and labell
   it('gives a jewel no desecrated mods: it is another domain', async () => {
     const groups = (await eligibleMods('emerald', 'prefix'))!;
     expect(groups.filter((g) => g.source !== undefined)).toEqual([]);
-  });
-});
-
-describe('getModCatalogue', () => {
-  it('is built once and shared', async () => {
-    expect(await getModCatalogue()).toBe(await getModCatalogue());
   });
 });

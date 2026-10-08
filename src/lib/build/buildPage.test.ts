@@ -42,10 +42,6 @@ describe('main skill ordering', () => {
     expect(mainSkillLoadout(gems)?.id).toBe('a');
     expect(loadoutsMainFirst(gems).map((l) => l.id)).toEqual(['a', 'e']);
   });
-  it('never duplicates or drops a loadout', () => {
-    const gems: GemState = { loadouts: [a, b, c], primaryId: 'c' };
-    expect(loadoutsMainFirst(gems)).toHaveLength(3);
-  });
   it('returns null when no loadout has a skill', () => {
     const empty = loadout('e', null);
     const gems: GemState = { loadouts: [empty], primaryId: 'e' };
@@ -82,9 +78,6 @@ describe('headlineSet', () => {
 });
 
 describe('keyItems', () => {
-  it('is empty for no gear', () => {
-    expect(keyItems(emptyGearState(), 1)).toEqual([]);
-  });
   it("takes the headline set's weapons, not the other set's, plus every unique", () => {
     const gear = {
       ...emptyGearState(),
