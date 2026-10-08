@@ -28,7 +28,8 @@ import type { PassiveState } from '../types';
 import { campaignAt } from './campaign';
 import { DEFENCE_WORDS, implicitStats } from './implicits';
 import { isLegacyLine, LEGACY_EFFECT_LINE, legacyContributions } from './legacies';
-import { readLine } from './lineMods';
+import { RADIUS_GRANT_LINE, readLine } from './lineMods';
+import type { JewelRadiusNode } from '@/lib/tree/treeLite';
 import { categoryApplies, isKnownCategory, readRuneLine } from './runes';
 import type { Contribution } from './engine';
 import { GLOBAL_EFFECTS, LOCAL_EFFECTS, looksLikeDefenceStat, NOT_MODELLED, PER_ITEM_DEFENCE, type PerItemDefence, type Pool } from './statTable';
@@ -68,6 +69,11 @@ export interface CollectData {
   rune?(slug: string): { name: string; effects: { category: string; lines: string[] }[] } | undefined;
   mod(slug: string): { stat: string; min: number; max: number }[] | undefined;
   /**
+   * The notables and smalls near a jewel socket, with their distance from it (treeLite.ts). undefined = the tree
+   * positions are not loaded, so a radius jewel is named, not counted.
+   */
+  radiusNodes?(socket: number): JewelRadiusNode[] | undefined;
+  /**
    * A unique by name: the slug of its base (for base defences) and its lines,
    * each with the stat ids unique-stats.json typed it to (null = untyped),
    * and its own implicit display lines (craft.implicitValues is indexed by them).
@@ -80,7 +86,7 @@ const NUMBER_TOKEN = /\((-?\d+(?:\.\d+)?)-(-?\d+(?:\.\d+)?)\)|(-?\d+(?:\.\d+)?)/
 
 export interface Collected {
   contributions: Contribution[];
-  flags: { giantsBlood: boolean; lordOfTheWilds: boolean; noSpirit: boolean; noSpiritFromEquipment: boolean; chaosInoculation: boolean };
+  flags: { giantsBlood: boolean; lordOfTheWilds: boolean; noSpirit: boolean; noSpiritFromEquipment: boolean; chaosInoculation: boolean; eldritchBattery: boolean };
   resistancePenalty: number;
   act: string;
   notCounted: string[];
@@ -98,7 +104,7 @@ export function collectContributions(
   const notCounted: string[] = [];
   const unknown = new Map<string, Set<string>>();
   const assumed: string[] = [];
-  const flags = { giantsBlood: false, lordOfTheWilds: false, noSpirit: false, noSpiritFromEquipment: false, chaosInoculation: false };
+  const flags = { giantsBlood: false, lordOfTheWilds: false, noSpirit: false, noSpiritFromEquipment: false, chaosInoculation: false, eldritchBattery: false };
 
   // ---- Tree: this set's nodes (shared ones are in both lists) and the ascendancy.
   const nodes = new Set([...(input.set === 1 ? input.passive.set1 : input.passive.set2), ...input.passive.ascendancyNodes]);
@@ -119,6 +125,7 @@ export function collectContributions(
       if (stat === 'keystone_giants_blood') flags.giantsBlood = true;
       else if (stat === 'keystone_lord_of_the_wilds') flags.lordOfTheWilds = true;
       else if (stat === 'keystone_chaos_inoculation') flags.chaosInoculation = true;
+      else if (stat === 'keystone_eldritch_battery') flags.eldritchBattery = true;
       else if (stat === 'cannot_gain_spirit_from_equipment') flags.noSpiritFromEquipment = true;
       if (PER_ITEM_DEFENCE[stat]) perItem.push({ rule: PER_ITEM_DEFENCE[stat], value, source: node.name });
       else addGlobal(contributions, notCounted, unknown, stat, value, node.name);
@@ -140,18 +147,19 @@ export function collectContributions(
 
   // ---- Gear: every slot but the other set's weapons, flasks and charms; jewels whose socket is allocated here.
   const otherSet: ReadonlySet<GearSlot> = new Set(input.set === 1 ? ['weapon2_main', 'weapon2_off'] : ['weapon1_main', 'weapon1_off']);
-  const equipped: { item: GearItem; slot?: GearSlot }[] = [];
+  const equipped: { item: GearItem; slot?: GearSlot; socket?: number }[] = [];
   for (const slot of GEAR_SLOTS) {
     const item = input.gear[slot];
     if (item && !otherSet.has(slot) && !NOT_ON_CHARACTER.has(slot)) equipped.push({ item, slot });
   }
   for (const [socket, jewel] of Object.entries(input.gear.jewels)) {
-    if (nodes.has(Number(socket))) equipped.push({ item: jewel });
+    if (nodes.has(Number(socket))) equipped.push({ item: jewel, socket: Number(socket) });
   }
   const wornAt = new Map<GearSlot, { from: number; to: number; name: string }>();
-  for (const { item, slot } of equipped) {
+  for (const { item, slot, socket } of equipped) {
     const from = contributions.length;
     collectItem(item, slot, data, flags, contributions, notCounted, unknown, assumed, allocate);
+    if (socket !== undefined) radiusGrants(item, socket, nodes, data, contributions, notCounted);
     if (slot) wornAt.set(slot, { from, to: contributions.length, name: item.name });
   }
   reflectOppositeRing(wornAt, contributions);
@@ -178,6 +186,64 @@ export function collectContributions(
   for (const [stat, sources] of unknown) notCounted.push(`Unrecognised stat ${stat} (${[...sources].join(', ')})`);
 
   return { contributions, flags, resistancePenalty: campaign.resistancePenalty, act: campaign.act, notCounted, assumed };
+}
+
+/**
+ * Time-Lost jewels: "Notable Passive Skills in Radius also grant 3% increased Global Armour, Evasion and Energy
+ * Shield" gives that line once for EACH allocated notable (or small) within the jewel's radius. PoB2 does it per
+ * node (ModParser.lua:7170 adds the parsed mod to the node's own list), which is why its breakdown lists the
+ * modifier seven times for seven notables: one contribution per node here too.
+ *
+ * Radius: the importer keeps the jewel's label ("Very Large", craft.radius). Fixed rings are PoB2's Data.lua
+ * jewelRadii "0_1": Small 1000, Medium 1150, Large 1300, Very Large 1500, each x PassiveTreeJewelDistanceMultiplier
+ * (1.2, misc-constants.json gameConstants), measured socket to node, inner edge 0, inclusive (PassiveTree.lua).
+ *
+ * Failure modes, decided before the code:
+ *   1. No radius label, or a "Variable" one (a ring with an inner edge): the jewel is named, not guessed at.
+ *   2. Tree positions not loaded (a lite.json older than jewelRadius): named, not counted.
+ *   3. Nothing allocated in the radius: no contribution, and no note (a real zero).
+ *   4. The granted line is an offence line: the importer never keeps it (mapCraft keepVerbatim), so it is not here.
+ *   5. The granted line is a defence line PoB parses with a condition or scaling: named.
+ *   6. The jewel's socket is not allocated: never reaches here (the jewel is not worn).
+ *   7. Attribute passives, keystones, masteries, sockets and blighted nodes are in neither set (treeLite.ts).
+ */
+const RADIUS_OUTER: Readonly<Record<string, number>> = { Small: 1000, Medium: 1150, Large: 1300, 'Very Large': 1500 };
+const JEWEL_DISTANCE_MULTIPLIER = 1.2;
+
+function radiusGrants(
+  item: GearItem,
+  socket: number,
+  allocated: ReadonlySet<number>,
+  data: CollectData,
+  contributions: Contribution[],
+  notCounted: string[],
+): void {
+  const grants = (item.craft?.verbatim ?? []).map((l) => RADIUS_GRANT_LINE.exec(l)).filter((m): m is RegExpExecArray => m !== null);
+  if (grants.length === 0) return;
+  const outer = RADIUS_OUTER[item.craft?.radius ?? ''];
+  if (outer === undefined) {
+    notCounted.push(`${item.name}: its radius (${item.craft?.radius ?? 'not stated'}) is not one this builder measures, so its "also grant" lines were not counted`);
+    return;
+  }
+  const near = data.radiusNodes?.(socket);
+  if (!near) {
+    notCounted.push(`${item.name}: the tree positions are not loaded, so its "also grant" lines were not counted`);
+    return;
+  }
+  const limit = outer * JEWEL_DISTANCE_MULTIPLIER;
+  for (const [, type, inner] of grants) {
+    const kind = type === 'Notable' ? 0 : 1;
+    const reached = near.filter(([id, distance, k]) => k === kind && distance <= limit && allocated.has(id)).length;
+    const read = readLine(inner);
+    if (read === null) continue;
+    if ('unmodelled' in read) {
+      notCounted.push(`${item.name}: "${read.unmodelled}" (granted to ${type.toLowerCase()} passives in its radius) not counted`);
+      continue;
+    }
+    for (let i = 0; i < reached; i++) {
+      for (const mod of read.mods) contributions.push({ pool: mod.pool, kind: mod.kind, value: mod.value, source: item.name });
+    }
+  }
 }
 
 /**
@@ -336,7 +402,17 @@ function collectItem(
   // global split below reads (runes.ts). A rune we have no data for is named.
   const host = { itemClass: detail.itemClass ?? null, weapon: detail.weapon ?? false, armour: detail.armour !== null };
   let runesUnread = 0;
-  for (const slug of craft?.runes ?? []) {
+  // PoB's own printed rune lines are its answer for the sockets (effect of Socketed Augment Items, bonded rules and
+  // its rune data already applied): they replace the recomputation from rune slugs below. A line is a typed
+  // defence stat the same way a data line is, so "increased Armour, Evasion and Energy Shield" stays LOCAL.
+  const printedRunes = craft?.runeLines;
+  for (const line of printedRunes ?? []) {
+    const read = readRuneLine(line);
+    if (read === null) continue;
+    if ('unmodelled' in read) notCounted.push(`${item.name}: rune line "${read.unmodelled}" not counted`);
+    else stats.push([read.stat === 'spirit_+%' && detail.spirit > 0 ? 'local_spirit_+%' : read.stat, read.value]);
+  }
+  for (const slug of printedRunes ? [] : (craft?.runes ?? [])) {
     const rune = data.rune?.(slug);
     if (!rune) {
       runesUnread++;

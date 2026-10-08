@@ -73,6 +73,9 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   // on top of the global increase (CalcDefence.lua:1445-1453).
   'maximum_energy_shield_from_body_armour_+%': incFromSlot('body', 'energyShield'),
   'energy_shield_from_helmet_+%': incFromSlot('head', 'energyShield'),
+  // "N% increased Energy Shield from Focus" - PoB2's SlotName tag on the off-hand slot. A focus sits in the off
+  // hand of whichever weapon set is worn; only that set's item carries flats, so both slots are listed.
+  'energy_shield_from_focus_+%': [...incFromSlot('weapon1_off', 'energyShield'), ...incFromSlot('weapon2_off', 'energyShield')],
   // "final" stats are "more"/"less" multipliers (ModParser.lua:67-69), applied
   // after increased (CalcDefence.lua:91, 96). Oracle's Harmony Within is -15
   // ("15% less maximum Life / Mana"); Titan's Mysterious Lineage is +15.
@@ -173,7 +176,6 @@ export const NOT_MODELLED: Readonly<Record<string, string>> = {
   'ascendancy_beidats_will_spirit_+_per_X_maximum_life': 'Spirit per maximum Life',
   'body_armour_+%': 'increased Armour from body armour',
   'body_armour_evasion_rating_+%': 'increased Evasion from body armour',
-  'energy_shield_from_focus_+%': 'increased Energy Shield from a Focus',
   base_physical_damage_reduction_rating_no_display: 'hidden Armour',
   'maximum_fire_resistance_+%_if_at_least_5_red_supports_socketed': 'Maximum Fire Resistance with 5 red supports socketed',
 };

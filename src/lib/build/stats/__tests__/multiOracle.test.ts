@@ -67,15 +67,15 @@ const ours = (sheet: DefenceSheet, k: Key): number => (k === 'fire' || k === 'co
 // Ratchet: the least number of the 13 stats each build must match. Raise it when a fix lands; never lower it.
 const FLOOR: Record<string, number> = {
   'armour-life-gemling.json': 2, // Mageblood, a RELIC body armour and 36 unreadable item lines: item coverage, not the engine
-  'es-life-stormweaver.json': 5, // Kalandra's Touch reflects the opposite ring (collect.ts)
-  'evasion-deadeye.json': 4,
+  'es-life-stormweaver.json': 7, // Kalandra's Touch reflects the opposite ring (collect.ts); a radius jewel's notables (fire, spirit)
+  'evasion-deadeye.json': 5, // chaos resistance via a Time-Lost jewel's radius grant
   'hybrid-tactician.json': 3,
   // The ordinary set (board item 30): mid-complexity public builds. The goal is 13 of 13 on every one.
   'ordinary-ci-acolyte.json': 12,
-  'ordinary-ci-disciple.json': 11,
+  'ordinary-ci-disciple.json': 13, // 13 of 13: Time-Lost Sapphire's "Notable Passive Skills in Radius also grant" x7 (collect.ts radiusGrants) + Warding Fetish's Focus ES
   'ordinary-ci-es-disciple.json': 13, // 13 of 13: Mageblood's legacies (stats/legacies.ts)
   'ordinary-deadeye.json': 12,
-  'ordinary-oracle.json': 11, // Kalandra's Touch + local rune Spirit; left: Mind Over Matter mana/ES, which needs the printed rune lines (Blood League 469, Viper Crest 3%)
+  'ordinary-oracle.json': 13, // 13 of 13: Eldritch Battery moves flat ES into Mana (engine.ts) + PoB's printed rune lines (Blood League 469, Viper Crest 3%)
 };
 
 // PoB's own per-stat build-up (breakdowns.stats[i].mods = [kind 0 flat|1 inc|2 more, value, sourceIndex]) says WHICH

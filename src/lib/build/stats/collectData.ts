@@ -13,10 +13,15 @@
 // the collector names what it could not count.
 // =============================================================================
 
+import { projectJewelRadius, type JewelRadiusNode } from '@/lib/tree/treeLite';
 import type { CollectData } from './collect';
 
 export interface RawCollectFiles {
-  tree: { nodes: Record<string, { name?: string; isGenericAttribute?: boolean }> };
+  /**
+   * The tree: names and flags for every reader. `jewelRadius` (lite.json) or, on the full export, node x/y with
+   * the type flags, say which notables and smalls sit near each jewel socket.
+   */
+  tree: { nodes: Record<string, { name?: string; isGenericAttribute?: boolean }>; jewelRadius?: Record<string, JewelRadiusNode[]> };
   nodeStats: { nodes: Record<string, [string, number][]> };
   implicitStats: { bases: Record<string, [string, number, number][][]> };
   uniqueStats: { uniques: Record<string, { baseType: string; baseSlug: string | null; lines: (string[] | null)[] }> };
@@ -33,7 +38,16 @@ const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0
 export function makeCollectData(files: RawCollectFiles): CollectData {
   /** Name -> id for passives that carry typed stats and whose name nothing else shares. Built on first use. */
   let byName: Map<string, number> | undefined;
+  /** Near-socket passives: the lite file's table, else derived from the full export's coordinates, else unknown. */
+  let radius: Record<string, JewelRadiusNode[]> | null | undefined = files.tree.jewelRadius;
   return {
+    radiusNodes(socket) {
+      if (radius === undefined) {
+        const positioned = Object.values(files.tree.nodes).some((n) => typeof (n as { x?: unknown }).x === 'number');
+        radius = positioned ? projectJewelRadius(files.tree.nodes) : null;
+      }
+      return radius?.[String(socket)];
+    },
     nodeByName(name) {
       if (!byName) {
         byName = new Map();

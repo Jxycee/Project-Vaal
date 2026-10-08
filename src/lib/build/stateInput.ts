@@ -69,7 +69,7 @@ export { isAllowedIconUrl };
 // mod, 2 ranges per line, 7 implicit lines, 37 unique lines; mod slugs are
 // [a-z0-9_-] (two carry '-'), item slugs [a-z0-9-].
 
-const CRAFT_KEYS = ['rarity', 'name', 'itemLevel', 'quality', 'corrupted', 'implicitValues', 'uniqueValues', 'prefixes', 'suffixes', 'runes', 'verbatim'] as const;
+const CRAFT_KEYS = ['rarity', 'name', 'itemLevel', 'quality', 'corrupted', 'implicitValues', 'uniqueValues', 'prefixes', 'suffixes', 'runes', 'verbatim', 'radius', 'runeLines'] as const;
 const MOD_SLUG_RE = /^[a-z0-9_-]{1,120}$/;
 const MAX_VALUES_PER_ROW = 8;
 const MAX_IMPLICIT_ROWS = 16;
@@ -127,6 +127,13 @@ function cleanCraft(raw: unknown): ItemCraft | null {
     if (!Array.isArray(verbatim) || verbatim.length > MAX_VERBATIM_LINES) return null;
     if (!verbatim.every((l) => typeof l === 'string' && l.length > 0 && l.length <= MAX_VERBATIM_LENGTH)) return null;
   }
+  const runeLines = raw.runeLines;
+  if (runeLines !== undefined) {
+    if (!Array.isArray(runeLines) || runeLines.length > MAX_VERBATIM_LINES) return null;
+    if (!runeLines.every((l) => typeof l === 'string' && l.length > 0 && l.length <= MAX_VERBATIM_LENGTH)) return null;
+  }
+  const radius = raw.radius;
+  if (radius !== undefined && (typeof radius !== 'string' || !/^[A-Za-z][A-Za-z ]{0,19}$/.test(radius))) return null;
   return {
     rarity: rarity as ItemRarity,
     name: name as string | null,
@@ -139,6 +146,8 @@ function cleanCraft(raw: unknown): ItemCraft | null {
     suffixes,
     runes: [...(runes as string[])],
     ...(verbatim !== undefined ? { verbatim: [...(verbatim as string[])] } : {}),
+    ...(radius !== undefined ? { radius: radius as string } : {}),
+    ...(runeLines !== undefined ? { runeLines: [...(runeLines as string[])] } : {}),
   };
 }
 

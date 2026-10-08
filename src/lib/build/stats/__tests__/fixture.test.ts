@@ -1,5 +1,6 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { beforeAll, describe, expect, it } from 'vitest';
+import { GEAR_SLOTS } from '@/lib/build/gearSlots';
 import { getCatalogue } from '@/lib/pob/catalogue';
 import { decodePobCode } from '@/lib/pob/decode';
 import { mapBuild } from '@/lib/pob/mapBuild';
@@ -51,7 +52,12 @@ beforeAll(async () => {
     mods: dir('public/data/wiki/2026-08-25/mods'),
   });
   const mercenary = tree.classes.find((c: { name: string }) => c.name === 'Mercenary');
-  collected = collectContributions({ passive: checkpoint.passive_state, gear: checkpoint.gear_state, level: 94, set: 1 }, data);
+  // This export's printed rune lines come from an older patch (Cloak of Flame: +80 Life, Bracers: 8% Attack
+  // Speed), and this file proves the rune DATA path against the current patch, so those lines are set aside
+  // here. Printed lines beating the data is pinned in multiOracle.test.ts (ordinary-oracle's Viper Crest).
+  const gear = JSON.parse(JSON.stringify(checkpoint.gear_state)) as typeof checkpoint.gear_state;
+  for (const item of [...GEAR_SLOTS.map((slot) => gear[slot]), ...Object.values(gear.jewels)]) delete item?.craft?.runeLines;
+  collected = collectContributions({ passive: checkpoint.passive_state, gear, level: 94, set: 1 }, data);
   sheet = computeDefences({
     level: 94,
     classBase: { str: mercenary.base_str, dex: mercenary.base_dex, int: mercenary.base_int },

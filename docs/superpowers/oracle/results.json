@@ -3,8 +3,8 @@
     "gaps": {
       "life": [
         "flat 265 from Morior Invictus, Grand Regalia",
-        "increased 3 from Morior Invictus, Grand Regalia",
-        "increased 28 from VirtuousBarrierPlayer"
+        "increased 28 from VirtuousBarrierPlayer",
+        "increased 5 from 32976"
       ],
       "mana": [
         "increased 5 from 32976"
@@ -47,7 +47,7 @@
       },
       "life": {
         "want": 4075,
-        "got": 2883,
+        "got": 2831,
         "ok": false
       },
       "mana": {
@@ -82,12 +82,12 @@
       },
       "lightning": {
         "want": 75,
-        "got": 22,
+        "got": 35,
         "ok": false
       },
       "chaos": {
         "want": 68,
-        "got": 63,
+        "got": 67,
         "ok": false
       },
       "spirit": {
@@ -108,9 +108,7 @@
         "flat 107 from 34324"
       ],
       "spirit": [
-        "flat 70 from Morior Invictus, Grand Regalia",
-        "flat 12 from 21984",
-        "flat 12 from 21984"
+        "flat 70 from Morior Invictus, Grand Regalia"
       ],
       "evasion": [
         "flat 1289 from Morior Invictus, Grand Regalia",
@@ -123,7 +121,7 @@
     },
     "class": "Stormweaver",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/nameking-0380/%E5%97%B6%E5%93%A9%E4%BD%90%E5%BE%B7%E5%B0%8F%E6%B1%BD%E8%BB%8A",
-    "matched": 5,
+    "matched": 7,
     "of": 13,
     "stats": {
       "str": {
@@ -153,7 +151,7 @@
       },
       "energyShield": {
         "want": 8286,
-        "got": 7672,
+        "got": 7945,
         "ok": false
       },
       "armour": {
@@ -168,13 +166,13 @@
       },
       "fire": {
         "want": 75,
-        "got": 47,
-        "ok": false
+        "got": 75,
+        "ok": true
       },
       "cold": {
         "want": 74,
-        "got": 75,
-        "ok": false
+        "got": 74,
+        "ok": true
       },
       "lightning": {
         "want": 75,
@@ -188,7 +186,7 @@
       },
       "spirit": {
         "want": 244,
-        "got": 150,
+        "got": 174,
         "ok": false
       }
     }
@@ -224,7 +222,7 @@
     },
     "class": "Deadeye",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/olleyDE-4339/chillamaggiTTVsGlatze",
-    "matched": 4,
+    "matched": 5,
     "of": 13,
     "stats": {
       "str": {
@@ -284,8 +282,8 @@
       },
       "chaos": {
         "want": 68,
-        "got": 74,
-        "ok": false
+        "got": 68,
+        "ok": true
       },
       "spirit": {
         "want": 255,
@@ -375,7 +373,7 @@
       },
       "chaos": {
         "want": 75,
-        "got": 21,
+        "got": 19,
         "ok": false
       },
       "spirit": {
@@ -476,32 +474,16 @@
         "3 1 from 56349"
       ],
       "mana": [],
-      "energyShield": [
-        "increased 3 from 7960",
-        "increased 3 from 7960",
-        "increased 3 from 7960",
-        "increased 3 from 7960",
-        "increased 3 from 7960",
-        "increased 3 from 7960",
-        "increased 3 from 7960"
-      ],
+      "energyShield": [],
       "spirit": [],
-      "evasion": [
-        "increased 3 from 7960",
-        "increased 3 from 7960",
-        "increased 3 from 7960",
-        "increased 3 from 7960",
-        "increased 3 from 7960",
-        "increased 3 from 7960",
-        "increased 3 from 7960"
-      ],
+      "evasion": [],
       "str": [],
       "dex": [],
       "int": []
     },
     "class": "Disciple of Varashta",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/KingFud-1121/KingFud_Djinn_FR",
-    "matched": 11,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -531,8 +513,8 @@
       },
       "energyShield": {
         "want": 14882,
-        "got": 14165,
-        "ok": false
+        "got": 14882,
+        "ok": true
       },
       "armour": {
         "want": 0,
@@ -541,8 +523,8 @@
       },
       "evasion": {
         "want": 12,
-        "got": 10,
-        "ok": false
+        "got": 12,
+        "ok": true
       },
       "fire": {
         "want": 75,
@@ -747,12 +729,8 @@
       "life": [
         "3 1 from 56349"
       ],
-      "mana": [
-        "increased 3 from Viper Crest, Ancestral Tiara"
-      ],
-      "energyShield": [
-        "flat 469 from Blood League, Sekhema Sandals"
-      ],
+      "mana": [],
+      "energyShield": [],
       "spirit": [],
       "evasion": [],
       "str": [],
@@ -761,7 +739,7 @@
     },
     "class": "Oracle",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/perceptionofreality-7468/BABYROSHANCOM",
-    "matched": 11,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -786,13 +764,13 @@
       },
       "mana": {
         "want": 5175,
-        "got": 2864,
-        "ok": false
+        "got": 5175,
+        "ok": true
       },
       "energyShield": {
         "want": 0,
-        "got": 1980,
-        "ok": false
+        "got": 0,
+        "ok": true
       },
       "armour": {
         "want": 0,

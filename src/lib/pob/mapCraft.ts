@@ -43,7 +43,7 @@ import {
   type ItemRarity,
 } from '@/lib/build/craft';
 import { isLegacyLine } from '@/lib/build/stats/legacies';
-import { readLine } from '@/lib/build/stats/lineMods';
+import { RADIUS_GRANT_LINE, readLine } from '@/lib/build/stats/lineMods';
 import { matchTemplate, stripTags, valueAt } from './craftText';
 
 export interface CraftMod {
@@ -89,6 +89,13 @@ function resolveLine(line: string): string {
  */
 function keepVerbatim(line: string, verbatim: string[]): boolean {
   const text = resolveLine(line);
+  // A radius jewel's "also grant" line is kept when the line it grants is one we can read; offence ones are not.
+  const grant = RADIUS_GRANT_LINE.exec(text);
+  if (grant) {
+    if (readLine(grant[2]) === null) return false;
+    verbatim.push(text);
+    return true;
+  }
   if (!/^Allocates .+/.test(text) && !isLegacyLine(text) && readLine(text) === null) return false;
   verbatim.push(text);
   return true;
@@ -267,9 +274,14 @@ export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups):
     const tag = /\{variant:([\d,]+)\}/.exec(line);
     return !tag || selected === undefined || tag[1].split(',').includes(selected);
   };
-  const explicitLines = (implicitsAt === -1 ? [] : lines.slice(implicitsAt + 1 + implicitCount)).filter(
-    (l) => l !== 'Corrupted' && inSelectedVariant(l),
-  );
+  // "Upgrades Radius to X" is not a stat: it sets the jewel's radius (PoB2 Item.lua:1823), over the "Radius:" header.
+  const upgrade = /^Upgrades Radius to ([A-Za-z ]+)$/;
+  const explicitLines = (implicitsAt === -1 ? [] : lines.slice(implicitsAt + 1 + implicitCount)).filter((l) => {
+    if (l === 'Corrupted' || !inSelectedVariant(l)) return false;
+    const radiusUpgrade = upgrade.exec(stripTags(l));
+    if (radiusUpgrade) craft.radius = radiusUpgrade[1];
+    return !radiusUpgrade;
+  });
 
   const verbatim: string[] = [];
   const crafted: Record<'prefix' | 'suffix', CraftedMod[]> = { prefix: [], suffix: [] };
@@ -284,6 +296,8 @@ export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups):
     }
     const level = /^Item Level: (\d+)$/.exec(line);
     if (level) craft.itemLevel = Math.min(100, Math.max(1, Number(level[1])));
+    const radius = /^Radius: ([A-Za-z ]+)$/.exec(line);
+    if (radius && craft.radius === undefined) craft.radius = radius[1];
     const rune = /^Rune: (.+)$/.exec(line);
     if (rune) {
       const slug = lookups.runeSlugByName(rune[1]);
@@ -307,8 +321,10 @@ export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups):
 
   // Implicits: an {enchant} line is an enchantment, or rune-granted if also {rune}.
   const baseImplicits: string[] = [];
+  const printedRunes: string[] = [];
   for (const line of implicitLines) {
     if (line.includes('{enchant}')) {
+      if (line.includes('{rune}')) printedRunes.push(resolveLine(line));
       if (!line.includes('{rune}')) {
         if (keepVerbatim(line, verbatim)) {
           notes.push({ kind: 'inferred', message: `The enchantment "${stripTags(line)}" was kept as written and counted from its text.` });
@@ -407,5 +423,6 @@ export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups):
     }
   }
   if (verbatim.length > 0) craft.verbatim = verbatim.slice(0, MAX_VERBATIM_LINES);
+  if (printedRunes.length > 0) craft.runeLines = printedRunes.slice(0, MAX_VERBATIM_LINES);
   return { craft, notes };
 }

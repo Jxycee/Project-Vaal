@@ -45,6 +45,12 @@
 import modcache from '@/lib/pob/data/modcache.json';
 import type { Pool } from './statTable';
 
+/**
+ * A Time-Lost jewel's "Notable / Small Passive Skills in Radius also grant <line>" (PoB2 ModParser.lua:7170). The
+ * inner line is read by readLine; how many passives it reaches is collect.ts's job (the jewel's radius).
+ */
+export const RADIUS_GRANT_LINE = /^(Small|Notable) Passive Skills in Radius also grant (.+)$/;
+
 export interface LineMod {
   pool: Pool;
   kind: 'flat' | 'increased' | 'more';

@@ -55,6 +55,12 @@ export interface EngineInput {
     noSpirit: boolean;
     /** Chaos Inoculation: "Maximum Life becomes 1, Immune to Chaos Damage" (PoB2 reports 100% chaos resistance). */
     chaosInoculation?: boolean;
+    /**
+     * Eldritch Battery: "Convert 100% of maximum Energy Shield to maximum Mana". PoB2's breakdown for the oracle
+     * build is (1884 mana flat + 1566 ES flat) x 1.5 mana increased = 5175 and ES 0: the flat Energy Shield moves
+     * into Mana's base, Mana's own increased and more apply to it, and Energy Shield's do not.
+     */
+    eldritchBattery?: boolean;
   };
 }
 
@@ -99,7 +105,8 @@ export function computeDefences(input: EngineInput): DefenceSheet {
   const lifePerStr = input.flags.giantsBlood ? 1 : 2;
   const ci = input.flags.chaosInoculation === true;
   const life = ci ? 1 : Math.max(Math.round(scaled(12 * level + 16 + str * lifePerStr + flatOf('life'), 'life')), 1);
-  const mana = Math.max(Math.round(scaled(4 * level + 30 + int * 2 + flatOf('mana'), 'mana')), 1);
+  const converted = input.flags.eldritchBattery === true;
+  const mana = Math.max(Math.round(scaled(4 * level + 30 + int * 2 + flatOf('mana') + (converted ? flatOf('energyShield') : 0), 'mana')), 1);
 
   // Each slot's item gets the global increase plus its own slot's (CalcDefence.lua:1445-1453);
   // everything else (class base, global flats) gets the global one only. With no slot-scoped
@@ -129,7 +136,7 @@ export function computeDefences(input: EngineInput): DefenceSheet {
     int,
     life,
     mana,
-    energyShield: defence('energyShield'),
+    energyShield: converted ? 0 : defence('energyShield'),
     armour: defence('armour'),
     evasion: defence('evasion', 7),
     fire: resist('fireRes', 'fireMax', input.resistancePenalty),

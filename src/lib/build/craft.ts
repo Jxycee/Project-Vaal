@@ -45,6 +45,19 @@ export interface ItemCraft {
    * stats/lineMods.ts. Absent when there are none. Only the PoB importer writes it.
    */
   verbatim?: string[];
+  /**
+   * A jewel's radius label as PoB prints it ("Very Large"), after any "Upgrades Radius to X" line. What a Time-Lost
+   * jewel's "Notable / Small Passive Skills in Radius also grant ..." verbatim lines reach (stats/collect.ts).
+   * Absent on everything else. Only the PoB importer writes it.
+   */
+  radius?: string;
+  /**
+   * The rune and soul core lines PoB printed on the item ("{rune}64% increased Armour, Evasion and Energy Shield"),
+   * tags removed, Bonded display lines included. PoB's own mods for the sockets, after the item's "increased effect
+   * of Socketed Augment Items" and its rune data, so they beat recomputing from `runes` (stats/collect.ts). Absent
+   * when the item came without them (hand-built), and the sockets are then worked out from `runes`. Importer only.
+   */
+  runeLines?: string[];
 }
 
 /** Bounds the write gate holds `verbatim` to (a unique has at most ~40 lines; none is long). */

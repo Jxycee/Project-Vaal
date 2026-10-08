@@ -141,8 +141,8 @@ describe('collectContributions — the tree', () => {
   });
 
   it("sets the Giant's Blood, cannot-gain-Spirit and no-Spirit flags from allocated nodes", () => {
-    expect(run(tree({ set1: [5, 6, NO_SPIRIT_NODE] })).flags).toEqual({ giantsBlood: true, lordOfTheWilds: false, noSpirit: true, noSpiritFromEquipment: true, chaosInoculation: false });
-    expect(run(tree({ set1: [1] })).flags).toEqual({ giantsBlood: false, lordOfTheWilds: false, noSpirit: false, noSpiritFromEquipment: false, chaosInoculation: false });
+    expect(run(tree({ set1: [5, 6, NO_SPIRIT_NODE] })).flags).toEqual({ giantsBlood: true, lordOfTheWilds: false, noSpirit: true, noSpiritFromEquipment: true, chaosInoculation: false, eldritchBattery: false });
+    expect(run(tree({ set1: [1] })).flags).toEqual({ giantsBlood: false, lordOfTheWilds: false, noSpirit: false, noSpiritFromEquipment: false, chaosInoculation: false, eldritchBattery: false });
   });
 
   it('names a defence stat it does not model, by node; stays silent about offence', () => {
