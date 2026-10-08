@@ -382,6 +382,283 @@
       }
     }
   },
+  "ordinary-armour-1.json": {
+    "gaps": {
+      "life": [
+        "increased 10 from VirtuousBarrierPlayer",
+        "more -30 from Runeseeker's Call, Runemastered Runic Fork",
+        "more -15 from Runeseeker's Call, Runemastered Runic Fork"
+      ],
+      "mana": [
+        "flat 180 from Runeseeker's Call, Runemastered Runic Fork",
+        "flat 360 from Runeseeker's Call, Runemastered Runic Fork"
+      ],
+      "energyShield": [
+        "increased 25 from VirtuousBarrierPlayer"
+      ],
+      "spirit": [],
+      "evasion": [
+        "flat 320 from Alpha's Howl, Runemastered Armoured Cap",
+        "flat 167 from Sierran Inheritance, Runemastered Marabout Garb",
+        "increased 25 from VirtuousBarrierPlayer"
+      ],
+      "str": [],
+      "dex": [],
+      "int": []
+    },
+    "class": "Gemling Legionnaire",
+    "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/dota2enjoyer-1809/KingPinUwU_Youtube",
+    "matched": 10,
+    "of": 13,
+    "stats": {
+      "str": {
+        "want": 97,
+        "got": 97,
+        "ok": true
+      },
+      "dex": {
+        "want": 91,
+        "got": 91,
+        "ok": true
+      },
+      "int": {
+        "want": 240,
+        "got": 240,
+        "ok": true
+      },
+      "life": {
+        "want": 987,
+        "got": 1502,
+        "ok": false
+      },
+      "mana": {
+        "want": 4765,
+        "got": 4765,
+        "ok": true
+      },
+      "energyShield": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "armour": {
+        "want": 997,
+        "got": 741,
+        "ok": false
+      },
+      "evasion": {
+        "want": 766,
+        "got": 874,
+        "ok": false
+      },
+      "fire": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "cold": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "lightning": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "chaos": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "spirit": {
+        "want": 250,
+        "got": 250,
+        "ok": true
+      }
+    }
+  },
+  "ordinary-caster-1.json": {
+    "gaps": {
+      "life": [],
+      "mana": [
+        "increased 1 from 21984"
+      ],
+      "energyShield": [],
+      "spirit": [],
+      "evasion": [],
+      "str": [],
+      "dex": [],
+      "int": []
+    },
+    "class": "Chronomancer",
+    "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/fishoppa-1492/lullabyTurnBackTime",
+    "matched": 12,
+    "of": 13,
+    "stats": {
+      "str": {
+        "want": 64,
+        "got": 64,
+        "ok": true
+      },
+      "dex": {
+        "want": 53,
+        "got": 53,
+        "ok": true
+      },
+      "int": {
+        "want": 295,
+        "got": 295,
+        "ok": true
+      },
+      "life": {
+        "want": 1478,
+        "got": 1478,
+        "ok": true
+      },
+      "mana": {
+        "want": 4532,
+        "got": 4497,
+        "ok": false
+      },
+      "energyShield": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "armour": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "evasion": {
+        "want": 10,
+        "got": 10,
+        "ok": true
+      },
+      "fire": {
+        "want": 51,
+        "got": 51,
+        "ok": true
+      },
+      "cold": {
+        "want": 51,
+        "got": 51,
+        "ok": true
+      },
+      "lightning": {
+        "want": 50,
+        "got": 50,
+        "ok": true
+      },
+      "chaos": {
+        "want": 51,
+        "got": 51,
+        "ok": true
+      },
+      "spirit": {
+        "want": 148,
+        "got": 148,
+        "ok": true
+      }
+    }
+  },
+  "ordinary-caster-2.json": {
+    "gaps": {
+      "life": [],
+      "mana": [
+        "flat 300 from Morior Invictus, Grand Regalia"
+      ],
+      "energyShield": [
+        "flat 408 from Morior Invictus, Grand Regalia",
+        "flat 110 from 34324",
+        "increased 60 from Morior Invictus, Grand Regalia",
+        "increased 29 from Cataclysm Breath, Sapphire",
+        "increased 15 from 34006"
+      ],
+      "spirit": [],
+      "evasion": [
+        "flat 1324 from Morior Invictus, Grand Regalia",
+        "increased 60 from Morior Invictus, Grand Regalia",
+        "increased 80 from 32354",
+        "increased 78 from 53185"
+      ],
+      "str": [],
+      "dex": [],
+      "int": []
+    },
+    "class": "Stormweaver",
+    "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/qianqi77-5717/JokerBD",
+    "matched": 5,
+    "of": 13,
+    "stats": {
+      "str": {
+        "want": 56,
+        "got": 56,
+        "ok": true
+      },
+      "dex": {
+        "want": 90,
+        "got": 90,
+        "ok": true
+      },
+      "int": {
+        "want": 260,
+        "got": 260,
+        "ok": true
+      },
+      "life": {
+        "want": 1402,
+        "got": 1566,
+        "ok": false
+      },
+      "mana": {
+        "want": 2715,
+        "got": 2352,
+        "ok": false
+      },
+      "energyShield": {
+        "want": 6771,
+        "got": 4908,
+        "ok": false
+      },
+      "armour": {
+        "want": 4176,
+        "got": 2002,
+        "ok": false
+      },
+      "evasion": {
+        "want": 12508,
+        "got": 6960,
+        "ok": false
+      },
+      "fire": {
+        "want": 65,
+        "got": 20,
+        "ok": false
+      },
+      "cold": {
+        "want": 69,
+        "got": 24,
+        "ok": false
+      },
+      "lightning": {
+        "want": 71,
+        "got": 26,
+        "ok": false
+      },
+      "chaos": {
+        "want": 38,
+        "got": 38,
+        "ok": true
+      },
+      "spirit": {
+        "want": 210,
+        "got": 210,
+        "ok": true
+      }
+    }
+  },
   "ordinary-ci-acolyte.json": {
     "gaps": {
       "life": [
@@ -717,6 +994,503 @@
         "want": 148,
         "got": 148,
         "ok": true
+      }
+    }
+  },
+  "ordinary-evasion-1.json": {
+    "gaps": {
+      "life": [],
+      "mana": [],
+      "energyShield": [
+        "flat 18 from Hand of Wisdom and Action, Spiral Wraps",
+        "increased -25 from 56776",
+        "more 20 from ChargeRegulationPlayer"
+      ],
+      "spirit": [
+        "flat 140 from Guiding Palm of the Mind"
+      ],
+      "evasion": [
+        "flat 52 from Hand of Wisdom and Action, Spiral Wraps",
+        "increased -25 from 56776",
+        "more 20 from ChargeRegulationPlayer"
+      ],
+      "str": [
+        "flat 10 from 60138"
+      ],
+      "dex": [
+        "flat 24 from Hand of Wisdom and Action, Spiral Wraps",
+        "flat 30 from Guiding Palm of the Mind, Shrine Sceptre"
+      ],
+      "int": [
+        "flat 23 from Hand of Wisdom and Action, Spiral Wraps",
+        "flat 10 from 38537",
+        "flat 15 from 51891"
+      ]
+    },
+    "class": "Deadeye",
+    "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/ADDii-3319/AddiDeadeyeiRemastered",
+    "matched": 4,
+    "of": 13,
+    "stats": {
+      "str": {
+        "want": 103,
+        "got": 93,
+        "ok": false
+      },
+      "dex": {
+        "want": 189,
+        "got": 170,
+        "ok": false
+      },
+      "int": {
+        "want": 377,
+        "got": 339,
+        "ok": false
+      },
+      "life": {
+        "want": 1708,
+        "got": 1687,
+        "ok": false
+      },
+      "mana": {
+        "want": 1243,
+        "got": 1163,
+        "ok": false
+      },
+      "energyShield": {
+        "want": 792,
+        "got": 771,
+        "ok": false
+      },
+      "armour": {
+        "want": 413,
+        "got": 426,
+        "ok": false
+      },
+      "evasion": {
+        "want": 1228,
+        "got": 1161,
+        "ok": false
+      },
+      "fire": {
+        "want": 64,
+        "got": 64,
+        "ok": true
+      },
+      "cold": {
+        "want": 64,
+        "got": 64,
+        "ok": true
+      },
+      "lightning": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "chaos": {
+        "want": 59,
+        "got": 59,
+        "ok": true
+      },
+      "spirit": {
+        "want": 240,
+        "got": 100,
+        "ok": false
+      }
+    }
+  },
+  "ordinary-evasion-2.json": {
+    "gaps": {
+      "life": [
+        "increased 3 from 35031"
+      ],
+      "mana": [
+        "flat 106 from Rapture Twirl, Gold Ring",
+        "flat 26 from Many Sources:^x88FFFF25% Ring 3 Bonus Effect"
+      ],
+      "energyShield": [
+        "increased 14 from Many Sources:^x88FFFF25% Amulet Bonus Effect",
+        "increased -25 from 56776",
+        "more 20 from ChargeRegulationPlayer"
+      ],
+      "spirit": [
+        "flat 100 from Palm of the Dreamer"
+      ],
+      "evasion": [
+        "increased -25 from 56776",
+        "more 20 from ChargeRegulationPlayer"
+      ],
+      "str": [
+        "flat 7 from Palm of the Dreamer, Shrine Sceptre"
+      ],
+      "dex": [
+        "flat 7 from Palm of the Dreamer, Shrine Sceptre",
+        "flat 2 from Many Sources:^x88FFFF25% Ring 1 Bonus Effect"
+      ],
+      "int": [
+        "flat 7 from Palm of the Dreamer, Shrine Sceptre",
+        "flat 3 from Many Sources:^x88FFFF25% Ring 2 Bonus Effect",
+        "flat 10 from 38537"
+      ]
+    },
+    "class": "Ritualist",
+    "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/WOSHICHINESE-3392/Arites",
+    "matched": 1,
+    "of": 13,
+    "stats": {
+      "str": {
+        "want": 112,
+        "got": 121,
+        "ok": false
+      },
+      "dex": {
+        "want": 173,
+        "got": 174,
+        "ok": false
+      },
+      "int": {
+        "want": 155,
+        "got": 134,
+        "ok": false
+      },
+      "life": {
+        "want": 1632,
+        "got": 1605,
+        "ok": false
+      },
+      "mana": {
+        "want": 654,
+        "got": 524,
+        "ok": false
+      },
+      "energyShield": {
+        "want": 989,
+        "got": 862,
+        "ok": false
+      },
+      "armour": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "evasion": {
+        "want": 17650,
+        "got": 15617,
+        "ok": false
+      },
+      "fire": {
+        "want": 29,
+        "got": 47,
+        "ok": false
+      },
+      "cold": {
+        "want": 30,
+        "got": -19,
+        "ok": false
+      },
+      "lightning": {
+        "want": 22,
+        "got": 40,
+        "ok": false
+      },
+      "chaos": {
+        "want": 47,
+        "got": 27,
+        "ok": false
+      },
+      "spirit": {
+        "want": 230,
+        "got": 130,
+        "ok": false
+      }
+    }
+  },
+  "ordinary-hybrid-1.json": {
+    "gaps": {
+      "life": [
+        "3 1 from 56349"
+      ],
+      "mana": [],
+      "energyShield": [
+        "flat 90 from The Vertex, Tribal Mask",
+        "more 20 from ChargeRegulationPlayer"
+      ],
+      "spirit": [],
+      "evasion": [
+        "flat 260 from The Vertex, Tribal Mask",
+        "more 20 from ChargeRegulationPlayer"
+      ],
+      "str": [],
+      "dex": [],
+      "int": []
+    },
+    "class": "Lich",
+    "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/hagarfloss-9464/DayLaConMot",
+    "matched": 8,
+    "of": 13,
+    "stats": {
+      "str": {
+        "want": 139,
+        "got": 139,
+        "ok": true
+      },
+      "dex": {
+        "want": 111,
+        "got": 111,
+        "ok": true
+      },
+      "int": {
+        "want": 131,
+        "got": 131,
+        "ok": true
+      },
+      "life": {
+        "want": 1,
+        "got": 1,
+        "ok": true
+      },
+      "mana": {
+        "want": 768,
+        "got": 808,
+        "ok": false
+      },
+      "energyShield": {
+        "want": 9474,
+        "got": 7612,
+        "ok": false
+      },
+      "armour": {
+        "want": 15337,
+        "got": 11683,
+        "ok": false
+      },
+      "evasion": {
+        "want": 1607,
+        "got": 1303,
+        "ok": false
+      },
+      "fire": {
+        "want": 74,
+        "got": 74,
+        "ok": true
+      },
+      "cold": {
+        "want": 74,
+        "got": 64,
+        "ok": false
+      },
+      "lightning": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "chaos": {
+        "want": 100,
+        "got": 100,
+        "ok": true
+      },
+      "spirit": {
+        "want": 252,
+        "got": 252,
+        "ok": true
+      }
+    }
+  },
+  "ordinary-hybrid-2.json": {
+    "gaps": {
+      "life": [
+        "3 1 from 56349"
+      ],
+      "mana": [],
+      "energyShield": [
+        "increased 8 from Many Sources:^x88FFFF25% Amulet Bonus Effect",
+        "increased 14 from Many Sources:^x88FFFF25% Amulet Bonus Effect"
+      ],
+      "spirit": [
+        "flat 3 from Many Sources:^x88FFFF25% Amulet Bonus Effect",
+        "flat 12 from Many Sources:^x88FFFF25% Amulet Bonus Effect"
+      ],
+      "evasion": [
+        "increased 8 from Many Sources:^x88FFFF25% Amulet Bonus Effect"
+      ],
+      "str": [],
+      "dex": [
+        "flat 2 from Many Sources:^x88FFFF25% Ring 1 Bonus Effect",
+        "flat 2 from Many Sources:^x88FFFF25% Ring 2 Bonus Effect",
+        "flat 2 from Many Sources:^x88FFFF25% Ring 3 Bonus Effect",
+        "flat 10 from 61601"
+      ],
+      "int": [
+        "flat 7 from Many Sources:^x88FFFF25% Amulet Bonus Effect"
+      ]
+    },
+    "class": "Ritualist",
+    "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/Tomikpomik-4685/forbidden_vivod",
+    "matched": 5,
+    "of": 13,
+    "stats": {
+      "str": {
+        "want": 110,
+        "got": 110,
+        "ok": true
+      },
+      "dex": {
+        "want": 192,
+        "got": 175,
+        "ok": false
+      },
+      "int": {
+        "want": 116,
+        "got": 109,
+        "ok": false
+      },
+      "life": {
+        "want": 1,
+        "got": 1,
+        "ok": true
+      },
+      "mana": {
+        "want": 430,
+        "got": 421,
+        "ok": false
+      },
+      "energyShield": {
+        "want": 5945,
+        "got": 5708,
+        "ok": false
+      },
+      "armour": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "evasion": {
+        "want": 16300,
+        "got": 15961,
+        "ok": false
+      },
+      "fire": {
+        "want": 15,
+        "got": 23,
+        "ok": false
+      },
+      "cold": {
+        "want": 1,
+        "got": 19,
+        "ok": false
+      },
+      "lightning": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "chaos": {
+        "want": 100,
+        "got": 100,
+        "ok": true
+      },
+      "spirit": {
+        "want": 211,
+        "got": 196,
+        "ok": false
+      }
+    }
+  },
+  "ordinary-life-1.json": {
+    "gaps": {
+      "life": [
+        "flat 295 from Morior Invictus, Grand Regalia",
+        "flat 288 from 31223",
+        "increased 8 from Morior Invictus, Grand Regalia",
+        "increased 5 from 32976"
+      ],
+      "mana": [
+        "increased 5 from 32976"
+      ],
+      "energyShield": [],
+      "spirit": [],
+      "evasion": [
+        "flat 395 from Alpha's Howl, Runemastered Armoured Cap"
+      ],
+      "str": [
+        "flat 35 from Morior Invictus, Grand Regalia"
+      ],
+      "dex": [
+        "flat 35 from Morior Invictus, Grand Regalia"
+      ],
+      "int": [
+        "flat 35 from Morior Invictus, Grand Regalia"
+      ]
+    },
+    "class": "Blood Mage",
+    "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/Shaelmao-0831/Rakurimosa",
+    "matched": 3,
+    "of": 13,
+    "stats": {
+      "str": {
+        "want": 299,
+        "got": 264,
+        "ok": false
+      },
+      "dex": {
+        "want": 174,
+        "got": 124,
+        "ok": false
+      },
+      "int": {
+        "want": 160,
+        "got": 125,
+        "ok": false
+      },
+      "life": {
+        "want": 4800,
+        "got": 3454,
+        "ok": false
+      },
+      "mana": {
+        "want": 871,
+        "got": 758,
+        "ok": false
+      },
+      "energyShield": {
+        "want": 374,
+        "got": 374,
+        "ok": true
+      },
+      "armour": {
+        "want": 1611,
+        "got": 1611,
+        "ok": true
+      },
+      "evasion": {
+        "want": 1850,
+        "got": 2325,
+        "ok": false
+      },
+      "fire": {
+        "want": 75,
+        "got": 42,
+        "ok": false
+      },
+      "cold": {
+        "want": 75,
+        "got": 36,
+        "ok": false
+      },
+      "lightning": {
+        "want": 75,
+        "got": 38,
+        "ok": false
+      },
+      "chaos": {
+        "want": 69,
+        "got": 69,
+        "ok": true
+      },
+      "spirit": {
+        "want": 241,
+        "got": 374,
+        "ok": false
       }
     }
   },
