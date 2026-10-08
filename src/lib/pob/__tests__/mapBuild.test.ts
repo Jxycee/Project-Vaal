@@ -34,6 +34,7 @@ const build = (overrides: Partial<PobBuild> = {}): PobBuild => ({
   notes: null,
   questInputs: [],
   configInputs: null,
+  useSecondWeaponSet: false,
   ...overrides,
 });
 

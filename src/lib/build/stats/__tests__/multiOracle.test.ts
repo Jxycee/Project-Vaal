@@ -156,7 +156,7 @@ function oursDerived(sheet: DefenceSheet): Record<DKey, number> {
 const DERIVED_FLOOR: Record<string, number> = {
   'armour-life-gemling.json': 8, // of 19
   'es-life-stormweaver.json': 5, // of 19
-  'evasion-deadeye.json': 7, // of 19
+  'evasion-deadeye.json': 14, // of 19
   'hybrid-tactician.json': 7, // of 19
   'ordinary-armour-1.json': 8, // of 17
   'ordinary-caster-1.json': 9, // of 17
@@ -165,11 +165,11 @@ const DERIVED_FLOOR: Record<string, number> = {
   'ordinary-ci-disciple.json': 19, // of 19
   'ordinary-ci-es-disciple.json': 12, // of 19
   'ordinary-deadeye.json': 13, // of 19
-  'ordinary-evasion-1.json': 8, // of 19
-  'ordinary-evasion-2.json': 6, // of 19
+  'ordinary-evasion-1.json': 9, // of 19
+  'ordinary-evasion-2.json': 18, // of 19
   'ordinary-hybrid-1.json': 8, // of 19
   'ordinary-hybrid-2.json': 10, // of 19
-  'ordinary-life-1.json': 9, // of 19
+  'ordinary-life-1.json': 10, // of 19
   'ordinary-oracle.json': 16, // of 17
 };
 
@@ -177,9 +177,9 @@ const ours = (sheet: DefenceSheet, k: Key): number => (k === 'fire' || k === 'co
 
 // Ratchet: the least number of the 13 stats each build must match. Raise it when a fix lands; never lower it.
 const FLOOR: Record<string, number> = {
-  'armour-life-gemling.json': 6, // Mageblood, a RELIC body armour and 36 unreadable item lines: item coverage, not the engine
+  'armour-life-gemling.json': 7, // Gem Enthusiast now counted; Mageblood, a RELIC body armour and 36 unreadable item lines: item coverage, not the engine
   'es-life-stormweaver.json': 10, // Kalandra's Touch reflects the opposite ring (collect.ts); a radius jewel's notables (fire, spirit)
-  'evasion-deadeye.json': 5, // chaos resistance via a Time-Lost jewel's radius grant
+  'evasion-deadeye.json': 12, // the weapon set PoB had active (set 2) now read from the code; still short: chaos resistance via a Time-Lost jewel's radius grant
   'hybrid-tactician.json': 8,
   // The ordinary set (board item 30): mid-complexity public builds. The goal is 13 of 13 on every one.
   'ordinary-ci-acolyte.json': 13, // 13 of 13: Purity of Ice (a socketed Aura) puts +43% Cold Resistance on the character - skillBuffs.ts, scaled by 11% increased Aura magnitudes
@@ -189,14 +189,14 @@ const FLOOR: Record<string, number> = {
   'ordinary-oracle.json': 13, // 13 of 13: Eldritch Battery moves flat ES into Mana (engine.ts) + PoB's printed rune lines (Blood League 469, Viper Crest 3%)
   // Round-3 pool (31 Forbidden Rites characters fetched with scripts/fetch-oracle-pool.mjs, the 8 best that wear no Mageblood or RELIC item).
   // FLOOR = the match when added; the gaps lists in results.json say what is missing. Shape = the build's defence layer.
-  'ordinary-evasion-1.json': 4, // Deadeye; five uniques not in our data (Hand of Wisdom and Action, From Nothing, Against the Darkness, Megalomaniac, Heart of the Well)
+  'ordinary-evasion-1.json': 8, // the PoB code's own weapon set (2) + Charge Regulation's endurance-charge threshold; still short,  Deadeye; five uniques not in our data (Hand of Wisdom and Action, From Nothing, Against the Darkness, Megalomaniac, Heart of the Well)
   'ordinary-armour-1.json': 10, // Gemling Legionnaire, life/armour/evasion; Runeseeker's Call (-45% less maximum Life rune line) and Virtuous Barrier mote counts
   'ordinary-caster-1.json': 12, // Chronomancer; only Mana off (Runeforged Sirenscale Gloves rune line)
   'ordinary-hybrid-1.json': 8, // Lich, ES + armour; Ancient Aegis body armour armour, Grip of Kulemak not in our data
   'ordinary-caster-2.json': 9, // Stormweaver; untyped unique lines read from their text (Controlled Metamorphosis -(20-5)% to all Elemental Resistances) + the "0% to" cache entry no longer poisons "-15% to Cold Resistance"; still short: Adonia's Ego per-Power-Charge resistances, ES/evasion nodes
-  'ordinary-life-1.json': 8, // Blood Mage, life; Morior per-socket lines now counted; still short: 1% max Life per Corrupted Item Equipped, Alpha's Howl Runemastered cap, node 31223
+  'ordinary-life-1.json': 11, // weapon set 2 from the code + Gem Enthusiast (support colours); still short: Crimson Power (life from body ES), Morior +8% life; was: Blood Mage, life; Morior per-socket lines now counted; still short: 1% max Life per Corrupted Item Equipped, Alpha's Howl Runemastered cap, node 31223
   'ordinary-hybrid-2.json': 13, // 13 of 13: Ring 3 (Unfurled Finger), Mystic Attunement's 25% bonus copy of ring/amulet modifiers (collect.ts bonusEffectFromJewellery, floored), Andvarius's untyped -20% line, Grand Spectrum's per-jewel multiplier
-  'ordinary-evasion-2.json': 5, // Ritualist, evasion; Ring 3 + the ring/amulet bonus copy now counted; still short: Palm of the Dreamer (a Weapon 2 Swap sceptre PoB counts), Charge Regulation (endurance-charge threshold), node 56776, Megalomaniac
+  'ordinary-evasion-2.json': 13, // 13 of 13: the PoB code's weapon set (2) puts Palm of the Dreamer and the set-2 passives (Cooked, Chakra of Life) in; Charge Regulation counts with the Configuration's use-endurance-charges switch (skillBuffs.ts)
 };
 
 
@@ -255,10 +255,12 @@ beforeAll(async () => {
     const checkpoint = mapped.plan.checkpoints[mapped.plan.checkpoints.length - 1];
     const cls = tree.classes.find((c: { name: string }) => c.name === mapped.plan.build.class);
     if (!cls) throw new Error(`${f}: class ${mapped.plan.build.class} not in the tree`);
+    // The weapon set is the one PoB had active in the code (<Items useSecondWeaponSet>); the fixture's own flag was
+    // never filled in (false everywhere), and set 2 holds Palm of the Dreamer and the set-2-only passives PoB counted.
     const run = (config: BuildConfig | undefined) => {
       const { buildConfig: _imported, ...rest } = checkpoint.passive_state;
       const collected = collectContributions(
-        { passive: config ? { ...rest, buildConfig: config } : rest, gear: checkpoint.gear_state, level: fx.level, set: fx.useSecondWeaponSet ? 2 : 1, gems: checkpoint.gem_state },
+        { passive: config ? { ...rest, buildConfig: config } : rest, gear: checkpoint.gear_state, level: fx.level, set: parsed.build.useSecondWeaponSet ? 2 : 1, gems: checkpoint.gem_state },
         data,
       );
       const sheet = computeDefences({

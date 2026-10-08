@@ -26,6 +26,9 @@
 //      character's own; others are skipped.
 //   6. A gem level outside the skill's table: named, not clamped to a number PoB would not use.
 //   7. The same skill socketed twice: PoB applies one buff of a given name; the first loadout wins.
+//   9. A charge threshold ("StatThreshold:EnduranceCharges:1", Charge Regulation) holds when the Configuration ticks
+//      the matching "use charges" switch and the threshold is within the base maximum of 3; off when it is not
+//      ticked; named in notCounted with no Configuration at all.
 //   8. "+N to Level of all skills" from gear is not modelled: the table is read at the gem's own level, which
 //      is exactly right only when no such modifier is worn. (An assumption, listed in `assumed` when it applies.)
 // =============================================================================
@@ -65,6 +68,28 @@ function lookup(name: string): BuffSkill | null | undefined {
   return byName.get(name);
 }
 
+const CHARGES_BY_STAT: Record<string, string> = {
+  EnduranceCharges: 'UseEnduranceCharges',
+  FrenzyCharges: 'UseFrenzyCharges',
+  PowerCharges: 'UsePowerCharges',
+};
+/** Every character starts with this many of each charge as its maximum (characterConstants max_*_charges). */
+const BASE_MAX_CHARGES = 3;
+
+/**
+ * "StatThreshold:EnduranceCharges:1" (a buff that needs N charges): PoB gives the character its maximum charges when
+ * the Configuration's "use charges" switch is ticked, none otherwise. undefined = not a charge threshold we can
+ * answer (no Configuration, or N above the base maximum, which gear may or may not raise).
+ */
+function chargeThreshold(config: BuildConfig | undefined, need: string): boolean | undefined {
+  const [kind, stat, n] = need.split(':');
+  const flag = CHARGES_BY_STAT[stat ?? ''];
+  if (kind !== 'StatThreshold' || flag === undefined || config === undefined) return undefined;
+  const wanted = Number(n);
+  if (!config.conditions.includes(flag)) return false;
+  return wanted <= BASE_MAX_CHARGES ? true : undefined;
+}
+
 /** PoB's ScaleAddMod rounding for a scaled buff modifier. */
 const scale = (value: number, factor: number): number => Math.floor(value * factor * 100) / 100;
 
@@ -92,7 +117,15 @@ export function skillBuffContributions(
       const pools = MODIFIER_POOLS[e.mod];
       const kind = KINDS[e.type];
       if (!pools || !kind) continue;
-      const gates = [...(e.needs ?? [])];
+      const gates: string[] = [];
+      let chargeless = false;
+      for (const need of e.needs ?? []) {
+        const held = chargeThreshold(config, need);
+        if (held === undefined) gates.push(need);
+        else if (!held) chargeless = true;
+      }
+      // Known to be off (the Configuration does not use charges): nothing to count, and nothing to name.
+      if (chargeless && gates.length === 0) continue;
       if (e.condition || e.multiplier) {
         const negate = e.condition?.startsWith('!') ?? false;
         const held = e.condition ? conditionHolds(config, negate ? e.condition.slice(1) : e.condition, negate) : true;

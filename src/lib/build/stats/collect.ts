@@ -39,7 +39,8 @@ import { RADIUS_GRANT_LINE, readLine, type LineMod } from './lineMods';
 import type { JewelRadiusNode } from '@/lib/tree/treeLite';
 import { categoryApplies, isKnownCategory, readRuneLine } from './runes';
 import type { Contribution } from './engine';
-import { CONDITIONAL_EFFECTS, GLOBAL_EFFECTS, LOCAL_EFFECTS, looksLikeDefenceStat, NOT_MODELLED, PER_ITEM_DEFENCE, type PerItemDefence, type Pool } from './statTable';
+import { CONDITIONAL_EFFECTS, GLOBAL_EFFECTS, LOCAL_EFFECTS, looksLikeDefenceStat, NOT_MODELLED, PER_ITEM_DEFENCE, SUPPORT_THRESHOLD, type PerItemDefence, type Pool } from './statTable';
+import supportColours from '@/lib/pob/data/support-colours.json';
 
 /**
  * Embrace the Darkness: "You have no Spirit". Its typed stats (base_darkness
@@ -121,6 +122,8 @@ export function collectContributions(
   let unchosen = 0;
   /** Passives that scale off an item's own defence: resolved once every item is read (statTable PER_ITEM_DEFENCE). */
   const perItem: { rule: PerItemDefence; value: number; source: string }[] = [];
+  /** Passives that need N support gems of a colour (statTable SUPPORT_THRESHOLD): resolved once the gems are read. */
+  const needsSupports: { stat: string; value: number; source: string }[] = [];
   const addNode = (id: number): void => {
     const node = data.node(id);
     if (!node) return;
@@ -137,7 +140,8 @@ export function collectContributions(
       else if (stat === 'keystone_chaos_inoculation') flags.chaosInoculation = true;
       else if (stat === 'keystone_eldritch_battery') flags.eldritchBattery = true;
       else if (stat === 'cannot_gain_spirit_from_equipment') flags.noSpiritFromEquipment = true;
-      if (PER_ITEM_DEFENCE[stat]) perItem.push({ rule: PER_ITEM_DEFENCE[stat], value, source: node.name });
+      if (SUPPORT_THRESHOLD[stat]) needsSupports.push({ stat, value, source: node.name });
+      else if (PER_ITEM_DEFENCE[stat]) perItem.push({ rule: PER_ITEM_DEFENCE[stat], value, source: node.name });
       else addGlobal(contributions, notCounted, unknown, stat, value, node.name, config);
     }
   };
@@ -190,6 +194,23 @@ export function collectContributions(
     const steps = div > 0 ? Math.floor(have / div) : 0;
     if (steps * amount !== 0) {
       contributions.push({ pool: rule.pool, kind: 'flat', value: steps * amount, source });
+    }
+  }
+
+  // ---- Passives that count support gems by colour (Gem Enthusiast). PoB counts every enabled support in the skills of
+  // the active weapon set; a gem of no colour (a unique support, "w") is none of the three.
+  if (needsSupports.length > 0) {
+    const count = { r: 0, g: 0, b: 0 };
+    for (const loadout of input.gems?.loadouts ?? []) {
+      if (!loadout.sets.includes(input.set)) continue;
+      for (const support of loadout.supports) {
+        const colour = (supportColours as Record<string, string>)[support.name];
+        if (colour === 'r' || colour === 'g' || colour === 'b') count[colour]++;
+      }
+    }
+    for (const { stat, value, source } of needsSupports) {
+      const rule = SUPPORT_THRESHOLD[stat];
+      if (count[rule.colour] >= rule.atLeast) contributions.push({ pool: rule.pool, kind: 'increased', value, source });
     }
   }
 

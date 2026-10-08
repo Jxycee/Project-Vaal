@@ -300,6 +300,22 @@ export const PER_ITEM_DEFENCE: Readonly<Record<string, PerItemDefence>> = {
 };
 
 /**
+ * Passives that need N support gems of one colour in the skills ("5% increased maximum Life if you have at least 10
+ * Red Support Gems Socketed", Gem Enthusiast). PoB2 tags them MultiplierThreshold on RedSupportGems etc. (modcache.json);
+ * resolved in collect.ts once the gem loadouts are known.
+ */
+export interface SupportThreshold {
+  pool: Pool;
+  colour: 'r' | 'g' | 'b';
+  atLeast: number;
+}
+export const SUPPORT_THRESHOLD: Readonly<Record<string, SupportThreshold>> = {
+  'maximum_life_+%_if_10_red_supports_socketed': { pool: 'life', colour: 'r', atLeast: 10 },
+  'movement_speed_+%_if_10_green_supports_socketed': { pool: 'movementSpeed', colour: 'g', atLeast: 10 },
+  'maximum_mana_+%_if_10_blue_supports_socketed': { pool: 'mana', colour: 'b', atLeast: 10 },
+};
+
+/**
  * Stats that change a defence this engine reports but that it does NOT
  * model yet. Any allocated or equipped source carrying one is listed on the
  * stat sheet by name, so a number is never silently missing a contribution.

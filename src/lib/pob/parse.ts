@@ -92,6 +92,11 @@ export interface PobBuild {
    * all. null is "unknown", an empty list is "nothing ticked": the difference matters (buildConfig.ts).
    */
   configInputs: ConfigInput[] | null;
+  /**
+   * The weapon set PoB had active when the code was made: the active <ItemSet>'s (else <Items>') useSecondWeaponSet.
+   * Decides whose weapons and set-only passives PoB's own numbers include; "nil" or absent is the first set.
+   */
+  useSecondWeaponSet: boolean;
 }
 
 export type ParseError = 'malformed-xml' | 'no-build';
@@ -258,6 +263,8 @@ export function parsePobXml(xml: string): { ok: true; build: PobBuild } | { ok: 
         .filter((slot): slot is PobSlot => slot.name !== '' && slot.itemId !== null && slot.itemId > 0)
     : [];
 
+  const useSecondWeaponSet = (itemSet?.getAttribute('useSecondWeaponSet') ?? itemsElement?.getAttribute('useSecondWeaponSet')) === 'true';
+
   const configElement = firstChild(root, 'Config');
   const configSet = configElement ? pickActive(childElements(configElement, 'ConfigSet'), intAttr(configElement, 'activeConfigSet')) : null;
   const questInputs = configSet
@@ -297,6 +304,7 @@ export function parsePobXml(xml: string): { ok: true; build: PobBuild } | { ok: 
       notes: notesText === '' ? null : notesText,
       questInputs,
       configInputs,
+      useSecondWeaponSet,
     },
   };
 }
