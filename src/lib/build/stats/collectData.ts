@@ -31,7 +31,23 @@ const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((s): s is
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
 
 export function makeCollectData(files: RawCollectFiles): CollectData {
+  /** Name -> id for passives that carry typed stats and whose name nothing else shares. Built on first use. */
+  let byName: Map<string, number> | undefined;
   return {
+    nodeByName(name) {
+      if (!byName) {
+        byName = new Map();
+        const taken = new Set<string>();
+        for (const [id, node] of Object.entries(files.tree.nodes)) {
+          if (!node.name || !files.nodeStats.nodes[id]) continue;
+          if (byName.has(node.name) || taken.has(node.name)) {
+            byName.delete(node.name);
+            taken.add(node.name);
+          } else byName.set(node.name, Number(id));
+        }
+      }
+      return byName.get(name);
+    },
     node(id) {
       const typed = files.nodeStats.nodes[String(id)];
       const node = files.tree.nodes[String(id)];

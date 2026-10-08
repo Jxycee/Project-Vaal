@@ -66,15 +66,15 @@ const ours = (sheet: DefenceSheet, k: Key): number => (k === 'fire' || k === 'co
 
 // Ratchet: the least number of the 13 stats each build must match. Raise it when a fix lands; never lower it.
 const FLOOR: Record<string, number> = {
-  'armour-life-gemling.json': 0, // Mageblood, a RELIC body armour and 36 unreadable item lines: item coverage, not the engine
+  'armour-life-gemling.json': 2, // Mageblood, a RELIC body armour and 36 unreadable item lines: item coverage, not the engine
   'es-life-stormweaver.json': 4,
   'evasion-deadeye.json': 4,
   'hybrid-tactician.json': 3,
   // The ordinary set (board item 30): mid-complexity public builds. The goal is 13 of 13 on every one.
-  'ordinary-ci-acolyte.json': 9,
-  'ordinary-ci-disciple.json': 10,
+  'ordinary-ci-acolyte.json': 12,
+  'ordinary-ci-disciple.json': 11,
   'ordinary-ci-es-disciple.json': 10,
-  'ordinary-deadeye.json': 5,
+  'ordinary-deadeye.json': 12,
   'ordinary-oracle.json': 7,
 };
 

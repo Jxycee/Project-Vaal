@@ -21,7 +21,7 @@
 // tables without coming through here.
 // =============================================================================
 
-import { MAX_AFFIXES_PER_KIND, MAX_ITEM_QUALITY, MAX_RUNES, RARITIES, type CraftedMod, type ItemCraft, type ItemRarity } from './craft';
+import { MAX_AFFIXES_PER_KIND, MAX_ITEM_QUALITY, MAX_RUNES, MAX_VERBATIM_LENGTH, MAX_VERBATIM_LINES, RARITIES, type CraftedMod, type ItemCraft, type ItemRarity } from './craft';
 import { GEAR_SLOTS, type GearItem } from './gearSlots';
 import { parseGearState, type GearState } from './gearState';
 import { parseGemState, type GemState } from './gemState';
@@ -69,7 +69,7 @@ export { isAllowedIconUrl };
 // mod, 2 ranges per line, 7 implicit lines, 37 unique lines; mod slugs are
 // [a-z0-9_-] (two carry '-'), item slugs [a-z0-9-].
 
-const CRAFT_KEYS = ['rarity', 'name', 'itemLevel', 'quality', 'corrupted', 'implicitValues', 'uniqueValues', 'prefixes', 'suffixes', 'runes'] as const;
+const CRAFT_KEYS = ['rarity', 'name', 'itemLevel', 'quality', 'corrupted', 'implicitValues', 'uniqueValues', 'prefixes', 'suffixes', 'runes', 'verbatim'] as const;
 const MOD_SLUG_RE = /^[a-z0-9_-]{1,120}$/;
 const MAX_VALUES_PER_ROW = 8;
 const MAX_IMPLICIT_ROWS = 16;
@@ -121,6 +121,12 @@ function cleanCraft(raw: unknown): ItemCraft | null {
   const runes = raw.runes;
   if (!implicitValues || !uniqueValues || !prefixes || !suffixes) return null;
   if (!Array.isArray(runes) || runes.length > MAX_RUNES || !runes.every((r) => typeof r === 'string' && ITEM_SLUG_RE.test(r))) return null;
+  // Optional: absent on every craft saved before the importer started keeping unrepresentable lines.
+  const verbatim = raw.verbatim;
+  if (verbatim !== undefined) {
+    if (!Array.isArray(verbatim) || verbatim.length > MAX_VERBATIM_LINES) return null;
+    if (!verbatim.every((l) => typeof l === 'string' && l.length > 0 && l.length <= MAX_VERBATIM_LENGTH)) return null;
+  }
   return {
     rarity: rarity as ItemRarity,
     name: name as string | null,
@@ -132,6 +138,7 @@ function cleanCraft(raw: unknown): ItemCraft | null {
     prefixes,
     suffixes,
     runes: [...(runes as string[])],
+    ...(verbatim !== undefined ? { verbatim: [...(verbatim as string[])] } : {}),
   };
 }
 

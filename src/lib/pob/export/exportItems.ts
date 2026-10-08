@@ -116,6 +116,8 @@ export async function itemText(item: GearItem, where: string, report: ReportEntr
     }
     lines.push(...modLines(mod, crafted.values, label, report));
   }
+  // Lines kept as written (mapCraft's verbatim): written back as the explicit lines they were read from.
+  lines.push(...(craft.verbatim ?? []));
   if (craft.corrupted) lines.push('Corrupted');
   return lines.join('\n');
 }

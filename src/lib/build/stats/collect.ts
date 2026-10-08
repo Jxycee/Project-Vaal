@@ -27,9 +27,10 @@ import type { GearState } from '../gearState';
 import type { PassiveState } from '../types';
 import { campaignAt } from './campaign';
 import { DEFENCE_WORDS, implicitStats } from './implicits';
+import { readLine } from './lineMods';
 import { categoryApplies, isKnownCategory, readRuneLine } from './runes';
 import type { Contribution } from './engine';
-import { GLOBAL_EFFECTS, LOCAL_EFFECTS, looksLikeDefenceStat, NOT_MODELLED, type Pool } from './statTable';
+import { GLOBAL_EFFECTS, LOCAL_EFFECTS, looksLikeDefenceStat, NOT_MODELLED, PER_ITEM_DEFENCE, type PerItemDefence, type Pool } from './statTable';
 
 /**
  * Embrace the Darkness: "You have no Spirit". Its typed stats (base_darkness
@@ -42,6 +43,11 @@ const GENERIC_ATTRIBUTE_AMOUNT = 5;
 
 export interface CollectData {
   node(id: number): { name: string; stats: [string, number][]; attribute?: boolean } | undefined;
+  /**
+   * The one passive with this exact name, for "Allocates <name>" enchants. undefined when the name is
+   * unknown or shared by several passives (never a guess). Optional: without it such an enchant is named, not counted.
+   */
+  nodeByName?(name: string): number | undefined;
   item(slug: string):
     | {
         armour: { armour: number; evasion: number; energyShield: number } | null;
@@ -96,24 +102,37 @@ export function collectContributions(
   // ---- Tree: this set's nodes (shared ones are in both lists) and the ascendancy.
   const nodes = new Set([...(input.set === 1 ? input.passive.set1 : input.passive.set2), ...input.passive.ascendancyNodes]);
   let unchosen = 0;
-  for (const id of nodes) {
+  /** Passives that scale off an item's own defence: resolved once every item is read (statTable PER_ITEM_DEFENCE). */
+  const perItem: { rule: PerItemDefence; value: number; source: string }[] = [];
+  const addNode = (id: number): void => {
     const node = data.node(id);
-    if (!node) continue;
+    if (!node) return;
     if (id === NO_SPIRIT_NODE) flags.noSpirit = true;
     if (node.attribute) {
       const choice = input.passive.attributeChoices?.[String(id)];
       if (choice) contributions.push({ pool: ATTRIBUTE_POOL[choice], kind: 'flat', value: GENERIC_ATTRIBUTE_AMOUNT, source: 'Attribute passive' });
       else unchosen++;
-      continue;
+      return;
     }
     for (const [stat, value] of node.stats) {
       if (stat === 'keystone_giants_blood') flags.giantsBlood = true;
       else if (stat === 'keystone_lord_of_the_wilds') flags.lordOfTheWilds = true;
       else if (stat === 'keystone_chaos_inoculation') flags.chaosInoculation = true;
       else if (stat === 'cannot_gain_spirit_from_equipment') flags.noSpiritFromEquipment = true;
-      addGlobal(contributions, notCounted, unknown, stat, value, node.name);
+      if (PER_ITEM_DEFENCE[stat]) perItem.push({ rule: PER_ITEM_DEFENCE[stat], value, source: node.name });
+      else addGlobal(contributions, notCounted, unknown, stat, value, node.name);
     }
-  }
+  };
+  for (const id of nodes) addNode(id);
+  /** "Allocates <passive>" on an item: that passive's stats, unless the tree already allocates it (PoB counts it once). */
+  const allocate = (name: string): void => {
+    const id = data.nodeByName?.(name);
+    if (id === undefined) notCounted.push(`Allocates ${name}: passive not found by name, so it was not counted`);
+    else if (!nodes.has(id)) {
+      nodes.add(id);
+      addNode(id);
+    }
+  };
   if (unchosen > 0) {
     notCounted.push(`${unchosen} "+5 to any Attribute" ${unchosen === 1 ? 'passive has' : 'passives have'} no attribute chosen`);
   }
@@ -128,7 +147,18 @@ export function collectContributions(
   for (const [socket, jewel] of Object.entries(input.gear.jewels)) {
     if (nodes.has(Number(socket))) equipped.push({ item: jewel });
   }
-  for (const { item, slot } of equipped) collectItem(item, slot, data, flags, contributions, notCounted, unknown, assumed);
+  for (const { item, slot } of equipped) collectItem(item, slot, data, flags, contributions, notCounted, unknown, assumed, allocate);
+
+  // ---- Passives that scale off an item's defence, now that every item's own figure is known. An empty slot
+  // is 0 steps. PoB floors the step count (PerStat tag, ModStore.lua).
+  for (const { rule, value, source } of perItem) {
+    const have = contributions.filter((c) => c.slot === rule.slot && c.pool === rule.from && c.kind === 'flat').reduce((n, c) => n + c.value, 0);
+    const [amount, div] = rule.valueIs === 'amount' ? [value, rule.fixed] : [rule.fixed, value];
+    const steps = div > 0 ? Math.floor(have / div) : 0;
+    if (steps * amount !== 0) {
+      contributions.push({ pool: rule.pool, kind: 'flat', value: steps * amount, source });
+    }
+  }
 
   // ---- Campaign, derived from the level.
   const campaign = campaignAt(input.level, input.passive.questChoices);
@@ -163,6 +193,7 @@ function collectItem(
   notCounted: string[],
   unknown: Map<string, Set<string>>,
   assumed: string[],
+  allocate: (name: string) => void,
 ): void {
   const craft = item.craft;
   const stats: [string, number][] = [];
@@ -176,6 +207,8 @@ function collectItem(
     wornImplicitLines = unique?.implicitLines ?? [];
     if (!unique || !detail) {
       notCounted.push(`${item.name}: unique — not in our data`);
+      // Its lines as the importer kept them still count, as global modifiers (no base to scale locally).
+      readVerbatim(craft?.verbatim, item.name, { defences: false, spirit: false }, {}, {}, contributions, notCounted, allocate);
       return;
     }
     // Lines typed to exactly the same stats are one roll's alternatives, which
@@ -276,6 +309,7 @@ function collectItem(
   // Local stats shape the item's own defences and Spirit; the rest are global.
   const localFlat: Partial<Record<Pool, number>> = {};
   const localInc: Partial<Record<Pool, number>> = {};
+  readVerbatim(craft?.verbatim, item.name, { defences: detail.armour !== null, spirit: detail.spirit > 0 }, localFlat, localInc, contributions, notCounted, allocate);
   for (const [stat, value] of stats) {
     const local = LOCAL_EFFECTS[stat];
     if (local) {
@@ -308,6 +342,47 @@ function collectItem(
     for (let i = contributions.length - 1; i >= 0; i--) {
       const c = contributions[i];
       if (c.source === item.name && c.pool === 'spirit' && c.kind === 'flat') contributions.splice(i, 1);
+    }
+  }
+}
+
+/**
+ * Lines the importer kept as written (ItemCraft.verbatim), read by PoB's own parse of their text
+ * (lineMods.ts). A defence line on an item that has its own defences (or Spirit) and that PoB does not tag
+ * Global is LOCAL: it scales that item's base, as the wiki-typed `local_*` stats do. Everything else is global.
+ * Unreadable lines are named, never dropped.
+ */
+function readVerbatim(
+  lines: readonly string[] | undefined,
+  source: string,
+  host: { defences: boolean; spirit: boolean },
+  localFlat: Partial<Record<Pool, number>>,
+  localInc: Partial<Record<Pool, number>>,
+  contributions: Contribution[],
+  notCounted: string[],
+  allocate: (name: string) => void,
+): void {
+  for (const line of lines ?? []) {
+    const allocates = /^Allocates (.+)$/.exec(line);
+    if (allocates) {
+      allocate(allocates[1]);
+      continue;
+    }
+    const read = readLine(line);
+    if (read === null) continue;
+    if ('unmodelled' in read) {
+      notCounted.push(`${source}: "${read.unmodelled}" not counted`);
+      continue;
+    }
+    for (const mod of read.mods) {
+      const defence = mod.pool === 'armour' || mod.pool === 'evasion' || mod.pool === 'energyShield';
+      const local = !read.global && mod.kind !== 'more' && ((host.defences && defence) || (host.spirit && mod.pool === 'spirit' && mod.kind === 'increased'));
+      if (local) {
+        const bucket = mod.kind === 'flat' ? localFlat : localInc;
+        bucket[mod.pool] = (bucket[mod.pool] ?? 0) + mod.value;
+      } else {
+        contributions.push({ pool: mod.pool, kind: mod.kind, value: mod.value, source });
+      }
     }
   }
 }

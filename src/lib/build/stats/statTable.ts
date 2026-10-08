@@ -139,13 +139,35 @@ export const LOCAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
 };
 
 /**
+ * Passives that scale off ANOTHER item's own defence: "+1 to Evasion Rating per 1 Item Energy Shield on
+ * Equipped Helmet" (PoB2 PerStat tag, modcache.json: div = the per-step size, amount = the value; the
+ * stat is floor(item defence / div) steps, ModStore.lua). `valueIs` says which of the two the node's
+ * number is: the fixed one is `fixed`. The item defence is the item's final own figure (local mods and
+ * quality included), which the collector holds once every item is read.
+ */
+export interface PerItemDefence {
+  pool: Pool;
+  slot: GearSlot;
+  from: 'armour' | 'evasion' | 'energyShield';
+  valueIs: 'amount' | 'div';
+  fixed: number;
+}
+export const PER_ITEM_DEFENCE: Readonly<Record<string, PerItemDefence>> = {
+  'maximum_energy_shield_+1_per_x_body_armour_evasion_rating': { pool: 'energyShield', slot: 'body', from: 'evasion', valueIs: 'div', fixed: 1 },
+  'evasion_rating_+_per_1_helmet_energy_shield': { pool: 'evasion', slot: 'head', from: 'energyShield', valueIs: 'amount', fixed: 1 },
+  'evasion_rating_+_per_1_armour_on_gloves': { pool: 'evasion', slot: 'gloves', from: 'armour', valueIs: 'amount', fixed: 1 },
+  'armour_+_per_1_boots_energy_shield': { pool: 'armour', slot: 'boots', from: 'energyShield', valueIs: 'amount', fixed: 1 },
+  'energy_shield_+_per_8_helmet_armour': { pool: 'energyShield', slot: 'head', from: 'armour', valueIs: 'amount', fixed: 8 },
+  '+1_spirit_per_X_evasion_rating_on_body_armour': { pool: 'spirit', slot: 'body', from: 'evasion', valueIs: 'div', fixed: 1 },
+  '+1_spirit_per_X_energy_shield_on_body_armour': { pool: 'spirit', slot: 'body', from: 'energyShield', valueIs: 'div', fixed: 1 },
+};
+
+/**
  * Stats that change a defence this engine reports but that it does NOT
  * model yet. Any allocated or equipped source carrying one is listed on the
  * stat sheet by name, so a number is never silently missing a contribution.
  */
 export const NOT_MODELLED: Readonly<Record<string, string>> = {
-  '+1_spirit_per_X_evasion_rating_on_body_armour': 'Spirit from body armour Evasion',
-  '+1_spirit_per_X_energy_shield_on_body_armour': 'Spirit from body armour Energy Shield',
   'spirit_+_per_empty_charm_slot': 'Spirit per empty charm slot',
   'body_armour_grants_spirit_+%': 'increased Spirit from body armour',
   'ascendancy_beidats_will_spirit_+_per_X_maximum_life': 'Spirit per maximum Life',

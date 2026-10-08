@@ -82,15 +82,17 @@ interface Craft {
 //     cannot say which an item has (momentsZX ring1: prefix3 17% + suffix2 14%
 //     come back as prefix2 14% + suffix3 17%). For that family only, the
 //     multiset of rolled values must match, not which side holds which.
-//  3. The fixture's Amethyst Ring has "+189 to maximum Mana" (increasedmana13).
-//     The export writes that line exactly, and PoB2 reads it as written, but
-//     OUR importer's text reader only offers mods that can roll on the base in
-//     current data, where tier 13 cannot on a ring, so it clamps to tier 12 at
-//     179 (importer behaviour by design, not an export loss). The expected side
-//     is passed through the same reading before comparing.
-const KNOWN_CLAMP = { from: 'increasedmana13', to: { slug: 'increasedmana12', values: [179] } };
-function asImporterReadsIt<T extends { prefixes: { slug: string; values: number[] }[] }>(craft: T): T {
-  return { ...craft, prefixes: craft.prefixes.map((m) => (m.slug === KNOWN_CLAMP.from ? KNOWN_CLAMP.to : m)) };
+//  3. The fixture's Amethyst Ring has "+189 to maximum Mana" (increasedmana13), a tier the wiki says cannot
+//     roll on a ring. The first import knows its mod id (a crafted item names it); the export writes only the
+//     line, and the importer's text reader cannot place tier 13 on a ring. It used to clamp to tier 12 at 179
+//     (a wrong number); it now keeps the line as written (craft.verbatim), counted from its text, so the
+//     value survives and only the representation changes: the mod becomes a verbatim line. The expected side is
+//     passed through the same reading before comparing.
+const KNOWN_CLAMP = { from: 'increasedmana13', line: '+189 to maximum Mana' };
+function asImporterReadsIt<T extends { prefixes: { slug: string; values: number[] }[]; verbatim?: string[] }>(craft: T): T {
+  const hit = craft.prefixes.some((m) => m.slug === KNOWN_CLAMP.from);
+  if (!hit) return craft;
+  return { ...craft, prefixes: craft.prefixes.filter((m) => m.slug !== KNOWN_CLAMP.from), verbatim: [...(craft.verbatim ?? []), KNOWN_CLAMP.line] };
 }
 //  4. A mod whose display range is not its roll range (crit "(3-4)%" over rolls
 //     311-380) cannot print a stored roll, so it is written at its best display

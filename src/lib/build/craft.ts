@@ -38,7 +38,18 @@ export interface ItemCraft {
   suffixes: CraftedMod[];
   /** SoulCore item slugs (runes, soul cores), in socket order. */
   runes: string[];
+  /**
+   * Mod lines the item really shows that the wiki-slug model above cannot hold: a desecrated or
+   * corrupted mod the base's pool lacks, a unique our data never typed, a roll past its tier cap,
+   * an "Allocates X" enchant. Final text with the roll filled in ("+9 to all Attributes"), read by
+   * stats/lineMods.ts. Absent when there are none. Only the PoB importer writes it.
+   */
+  verbatim?: string[];
 }
+
+/** Bounds the write gate holds `verbatim` to (a unique has at most ~40 lines; none is long). */
+export const MAX_VERBATIM_LINES = 48;
+export const MAX_VERBATIM_LENGTH = 200;
 
 /**
  * Item quality cap. Not the "usual 20": real items exceed it (the momentsZX

@@ -2,7 +2,6 @@
   "armour-life-gemling.json": {
     "gaps": {
       "life": [
-        "flat 201 from Onslaught Glance, Imperial Greathelm",
         "flat 265 from Morior Invictus, Grand Regalia",
         "flat 103 from Pain Spiral, Gold Ring",
         "increased 3 from Morior Invictus, Grand Regalia",
@@ -29,32 +28,32 @@
     },
     "class": "Gemling Legionnaire",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/flyinghigh42-0275/StickyOildUp",
-    "matched": 0,
+    "matched": 2,
     "of": 13,
     "stats": {
       "str": {
         "want": 306,
-        "got": 295,
+        "got": 304,
         "ok": false
       },
       "dex": {
         "want": 99,
-        "got": 94,
-        "ok": false
+        "got": 99,
+        "ok": true
       },
       "int": {
         "want": 160,
-        "got": 155,
-        "ok": false
+        "got": 160,
+        "ok": true
       },
       "life": {
         "want": 4075,
-        "got": 2720,
+        "got": 2770,
         "ok": false
       },
       "mana": {
         "want": 825,
-        "got": 777,
+        "got": 788,
         "ok": false
       },
       "energyShield": {
@@ -64,7 +63,7 @@
       },
       "armour": {
         "want": 38359,
-        "got": 10604,
+        "got": 12302,
         "ok": false
       },
       "evasion": {
@@ -89,7 +88,7 @@
       },
       "chaos": {
         "want": 68,
-        "got": 60,
+        "got": 63,
         "ok": false
       },
       "spirit": {
@@ -103,19 +102,13 @@
     "gaps": {
       "life": [],
       "mana": [
-        "flat 222 from Oblivion Spiral, Gold Ring",
         "flat 260 from Morior Invictus, Grand Regalia",
         "flat 222 from Kalandra's Touch, Ring",
-        "increased 8 from Oblivion Spiral, Gold Ring",
         "increased 8 from Kalandra's Touch, Ring"
       ],
       "energyShield": [
         "flat 397 from Morior Invictus, Grand Regalia",
-        "flat 107 from 34324",
-        "increased 32 from Ghoul Star, Sapphire",
-        "increased 29 from Ghoul Heart, Sapphire",
-        "increased 32 from Hypnotic Splinter, Sapphire",
-        "increased 33 from Eagle Joy, Sapphire"
+        "flat 107 from 34324"
       ],
       "spirit": [
         "flat 70 from Morior Invictus, Grand Regalia",
@@ -124,10 +117,7 @@
       ],
       "evasion": [
         "flat 1289 from Morior Invictus, Grand Regalia",
-        "flat 503 from 55193",
-        "increased 23 from Headhunter, Heavy Belt",
         "increased 80 from 32354",
-        "increased 20 from 49356",
         "increased 81 from 53185"
       ],
       "str": [],
@@ -161,22 +151,22 @@
       },
       "mana": {
         "want": 2306,
-        "got": 1533,
+        "got": 1609,
         "ok": false
       },
       "energyShield": {
         "want": 8286,
-        "got": 6572,
+        "got": 7672,
         "ok": false
       },
       "armour": {
         "want": 3014,
-        "got": 1383,
+        "got": 1624,
         "ok": false
       },
       "evasion": {
         "want": 13959,
-        "got": 5445,
+        "got": 7956,
         "ok": false
       },
       "fire": {
@@ -211,15 +201,12 @@
       "life": [],
       "mana": [],
       "energyShield": [
-        "flat 268 from 34324",
         "more 20 from ChargeRegulationPlayer"
       ],
       "spirit": [
         "flat 115 from Guiding Palm of the Eye"
       ],
       "evasion": [
-        "flat 577 from 55193",
-        "increased 54 from Gale Rosary, Jade Amulet",
         "increased 25 from Evasive Leg",
         "increased 20 from 19880",
         "increased 20 from 49356",
@@ -270,7 +257,7 @@
       },
       "energyShield": {
         "want": 2784,
-        "got": 1685,
+        "got": 2320,
         "ok": false
       },
       "armour": {
@@ -280,7 +267,7 @@
       },
       "evasion": {
         "want": 35368,
-        "got": 13539,
+        "got": 15832,
         "ok": false
       },
       "fire": {
@@ -314,10 +301,7 @@
     "gaps": {
       "life": [],
       "mana": [],
-      "energyShield": [
-        "increased 20 from Luminous Breath, Sapphire",
-        "increased 58 from Spirit Locket, Pearlescent Amulet"
-      ],
+      "energyShield": [],
       "spirit": [],
       "evasion": [
         "more 60 from DefianceBannerPlayer"
@@ -329,8 +313,7 @@
         "flat 32 from Morior Invictus, Grand Regalia"
       ],
       "int": [
-        "flat 32 from Morior Invictus, Grand Regalia",
-        "flat 10 from 48734"
+        "flat 32 from Morior Invictus, Grand Regalia"
       ]
     },
     "class": "Tactician",
@@ -350,7 +333,7 @@
       },
       "int": {
         "want": 148,
-        "got": 106,
+        "got": 116,
         "ok": false
       },
       "life": {
@@ -360,17 +343,17 @@
       },
       "mana": {
         "want": 1133,
-        "got": 1045,
+        "got": 1066,
         "ok": false
       },
       "energyShield": {
         "want": 4729,
-        "got": 3553,
+        "got": 3818,
         "ok": false
       },
       "armour": {
         "want": 5207,
-        "got": 2395,
+        "got": 3254,
         "ok": false
       },
       "evasion": {
@@ -411,22 +394,16 @@
         "3 1 from 56349"
       ],
       "mana": [],
-      "energyShield": [
-        "increased 39 from Grip of Kulemak, Abyssal Signet",
-        "increased 60 from Fate Collar, Stellar Amulet",
-        "increased 20 from 49356"
-      ],
+      "energyShield": [],
       "spirit": [],
-      "evasion": [
-        "increased 20 from 49356"
-      ],
+      "evasion": [],
       "str": [],
       "dex": [],
       "int": []
     },
     "class": "Acolyte of Chayula",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/HoangLong1101-3050/DOANXIEMm",
-    "matched": 9,
+    "matched": 12,
     "of": 13,
     "stats": {
       "str": {
@@ -456,8 +433,8 @@
       },
       "energyShield": {
         "want": 12581,
-        "got": 11628,
-        "ok": false
+        "got": 12581,
+        "ok": true
       },
       "armour": {
         "want": 0,
@@ -466,8 +443,8 @@
       },
       "evasion": {
         "want": 1594,
-        "got": 1450,
-        "ok": false
+        "got": 1594,
+        "ok": true
       },
       "fire": {
         "want": 75,
@@ -476,13 +453,13 @@
       },
       "cold": {
         "want": 75,
-        "got": 38,
+        "got": 43,
         "ok": false
       },
       "lightning": {
         "want": 75,
-        "got": 70,
-        "ok": false
+        "got": 75,
+        "ok": true
       },
       "chaos": {
         "want": 100,
@@ -511,9 +488,7 @@
         "increased 3 from 7960",
         "increased 3 from 7960"
       ],
-      "spirit": [
-        "flat 12 from Doom Sole, Sekhema Sandals"
-      ],
+      "spirit": [],
       "evasion": [
         "increased 3 from 7960",
         "increased 3 from 7960",
@@ -529,7 +504,7 @@
     },
     "class": "Disciple of Varashta",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/KingFud-1121/KingFud_Djinn_FR",
-    "matched": 10,
+    "matched": 11,
     "of": 13,
     "stats": {
       "str": {
@@ -594,8 +569,8 @@
       },
       "spirit": {
         "want": 322,
-        "got": 310,
-        "ok": false
+        "got": 322,
+        "ok": true
       }
     }
   },
@@ -688,62 +663,50 @@
     "gaps": {
       "life": [],
       "mana": [],
-      "energyShield": [
-        "flat 34 from Morbid Rosary, Lunar Amulet",
-        "flat 94 from Morbid Rosary, Lunar Amulet",
-        "flat 252 from Storm Halo, Kamasan Tiara",
-        "flat 122 from 34324"
-      ],
+      "energyShield": [],
       "spirit": [],
       "evasion": [
-        "flat 252 from 55193",
         "increased 40 from 22811",
         "more 30 from WindDancerPlayer"
       ],
-      "str": [
-        "flat 9 from Oblivion Reach, Warmonger Bow"
-      ],
-      "dex": [
-        "flat 9 from Oblivion Reach, Warmonger Bow"
-      ],
-      "int": [
-        "flat 9 from Oblivion Reach, Warmonger Bow"
-      ]
+      "str": [],
+      "dex": [],
+      "int": []
     },
     "class": "Deadeye",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/WOualey-0844/BowberKurw%C3%A0",
-    "matched": 5,
+    "matched": 12,
     "of": 13,
     "stats": {
       "str": {
         "want": 117,
-        "got": 108,
-        "ok": false
+        "got": 117,
+        "ok": true
       },
       "dex": {
         "want": 204,
-        "got": 195,
-        "ok": false
+        "got": 204,
+        "ok": true
       },
       "int": {
         "want": 121,
-        "got": 112,
-        "ok": false
+        "got": 121,
+        "ok": true
       },
       "life": {
         "want": 2267,
-        "got": 2248,
-        "ok": false
+        "got": 2267,
+        "ok": true
       },
       "mana": {
         "want": 706,
-        "got": 687,
-        "ok": false
+        "got": 706,
+        "ok": true
       },
       "energyShield": {
         "want": 1746,
-        "got": 1359,
-        "ok": false
+        "got": 1746,
+        "ok": true
       },
       "armour": {
         "want": 0,
@@ -752,13 +715,13 @@
       },
       "evasion": {
         "want": 13693,
-        "got": 7244,
+        "got": 8184,
         "ok": false
       },
       "fire": {
         "want": 75,
-        "got": 73,
-        "ok": false
+        "got": 75,
+        "ok": true
       },
       "cold": {
         "want": 75,
@@ -788,12 +751,8 @@
         "3 1 from 56349"
       ],
       "mana": [
-        "flat 198 from Soul Circle, Mnemonic Ring",
-        "flat 188 from Sol Spire, Dueling Wand",
         "flat 198 from Kalandra's Touch, Ring",
         "increased 3 from Viper Crest, Ancestral Tiara",
-        "increased 7 from Soul Circle, Mnemonic Ring",
-        "increased 7 from Soul Circle, Mnemonic Ring",
         "increased 7 from Kalandra's Touch, Ring",
         "increased 7 from Kalandra's Touch, Ring"
       ],
@@ -835,7 +794,7 @@
       },
       "mana": {
         "want": 5175,
-        "got": 2218,
+        "got": 2327,
         "ok": false
       },
       "energyShield": {

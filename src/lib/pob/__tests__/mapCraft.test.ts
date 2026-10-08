@@ -242,18 +242,27 @@ describe('mapCraft — a value above every roll this base has', () => {
   // momentsZX's amulet: "53% increased maximum Energy Shield" (top tier 45-50) and
   // "36% increased Global Armour, Evasion and Energy Shield" (essence 20-30). Both
   // sit ~1.2x the top of their tier, with in-range resistances beside them — a
-  // quality-style scaling on defence mods that we do not model. Kept at the closest
-  // legal roll, and said so; never dropped without a word, never kept at an
-  // impossible value.
+  // quality-style scaling on defence mods that we do not model. The shown number is
+  // the real one (the in-game sheet only reproduces with it), so a line stats/lineMods.ts
+  // can read is kept as written in craft.verbatim, not clamped to the tier; a line it
+  // cannot read is kept at the closest legal roll. Either way it is said, never silent.
   const ES = (n: number, a: number, b: number) => mod(`es${n}`, { group: 'GlobalES', rolls: [{ min: a, max: b }], stats: [`(${a}-${b})% increased maximum Energy Shield`] });
   const amulet = (...lines: string[]) => text('Rarity: RARE', 'X', 'Gold Amulet', 'Implicits: 0', ...lines);
 
-  it('keeps the top tier at its maximum roll and names the shown value', () => {
+  it('keeps a readable line as written instead of clamping it to the top tier', () => {
     const { craft, notes } = mapCraft(amulet('53% increased maximum Energy Shield'), false, lookups({ candidates: [ES(6, 39, 44), ES(7, 45, 50)] }));
-    expect(craft.prefixes).toEqual([{ slug: 'es7', values: [50] }]);
+    expect(craft.prefixes).toEqual([]);
+    expect(craft.verbatim).toEqual(['53% increased maximum Energy Shield']);
     const note = notes.find((n) => n.message.includes('53%'));
     expect(note?.kind).toBe('inferred');
-    expect(note?.message).toContain('50');
+    expect(note?.message).toContain('as written');
+  });
+
+  it('still clamps an above-tier line it has no reading for', () => {
+    const near = mod('near', { group: 'G2', rolls: [{ min: 20, max: 30 }], stats: ['(20-30)% increased Fancy Thing'] });
+    const { craft } = mapCraft(amulet('36% increased Fancy Thing'), false, lookups({ candidates: [near] }));
+    expect(craft.prefixes).toEqual([{ slug: 'near', values: [30] }]);
+    expect(craft.verbatim).toBeUndefined();
   });
 
   it('picks the tier whose range is nearest, not the first', () => {
@@ -263,9 +272,18 @@ describe('mapCraft — a value above every roll this base has', () => {
     expect(craft.prefixes).toEqual([{ slug: 'near', values: [30] }]);
   });
 
-  it('still drops a value BELOW every roll, as before', () => {
+  it('never turns a value BELOW every roll into a tier mod; a readable line is kept as written', () => {
     const { craft, notes } = mapCraft(amulet('5% increased maximum Energy Shield'), false, lookups({ candidates: [ES(7, 45, 50)] }));
     expect(craft.prefixes).toEqual([]);
+    expect(craft.verbatim).toEqual(['5% increased maximum Energy Shield']);
+    expect(notes.some((n) => n.kind === 'inferred' && n.message.includes('5%'))).toBe(true);
+  });
+
+  it('drops a value below every roll when the line is not one it can read', () => {
+    const near = mod('near', { group: 'G2', rolls: [{ min: 20, max: 30 }], stats: ['(20-30)% increased Fancy Thing'] });
+    const { craft, notes } = mapCraft(amulet('5% increased Fancy Thing'), false, lookups({ candidates: [near] }));
+    expect(craft.prefixes).toEqual([]);
+    expect(craft.verbatim).toBeUndefined();
     expect(notes.some((n) => n.kind === 'dropped' && n.message.includes('5%'))).toBe(true);
   });
 });

@@ -22,6 +22,10 @@
 //   display ranges differ from its roll units (crit: "(3-4)%" over rolls
 //   311–380) the mod is kept at its best roll and the note says so.
 // - A unique's lines are matched against its own uniqueMods lines.
+// - A line none of that can hold (a mod the base's pool lacks, a unique we never
+//   typed, a roll past its tier cap, "Allocates X") is kept as written in
+//   `craft.verbatim` when stats/lineMods.ts can read it, instead of being
+//   dropped or clamped; the text is PoB's own shown value, so it is exact.
 // =============================================================================
 
 import {
@@ -30,12 +34,14 @@ import {
   MAX_AFFIXES_PER_KIND,
   MAX_ITEM_QUALITY,
   MAX_RUNES,
+  MAX_VERBATIM_LINES,
   RANGE_RE,
   rangesIn,
   type CraftedMod,
   type ItemCraft,
   type ItemRarity,
 } from '@/lib/build/craft';
+import { readLine } from '@/lib/build/stats/lineMods';
 import { matchTemplate, stripTags, valueAt } from './craftText';
 
 export interface CraftMod {
@@ -69,6 +75,23 @@ function rangeFractionOf(line: string): number {
   return m ? Number(m[1]) : 0.5;
 }
 
+/** A line as plain text with any "(a-b)" range filled at the line's {range:R} fraction, the way PoB shows it. */
+function resolveLine(line: string): string {
+  const fraction = rangeFractionOf(line);
+  return stripTags(line).replace(RANGE_RE, (_, min: string, max: string) => String(Number(valueAt(Number(min), Number(max), fraction).toFixed(2))));
+}
+
+/**
+ * Keeps a line the slug model cannot hold, when it can be read from its text: a defence line
+ * (stats/lineMods.ts) or an "Allocates <passive>" enchant. Returns whether it was kept.
+ */
+function keepVerbatim(line: string, verbatim: string[]): boolean {
+  const text = resolveLine(line);
+  if (!/^Allocates .+/.test(text) && readLine(text) === null) return false;
+  verbatim.push(text);
+  return true;
+}
+
 /** Whether a mod's display ranges are its roll ranges — then a shown number IS the rolled value. */
 export function sameUnits(mod: CraftMod): boolean {
   const shown = mod.stats.flatMap(rangesIn);
@@ -76,18 +99,27 @@ export function sameUnits(mod: CraftMod): boolean {
 }
 
 /** Matches lines to template lines, each template used once; rows sized to the templates. */
-function matchLines(lines: string[], templates: string[], notes: CraftNote[], what: string): number[][] {
+function matchLines(lines: string[], templates: string[], notes: CraftNote[], what: string, verbatim: string[]): number[][] {
   const rows: number[][] = templates.map(() => []);
   const used = new Set<number>();
   for (const line of lines) {
     const plain = stripTags(line);
-    const at = templates.findIndex((t, j) => !used.has(j) && matchTemplate(plain, t, rangeFractionOf(line)) !== null);
+    let at = templates.findIndex((t, j) => !used.has(j) && matchTemplate(plain, t, rangeFractionOf(line)) !== null);
+    // A shown number past its range (an implicit scaled by quality, a corrupted roll) is still that line: the
+    // shown value is the real one. Read it from the same template, unbounded, rather than let the template
+    // fall back to its mid-roll beside a verbatim copy of the line (which counted it twice).
+    const outOfRange = at === -1;
+    if (outOfRange) at = templates.findIndex((t, j) => !used.has(j) && matchTemplate(plain, t, rangeFractionOf(line), false) !== null);
     if (at === -1) {
-      notes.push({ kind: 'dropped', message: `${what} "${plain}" does not match this patch's data, so it was not kept.` });
+      if (keepVerbatim(line, verbatim)) {
+        notes.push({ kind: 'inferred', message: `${what} "${plain}" does not match this patch's data, so it was kept as written and counted from its text.` });
+      } else {
+        notes.push({ kind: 'dropped', message: `${what} "${plain}" does not match this patch's data, so it was not kept.` });
+      }
       continue;
     }
     used.add(at);
-    rows[at] = matchTemplate(plain, templates[at], rangeFractionOf(line))!;
+    rows[at] = matchTemplate(plain, templates[at], rangeFractionOf(line), !outOfRange)!;
   }
   return rows;
 }
@@ -237,6 +269,7 @@ export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups):
     (l) => l !== 'Corrupted' && inSelectedVariant(l),
   );
 
+  const verbatim: string[] = [];
   const crafted: Record<'prefix' | 'suffix', CraftedMod[]> = { prefix: [], suffix: [] };
   let isCrafted = false;
   for (const line of header) {
@@ -274,15 +307,21 @@ export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups):
   const baseImplicits: string[] = [];
   for (const line of implicitLines) {
     if (line.includes('{enchant}')) {
-      if (!line.includes('{rune}')) notes.push({ kind: 'dropped', message: `The enchantment "${stripTags(line)}" was not kept — enchantments come in a later update.` });
+      if (!line.includes('{rune}')) {
+        if (keepVerbatim(line, verbatim)) {
+          notes.push({ kind: 'inferred', message: `The enchantment "${stripTags(line)}" was kept as written and counted from its text.` });
+        } else {
+          notes.push({ kind: 'dropped', message: `The enchantment "${stripTags(line)}" was not kept — enchantments come in a later update.` });
+        }
+      }
       continue;
     }
     baseImplicits.push(line);
   }
-  craft.implicitValues = matchLines(baseImplicits, lookups.base?.implicitLines ?? [], notes, 'The implicit');
+  craft.implicitValues = matchLines(baseImplicits, lookups.base?.implicitLines ?? [], notes, 'The implicit', verbatim);
 
   if (isUnique) {
-    craft.uniqueValues = matchLines(explicitLines.filter((l) => !l.includes('{rune}')), lookups.base?.uniqueLines ?? [], notes, 'The unique line');
+    craft.uniqueValues = matchLines(explicitLines.filter((l) => !l.includes('{rune}')), lookups.base?.uniqueLines ?? [], notes, 'The unique line', verbatim);
   } else if (isCrafted) {
     craft.prefixes = crafted.prefix;
     craft.suffixes = crafted.suffix;
@@ -326,6 +365,12 @@ export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups):
       const one = two ? undefined : pickOne(oneMatches(i), craft, lookups.candidates);
       const hit = two ?? one;
       if (!hit || hit.kind === 'other') {
+        // A shown value above every tier is the real value; where the text is readable it is kept as written,
+        // not clamped to the top tier (which short-changed the sheet by the overshoot).
+        if (!hit && closestLegal(pasted[i], lookups.candidates, craft) && keepVerbatim(pasted[i], verbatim)) {
+          notes.push({ kind: 'inferred', message: `"${pasted[i]}" is above the highest roll this base can have for it (quality or a catalyst), so it was kept as written and counted from its text.` });
+          continue;
+        }
         const capped = hit ? undefined : closestLegal(pasted[i], lookups.candidates, craft);
         if (capped) {
           (capped.mod.kind === 'prefix' ? craft.prefixes : craft.suffixes).push({ slug: capped.mod.slug, values: capped.values });
@@ -333,6 +378,10 @@ export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups):
             kind: 'inferred',
             message: `"${pasted[i]}" is above the highest roll this base can have for it, so it was kept at ${capped.mod.slug}'s best roll (${capped.values.join(', ')}); a roll past its top tier usually means a quality or catalyst scaling this builder does not model.`,
           });
+          continue;
+        }
+        if (!hit && keepVerbatim(pasted[i], verbatim)) {
+          notes.push({ kind: 'inferred', message: `The mod line "${pasted[i]}" matches nothing this base can roll, so it was kept as written and counted from its text.` });
           continue;
         }
         notes.push({ kind: 'dropped', message: `The mod line "${pasted[i]}" matches nothing this base can roll, so it was not kept.` });
@@ -355,5 +404,6 @@ export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups):
       craft[side] = craft[side].slice(0, MAX_AFFIXES_PER_KIND);
     }
   }
+  if (verbatim.length > 0) craft.verbatim = verbatim.slice(0, MAX_VERBATIM_LINES);
   return { craft, notes };
 }
