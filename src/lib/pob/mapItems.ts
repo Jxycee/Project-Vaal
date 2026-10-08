@@ -57,6 +57,10 @@ const SLOT_BY_POB_NAME: Record<string, GearSlot | 'flask'> = {
   'Charm 1': 'charm1',
   'Charm 2': 'charm2',
   'Charm 3': 'charm3',
+  'Arm 1': 'arm1',
+  'Arm 2': 'arm2',
+  'Leg 1': 'leg1',
+  'Leg 2': 'leg2',
 };
 const POB_SLOT_ORDER = Object.keys(SLOT_BY_POB_NAME);
 
@@ -80,6 +84,10 @@ export const POB_SLOT_NAME: Record<GearSlot, string> = {
   charm1: 'Charm 1',
   charm2: 'Charm 2',
   charm3: 'Charm 3',
+  arm1: 'Arm 1',
+  arm2: 'Arm 2',
+  leg1: 'Leg 1',
+  leg2: 'Leg 2',
 };
 
 interface ReadItem {

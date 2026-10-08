@@ -390,9 +390,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
-      "evasion": [
-        "increased 25 from Evasive Leg"
-      ],
+      "evasion": [],
       "str": [],
       "dex": [],
       "int": []
@@ -403,7 +401,7 @@
     ],
     "class": "Deadeye",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/olleyDE-4339/chillamaggiTTVsGlatze",
-    "matched": 12,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -443,8 +441,8 @@
       },
       "evasion": {
         "want": 35368,
-        "got": 33708,
-        "ok": false
+        "got": 35368,
+        "ok": true
       },
       "fire": {
         "want": 75,
@@ -472,7 +470,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 14,
+    "derivedMatched": 17,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -482,18 +480,18 @@
       },
       "evadeChance": {
         "want": 77,
-        "got": 76,
-        "ok": false
+        "got": 77,
+        "ok": true
       },
       "deflectionRating": {
         "want": 16191,
-        "got": 14157,
-        "ok": false
+        "got": 16191,
+        "ok": true
       },
       "deflectChance": {
         "want": 72,
-        "got": 67,
-        "ok": false
+        "got": 72,
+        "ok": true
       },
       "ward": {
         "want": 359,
@@ -542,7 +540,7 @@
       },
       "effectiveHealthPool": {
         "want": 63542,
-        "got": 60278,
+        "got": 64743,
         "ok": false
       },
       "physicalMaxHit": {
@@ -3423,9 +3421,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
-      "evasion": [
-        "increased 26 from Evasive Leg"
-      ],
+      "evasion": [],
       "str": [],
       "dex": [],
       "int": []
@@ -3435,7 +3431,7 @@
     ],
     "class": "Martial Artist",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/phantasmal-4964/KungFuVibing",
-    "matched": 12,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -3475,8 +3471,8 @@
       },
       "evasion": {
         "want": 19587,
-        "got": 18598,
-        "ok": false
+        "got": 19587,
+        "ok": true
       },
       "fire": {
         "want": 72,
@@ -3504,7 +3500,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 8,
+    "derivedMatched": 9,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -3514,17 +3510,17 @@
       },
       "evadeChance": {
         "want": 73,
-        "got": 70,
+        "got": 71,
         "ok": false
       },
       "deflectionRating": {
         "want": 6071,
-        "got": 5765,
-        "ok": false
+        "got": 6071,
+        "ok": true
       },
       "deflectChance": {
         "want": 50,
-        "got": 44,
+        "got": 45,
         "ok": false
       },
       "ward": {
@@ -3574,7 +3570,7 @@
       },
       "effectiveHealthPool": {
         "want": 100269,
-        "got": 87129,
+        "got": 90586,
         "ok": false
       },
       "physicalMaxHit": {

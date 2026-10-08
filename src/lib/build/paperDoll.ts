@@ -31,7 +31,7 @@ export interface DollCell {
  * cells on the grid, exactly as the tree's set1/set2 share the same nodes.
  */
 export type DollSlotKey =
-  | Exclude<GearSlot, 'weapon2_main' | 'weapon2_off' | 'weapon1_main' | 'weapon1_off'>
+  | Exclude<GearSlot, 'weapon2_main' | 'weapon2_off' | 'weapon1_main' | 'weapon1_off' | 'arm1' | 'arm2' | 'leg1' | 'leg2'>
   | 'weapon_main'
   | 'weapon_off';
 

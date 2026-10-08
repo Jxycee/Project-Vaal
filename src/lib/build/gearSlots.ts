@@ -14,7 +14,7 @@
 import type { ItemCraft } from './craft';
 
 /**
- * The 18 gear slots a character has. `weapon1_*`/`weapon2_*` mirror the tree's set1/set2 vocabulary. `ring3` is the
+ * The 22 gear slots a character has (the four Transcendent Limb slots, arm1/arm2/leg1/leg2, are PoB2's Arm 1/2 and Leg 1/2). `weapon1_*`/`weapon2_*` mirror the tree's set1/set2 vocabulary. `ring3` is the
  * third ring slot the passive "Unfurled Finger" opens (RING_SLOT_3_NODE); until it is allocated the slot is not worn.
  */
 export const GEAR_SLOTS = [
@@ -36,6 +36,10 @@ export const GEAR_SLOTS = [
   'charm1',
   'charm2',
   'charm3',
+  'arm1',
+  'arm2',
+  'leg1',
+  'leg2',
 ] as const;
 
 export type GearSlot = (typeof GEAR_SLOTS)[number];
@@ -67,6 +71,10 @@ export const GEAR_SLOT_LABELS: Record<GearSlot, string> = {
   charm1: 'Charm 1',
   charm2: 'Charm 2',
   charm3: 'Charm 3',
+  arm1: 'Arm 1',
+  arm2: 'Arm 2',
+  leg1: 'Leg 1',
+  leg2: 'Leg 2',
 };
 
 /**
@@ -175,6 +183,10 @@ const SLOT_CATEGORIES: Record<GearSlot, readonly string[]> = {
   charm1: CHARM_CATEGORIES,
   charm2: CHARM_CATEGORIES,
   charm3: CHARM_CATEGORIES,
+  arm1: ['IncursionArm'],
+  arm2: ['IncursionArm'],
+  leg1: ['IncursionLeg'],
+  leg2: ['IncursionLeg'],
 };
 
 /** The wiki item categories a gear slot's picker must search. */
