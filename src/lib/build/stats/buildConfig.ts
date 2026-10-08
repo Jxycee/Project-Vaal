@@ -39,7 +39,9 @@ import gemAttributes from '@/lib/pob/data/gem-attributes.json';
  * ACTIVE skill gem socketed in an enabled group (not one a passive or item grants) adds 2 to the one attribute it
  * requires, or 1 to each when it requires several. Counted from the whole PoB skill list at import (a loadout holds
  * one skill, so the second active of a group, which PoB counts, is not in our gem state); skillBuffs.ts falls back to
- * the loadouts for a build with no import. gem-attributes.json: letters S/D/I per active gem (Cast on Dodge: "DI").
+ * the loadouts for a build with no import. gem-attributes.json: letters S/D/I per active gem (Cast on Dodge: "DI"), plus
+ * each SUPPORT that also grants a same-name hidden triggered active skill (Battershout "S", Static Shocks "I"): PoB's
+ * group skill list holds that skill too (gemling oracle: two Battershouts = the 4 Strength motes beyond its active gems).
  */
 export const MOTE_VARS: Readonly<Record<string, 'S' | 'D' | 'I'>> = {
   StrengthMoteSkillCount: 'S',

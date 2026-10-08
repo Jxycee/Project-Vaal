@@ -1,9 +1,7 @@
 {
   "armour-life-gemling.json": {
     "gaps": {
-      "life": [
-        "increased 28 from VirtuousBarrierPlayer"
-      ],
+      "life": [],
       "mana": [],
       "energyShield": [],
       "spirit": [],
@@ -23,7 +21,7 @@
     ],
     "class": "Gemling Legionnaire",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/flyinghigh42-0275/StickyOildUp",
-    "matched": 12,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -43,8 +41,8 @@
       },
       "life": {
         "want": 4075,
-        "got": 3844,
-        "ok": false
+        "got": 4075,
+        "ok": true
       },
       "mana": {
         "want": 825,
@@ -162,32 +160,32 @@
       },
       "effectiveHealthPool": {
         "want": 83813,
-        "got": 45477,
+        "got": 47882,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 8828,
-        "got": 6966,
+        "got": 7230,
         "ok": false
       },
       "fireMaxHit": {
         "want": 28041,
-        "got": 22629,
+        "got": 23527,
         "ok": false
       },
       "coldMaxHit": {
         "want": 27025,
-        "got": 21982,
+        "got": 22870,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 27025,
-        "got": 21982,
+        "got": 22870,
         "ok": false
       },
       "chaosMaxHit": {
         "want": 14791,
-        "got": 13341,
+        "got": 14063,
         "ok": false
       }
     }
