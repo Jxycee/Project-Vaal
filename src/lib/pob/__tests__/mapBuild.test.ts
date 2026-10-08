@@ -33,6 +33,7 @@ const build = (overrides: Partial<PobBuild> = {}): PobBuild => ({
   slots: [],
   notes: null,
   questInputs: [],
+  configInputs: null,
   ...overrides,
 });
 
@@ -278,5 +279,20 @@ describe('mapBuild - quest choices from the real momentsZX export', async () => 
     const r = await mapBuild(p.build, await getCatalogue(), {});
     if (!r.ok) throw new Error(r.error);
     for (const c of r.plan.checkpoints) expect(c.passive_state).not.toHaveProperty('questChoices');
+  });
+  it('carries the ticked PoB conditions and stack counts; no Config at all leaves buildConfig absent; an empty Config is present but empty', async () => {
+    const withInputs = await plan(
+      build({
+        configInputs: [
+          { name: 'conditionMoving', boolean: true, number: null },
+          { name: 'conditionEnemyChilled', boolean: false, number: null },
+          { name: 'windDancerStacks', boolean: null, number: 3 },
+          { name: 'multiplierNearbyEnemies', boolean: null, number: 1 },
+        ],
+      }),
+    );
+    expect(withInputs.checkpoints[0].passive_state.buildConfig).toEqual({ conditions: ['Moving'], multipliers: { WindDancerStacks: 3 } });
+    expect((await plan(build({ configInputs: null }))).checkpoints[0].passive_state).not.toHaveProperty('buildConfig');
+    expect((await plan(build({ configInputs: [] }))).checkpoints[0].passive_state.buildConfig).toEqual({ conditions: [], multipliers: {} });
   });
 });

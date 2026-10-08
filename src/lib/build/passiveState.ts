@@ -1,6 +1,7 @@
 import type { AttributeChoice, WeaponSetAllocation, WeaponSet } from '@poe2-toolkit/tree-core';
 import type { PassiveState } from '@/lib/build/types';
 import { isQuestChoice } from '@/lib/build/stats/campaign';
+import { parseBuildConfig, type BuildConfig } from '@/lib/build/stats/buildConfig';
 
 /**
  * Editor allocation -> stored shape.
@@ -14,6 +15,7 @@ export function toPassiveState(
   ascendancyNodes: number[],
   attributeChoices: Readonly<Record<number | string, AttributeChoice>> = {},
   questChoices: Readonly<Record<string, string>> = {},
+  buildConfig?: BuildConfig,
 ): PassiveState {
   const set1: number[] = [];
   const set2: number[] = [];
@@ -35,6 +37,9 @@ export function toPassiveState(
   if (Object.keys(choices).length > 0) state.attributeChoices = choices;
   const quests = parseQuestChoices(questChoices);
   if (Object.keys(quests).length > 0) state.questChoices = quests;
+  // Carried through untouched: the editor does not change it, but a save must not lose it.
+  const config = parseBuildConfig(buildConfig);
+  if (config) state.buildConfig = config;
   return state;
 }
 
@@ -105,6 +110,8 @@ export function parsePassiveState(raw: unknown): PassiveState {
   if (Object.keys(choices).length > 0) state.attributeChoices = choices;
   const quests = parseQuestChoices(v.questChoices);
   if (Object.keys(quests).length > 0) state.questChoices = quests;
+  const config = parseBuildConfig(v.buildConfig);
+  if (config) state.buildConfig = config;
   return state;
 }
 

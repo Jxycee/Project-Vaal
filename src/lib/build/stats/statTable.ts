@@ -75,6 +75,9 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   // on top of the global increase (CalcDefence.lua:1445-1453).
   'maximum_energy_shield_from_body_armour_+%': incFromSlot('body', 'energyShield'),
   'energy_shield_from_helmet_+%': incFromSlot('head', 'energyShield'),
+  // "N% increased Evasion Rating from Equipped Body Armour" (Beastial Skin, 100): the same SlotName tag. Found on
+  // ordinary-deadeye, where it is the 1472 Evasion PoB's total holds beyond base x increased x more.
+  'body_armour_evasion_rating_+%': incFromSlot('body', 'evasion'),
   // "N% increased Energy Shield from Focus" - PoB2's SlotName tag on the off-hand slot. A focus sits in the off
   // hand of whichever weapon set is worn; only that set's item carries flats, so both slots are listed.
   'energy_shield_from_focus_+%': [...incFromSlot('weapon1_off', 'energyShield'), ...incFromSlot('weapon2_off', 'energyShield')],
@@ -131,6 +134,31 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   'aura_effect_+%': inc('auraEffect'),
 };
 
+/**
+ * Tree stats that count only while a PoB condition is true (Condition:<name>, set in the build's Configuration,
+ * buildConfig.ts). `negate` = counts while it is NOT true ("if you haven't been Hit Recently"). The names are
+ * PoB's: "Moving" is what conditionMoving sets, confirmed on ordinary-deadeye; the rest follow the same
+ * "condition<Name>" rule and the cached text of the same lines in modcache.json (Bleeding, Ignited, Stationary,
+ * BeenHitRecently). A stat id left out is not counted and is not named (it looks like noise to
+ * looksLikeDefenceStat, as it did before). statTable.test.ts checks each id exists and names its pool.
+ */
+export interface ConditionalEffect {
+  condition: string;
+  negate?: boolean;
+  effects: Effect[];
+}
+export const CONDITIONAL_EFFECTS: Readonly<Record<string, ConditionalEffect>> = {
+  'evasion_rating_+%_while_moving': { condition: 'Moving', effects: inc('evasion') },
+  'armour_+%_while_stationary': { condition: 'Stationary', effects: inc('armour') },
+  'armour_+%_while_bleeding': { condition: 'Bleeding', effects: inc('armour') },
+  'armour_+%_while_ignited': { condition: 'Ignited', effects: inc('armour') },
+  'base_maximum_fire_damage_resistance_%_while_ignited': { condition: 'Ignited', effects: flat('fireMax') },
+  'armour_+%_if_have_been_hit_recently': { condition: 'BeenHitRecently', effects: inc('armour') },
+  'armour_+%_if_you_havent_been_hit_recently': { condition: 'BeenHitRecently', negate: true, effects: inc('armour') },
+  'evasion_+%_if_hit_recently': { condition: 'BeenHitRecently', effects: inc('evasion') },
+  'evasion_rating_+%_if_have_not_been_hit_recently': { condition: 'BeenHitRecently', negate: true, effects: inc('evasion') },
+};
+
 /** Applied to the carrying item's own base defences / spirit, before quality. */
 export const LOCAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   local_base_physical_damage_reduction_rating: flat('armour'),
@@ -180,7 +208,6 @@ export const NOT_MODELLED: Readonly<Record<string, string>> = {
   'body_armour_grants_spirit_+%': 'increased Spirit from body armour',
   'ascendancy_beidats_will_spirit_+_per_X_maximum_life': 'Spirit per maximum Life',
   'body_armour_+%': 'increased Armour from body armour',
-  'body_armour_evasion_rating_+%': 'increased Evasion from body armour',
   base_physical_damage_reduction_rating_no_display: 'hidden Armour',
   'maximum_fire_resistance_+%_if_at_least_5_red_supports_socketed': 'Maximum Fire Resistance with 5 red supports socketed',
 };

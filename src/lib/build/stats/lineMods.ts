@@ -22,10 +22,18 @@
 //
 // FAILURE MODES (decided before the code; covered end to end by the oracles, not by a unit test:
 // multiOracle.test.ts and momentsZX.oracle.test.ts, plus the mapCraft and roundTrip cases):
-//   1. A line with a condition, a per-X scaling or a multiplier ("while on Low
-//      Life", "per Frenzy Charge", "+1 Life per 4 Dexterity"). Not a flat
-//      sheet number: the template is not indexed, the line reads as unmodelled
-//      and the collector names it in notCounted. Never guessed.
+//   1. A line with a per-X scaling or a multiplier ("per Frenzy Charge", "+1 Life
+//      per 4 Dexterity"). Not a flat sheet number: the template is not indexed,
+//      the line reads as unmodelled and the collector names it in notCounted.
+//      Never guessed.
+//   1b. A line with exactly ONE Condition tag ("40% increased Evasion Rating while
+//      moving", Condition:Moving) is a flat number that counts only when the
+//      build's Path of Building Configuration has that condition (buildConfig.ts);
+//      the mod carries `condition`. A negated one ("if you haven't been Hit
+//      Recently") counts when the flag is NOT set; the cache drops PoB's `neg`
+//      flag, so negation is read from the line's own words. A line that also says
+//      "per" is not read (the cache keeps only a mod's first tag, so a second,
+//      Multiplier, tag could hide behind the Condition).
 //   2. A template whose cached value is not the line's number (the cache key
 //      "+1 Life per 4 Dexterity" caches Life at 1 beside the number 4): skipped,
 //      because dividing it out would be a guess.
@@ -55,6 +63,8 @@ export interface LineMod {
   pool: Pool;
   kind: 'flat' | 'increased' | 'more';
   value: number;
+  /** Counts only while this PoB condition is true (or, negated, false). Absent = always. */
+  condition?: { name: string; negate: boolean };
 }
 
 export type LineRead =
@@ -68,6 +78,7 @@ interface CachedMod {
   type: string;
   value: number;
   tagType?: string;
+  tagVar?: string;
 }
 type CacheEntry = { mods: CachedMod[]; rest?: string };
 
@@ -104,15 +115,24 @@ interface Template {
   /** Per modifier: its pools, kind and the sign it applies to the line's number. */
   mods: { pools: Pool[]; kind: LineMod['kind']; sign: 1 | -1 }[];
   global: boolean;
+  condition?: { name: string; negate: boolean };
 }
+
+/** "if you haven't been Hit Recently", "while not on Low Life": PoB's neg flag, which modcache.json does not keep. */
+const NEGATED = /\b(haven't|have not|havent|hasn't|not|without|aren't|isn't)\b/i;
 
 let templates: Map<string, Template | null> | undefined;
 
 /** What one cache entry says about its template: a flat reading, or null when it cannot be one (conditional, scaled, partly parsed, not ours). */
-function derive(entry: CacheEntry, n: number): Template | null {
+function derive(entry: CacheEntry, n: number, text: string): Template | null {
   const mods = entry.mods ?? [];
   if (entry.rest !== undefined || mods.length === 0 || n === 0) return null;
-  if (mods.some((m) => m.tagType !== undefined && m.tagType !== 'Global')) return null;
+  // One shared Condition tag is a gate; any other tag is a scaling we cannot invert.
+  const conditions = new Set(mods.filter((m) => m.tagType === 'Condition').map((m) => m.tagVar));
+  const gated = conditions.size === 1 && typeof [...conditions][0] === 'string' && !/\bper\b/i.test(text);
+  if (mods.some((m) => m.tagType !== undefined && m.tagType !== 'Global' && !(gated && m.tagType === 'Condition'))) return null;
+  if (conditions.size > 0 && !gated) return null;
+  if (gated && mods.some((m) => m.tagType !== 'Condition')) return null;
   const read: Template['mods'] = [];
   for (const m of mods) {
     const pools = POOLS[m.name];
@@ -121,7 +141,8 @@ function derive(entry: CacheEntry, n: number): Template | null {
     if (!pools || !kind || typeof m.value !== 'number' || Math.abs(m.value) !== Math.abs(n)) return null;
     read.push({ pools, kind, sign: Math.sign(m.value) === Math.sign(n) ? 1 : -1 });
   }
-  return { mods: read, global: mods.some((m) => m.tagType === 'Global') };
+  const condition = gated ? { name: [...conditions][0] as string, negate: NEGATED.test(text) } : undefined;
+  return { mods: read, global: mods.some((m) => m.tagType === 'Global'), ...(condition ? { condition } : {}) };
 }
 
 function build(): Map<string, Template | null> {
@@ -129,7 +150,7 @@ function build(): Map<string, Template | null> {
   for (const [text, entry] of Object.entries(modcache as Record<string, CacheEntry>)) {
     const numbers = text.match(NUMBER) ?? [];
     const key = text.replace(NUMBER, '#');
-    const template = numbers.length === 1 ? derive(entry, Number(numbers[0])) : null;
+    const template = numbers.length === 1 ? derive(entry, Number(numbers[0]), text) : null;
     // A key seen twice must read the same both times (failure mode 4); null poisons the template.
     if (!out.has(key)) out.set(key, template);
     else if (JSON.stringify(out.get(key)) !== JSON.stringify(template)) out.set(key, null);
@@ -149,5 +170,8 @@ export function readLine(line: string): LineRead | null {
   if (template === undefined) return null;
   if (template === null) return { unmodelled: line };
   const n = Number(numbers[0]);
-  return { mods: template.mods.flatMap((m) => m.pools.map((pool) => ({ pool, kind: m.kind, value: m.sign * n }))), global: template.global };
+  return {
+    mods: template.mods.flatMap((m) => m.pools.map((pool) => ({ pool, kind: m.kind, value: m.sign * n, ...(template.condition ? { condition: template.condition } : {}) }))),
+    global: template.global,
+  };
 }

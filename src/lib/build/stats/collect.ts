@@ -18,6 +18,10 @@
 // A stat id the table does not know is not dropped silently: if it looks like it
 // could move a reported number (statTable.ts looksLikeDefenceStat) it is named
 // in `notCounted` by id, once, with every source that carries it.
+//
+// Conditional modifiers ("40% increased Evasion Rating while moving"): counted only when the build's Path of
+// Building Configuration (PassiveState.buildConfig, buildConfig.ts) has the condition true; with no Configuration
+// at all they are named in `notCounted`. Failure modes are listed in buildConfig.ts.
 // =============================================================================
 
 import type { AttributeChoice } from '@poe2-toolkit/tree-core';
@@ -25,16 +29,17 @@ import type { CraftedMod } from '../craft';
 import { GEAR_SLOTS, type GearItem, type GearSlot } from '../gearSlots';
 import type { GearState } from '../gearState';
 import type { GemState } from '../gemState';
+import { conditionHolds, type BuildConfig } from './buildConfig';
 import { skillBuffContributions } from './skillBuffs';
 import type { PassiveState } from '../types';
 import { campaignAt } from './campaign';
 import { DEFENCE_WORDS, implicitStats } from './implicits';
 import { isLegacyLine, LEGACY_EFFECT_LINE, legacyContributions } from './legacies';
-import { RADIUS_GRANT_LINE, readLine } from './lineMods';
+import { RADIUS_GRANT_LINE, readLine, type LineMod } from './lineMods';
 import type { JewelRadiusNode } from '@/lib/tree/treeLite';
 import { categoryApplies, isKnownCategory, readRuneLine } from './runes';
 import type { Contribution } from './engine';
-import { GLOBAL_EFFECTS, LOCAL_EFFECTS, looksLikeDefenceStat, NOT_MODELLED, PER_ITEM_DEFENCE, type PerItemDefence, type Pool } from './statTable';
+import { CONDITIONAL_EFFECTS, GLOBAL_EFFECTS, LOCAL_EFFECTS, looksLikeDefenceStat, NOT_MODELLED, PER_ITEM_DEFENCE, type PerItemDefence, type Pool } from './statTable';
 
 /**
  * Embrace the Darkness: "You have no Spirit". Its typed stats (base_darkness
@@ -106,6 +111,7 @@ export function collectContributions(
   const notCounted: string[] = [];
   const unknown = new Map<string, Set<string>>();
   const assumed: string[] = [];
+  const config = input.passive.buildConfig;
   const flags = { giantsBlood: false, lordOfTheWilds: false, noSpirit: false, noSpiritFromEquipment: false, chaosInoculation: false, eldritchBattery: false };
 
   // ---- Tree: this set's nodes (shared ones are in both lists) and the ascendancy.
@@ -130,7 +136,7 @@ export function collectContributions(
       else if (stat === 'keystone_eldritch_battery') flags.eldritchBattery = true;
       else if (stat === 'cannot_gain_spirit_from_equipment') flags.noSpiritFromEquipment = true;
       if (PER_ITEM_DEFENCE[stat]) perItem.push({ rule: PER_ITEM_DEFENCE[stat], value, source: node.name });
-      else addGlobal(contributions, notCounted, unknown, stat, value, node.name);
+      else addGlobal(contributions, notCounted, unknown, stat, value, node.name, config);
     }
   };
   for (const id of nodes) addNode(id);
@@ -160,8 +166,8 @@ export function collectContributions(
   const wornAt = new Map<GearSlot, { from: number; to: number; name: string }>();
   for (const { item, slot, socket } of equipped) {
     const from = contributions.length;
-    collectItem(item, slot, data, flags, contributions, notCounted, unknown, assumed, allocate);
-    if (socket !== undefined) radiusGrants(item, socket, nodes, data, contributions, notCounted);
+    collectItem(item, slot, data, flags, contributions, notCounted, unknown, assumed, allocate, config);
+    if (socket !== undefined) radiusGrants(item, socket, nodes, data, contributions, notCounted, config);
     if (slot) wornAt.set(slot, { from, to: contributions.length, name: item.name });
   }
   reflectOppositeRing(wornAt, contributions);
@@ -182,6 +188,7 @@ export function collectContributions(
     input.gems,
     input.set,
     contributions.filter((c) => c.pool === 'auraEffect' && c.kind === 'increased').reduce((n, c) => n + c.value, 0),
+    config,
   );
   contributions.push(...buffs.contributions);
   notCounted.push(...buffs.notCounted);
@@ -191,7 +198,7 @@ export function collectContributions(
 
   // ---- Campaign, derived from the level.
   const campaign = campaignAt(input.level, input.passive.questChoices);
-  for (const r of [...campaign.rewards, ...campaign.choiceRewards]) addGlobal(contributions, notCounted, unknown, r.stat, r.value, r.source);
+  for (const r of [...campaign.rewards, ...campaign.choiceRewards]) addGlobal(contributions, notCounted, unknown, r.stat, r.value, r.source, config);
   notCounted.push(...campaign.choiceRewardsUnmodelled);
   if (campaign.choiceRewardsNotCounted.length > 0) {
     notCounted.push(`Quest rewards you choose: ${campaign.choiceRewardsNotCounted.join(', ')}`);
@@ -231,6 +238,7 @@ function radiusGrants(
   data: CollectData,
   contributions: Contribution[],
   notCounted: string[],
+  config: BuildConfig | undefined,
 ): void {
   const grants = (item.craft?.verbatim ?? []).map((l) => RADIUS_GRANT_LINE.exec(l)).filter((m): m is RegExpExecArray => m !== null);
   if (grants.length === 0) return;
@@ -254,8 +262,9 @@ function radiusGrants(
       notCounted.push(`${item.name}: "${read.unmodelled}" (granted to ${type.toLowerCase()} passives in its radius) not counted`);
       continue;
     }
+    const counted = gate(read.mods, config, inner, item.name, notCounted);
     for (let i = 0; i < reached; i++) {
-      for (const mod of read.mods) contributions.push({ pool: mod.pool, kind: mod.kind, value: mod.value, source: item.name });
+      for (const mod of counted) contributions.push({ pool: mod.pool, kind: mod.kind, value: mod.value, source: item.name });
     }
   }
 }
@@ -288,7 +297,42 @@ function reflectOppositeRing(wornAt: ReadonlyMap<GearSlot, { from: number; to: n
   }
 }
 
-function addGlobal(out: Contribution[], notCounted: string[], unknown: Map<string, Set<string>>, stat: string, value: number, source: string): void {
+/**
+ * The modifiers of one line that count under this Configuration: unconditional ones always; a conditional one when
+ * its condition holds. Configuration absent = unknown: the line is named once and none of its conditional mods count.
+ */
+function gate(mods: readonly LineMod[], config: BuildConfig | undefined, line: string, source: string, notCounted: string[]): LineMod[] {
+  const kept: LineMod[] = [];
+  let named = false;
+  for (const mod of mods) {
+    const holds = mod.condition ? conditionHolds(config, mod.condition.name, mod.condition.negate) : true;
+    if (holds === true) kept.push(mod);
+    else if (holds === undefined && !named) {
+      named = true;
+      notCounted.push(`${source}: "${line}" needs ${mod.condition!.negate ? 'not ' : ''}${mod.condition!.name} (a Path of Building configuration setting), so it was not counted`);
+    }
+  }
+  return kept;
+}
+
+function addGlobal(
+  out: Contribution[],
+  notCounted: string[],
+  unknown: Map<string, Set<string>>,
+  stat: string,
+  value: number,
+  source: string,
+  config: BuildConfig | undefined,
+): void {
+  const conditional = CONDITIONAL_EFFECTS[stat];
+  if (conditional) {
+    const holds = conditionHolds(config, conditional.condition, conditional.negate);
+    if (holds === true) for (const e of conditional.effects) out.push({ pool: e.pool, kind: e.kind, value, source, ...(e.slot ? { slot: e.slot } : {}) });
+    else if (holds === undefined) {
+      notCounted.push(`${source}: ${stat} needs ${conditional.negate ? 'not ' : ''}${conditional.condition} (a Path of Building configuration setting), so it was not counted`);
+    }
+    return;
+  }
   const effects = GLOBAL_EFFECTS[stat];
   if (effects) {
     for (const e of effects) out.push({ pool: e.pool, kind: e.kind, value, source, ...(e.slot ? { slot: e.slot } : {}) });
@@ -309,6 +353,7 @@ function collectItem(
   unknown: Map<string, Set<string>>,
   assumed: string[],
   allocate: (name: string) => void,
+  config: BuildConfig | undefined,
 ): void {
   const craft = item.craft;
   const stats: [string, number][] = [];
@@ -323,7 +368,7 @@ function collectItem(
     if (!unique || !detail) {
       notCounted.push(`${item.name}: unique — not in our data`);
       // Its lines as the importer kept them still count, as global modifiers (no base to scale locally).
-      readVerbatim(craft?.verbatim, item.name, { defences: false, spirit: false }, {}, {}, contributions, notCounted, allocate);
+      readVerbatim(craft?.verbatim, item.name, { defences: false, spirit: false }, {}, {}, contributions, notCounted, allocate, config);
       return;
     }
     // Lines typed to exactly the same stats are one roll's alternatives, which
@@ -453,7 +498,7 @@ function collectItem(
   // Local stats shape the item's own defences and Spirit; the rest are global.
   const localFlat: Partial<Record<Pool, number>> = {};
   const localInc: Partial<Record<Pool, number>> = {};
-  readVerbatim(craft?.verbatim, item.name, { defences: detail.armour !== null, spirit: detail.spirit > 0 }, localFlat, localInc, contributions, notCounted, allocate);
+  readVerbatim(craft?.verbatim, item.name, { defences: detail.armour !== null, spirit: detail.spirit > 0 }, localFlat, localInc, contributions, notCounted, allocate, config);
   for (const [stat, value] of stats) {
     const local = LOCAL_EFFECTS[stat];
     if (local) {
@@ -462,7 +507,7 @@ function collectItem(
         bucket[e.pool] = (bucket[e.pool] ?? 0) + value;
       }
     } else {
-      addGlobal(contributions, notCounted, unknown, stat, value, item.name);
+      addGlobal(contributions, notCounted, unknown, stat, value, item.name, config);
     }
   }
 
@@ -505,6 +550,7 @@ function readVerbatim(
   contributions: Contribution[],
   notCounted: string[],
   allocate: (name: string) => void,
+  config: BuildConfig | undefined,
 ): void {
   for (const line of lines ?? []) {
     const allocates = /^Allocates (.+)$/.exec(line);
@@ -518,9 +564,9 @@ function readVerbatim(
       notCounted.push(`${source}: "${read.unmodelled}" not counted`);
       continue;
     }
-    for (const mod of read.mods) {
+    for (const mod of gate(read.mods, config, line, source, notCounted)) {
       const defence = mod.pool === 'armour' || mod.pool === 'evasion' || mod.pool === 'energyShield';
-      const local = !read.global && mod.kind !== 'more' && ((host.defences && defence) || (host.spirit && mod.pool === 'spirit' && mod.kind === 'increased'));
+      const local = !mod.condition && !read.global && mod.kind !== 'more' && ((host.defences && defence) || (host.spirit && mod.pool === 'spirit' && mod.kind === 'increased'));
       if (local) {
         const bucket = mod.kind === 'flat' ? localFlat : localInc;
         bucket[mod.pool] = (bucket[mod.pool] ?? 0) + mod.value;

@@ -25,6 +25,7 @@
 // =============================================================================
 
 import { DOMParser } from '@xmldom/xmldom';
+import type { ConfigInput } from '@/lib/build/stats/buildConfig';
 
 export interface PobGem {
   gemId: string | null;
@@ -86,6 +87,11 @@ export interface PobBuild {
    * chosen quest rewards (see mapQuests). Values keep PoB's own line breaks.
    */
   questInputs: { name: string; value: string }[];
+  /**
+   * Every other <Input> of the active <ConfigSet> (conditions, counts), or null when the export has no Config at
+   * all. null is "unknown", an empty list is "nothing ticked": the difference matters (buildConfig.ts).
+   */
+  configInputs: ConfigInput[] | null;
 }
 
 export type ParseError = 'malformed-xml' | 'no-build';
@@ -260,6 +266,20 @@ export function parsePobXml(xml: string): { ok: true; build: PobBuild } | { ok: 
         .filter((input): input is { name: string; value: string } => input.name.startsWith('quest') && input.value !== null && input.value !== '')
     : [];
 
+  const configInputs: ConfigInput[] | null = configSet
+    ? childElements(configSet, 'Input')
+        .map((input) => {
+          const bool = input.getAttribute('boolean');
+          const num = input.getAttribute('number');
+          return {
+            name: input.getAttribute('name') ?? '',
+            boolean: bool === 'true' ? true : bool === 'false' ? false : null,
+            number: num !== null && num !== '' && Number.isFinite(Number(num)) ? Number(num) : null,
+          };
+        })
+        .filter((input) => input.name !== '' && !input.name.startsWith('quest'))
+    : null;
+
   const notesText = firstChild(root, 'Notes')?.textContent?.trim() ?? '';
 
   return {
@@ -276,6 +296,7 @@ export function parsePobXml(xml: string): { ok: true; build: PobBuild } | { ok: 
       slots,
       notes: notesText === '' ? null : notesText,
       questInputs,
+      configInputs,
     },
   };
 }

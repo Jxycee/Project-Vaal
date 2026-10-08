@@ -33,10 +33,28 @@ for (const [id, skill] of Object.entries(skills)) {
         if (typeof name !== 'string' || !SHEET_NAMES.test(name)) continue;
         const global = tags.find((t) => t && t.type === 'GlobalEffect');
         if (!global) continue;
-        const needs = tags
-          .filter((t) => t !== global)
-          .map((t) => (t && typeof t === 'object' ? [t.type, t.var, t.stat, t.threshold].filter((x) => x !== undefined).join(':') : String(t)));
+        // Condition and Multiplier tags the reader can apply from the build's Configuration are kept structured
+        // (`condition`, `multiplier`); every other tag stays text in `needs`, as before.
+        const needs = [];
         const entry = { mod: name, type, stat, effect: global.effectType };
+        for (const t of tags.filter((x) => x !== global)) {
+          if (t && t.type === 'Condition' && typeof t.var === 'string' && !t.varList && entry.condition === undefined && Object.keys(t).every((k) => ['type', 'var', 'neg'].includes(k))) {
+            entry.condition = t.neg ? '!' + t.var : t.var;
+          } else if (t && t.type === 'Multiplier' && typeof t.var === 'string' && entry.multiplier === undefined && Object.keys(t).every((k) => ['type', 'var', 'limitVar'].includes(k))) {
+            const m = { var: t.var };
+            if (t.limitVar !== undefined) {
+              // The cap is another statMap line of the same set that adds Multiplier:<limitVar>, from a constant stat.
+              const limitStat = Object.entries(set.statMap ?? {}).find(([, cs]) => cs.some((x) => x.call === 'mod' && x.args?.[0] === 'Multiplier:' + t.limitVar && x.args?.[1] === 'BASE'));
+              const limit = limitStat ? set.constantStats?.[limitStat[0]] : undefined;
+              if (typeof limit === 'number') m.limit = limit;
+              else {
+                needs.push('Multiplier:' + t.var + ':' + t.limitVar);
+                continue;
+              }
+            }
+            entry.multiplier = m;
+          } else needs.push(t && typeof t === 'object' ? [t.type, t.var, t.stat, t.threshold].filter((x) => x !== undefined).join(':') : String(t));
+        }
         if (typeof fixed === 'number') entry.value = fixed;
         else {
           const at = (set.stats ?? []).indexOf(stat);

@@ -161,7 +161,7 @@
       },
       "evasion": {
         "want": 13959,
-        "got": 7956,
+        "got": 9047,
         "ok": false
       },
       "fire": {
@@ -206,8 +206,7 @@
         "increased 20 from 19880",
         "increased 20 from 49356",
         "increased 20 from 51707",
-        "more 20 from ChargeRegulationPlayer",
-        "more 30 from WindDancerPlayer"
+        "more 20 from ChargeRegulationPlayer"
       ],
       "str": [
         "flat 15 from Guiding Palm of the Eye, Shrine Sceptre"
@@ -262,7 +261,7 @@
       },
       "evasion": {
         "want": 35368,
-        "got": 15832,
+        "got": 24771,
         "ok": false
       },
       "fire": {
@@ -644,17 +643,14 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
-      "evasion": [
-        "increased 40 from 22811",
-        "more 30 from WindDancerPlayer"
-      ],
+      "evasion": [],
       "str": [],
       "dex": [],
       "int": []
     },
     "class": "Deadeye",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/WOualey-0844/BowberKurw%C3%A0",
-    "matched": 12,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -694,8 +690,8 @@
       },
       "evasion": {
         "want": 13693,
-        "got": 8184,
-        "ok": false
+        "got": 13693,
+        "ok": true
       },
       "fire": {
         "want": 75,

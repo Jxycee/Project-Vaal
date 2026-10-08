@@ -28,6 +28,7 @@ import { parseGemState, type GemState } from './gemState';
 import type { AttributeChoice } from '@poe2-toolkit/tree-core';
 import { isAllowedIconUrl, ITEM_SLUG_RE } from './iconUrl';
 import { isAttributeChoice, parseQuestChoices } from './passiveState';
+import { parseBuildConfig } from './stats/buildConfig';
 import type { PassiveState } from './types';
 
 /** Serialised size cap per state column. A full build is a few KB; this is headroom, not a target. */
@@ -216,6 +217,13 @@ export function cleanPassiveStateInput(raw: unknown): InputResult<PassiveState> 
     if (!isPlainObject(quests) || Object.keys(quests).length > MAX_QUEST_CHOICES) return fail('Malformed passive_state');
     const kept = parseQuestChoices(quests);
     if (Object.keys(kept).length > 0) value.questChoices = kept;
+  }
+  // The imported PoB Configuration: a non-object is refused like the choices above; malformed entries are dropped.
+  const config = (raw as unknown as Record<string, unknown>).buildConfig;
+  if (config !== undefined) {
+    if (!isPlainObject(config) || tooLarge(config)) return fail('Malformed passive_state');
+    const kept = parseBuildConfig(config);
+    if (kept) value.buildConfig = kept;
   }
   return { ok: true, value };
 }
