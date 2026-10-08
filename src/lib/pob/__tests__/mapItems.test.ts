@@ -46,14 +46,11 @@ const rare = (id: number, base: string, extra: string[] = []) => item(id, ['Rari
 const slot = (name: string, itemId: number): PobSlot => ({ name, itemId });
 
 describe('mapItems — every way it can go wrong', () => {
-  it('reports an occupied Ring 3 instead of forcing it into ring2', async () => {
-    const { value, report } = await mapItems([rare(1, 'Plain Ring')], [slot('Ring 3', 1)], fake);
+  it('keeps Ring 3 in its own slot instead of forcing it into ring2', async () => {
+    const { value } = await mapItems([rare(1, 'Plain Ring')], [slot('Ring 3', 1)], fake);
     expect(value.ring1).toBeNull();
     expect(value.ring2).toBeNull();
-    expect(report).toHaveLength(1);
-    expect(report[0]).toMatchObject({ kind: 'dropped', area: 'items' });
-    expect(report[0].message).toContain('Ring 3');
-    expect(report[0].message).toContain('Plain Ring');
+    expect(value.ring3?.name).toBe('Plain Ring');
   });
 
   it('reports a slot name it does not know, rather than guessing a home for it', async () => {

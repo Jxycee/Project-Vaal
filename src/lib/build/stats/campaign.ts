@@ -100,7 +100,7 @@ export const CHOICE_QUESTS: readonly ChoiceQuest[] = [
     options: [
       { id: 'stun-threshold', text: '25% increased Stun Threshold', stats: [] },
       { id: 'ailment-threshold', text: '30% increased Elemental Ailment Threshold', stats: [] },
-      { id: 'mana-regen', text: '25% increased Mana Regeneration Rate', stats: [] },
+      { id: 'mana-regen', text: '25% increased Mana Regeneration Rate', stats: [['mana_regeneration_rate_+%', 25]] },
     ],
   },
   {
@@ -113,8 +113,11 @@ export const CHOICE_QUESTS: readonly ChoiceQuest[] = [
       {
         id: 'elemental-armour',
         text: '+15% of Armour also applies to Elemental Damage / Gain Deflection Rating equal to 12% of Evasion Rating / 12% faster start of Energy Shield Recharge',
-        stats: [],
-        unmodelled: 'Armour applying to Elemental Damage, Deflection Rating and Energy Shield Recharge start',
+        stats: [
+          ['armour_%_applies_to_fire_cold_lightning_damage', 15],
+          ['base_deflection_rating_%_of_evasion_rating', 12],
+          ['energy_shield_delay_-%', 12],
+        ],
       },
     ],
   },
@@ -165,7 +168,7 @@ export const CHOICE_QUESTS: readonly ChoiceQuest[] = [
     pobKey: 'questInterlude 2QimahSeven Pillars',
     options: [
       { id: 'all-resistances', text: '+5% to all Elemental Resistances', stats: [['base_resist_all_elements_%', 5]] },
-      { id: 'movement-speed', text: '3% increased Movement Speed', stats: [] },
+      { id: 'movement-speed', text: '3% increased Movement Speed', stats: [['base_movement_velocity_+%', 3]] },
       { id: 'global-defences', text: '15% increased Global Armour, Evasion and Energy Shield', stats: [['global_armour_evasion_energy_shield_+%', 15]] },
       { id: 'presence-area', text: '20% increased Presence Area Of Effect', stats: [] },
       { id: 'cooldown-recovery', text: '12% increased Cooldown Recovery Rate', stats: [] },
@@ -177,6 +180,7 @@ export const CHOICE_QUESTS: readonly ChoiceQuest[] = [
           ['base_resist_all_elements_%', -5],
           ['global_armour_evasion_energy_shield_+%', -15],
           ['all_attributes_+%', -5],
+          ['base_movement_velocity_+%', -3],
         ],
       },
     ],
@@ -213,7 +217,14 @@ export interface CampaignProgress {
   choiceRewardsNotCounted: string[];
 }
 
-export function campaignAt(rawLevel: number, questChoices: Readonly<Record<string, string>> = {}): CampaignProgress {
+/** PoB's Configuration key of a fixed reward: "quest" + act + area + quest name, so the part after the act is area + name ("Silent Hall (Eye of Hinekora)" -> "Eye of HinekoraSilent Hall"). */
+function fixedQuestKeyTail(source: string): string {
+  const m = /^(.*) \((.*)\)$/.exec(source);
+  return m ? m[2] + m[1] : source;
+}
+
+/** `questsOff`: the fixed rewards the build unticked in PoB (BuildConfig.questsOff); a reward not named there counts, as PoB's default is ticked. */
+export function campaignAt(rawLevel: number, questChoices: Readonly<Record<string, string>> = {}, questsOff: readonly string[] = []): CampaignProgress {
   const level = Number.isFinite(rawLevel) ? Math.min(100, Math.max(1, Math.trunc(rawLevel))) : 1;
   const stage = ACTS.find((a) => level <= a.upTo) ?? ENDGAME;
   const choiceRewards: QuestReward[] = [];
@@ -231,7 +242,7 @@ export function campaignAt(rawLevel: number, questChoices: Readonly<Record<strin
   return {
     act: stage.act,
     resistancePenalty: stage.penalty,
-    rewards: FIXED_QUEST_REWARDS.filter((q) => level >= q.areaLevel).map(({ stat, value, source }) => ({ stat, value, source })),
+    rewards: FIXED_QUEST_REWARDS.filter((q) => level >= q.areaLevel && !questsOff.some((key) => key.startsWith('quest') && key.endsWith(fixedQuestKeyTail(q.source)))).map(({ stat, value, source }) => ({ stat, value, source })),
     choiceRewards,
     choiceRewardsUnmodelled,
     choiceRewardsNotCounted,

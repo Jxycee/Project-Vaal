@@ -43,6 +43,8 @@ export interface PobSkillGroup {
   index: number;
   label: string;
   enabled: boolean;
+  /** A group a passive, item or ascendancy grants (a `source` attribute): not a gem the player sockets. */
+  granted?: boolean;
   gems: PobGem[];
 }
 
@@ -92,6 +94,11 @@ export interface PobBuild {
    * all. null is "unknown", an empty list is "nothing ticked": the difference matters (buildConfig.ts).
    */
   configInputs: ConfigInput[] | null;
+  /**
+   * The weapon set PoB had active when the code was made: the active <ItemSet>'s (else <Items>') useSecondWeaponSet.
+   * Decides whose weapons and set-only passives PoB's own numbers include; "nil" or absent is the first set.
+   */
+  useSecondWeaponSet: boolean;
 }
 
 export type ParseError = 'malformed-xml' | 'no-build';
@@ -239,6 +246,7 @@ export function parsePobXml(xml: string): { ok: true; build: PobBuild } | { ok: 
         index: i + 1,
         label: skill.getAttribute('label') ?? '',
         enabled: skill.getAttribute('enabled') !== 'false',
+        granted: Boolean(skill.getAttribute('source')),
         gems: childElements(skill, 'Gem').map(parseGem),
       }))
     : [];
@@ -257,6 +265,8 @@ export function parsePobXml(xml: string): { ok: true; build: PobBuild } | { ok: 
         .map((slot) => ({ name: slot.getAttribute('name') ?? '', itemId: intAttr(slot, 'itemId') }))
         .filter((slot): slot is PobSlot => slot.name !== '' && slot.itemId !== null && slot.itemId > 0)
     : [];
+
+  const useSecondWeaponSet = (itemSet?.getAttribute('useSecondWeaponSet') ?? itemsElement?.getAttribute('useSecondWeaponSet')) === 'true';
 
   const configElement = firstChild(root, 'Config');
   const configSet = configElement ? pickActive(childElements(configElement, 'ConfigSet'), intAttr(configElement, 'activeConfigSet')) : null;
@@ -277,7 +287,8 @@ export function parsePobXml(xml: string): { ok: true; build: PobBuild } | { ok: 
             number: num !== null && num !== '' && Number.isFinite(Number(num)) ? Number(num) : null,
           };
         })
-        .filter((input) => input.name !== '' && !input.name.startsWith('quest'))
+        // A quest input is a reward choice (read above as questInputs) unless it is a ticked-off fixed reward: boolean="false".
+        .filter((input) => input.name !== '' && (!input.name.startsWith('quest') || input.boolean === false))
     : null;
 
   const notesText = firstChild(root, 'Notes')?.textContent?.trim() ?? '';
@@ -297,6 +308,7 @@ export function parsePobXml(xml: string): { ok: true; build: PobBuild } | { ok: 
       notes: notesText === '' ? null : notesText,
       questInputs,
       configInputs,
+      useSecondWeaponSet,
     },
   };
 }

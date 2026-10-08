@@ -30,11 +30,16 @@ import { computeDefences, type DefenceSheet } from '../engine';
 //      Evasion Rating while moving" and Wind Dancer x3 stacks are the whole gap) with the Configuration as
 //      imported, with Moving unticked, with no Configuration at all, and with the stack count removed.
 //
+//   6. A derived stat (DERIVED: evade, deflection, Runic Ward, regeneration, ES recharge, movement speed, charges,
+//      effective health pool, maximum hits) that stops matching: the per-build DERIVED_FLOOR below only goes up.
+//      The derived stats are kept apart from the 13 so "13 of 13" keeps its meaning; a derived key is compared only
+//      when the fixture carries it; an immune hit (2147483647 on poe.ninja) is Infinity in the engine.
+//
 // Artifact: docs/superpowers/oracle/results.json, rewritten every run: per build, per stat, expected vs
-// ours, and the match count. Diffing it is the accuracy report.
+// ours, and the match count (`derived` / `derivedMatched` for the derived keys). Diffing it is the accuracy report.
 
 const DIR = 'docs/superpowers/oracle';
-const FILES = readdirSync(DIR).filter((f) => f.endsWith('.json') && f !== 'results.json');
+const FILES = readdirSync(DIR).filter((f) => f.endsWith('.json') && f !== 'results.json' && f !== 'dps-spike.json');
 
 type Fixture = {
   source: string;
@@ -68,14 +73,114 @@ function expected(d: Record<string, number>): Record<Key, number> {
   };
 }
 
+// The derived defence stats (board item 26), kept apart from the 13 so the 13/13 target and its FLOOR keep their meaning.
+// A key is compared only when the fixture has it (damageReductions.physical is absent on a no-armour build). poe.ninja
+// prints a hit that nothing can kill as 2147483647, which the engine reports as Infinity.
+const DERIVED = [
+  'enemyAccuracy',
+  'evadeChance',
+  'deflectionRating',
+  'deflectChance',
+  'ward',
+  'lifeRegen',
+  'manaRegen',
+  'esRecharge',
+  'esRechargeDelay',
+  'movementSpeed',
+  'enduranceCharges',
+  'frenzyCharges',
+  'powerCharges',
+  'effectiveHealthPool',
+  'physicalMaxHit',
+  'fireMaxHit',
+  'coldMaxHit',
+  'lightningMaxHit',
+  'chaosMaxHit',
+] as const;
+type DKey = (typeof DERIVED)[number];
+const IMMUNE = 2147483647;
+
+function expectedDerived(d: Record<string, unknown>): Partial<Record<DKey, number>> {
+  const n = (v: unknown) => (typeof v === 'number' ? v : undefined);
+  const recovery = d.recovery as { regen?: { mana?: number }; recharge?: { energyShield?: number; delay?: number } } | undefined;
+  return {
+    enemyAccuracy: n(d.enemyAccuracy),
+    evadeChance: n(d.evadeChance),
+    deflectionRating: n(d.deflectionRating),
+    deflectChance: n(d.deflectChance),
+    ward: n(d.ward),
+    lifeRegen: n(d.lifeRegen),
+    manaRegen: n(recovery?.regen?.mana),
+    esRecharge: n(recovery?.recharge?.energyShield),
+    esRechargeDelay: n(recovery?.recharge?.delay),
+    movementSpeed: n(d.movementSpeed),
+    enduranceCharges: n(d.enduranceCharges),
+    frenzyCharges: n(d.frenzyCharges),
+    powerCharges: n(d.powerCharges),
+    effectiveHealthPool: n(d.effectiveHealthPool),
+    physicalMaxHit: n(d.physicalMaximumHitTaken),
+    fireMaxHit: n(d.fireMaximumHitTaken),
+    coldMaxHit: n(d.coldMaximumHitTaken),
+    lightningMaxHit: n(d.lightningMaximumHitTaken),
+    chaosMaxHit: n(d.chaosMaximumHitTaken),
+  };
+}
+
+function oursDerived(sheet: DefenceSheet): Record<DKey, number> {
+  const x = sheet.derived;
+  const hit = (v: number) => (v === Infinity ? IMMUNE : v);
+  return {
+    enemyAccuracy: x.enemyAccuracy,
+    evadeChance: x.evadeChance,
+    deflectionRating: x.deflectionRating,
+    deflectChance: x.deflectChance,
+    ward: x.ward,
+    lifeRegen: x.lifeRegen,
+    manaRegen: x.manaRegen,
+    esRecharge: x.esRecharge,
+    esRechargeDelay: x.esRechargeDelay,
+    movementSpeed: x.movementSpeed,
+    enduranceCharges: x.enduranceCharges,
+    frenzyCharges: x.frenzyCharges,
+    powerCharges: x.powerCharges,
+    effectiveHealthPool: hit(x.effectiveHealthPool),
+    physicalMaxHit: hit(x.maxHit.physical),
+    fireMaxHit: hit(x.maxHit.fire),
+    coldMaxHit: hit(x.maxHit.cold),
+    lightningMaxHit: hit(x.maxHit.lightning),
+    chaosMaxHit: hit(x.maxHit.chaos),
+  };
+}
+
+/** Ratchet for the derived keys: the least number each build must match. Raise it when a fix lands; never lower it. */
+const DERIVED_FLOOR: Record<string, number> = {
+  'armour-life-gemling.json': 9, // of 19
+  'es-life-stormweaver.json': 8, // of 19
+  'evasion-deadeye.json': 14, // of 19
+  'hybrid-tactician.json': 9, // round 10: Defiance Banner partly counted (bannerPlanted, Banner aura magnitudes); was 7 // of 19
+  'ordinary-armour-1.json': 9, // of 17
+  'ordinary-caster-1.json': 9, // of 17
+  'ordinary-caster-2.json': 13, // round 9; was 12 // of 19
+  'ordinary-ci-acolyte.json': 18, // of 19
+  'ordinary-ci-disciple.json': 19, // of 19
+  'ordinary-ci-es-disciple.json': 12, // of 19
+  'ordinary-deadeye.json': 13, // of 19
+  'ordinary-evasion-1.json': 12, // of 19
+  'ordinary-evasion-2.json': 18, // of 19
+  'ordinary-hybrid-1.json': 12, // round 6; was 9 (round 4: item-local enchant lines (The Vertex)); of 19
+  'ordinary-hybrid-2.json': 10, // of 19
+  'ordinary-life-1.json': 12, // of 19
+  'ordinary-oracle.json': 16, // of 17
+};
+
 const ours = (sheet: DefenceSheet, k: Key): number => (k === 'fire' || k === 'cold' || k === 'lightning' || k === 'chaos' ? sheet[k].value : sheet[k]);
 
 // Ratchet: the least number of the 13 stats each build must match. Raise it when a fix lands; never lower it.
 const FLOOR: Record<string, number> = {
-  'armour-life-gemling.json': 2, // Mageblood, a RELIC body armour and 36 unreadable item lines: item coverage, not the engine
-  'es-life-stormweaver.json': 7, // Kalandra's Touch reflects the opposite ring (collect.ts); a radius jewel's notables (fire, spirit)
-  'evasion-deadeye.json': 5, // chaos resistance via a Time-Lost jewel's radius grant
-  'hybrid-tactician.json': 3,
+  'armour-life-gemling.json': 8, // Gem Enthusiast now counted; Mageblood, a RELIC body armour and 36 unreadable item lines: item coverage, not the engine
+  'es-life-stormweaver.json': 13, // round 8: 13 of 13 (Low Life derived from Atziri's Communion, Defiance); was 11 // Kalandra's Touch reflects the opposite ring (collect.ts); a radius jewel's notables (fire, spirit)
+  'evasion-deadeye.json': 12, // the weapon set PoB had active (set 2) now read from the code; still short: chaos resistance via a Time-Lost jewel's radius grant
+  'hybrid-tactician.json': 10, // round 9 (printed-line truth for uniques); was 9 // round 6: Ancient Aegis / Fortified Aegis scale one slot (statTable.ts); was 8
   // The ordinary set (board item 30): mid-complexity public builds. The goal is 13 of 13 on every one.
   'ordinary-ci-acolyte.json': 13, // 13 of 13: Purity of Ice (a socketed Aura) puts +43% Cold Resistance on the character - skillBuffs.ts, scaled by 11% increased Aura magnitudes
   'ordinary-ci-disciple.json': 13, // 13 of 13: Time-Lost Sapphire's "Notable Passive Skills in Radius also grant" x7 (collect.ts radiusGrants) + Warding Fetish's Focus ES
@@ -84,15 +189,16 @@ const FLOOR: Record<string, number> = {
   'ordinary-oracle.json': 13, // 13 of 13: Eldritch Battery moves flat ES into Mana (engine.ts) + PoB's printed rune lines (Blood League 469, Viper Crest 3%)
   // Round-3 pool (31 Forbidden Rites characters fetched with scripts/fetch-oracle-pool.mjs, the 8 best that wear no Mageblood or RELIC item).
   // FLOOR = the match when added; the gaps lists in results.json say what is missing. Shape = the build's defence layer.
-  'ordinary-evasion-1.json': 4, // Deadeye; five uniques not in our data (Hand of Wisdom and Action, From Nothing, Against the Darkness, Megalomaniac, Heart of the Well)
-  'ordinary-armour-1.json': 10, // Gemling Legionnaire, life/armour/evasion; Runeseeker's Call (-45% less maximum Life rune line) and Virtuous Barrier mote counts
-  'ordinary-caster-1.json': 12, // Chronomancer; only Mana off (Runeforged Sirenscale Gloves rune line)
-  'ordinary-hybrid-1.json': 8, // Lich, ES + armour; Ancient Aegis body armour armour, Grip of Kulemak not in our data
-  'ordinary-caster-2.json': 5, // Stormweaver; Morior Invictus per-socket lines, Adonia's Ego per-Power-Charge resistances
-  'ordinary-life-1.json': 3, // Blood Mage, life; Morior Invictus per-socket lines (attributes, life, resistances)
-  'ordinary-hybrid-2.json': 5, // Ritualist, ES + evasion; Andvarius -20% all resistances, Shavronne's Satchel, uniques not in our data
-  'ordinary-evasion-2.json': 1, // Ritualist, evasion; Andvarius, Charge Regulation (endurance-charge threshold), Megalomaniac
+  'ordinary-evasion-1.json': 13, // 13 of 13 (round 4): a unique whose wiki page lists its base as the first line (Hand of Wisdom and Action) resolves its base; was: // the PoB code's own weapon set (2) + Charge Regulation's endurance-charge threshold; still short,  Deadeye; five uniques not in our data (Hand of Wisdom and Action, From Nothing, Against the Darkness, Megalomaniac, Heart of the Well)
+  'ordinary-armour-1.json': 13, // 13 of 13 (round 7): Runeseeker's 200% rune effect keeps the rune's 15% less AND an extra 30% less (0.85 x 0.70 -> 0.60, collect.ts splitRuneMore); was 12. Round 4: Virtuous Barrier motes (buildConfig.moteCounts), the printed Runemastered base (craft.baseSlug), PoB base defences; short: Life (Runeseeker rune 45% less); was: // Gemling Legionnaire, life/armour/evasion; Runeseeker's Call (-45% less maximum Life rune line) and Virtuous Barrier mote counts
+  'ordinary-caster-1.json': 13, // 13 of 13 (round 5): a radius jewel's "also grant" lines count after every item's "Allocates X" (Megalomaniac) has allocated its notables; was: // Chronomancer; only Mana off
+  'ordinary-hybrid-1.json': 13, // 13 of 13 (round 6): slot increases (Ancient Aegis armour, Fortified Aegis), the unticked Silent Hall quest (BuildConfig.questsOff), Kraken Bane's rune line 'Aura Skills have 25% increased Magnitudes'; was: 9
+  'ordinary-caster-2.json': 13, // round 9: 13 of 13 (a corrupted unique no longer reads a line PoB did not print: Atziri's Step has no Life; Voices opens its Sinister sockets; Enhanced Barrier moves 5% of Life base to ES); round 8 was 11: Armour and Evasion match (Low Life derived from Atziri's Communion reserving 66% of Life: Defiance's 80%; The Winter Owl's 3% Evasion per 10 Int); short: Life (Atziri's Step corrupted line, Enhanced Barrier 5% of Life to ES) and ES (Voices' Sinister sockets); was 9 // Stormweaver; untyped unique lines read from their text (Controlled Metamorphosis -(20-5)% to all Elemental Resistances) + the "0% to" cache entry no longer poisons "-15% to Cold Resistance"; still short: Adonia's Ego per-Power-Charge resistances, ES/evasion nodes
+  'ordinary-life-1.json': 13, // 13 of 13 (round 6): Crimson Power (life = 100% of body armour ES, PercentStat), Multiplier:CorruptedItem (Morior Invictus rune line); was 12. Round 4: the printed Runemastered base (Alpha's Howl); was: // weapon set 2 from the code + Gem Enthusiast (support colours); still short: Crimson Power (life from body ES), Morior +8% life; was: Blood Mage, life; Morior per-socket lines now counted; still short: 1% max Life per Corrupted Item Equipped, Alpha's Howl Runemastered cap, node 31223
+  'ordinary-hybrid-2.json': 13, // 13 of 13: Ring 3 (Unfurled Finger), Mystic Attunement's 25% bonus copy of ring/amulet modifiers (collect.ts bonusEffectFromJewellery, floored), Andvarius's untyped -20% line, Grand Spectrum's per-jewel multiplier
+  'ordinary-evasion-2.json': 13, // 13 of 13: the PoB code's weapon set (2) puts Palm of the Dreamer and the set-2 passives (Cooked, Chakra of Life) in; Charge Regulation counts with the Configuration's use-endurance-charges switch (skillBuffs.ts)
 };
+
 
 // PoB's own per-stat build-up (breakdowns.stats[i].mods = [kind 0 flat|1 inc|2 more, value, sourceIndex]) says WHICH
 // modifiers PoB counts that we do not. Stat index -> our pool, and the diff itself.
@@ -120,7 +226,7 @@ function missingMods(b: Breakdowns, pool: Pool, idx: string, mine: Collected['co
 }
 
 const results: Record<string, unknown> = {};
-const sheets = new Map<string, { want: Record<Key, number>; got: Record<Key, number>; matched: number }>();
+const sheets = new Map<string, { want: Record<Key, number>; got: Record<Key, number>; matched: number; dWant: Partial<Record<DKey, number>>; dGot: Record<DKey, number>; dMatched: number; dOf: number }>();
 /** Re-runs a fixture's pipeline with its PoB Configuration replaced (undefined = the build came without one). */
 const reruns = new Map<string, (config: BuildConfig | undefined) => { sheet: DefenceSheet; collected: Collected }>();
 
@@ -149,10 +255,12 @@ beforeAll(async () => {
     const checkpoint = mapped.plan.checkpoints[mapped.plan.checkpoints.length - 1];
     const cls = tree.classes.find((c: { name: string }) => c.name === mapped.plan.build.class);
     if (!cls) throw new Error(`${f}: class ${mapped.plan.build.class} not in the tree`);
+    // The weapon set is the one PoB had active in the code (<Items useSecondWeaponSet>); the fixture's own flag was
+    // never filled in (false everywhere), and set 2 holds Palm of the Dreamer and the set-2-only passives PoB counted.
     const run = (config: BuildConfig | undefined) => {
       const { buildConfig: _imported, ...rest } = checkpoint.passive_state;
       const collected = collectContributions(
-        { passive: config ? { ...rest, buildConfig: config } : rest, gear: checkpoint.gear_state, level: fx.level, set: fx.useSecondWeaponSet ? 2 : 1, gems: checkpoint.gem_state },
+        { passive: config ? { ...rest, buildConfig: config } : rest, gear: checkpoint.gear_state, level: fx.level, set: parsed.build.useSecondWeaponSet ? 2 : 1, gems: checkpoint.gem_state },
         data,
       );
       const sheet = computeDefences({
@@ -161,6 +269,7 @@ beforeAll(async () => {
         contributions: collected.contributions,
         resistancePenalty: collected.resistancePenalty,
         flags: collected.flags,
+        ...(config ? { config } : {}),
       });
       return { sheet, collected };
     };
@@ -169,9 +278,13 @@ beforeAll(async () => {
     const want = expected(fx.defensiveStats);
     const got = Object.fromEntries(KEYS.map((k) => [k, ours(sheet, k)])) as Record<Key, number>;
     const matched = KEYS.filter((k) => got[k] === want[k]).length;
-    sheets.set(f, { want, got, matched });
+    const dWant = expectedDerived(fx.defensiveStats);
+    const dGot = oursDerived(sheet);
+    const dKeys = DERIVED.filter((k) => dWant[k] !== undefined);
+    const dMatched = dKeys.filter((k) => dGot[k] === dWant[k]).length;
+    sheets.set(f, { want, got, matched, dWant, dGot, dMatched, dOf: dKeys.length });
     const gaps = Object.fromEntries(Object.entries(BREAKDOWN_POOLS).map(([idx, pool]) => [pool, missingMods(fx.breakdowns as Breakdowns, pool, idx, collected.contributions)]));
-    results[f] = { gaps, class: fx.class, source: fx.source, matched, of: KEYS.length, stats: Object.fromEntries(KEYS.map((k) => [k, { want: want[k], got: got[k], ok: got[k] === want[k] }])) };
+    results[f] = { gaps, notCounted: collected.notCounted, class: fx.class, source: fx.source, matched, of: KEYS.length, stats: Object.fromEntries(KEYS.map((k) => [k, { want: want[k], got: got[k], ok: got[k] === want[k] }])), derivedMatched: dMatched, derivedOf: dKeys.length, derived: Object.fromEntries(dKeys.map((k) => [k, { want: dWant[k], got: dGot[k], ok: dGot[k] === dWant[k] }])) };
   }
   writeFileSync(`${DIR}/results.json`, JSON.stringify(results, null, 2));
 }, 600_000);
@@ -231,10 +344,12 @@ describe('multi-build oracle (poe.ninja PoB simulation)', () => {
       const s = sheets.get(f)!;
       for (const k of KEYS) expect(Number.isFinite(s.got[k]), `${k} is not finite`).toBe(true);
       for (const k of ['life', 'mana', 'energyShield', 'armour', 'evasion', 'spirit'] as const) expect(s.got[k], `${k} is negative`).toBeGreaterThanOrEqual(0);
+      for (const k of DERIVED) expect(Number.isNaN(s.dGot[k]), `${k} is NaN`).toBe(false);
     });
-    it(`${f}: matches at least ${FLOOR[f] ?? 0} of ${KEYS.length} stats`, () => {
+    it(`${f}: matches at least ${FLOOR[f] ?? 0} of ${KEYS.length} stats and ${DERIVED_FLOOR[f] ?? 0} derived`, () => {
       const s = sheets.get(f)!;
       expect(s.matched, `matched ${s.matched}: see ${DIR}/results.json`).toBeGreaterThanOrEqual(FLOOR[f] ?? 0);
+      expect(s.dMatched, `derived matched ${s.dMatched} of ${s.dOf}: see ${DIR}/results.json`).toBeGreaterThanOrEqual(DERIVED_FLOOR[f] ?? 0);
     });
   }
 });

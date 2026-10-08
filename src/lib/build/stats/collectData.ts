@@ -14,6 +14,8 @@
 // =============================================================================
 
 import { projectJewelRadius, type JewelRadiusNode } from '@/lib/tree/treeLite';
+import movementPenalties from '@/lib/pob/data/base-movement-penalty.json';
+import baseDefences from '@/lib/pob/data/base-defences.json';
 import type { CollectData } from './collect';
 
 export interface RawCollectFiles {
@@ -21,7 +23,7 @@ export interface RawCollectFiles {
    * The tree: names and flags for every reader. `jewelRadius` (lite.json) or, on the full export, node x/y with
    * the type flags, say which notables and smalls sit near each jewel socket.
    */
-  tree: { nodes: Record<string, { name?: string; isGenericAttribute?: boolean }>; jewelRadius?: Record<string, JewelRadiusNode[]> };
+  tree: { nodes: Record<string, { name?: string; isGenericAttribute?: boolean }>; jewelSlots?: (string | number)[]; jewelRadius?: Record<string, JewelRadiusNode[]> };
   nodeStats: { nodes: Record<string, [string, number][]> };
   implicitStats: { bases: Record<string, [string, number, number][][]> };
   uniqueStats: { uniques: Record<string, { baseType: string; baseSlug: string | null; lines: (string[] | null)[] }> };
@@ -35,6 +37,12 @@ const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'obj
 const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((s): s is string => typeof s === 'string') : []);
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
 
+function pobDefences(name: string, wiki: Record<string, unknown>): { armour: number; evasion: number; energyShield: number; ward: number } {
+  const pob = (baseDefences as unknown as Record<string, [number, number, number, number]>)[name];
+  if (pob) return { armour: pob[0], evasion: pob[1], energyShield: pob[2], ward: pob[3] };
+  return { armour: num(wiki.armour), evasion: num(wiki.evasion), energyShield: num(wiki.energyShield), ward: num(wiki.ward) };
+}
+
 export function makeCollectData(files: RawCollectFiles): CollectData {
   /** Name -> id for passives that carry typed stats and whose name nothing else shares. Built on first use. */
   let byName: Map<string, number> | undefined;
@@ -47,6 +55,10 @@ export function makeCollectData(files: RawCollectFiles): CollectData {
         radius = positioned ? projectJewelRadius(files.tree.nodes) : null;
       }
       return radius?.[String(socket)];
+    },
+    sinisterSockets() {
+      // Voices' sockets are the tree's jewelSlots whose node is a "Sinister Jewel Socket", in slot order (slot1 first).
+      return (files.tree.jewelSlots ?? []).map(Number).filter((id) => files.tree.nodes[String(id)]?.name?.includes('SinisterJewelSockets'));
     },
     nodeByName(name) {
       if (!byName) {
@@ -73,7 +85,9 @@ export function makeCollectData(files: RawCollectFiles): CollectData {
       if (!isObject(detail) || typeof detail.name !== 'string') return undefined;
       const a = isObject(detail.armour) ? detail.armour : null;
       return {
-        armour: a ? { armour: num(a.armour), evasion: num(a.evasion), energyShield: num(a.energyShield) } : null,
+        // PoB's base defences beat the wiki's where it has the base (they differ on a dozen Runeforged / Runemastered bases).
+        armour: a ? pobDefences(detail.name, a) : null,
+        movementPenalty: (movementPenalties as Record<string, number>)[detail.name] ?? 0,
         spirit: num(detail.spirit),
         itemClass: typeof detail.itemClass === 'string' ? detail.itemClass : null,
         weapon: isObject(detail.weapon),

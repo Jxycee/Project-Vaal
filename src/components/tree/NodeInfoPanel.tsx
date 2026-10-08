@@ -40,14 +40,14 @@ export default function NodeInfoPanel({
   if (!node) return null;
 
   return (
-    <div className="absolute inset-x-3 bottom-3 z-10 rounded-lg border border-border bg-card/95 p-3 backdrop-blur">
+    <div className="absolute inset-x-3 bottom-3 z-10 max-h-[45%] overflow-y-auto overscroll-contain rounded-lg border border-border bg-card/95 p-3 backdrop-blur">
       <div className="flex items-start justify-between gap-2">
-        <p className="font-heading text-sm text-foreground">{node.name}</p>
+        <p className="min-w-0 break-words font-heading text-sm text-foreground">{node.name}</p>
         <button
           type="button"
           onClick={onDismiss}
           aria-label="Dismiss"
-          className="shrink-0 text-muted-foreground"
+          className="-m-3 flex size-11 shrink-0 items-center justify-center text-muted-foreground"
         >
           <X size={16} />
         </button>
@@ -88,7 +88,7 @@ export default function NodeInfoPanel({
         <button
           type="button"
           onClick={onConfirm}
-          className={`mt-2 w-full rounded-md px-3 py-1.5 text-xs font-heading ${
+          className={`mt-2 h-11 w-full rounded-md px-3 text-xs font-heading ${
             pendingKind === 'add'
               ? 'bg-primary text-primary-foreground'
               : 'bg-destructive text-destructive-foreground'

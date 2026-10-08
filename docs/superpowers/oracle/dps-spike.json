@@ -1,0 +1,660 @@
+[
+  {
+    "build": "ordinary-armour-1.json",
+    "class": "Gemling Legionnaire",
+    "poeNinjaDps": null,
+    "pobTotalDps": 390220.930176,
+    "skill": "Ice Nova",
+    "skillId": "IceNovaPlayer",
+    "gemLevel": 20,
+    "nameMatchesPoeNinja": false,
+    "pob": {
+      "averageDamage": 390220.930176,
+      "speed": 1,
+      "critChance": 50.28,
+      "critMultiplier": 9.68,
+      "perUseMultiplier": 1,
+      "hitBeforeCrit": 72744
+    },
+    "ours": {
+      "kind": "spell",
+      "statSet": "Ice Nova",
+      "baseEffectiveness": 1.5199999809265,
+      "hitByType": {
+        "cold": 163.5
+      },
+      "hit": 163.5,
+      "castTime": 1,
+      "speed": 1,
+      "crit": 12
+    },
+    "oursDps": 183.12,
+    "ratioOursOverTheirs": 0.0004692726244012796,
+    "factorsTheirsOverOurs": {
+      "hitDamage": 444.91743119266056,
+      "critUplift": 4.789557142857142,
+      "speed": 1,
+      "perUseMultiplier": 1,
+      "product": 2130.9574605504586
+    },
+    "decompositionExact": true,
+    "dominantError": "hitDamage",
+    "treeContext": {
+      "crit multiplier": 171,
+      "increased crit chance": 160,
+      "increased damage (unconditioned)": 112
+    },
+    "tier2": {
+      "hit": 346.62,
+      "speed": 1,
+      "critChance": 31.200000000000003,
+      "critMultiplier": 3.71,
+      "dps": 639.6941424,
+      "ratioOursOverTheirs": 0.001639312740378844,
+      "supportLinesUsed": [],
+      "remaining": {
+        "hitDamage": 209.86671282672668,
+        "critUplift": 2.9066626208331523,
+        "speed": 1
+      }
+    },
+    "notes": [],
+    "status": "compared"
+  },
+  {
+    "build": "ordinary-caster-1.json",
+    "class": "Chronomancer",
+    "poeNinjaDps": null,
+    "pobTotalDps": 41670663.770887,
+    "skill": "Comet",
+    "skillId": "CometPlayer",
+    "gemLevel": 20,
+    "nameMatchesPoeNinja": false,
+    "pob": {
+      "averageDamage": 59402861.120201,
+      "speed": 0.70149253731343,
+      "critChance": 95.29,
+      "critMultiplier": 15.21,
+      "perUseMultiplier": 0.9999999999999977,
+      "hitBeforeCrit": 4085279.550000003
+    },
+    "ours": {
+      "kind": "spell",
+      "statSet": "Comet",
+      "baseEffectiveness": 7.4099998474121,
+      "hitByType": {
+        "cold": 984
+      },
+      "hit": 984,
+      "castTime": 1,
+      "speed": 1,
+      "crit": 13
+    },
+    "oursDps": 1111.9199999999998,
+    "ratioOursOverTheirs": 0.000026683520236527575,
+    "factorsTheirsOverOurs": {
+      "hitDamage": 4151.706859756101,
+      "critUplift": 12.867884070796462,
+      "speed": 0.70149253731343,
+      "perUseMultiplier": 0.9999999999999977,
+      "product": 37476.31463674276
+    },
+    "decompositionExact": true,
+    "dominantError": "hitDamage",
+    "treeContext": {
+      "crit multiplier": 385,
+      "increased damage (unconditioned)": 175,
+      "increased crit chance": 116,
+      "increased cast speed": 16
+    },
+    "tier2": {
+      "hit": 5936.2875,
+      "speed": 0.9859999999999999,
+      "critChance": 28.080000000000002,
+      "critMultiplier": 5.85,
+      "dps": 13824.507538413001,
+      "ratioOursOverTheirs": 0.00033175635536843607,
+      "supportLinesUsed": [
+        "Elemental Focus: support_gem_elemental_damage_+%_final=25",
+        "Considered Casting: support_slow_cast_cast_speed_+%_final=-15",
+        "Considered Casting: support_slow_cast_spell_damage_+%_final=35",
+        "Concentrated Area: support_area_concentrate_area_damage_+%_final=30"
+      ],
+      "remaining": {
+        "hitDamage": 688.1876172607884,
+        "critUplift": 6.156413111589073,
+        "speed": 0.7114528775998277
+      }
+    },
+    "notes": [],
+    "status": "compared"
+  },
+  {
+    "build": "ordinary-caster-2.json",
+    "class": "Stormweaver",
+    "poeNinjaDps": null,
+    "pobTotalDps": 93597.740475825,
+    "skill": "Comet",
+    "skillId": "CometPlayer",
+    "gemLevel": 20,
+    "nameMatchesPoeNinja": false,
+    "pob": {
+      "averageDamage": 136730.33977344,
+      "speed": 0.68454258675079,
+      "critChance": 55.64,
+      "critMultiplier": 8.07,
+      "perUseMultiplier": 0.9999999999999996,
+      "hitBeforeCrit": 27713.280000000002
+    },
+    "ours": {
+      "kind": "spell",
+      "statSet": "Comet",
+      "baseEffectiveness": 7.4099998474121,
+      "hitByType": {
+        "cold": 984
+      },
+      "hit": 984,
+      "castTime": 1,
+      "speed": 1,
+      "crit": 13
+    },
+    "oursDps": 1111.9199999999998,
+    "ratioOursOverTheirs": 0.01187977395979119,
+    "factorsTheirsOverOurs": {
+      "hitDamage": 28.163902439024394,
+      "critUplift": 4.366148672566371,
+      "speed": 0.68454258675079,
+      "perUseMultiplier": 0.9999999999999996,
+      "product": 84.1766858009794
+    },
+    "decompositionExact": true,
+    "dominantError": "hitDamage",
+    "treeContext": {
+      "increased damage (unconditioned)": 246,
+      "crit multiplier": 75,
+      "increased crit chance": 108,
+      "increased cast speed": 5
+    },
+    "tier2": {
+      "hit": 2383.2479999999996,
+      "speed": 1.05,
+      "critChance": 27.04,
+      "critMultiplier": 2.75,
+      "dps": 3686.551001279999,
+      "ratioOursOverTheirs": 0.03938717946115573,
+      "supportLinesUsed": [
+        "Spell Cascade: support_spell_cascade_damage_+%_final=-30"
+      ],
+      "remaining": {
+        "hitDamage": 11.628365994642609,
+        "critUplift": 3.3490008145533534,
+        "speed": 0.6519453207150381
+      }
+    },
+    "notes": [],
+    "status": "compared"
+  },
+  {
+    "build": "ordinary-ci-acolyte.json",
+    "class": "Acolyte of Chayula",
+    "poeNinjaDps": null,
+    "pobTotalDps": 0,
+    "status": "skipped",
+    "reason": "main skill has no hit DPS (minion/aura/utility)"
+  },
+  {
+    "build": "ordinary-ci-disciple.json",
+    "class": "Disciple of Varashta",
+    "poeNinjaDps": null,
+    "pobTotalDps": 0,
+    "status": "skipped",
+    "reason": "main skill has no hit DPS (minion/aura/utility)"
+  },
+  {
+    "build": "ordinary-ci-es-disciple.json",
+    "class": "Disciple of Varashta",
+    "poeNinjaDps": null,
+    "pobTotalDps": 0,
+    "status": "skipped",
+    "reason": "main skill has no hit DPS (minion/aura/utility)"
+  },
+  {
+    "build": "ordinary-deadeye.json",
+    "class": "Deadeye",
+    "poeNinjaDps": null,
+    "pobTotalDps": 252954.76215192,
+    "skill": "Ice Shot",
+    "skillId": "IceShotPlayer",
+    "gemLevel": 20,
+    "nameMatchesPoeNinja": false,
+    "pob": {
+      "averageDamage": 127569.37492532,
+      "speed": 1.944,
+      "critChance": 23.9148,
+      "critMultiplier": 4.36,
+      "perUseMultiplier": 1.020000000000006,
+      "hitBeforeCrit": 70732.87385848768
+    },
+    "ours": {
+      "kind": "attack",
+      "weapon": "Warmonger Bow",
+      "slot": "Weapon 1",
+      "weaponLinesUsed": [
+        "168% increased Physical Damage",
+        "Adds 63 to 105 Cold Damage",
+        "18% increased Physical Damage",
+        "+3.49% to Critical Hit Chance",
+        "Adds 34 to 62 Physical Damage"
+      ],
+      "weaponAvgHit": 453.34,
+      "baseMultiplier": 3.44,
+      "attackSpeedMultiplier": 0.9,
+      "aps": 1.2,
+      "hit": 1559.4895999999999,
+      "speed": 1.08,
+      "crit": 8.49
+    },
+    "oursDps": 1827.2414884031998,
+    "ratioOursOverTheirs": 0.007223589992371015,
+    "factorsTheirsOverOurs": {
+      "hitDamage": 45.35642549875786,
+      "critUplift": 1.6623995575629091,
+      "speed": 1.7999999999999998,
+      "perUseMultiplier": 1.020000000000006,
+      "product": 138.43532108773073
+    },
+    "decompositionExact": true,
+    "dominantError": "hitDamage",
+    "treeContext": {
+      "increased damage (unconditioned)": 227,
+      "crit multiplier": 181,
+      "increased crit chance": 130,
+      "increased attack speed": 2,
+      "increased cast speed": 8
+    },
+    "tier2": {
+      "hit": 3187.20687,
+      "speed": 1.3716000000000002,
+      "critChance": 19.526999999999997,
+      "critMultiplier": 3.81,
+      "dps": 6770.293049341444,
+      "ratioOursOverTheirs": 0.02676483728452335,
+      "supportLinesUsed": [
+        "Rapid Attacks II: attack_speed_+%=25",
+        "Elemental Armament II: support_attack_skills_elemental_damage_+%_final=25",
+        "Cold Attunement: support_fire_and_lightning_damage_+%_final=-50"
+      ],
+      "remaining": {
+        "hitDamage": 22.192746421410572,
+        "critUplift": 1.164542615405983,
+        "speed": 1.417322834645669
+      }
+    },
+    "notes": [
+      "80% phys->cold conversion is total-preserving before modifiers; not modelled",
+      "gear \"+N to Level of all ... Skills\" lines are not counted: the gem is read at its own level 20"
+    ],
+    "status": "compared"
+  },
+  {
+    "build": "ordinary-evasion-1.json",
+    "class": "Deadeye",
+    "poeNinjaDps": null,
+    "pobTotalDps": 465274.89950239,
+    "skill": "Twister",
+    "skillId": "TwisterPlayer",
+    "gemLevel": 20,
+    "nameMatchesPoeNinja": false,
+    "pob": {
+      "averageDamage": 168051.78697931,
+      "speed": 2.6368,
+      "critChance": 100,
+      "critMultiplier": 11.23,
+      "perUseMultiplier": 1.0499999999999845,
+      "hitBeforeCrit": 14964.54024748976
+    },
+    "ours": {
+      "kind": "attack",
+      "weapon": "Runeforged Forked Spear",
+      "slot": "Weapon 1 Swap",
+      "weaponLinesUsed": [
+        "Adds 15 to 35 Physical Damage",
+        "+7.73% to Critical Hit Chance"
+      ],
+      "weaponAvgHit": 69,
+      "baseMultiplier": 2.32,
+      "attackSpeedMultiplier": 0.8,
+      "aps": 1.6,
+      "hit": 160.07999999999998,
+      "speed": 1.2800000000000002,
+      "crit": 14.73
+    },
+    "oursDps": 235.08452352,
+    "ratioOursOverTheirs": 0.0005052594149639754,
+    "factorsTheirsOverOurs": {
+      "hitDamage": 93.48163572894654,
+      "critUplift": 9.788198378802406,
+      "speed": 2.0599999999999996,
+      "perUseMultiplier": 1.0499999999999845,
+      "product": 1979.1813282119629
+    },
+    "decompositionExact": true,
+    "dominantError": "hitDamage",
+    "treeContext": {
+      "crit multiplier": 330,
+      "increased damage (unconditioned)": 135,
+      "increased attack speed": 64,
+      "increased cast speed": 8,
+      "increased crit chance": 116
+    },
+    "tier2": {
+      "hit": 470.235,
+      "speed": 2.0992000000000006,
+      "critChance": 31.816800000000004,
+      "critMultiplier": 5.3,
+      "dps": 2337.61461797499,
+      "ratioOursOverTheirs": 0.005024158020290931,
+      "supportLinesUsed": [
+        "Elemental Armament II: support_attack_skills_elemental_damage_+%_final=25"
+      ],
+      "remaining": {
+        "hitDamage": 31.823535567300944,
+        "critUplift": 4.742153530577642,
+        "speed": 1.2560975609756093
+      }
+    },
+    "notes": [
+      "gear \"+N to Level of all ... Skills\" lines are not counted: the gem is read at its own level 20"
+    ],
+    "status": "compared"
+  },
+  {
+    "build": "ordinary-evasion-2.json",
+    "class": "Ritualist",
+    "poeNinjaDps": 120895,
+    "pobTotalDps": 120895.46948994,
+    "skill": "Twister",
+    "skillId": "TwisterPlayer",
+    "gemLevel": 20,
+    "nameMatchesPoeNinja": true,
+    "pob": {
+      "averageDamage": 61430.624740826,
+      "speed": 1.968,
+      "critChance": 44.961966,
+      "critMultiplier": 7.39,
+      "perUseMultiplier": 0.999999999999954,
+      "hitBeforeCrit": 15860.965758589917
+    },
+    "ours": {
+      "kind": "attack",
+      "weapon": "Akoyan Spear",
+      "slot": "Weapon 1 Swap",
+      "weaponLinesUsed": [
+        "Adds 31 to 66 Physical Damage",
+        "169% increased Physical Damage",
+        "+4.79% to Critical Hit Chance",
+        "25% increased Attack Speed",
+        "77% increased Physical Damage"
+      ],
+      "weaponAvgHit": 387.92,
+      "baseMultiplier": 2.32,
+      "attackSpeedMultiplier": 0.8,
+      "aps": 2,
+      "hit": 899.9744,
+      "speed": 1.6,
+      "crit": 11.79
+    },
+    "oursDps": 1609.730210816,
+    "ratioOursOverTheirs": 0.013315058187105593,
+    "factorsTheirsOverOurs": {
+      "hitDamage": 17.623796586425033,
+      "critUplift": 3.4645939953484213,
+      "speed": 1.23,
+      "perUseMultiplier": 0.999999999999954,
+      "product": 75.10293878913785
+    },
+    "decompositionExact": true,
+    "dominantError": "hitDamage",
+    "treeContext": {
+      "crit multiplier": 345,
+      "increased damage (unconditioned)": 150,
+      "increased attack speed": 52,
+      "increased crit chance": 70
+    },
+    "tier2": {
+      "hit": 2249.9359999999997,
+      "speed": 2.4320000000000004,
+      "critChance": 20.043,
+      "critMultiplier": 5.45,
+      "dps": 10352.256199447553,
+      "ratioOursOverTheirs": 0.08562981096912807,
+      "supportLinesUsed": [],
+      "remaining": {
+        "hitDamage": 7.049518634570014,
+        "critUplift": 2.0471705642990545,
+        "speed": 0.8092105263157894
+      }
+    },
+    "notes": [
+      "gear \"+N to Level of all ... Skills\" lines are not counted: the gem is read at its own level 20"
+    ],
+    "status": "compared"
+  },
+  {
+    "build": "ordinary-hybrid-1.json",
+    "class": "Lich",
+    "poeNinjaDps": 0,
+    "pobTotalDps": 0,
+    "status": "skipped",
+    "reason": "main skill has no hit DPS (minion/aura/utility)"
+  },
+  {
+    "build": "ordinary-hybrid-2.json",
+    "class": "Ritualist",
+    "poeNinjaDps": null,
+    "pobTotalDps": 10068.860385305,
+    "skill": "Ice Shot",
+    "skillId": "IceShotPlayer",
+    "gemLevel": 20,
+    "nameMatchesPoeNinja": false,
+    "pob": {
+      "averageDamage": 4480.497344907,
+      "speed": 2.2032,
+      "critChance": 43.6515569664,
+      "critMultiplier": 7.57,
+      "perUseMultiplier": 1.0199999999999916,
+      "hitBeforeCrit": 1158.3776460650615
+    },
+    "ours": {
+      "kind": "attack",
+      "weapon": "Gemini Bow",
+      "slot": "Weapon 1",
+      "weaponLinesUsed": [
+        "181% increased Physical Damage",
+        "Adds 36 to 45 Physical Damage",
+        "+3.74% to Critical Hit Chance",
+        "18% increased Attack Speed"
+      ],
+      "weaponAvgHit": 292.79999999999995,
+      "baseMultiplier": 3.44,
+      "attackSpeedMultiplier": 0.9,
+      "aps": 1.3569999999999998,
+      "hit": 1007.2319999999999,
+      "speed": 1.2212999999999998,
+      "crit": 8.74
+    },
+    "oursDps": 1337.6460169958393,
+    "ratioOursOverTheirs": 0.13284979290685836,
+    "factorsTheirsOverOurs": {
+      "hitDamage": 1.1500604091858297,
+      "critUplift": 3.5570234437120476,
+      "speed": 1.803979366249079,
+      "perUseMultiplier": 1.0199999999999916,
+      "product": 7.527298147172159
+    },
+    "decompositionExact": true,
+    "dominantError": "critUplift",
+    "treeContext": {
+      "crit multiplier": 435,
+      "increased crit chance": 156,
+      "increased attack speed": 4
+    },
+    "tier2": {
+      "hit": 1007.2319999999999,
+      "speed": 1.5754769999999998,
+      "critChance": 22.3744,
+      "critMultiplier": 6.35,
+      "dps": 3486.4034975856366,
+      "ratioOursOverTheirs": 0.34625601748077356,
+      "supportLinesUsed": [
+        "Rapid Attacks II: attack_speed_+%=25"
+      ],
+      "remaining": {
+        "hitDamage": 1.1500604091858297,
+        "critUplift": 1.7605160550771077,
+        "speed": 1.398433617247348
+      }
+    },
+    "notes": [
+      "80% phys->cold conversion is total-preserving before modifiers; not modelled",
+      "gear \"+N to Level of all ... Skills\" lines are not counted: the gem is read at its own level 20"
+    ],
+    "status": "compared"
+  },
+  {
+    "build": "ordinary-life-1.json",
+    "class": "Blood Mage",
+    "poeNinjaDps": 77867,
+    "pobTotalDps": 77867.055149528,
+    "skill": "Shattering Spite",
+    "skillId": "ShatteringSpitePlayer",
+    "gemLevel": 20,
+    "nameMatchesPoeNinja": true,
+    "pob": {
+      "averageDamage": 61197.259690098,
+      "speed": 1.2723944755671,
+      "critChance": 15.36,
+      "critMultiplier": 2.75,
+      "perUseMultiplier": 1.0000000000000273,
+      "hitBeforeCrit": 48232.39256785782
+    },
+    "ours": {
+      "kind": "attack",
+      "weapon": "Pronged Spear",
+      "slot": "Weapon 1 Swap",
+      "weaponLinesUsed": [
+        "Adds 2 to 36 Lightning Damage",
+        "112% increased Physical Damage",
+        "Adds 96 to 152 Fire Damage",
+        "Adds 1 to 207 Lightning Damage"
+      ],
+      "weaponAvgHit": 385.04,
+      "baseMultiplier": 4.53,
+      "attackSpeedMultiplier": 1,
+      "aps": 1.55,
+      "hit": 1744.2312000000002,
+      "speed": 1.55,
+      "crit": 5
+    },
+    "oursDps": 2838.7362780000008,
+    "ratioOursOverTheirs": 0.036456191550441705,
+    "factorsTheirsOverOurs": {
+      "hitDamage": 27.652522537068375,
+      "critUplift": 1.2083809523809523,
+      "speed": 0.8208996616561934,
+      "perUseMultiplier": 1.0000000000000273,
+      "product": 27.43018284332786
+    },
+    "decompositionExact": true,
+    "dominantError": "hitDamage",
+    "treeContext": {
+      "increased damage (unconditioned)": 236,
+      "crit multiplier": 75,
+      "increased attack speed": -10,
+      "increased crit chance": 55
+    },
+    "tier2": {
+      "hit": 9889.790904000001,
+      "speed": 1.395,
+      "critChance": 7.75,
+      "critMultiplier": 2.75,
+      "dps": 15667.375844520227,
+      "ratioOursOverTheirs": 0.20120673389322594,
+      "supportLinesUsed": [
+        "Elemental Armament II: support_attack_skills_elemental_damage_+%_final=25",
+        "Rageforged II: support_rageforged_enraged_damage_+%_final=35"
+      ],
+      "remaining": {
+        "hitDamage": 4.876988101775727,
+        "critUplift": 1.1172702256466702,
+        "speed": 0.9121107351735483
+      }
+    },
+    "notes": [
+      "gear \"+N to Level of all ... Skills\" lines are not counted: the gem is read at its own level 20"
+    ],
+    "status": "compared"
+  },
+  {
+    "build": "ordinary-oracle.json",
+    "class": "Oracle",
+    "poeNinjaDps": null,
+    "pobTotalDps": 289025.568,
+    "skill": "Spark",
+    "skillId": "SparkPlayer",
+    "gemLevel": 20,
+    "nameMatchesPoeNinja": false,
+    "pob": {
+      "averageDamage": 74109.12,
+      "speed": 3.9,
+      "critChance": 100,
+      "critMultiplier": 5.44,
+      "perUseMultiplier": 1.0000000000000002,
+      "hitBeforeCrit": 13622.999999999998
+    },
+    "ours": {
+      "kind": "spell",
+      "statSet": "Base",
+      "baseEffectiveness": 1.2000000476837,
+      "hitByType": {
+        "lightning": 113.5
+      },
+      "hit": 113.5,
+      "castTime": 0.7,
+      "speed": 1.4285714285714286,
+      "crit": 9
+    },
+    "oursDps": 176.7357142857143,
+    "ratioOursOverTheirs": 0.000611488165246731,
+    "factorsTheirsOverOurs": {
+      "hitDamage": 120.02643171806166,
+      "critUplift": 4.990825688073395,
+      "speed": 2.73,
+      "perUseMultiplier": 1.0000000000000002,
+      "product": 1635.3546263589706
+    },
+    "decompositionExact": true,
+    "dominantError": "hitDamage",
+    "treeContext": {
+      "increased crit chance": 183,
+      "crit multiplier": 342,
+      "increased damage (unconditioned)": 162
+    },
+    "tier2": {
+      "hit": 297.37,
+      "speed": 1.4285714285714286,
+      "critChance": 25.47,
+      "critMultiplier": 5.42,
+      "dps": 903.0591634,
+      "ratioOursOverTheirs": 0.0031244957657171695,
+      "supportLinesUsed": [],
+      "remaining": {
+        "hitDamage": 45.81161515956552,
+        "critUplift": 2.5590678971518144,
+        "speed": 2.73
+      }
+    },
+    "notes": [],
+    "status": "compared"
+  }
+]

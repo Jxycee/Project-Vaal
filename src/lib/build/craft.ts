@@ -34,10 +34,20 @@ export interface ItemCraft {
   implicitValues: number[][];
   /** One row per `uniqueMods.explicitMods` line, same rule. */
   uniqueValues: number[][];
+  /**
+   * Indexes of `uniqueMods.explicitMods` lines the PoB export did not print (a corrupted unique that lost a line):
+   * they are not on the item and must not be read at mid-roll. Absent = every line is worn. Importer only.
+   */
+  absentLines?: number[];
   prefixes: CraftedMod[];
   suffixes: CraftedMod[];
   /** SoulCore item slugs (runes, soul cores), in socket order. */
   runes: string[];
+  /**
+   * How many sockets hold a rune or soul core when that is more than `runes` lists (the importer drops a rune our
+   * data lacks). What "per Socket filled" lines multiply by (stats/collect.ts). Absent = `runes.length`. Importer only.
+   */
+  filledSockets?: number;
   /**
    * Mod lines the item really shows that the wiki-slug model above cannot hold: a desecrated or
    * corrupted mod the base's pool lacks, a unique our data never typed, a roll past its tier cap,
@@ -58,6 +68,12 @@ export interface ItemCraft {
    * when the item came without them (hand-built), and the sockets are then worked out from `runes`. Importer only.
    */
   runeLines?: string[];
+  /**
+   * A unique's ACTUAL base item when it is not the one the wiki lists for the unique: the 0.5 "Runemastered X" /
+   * "Runeforged X" bases carry different defences and Ward from plain X (Alpha's Howl on a Runemastered Armoured Cap has
+   * 178 base Evasion, not 296). The slug of the base line PoB printed. Absent = the unique's own listed base. Importer only.
+   */
+  baseSlug?: string;
 }
 
 /** Bounds the write gate holds `verbatim` to (a unique has at most ~40 lines; none is long). */

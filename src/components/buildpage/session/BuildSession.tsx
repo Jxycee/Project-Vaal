@@ -31,6 +31,7 @@ import { useTreeData } from '../useTreeData';
 import type { WeaponSet } from '@poe2-toolkit/tree-core';
 import type { BuildEditorState, PassiveState, SharedBuildRow } from '@/lib/build/types';
 import { patchQuery } from '@/lib/build/buildPage';
+import { withCondition, withMultiplier, type BuildConfig } from '@/lib/build/stats/buildConfig';
 import { fromPassiveState, toPassiveState, parsePassiveState, parseQuestChoices } from '@/lib/build/passiveState';
 import { saveDraft, loadDraft, clearDraft, type BuildDraftState } from '@/lib/build/draft';
 import { draftDiffersFrom } from '@/lib/build/draftCompare';
@@ -171,8 +172,9 @@ export default function BuildSessionProvider({
   // Quest reward choices (quest id -> option id). Their own state rather than
   // part of treeState: PassiveTree reports treeState and would overwrite them.
   const [questChoices, setQuestChoices] = useState<Record<string, string>>(() => parsePassiveState(row.passive_state).questChoices ?? {});
-  // The imported Path of Building configuration is not editable here, but every save must carry it (stats/buildConfig.ts).
-  const buildConfig = useMemo(() => parsePassiveState(row.passive_state).buildConfig, [row.passive_state]);
+  // The build's Path of Building Configuration (stats/buildConfig.ts): imported, then edited by the Stats tab's
+  // Config panel. Its own state for the same reason as questChoices, and every save carries it.
+  const [buildConfig, setBuildConfigState] = useState<BuildConfig | undefined>(() => parsePassiveState(row.passive_state).buildConfig);
   const [gear, setGear] = useState<GearState>(() => parseGearState(row.gear_state));
   const [gems, setGems] = useState<GemState>(() => parseGemState(row.gem_state));
   const [meta, setMetaState] = useState<BuildMeta>(() => ({
@@ -321,6 +323,23 @@ export default function BuildSessionProvider({
         void _dropped;
         return parseQuestChoices(optionId === null ? rest : { ...rest, [questId]: optionId });
       });
+    },
+    [canEdit],
+  );
+
+  // ---- Config (conditions and stacks) -----------------------------------
+  // Owner-only. The pure helpers keep unknown imported flags and clamp counts (buildConfig.ts failure modes 7-11).
+  const setConfigCondition = useCallback(
+    (name: string, on: boolean) => {
+      if (!canEdit) return;
+      setBuildConfigState((prev) => withCondition(prev, name, on));
+    },
+    [canEdit],
+  );
+  const setConfigMultiplier = useCallback(
+    (name: string, count: number) => {
+      if (!canEdit) return;
+      setBuildConfigState((prev) => withMultiplier(prev, name, count));
     },
     [canEdit],
   );
@@ -488,14 +507,14 @@ export default function BuildSessionProvider({
     // localStorage held for the previous session — this effect immediately
     // overwrites it with the freshly-seeded (echo) state.
     if (!draftReadDone.current) return;
-    const session: BuildDraftState = { tree: treeState, gear, gem: gems, quest: questChoices };
+    const session: BuildDraftState = { tree: treeState, gear, gem: gems, quest: questChoices, config: buildConfig };
     latestSession.current = session;
     // Once the first scratch save has created the build, the scratch key is
     // retired (save() handed any in-flight edits to the new build's draft):
     // edits made while the navigation is still in flight must not resurrect it.
     if (scratchCreated.current) return;
     saveDraft(draftBuildId, session, checkpointId);
-  }, [canEdit, editing, treeState, gear, gems, questChoices, draftBuildId, checkpointId]);
+  }, [canEdit, editing, treeState, gear, gems, questChoices, buildConfig, draftBuildId, checkpointId]);
 
   // ---- Structural validation + derived view models ---------------------
   // Derived, nothing here is stored.
@@ -545,7 +564,7 @@ export default function BuildSessionProvider({
   // dirty = draftDiffersFrom's tree/gear/gems comparison against baseline, OR metaDirty.
   const dirty = useMemo(() => {
     const changedBelowMeta = draftDiffersFrom(
-      { tree: treeState, gear, gem: gems, quest: questChoices },
+      { tree: treeState, gear, gem: gems, quest: questChoices, config: buildConfig },
       {
         class: baseline.class,
         ascendancy: baseline.ascendancy,
@@ -555,7 +574,7 @@ export default function BuildSessionProvider({
       },
     );
     return changedBelowMeta || metaDirty;
-  }, [treeState, gear, gems, questChoices, baseline, metaDirty]);
+  }, [treeState, gear, gems, questChoices, buildConfig, baseline, metaDirty]);
 
   // ---- Save --------------------------------------------------------------
   const [saving, setSaving] = useState(false);
@@ -568,7 +587,7 @@ export default function BuildSessionProvider({
     saveInFlight.current = true;
     // What this save carries. Edits made while it is in flight are not in
     // it — see the `latestSession` in-flight check below.
-    const sent: BuildDraftState = { tree: treeState, gear, gem: gems, quest: questChoices };
+    const sent: BuildDraftState = { tree: treeState, gear, gem: gems, quest: questChoices, config: buildConfig };
     const sentMeta = meta;
     setSaving(true);
     setSaveError(null);
@@ -593,7 +612,7 @@ export default function BuildSessionProvider({
           // exists to protect a save path that legitimately doesn't touch a
           // field, which this one isn't.
           notes: sentMeta.notes,
-          passive_state: toPassiveState(sent.tree.main, sent.tree.ascendancyNodes, sent.tree.attributeChoices, sent.quest, buildConfig),
+          passive_state: toPassiveState(sent.tree.main, sent.tree.ascendancyNodes, sent.tree.attributeChoices, sent.quest, sent.config),
           gear_state: sent.gear,
           gem_state: sent.gem,
           // Always sent, string or null — deriveMainSkill returns null (not
@@ -628,7 +647,7 @@ export default function BuildSessionProvider({
       setBaseline({
         class: sent.tree.className,
         ascendancy: sent.tree.ascendancyId ?? null,
-        passive_state: toPassiveState(sent.tree.main, sent.tree.ascendancyNodes, sent.tree.attributeChoices, sent.quest, buildConfig),
+        passive_state: toPassiveState(sent.tree.main, sent.tree.ascendancyNodes, sent.tree.attributeChoices, sent.quest, sent.config),
         gear_state: sent.gear,
         gem_state: sent.gem,
         meta: sentMeta,
@@ -638,7 +657,7 @@ export default function BuildSessionProvider({
       // draft holds edits the server never received, and clearing it loses
       // them on the next reload (review 2026-09-26).
       const now = latestSession.current;
-      const moved = !!now && !(now.tree === sent.tree && now.gear === sent.gear && now.gem === sent.gem && now.quest === sent.quest);
+      const moved = !!now && !(now.tree === sent.tree && now.gear === sent.gear && now.gem === sent.gem && now.quest === sent.quest && now.config === sent.config);
       if (!moved) {
         clearDraft(draftBuildId, checkpointId);
       } else if (scratch && payload.build) {
@@ -690,6 +709,7 @@ export default function BuildSessionProvider({
     setGear(baseline.gear_state);
     setGems(baseline.gem_state);
     setQuestChoices(baseline.passive_state.questChoices ?? {});
+    setBuildConfigState(baseline.passive_state.buildConfig);
     setMetaState(baseline.meta);
     clearDraft(draftBuildId, checkpointId);
     setTreeSeedKey((k) => k + 1);
@@ -702,6 +722,8 @@ export default function BuildSessionProvider({
     setGear(storedDraft.gear);
     setGems(storedDraft.gem);
     setQuestChoices(storedDraft.quest ?? {});
+    // A draft from before the Config panel carries no config: keep what the checkpoint has.
+    if (storedDraft.config) setBuildConfigState(storedDraft.config);
     setTreeSeedKey((k) => k + 1);
     setDraftPromptOpen(false);
   }, [canEdit, storedDraft]);
@@ -723,6 +745,7 @@ export default function BuildSessionProvider({
       treeSeedKey,
       livePassive,
       questChoices,
+      buildConfig,
       gear,
       gems,
       meta,
@@ -740,6 +763,8 @@ export default function BuildSessionProvider({
       setTreeState,
       setMeta,
       setQuestChoice,
+      setConfigCondition,
+      setConfigMultiplier,
       applySavedName,
       setGearSlot,
       pickJewel,
@@ -760,6 +785,7 @@ export default function BuildSessionProvider({
       treeSeedKey,
       livePassive,
       questChoices,
+      buildConfig,
       gear,
       gems,
       meta,
@@ -777,6 +803,8 @@ export default function BuildSessionProvider({
       setTreeState,
       setMeta,
       setQuestChoice,
+      setConfigCondition,
+      setConfigMultiplier,
       applySavedName,
       setGearSlot,
       pickJewel,

@@ -148,7 +148,11 @@ export function buildUniqueStats(items: WikiUniqueLike[], mods: WikiModLike[]): 
   for (const item of items) {
     if (item.rarity !== 'unique' || !item.uniqueMods || Object.hasOwn(out, item.name)) continue;
     const local = LOCAL_CATEGORIES.has(item.category);
-    const baseType = (item.uniqueMods.baseType ?? '').replace(/^\{[^}]*\}/, '');
+    // A wiki page with no base type lists the base as its FIRST explicit line (Hand of Wisdom and Action: "Spiral
+    // Wraps"; Oaksworn, Pillar of the Caged God). It is a base when an item of that name exists, else a mod line.
+    const listed = (item.uniqueMods.baseType ?? '').replace(/^\{[^}]*\}/, '');
+    const first = item.uniqueMods.explicitMods?.[0] ?? '';
+    const baseType = listed || (slugByName.has(first) ? first : '');
     out[item.name] = {
       baseType,
       baseSlug: slugByName.get(baseType) ?? null,

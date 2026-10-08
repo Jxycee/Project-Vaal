@@ -43,8 +43,13 @@
 //      the modifiers: the template is dropped, not resolved by order.
 //   5. A line with more than one number ("Adds 13 to 22 Cold damage"): never
 //      matches a one-number template, reads as unmodelled/ignored.
-//   6. A modifier name we do not report (Ward, Deflection): not turned into a
-//      contribution; the line reads as unmodelled so it is named.
+//   6. A modifier name we do not report: not turned into a contribution; the line reads as unmodelled so it is
+//      named. (Ward, Deflection, movement speed, charges and regeneration ARE reported now - POOLS below.)
+//   8. "... per Socket filled" (Morior Invictus): PoB scales the value by the runes in that item
+//      (Multiplier:RunesSocketedIn<slot>). Read with perSocket set; collect.ts multiplies by the filled sockets.
+//      The cache keeps only a mod's FIRST tag, so the Global-tagged "increased Global Armour, Evasion and Energy
+//      Shield per Socket filled" lines lose their Multiplier: the line's own words decide. A per-socket line that
+//      also carries a Condition is not read. An item with no runes multiplies by 0 (adds nothing, never a guess).
 //   7. Fragments of a wrapped line ("enemy affected by Abyssal Wasting") or a
 //      pure offence line: no template, so null = "not a defence line", silently
 //      ignored by the caller (it is only named when it LOOKS like a defence).
@@ -65,6 +70,10 @@ export interface LineMod {
   value: number;
   /** Counts only while this PoB condition is true (or, negated, false). Absent = always. */
   condition?: { name: string; negate: boolean };
+  /** "... per Socket filled": the value is per rune in the item's sockets, so the caller multiplies it by that count. */
+  perSocket?: boolean;
+  /** "... per socketed Grand Spectrum": the value is per item of this kind worn; the caller multiplies it by that count (collect.ts). */
+  multiplier?: string;
 }
 
 export type LineRead =
@@ -108,7 +117,28 @@ export const POOLS: Record<string, Pool[]> = {
   ElementalResistMax: ['fireMax', 'coldMax', 'lightningMax'],
   MaxResist: ['fireMax', 'coldMax', 'lightningMax', 'chaosMax'],
   AuraEffect: ['auraEffect'],
+  // The derived defence stats (engine.ts). Values stay in PoB's own units: percent points, life regen per second.
+  MovementSpeed: ['movementSpeed'],
+  LifeRegen: ['lifeRegen'],
+  LifeRegenPercent: ['lifeRegenPercent'],
+  LifeConvertToEnergyShield: ['lifeToEnergyShield'],
+  EnergyShieldRecharge: ['esRecharge'],
+  EnergyShieldRechargeFaster: ['esRechargeFaster'],
+  EnduranceChargesMax: ['maxEndurance'],
+  FrenzyChargesMax: ['maxFrenzy'],
+  PowerChargesMax: ['maxPower'],
+  DeflectionRating: ['deflection'],
+  EvasionGainAsDeflection: ['evasionToDeflection'],
+  ArmourGainAsDeflection: ['armourToDeflection'],
+  BlindEffect: ['blindEffect'],
+  PhysicalDamageReduction: ['physReduction'],
+  Ward: ['ward'],
+  'EffectOfBonusesFromRing 1': ['effectRing1'],
+  'EffectOfBonusesFromRing 2': ['effectRing2'],
+  'EffectOfBonusesFromRing 3': ['effectRing3'],
+  EffectOfBonusesFromAmulet: ['effectAmulet'],
 };
+
 const KINDS: Record<string, LineMod['kind']> = { BASE: 'flat', INC: 'increased', MORE: 'more' };
 
 interface Template {
@@ -116,7 +146,21 @@ interface Template {
   mods: { pools: Pool[]; kind: LineMod['kind']; sign: 1 | -1 }[];
   global: boolean;
   condition?: { name: string; negate: boolean };
+  perSocket?: boolean;
+  multiplier?: string;
 }
+
+/**
+ * Multipliers PoB counts from the gear itself, so a line scaled by one is a number we can read: the count of equipped
+ * Grand Spectrum jewels (Item.lua adds Multiplier:GrandSpectrum 1 for each, ModParser "per Grand Spectrum") and corrupted worn
+ * items (CalcSetup.lua adds Multiplier:CorruptedItem 1 for each: Morior Invictus's "1% increased Maximum Life for each Corrupted Item Equipped").
+ * Any other Multiplier (a charge count, a stat) stays unmodelled.
+ */
+export const GEAR_MULTIPLIERS: ReadonlySet<string> = new Set(['GrandSpectrum', 'CorruptedItem']);
+
+/** "+7 to all Attributes per Socket filled": PoB scales it by Multiplier:RunesSocketedIn<slot> (the runes in that item). */
+const PER_SOCKET = /per Socket filled$/i;
+const SOCKET_MULTIPLIER = /^RunesSocketedIn/;
 
 /** "if you haven't been Hit Recently", "while not on Low Life": PoB's neg flag, which modcache.json does not keep. */
 const NEGATED = /\b(haven't|have not|havent|hasn't|not|without|aren't|isn't)\b/i;
@@ -129,8 +173,17 @@ function derive(entry: CacheEntry, n: number, text: string): Template | null {
   if (entry.rest !== undefined || mods.length === 0 || n === 0) return null;
   // One shared Condition tag is a gate; any other tag is a scaling we cannot invert.
   const conditions = new Set(mods.filter((m) => m.tagType === 'Condition').map((m) => m.tagVar));
+  // "per Socket filled" is a scaling we CAN invert: the count of runes in the item. The cache keeps only a mod's
+  // FIRST tag, so a line tagged Global ("12% increased Global Armour, Evasion and Energy Shield per Socket filled")
+  // hides its Multiplier behind it; the line's own words say it scales, and the oracle confirms (12 x 5 sockets = 60).
+  const perSocket = PER_SOCKET.test(text);
   const gated = conditions.size === 1 && typeof [...conditions][0] === 'string' && !/\bper\b/i.test(text);
-  if (mods.some((m) => m.tagType !== undefined && m.tagType !== 'Global' && !(gated && m.tagType === 'Condition'))) return null;
+  const socketTag = (m: CachedMod) => perSocket && m.tagType === 'Multiplier' && SOCKET_MULTIPLIER.test(m.tagVar ?? '');
+  const gearTags = new Set(mods.filter((m) => m.tagType === 'Multiplier' && GEAR_MULTIPLIERS.has(m.tagVar ?? '')).map((m) => m.tagVar as string));
+  const multiplier = gearTags.size === 1 && mods.every((m) => m.tagType === 'Multiplier' && m.tagVar === [...gearTags][0]) ? [...gearTags][0] : undefined;
+  if (mods.some((m) => m.tagType !== undefined && m.tagType !== 'Global' && !socketTag(m) && !(gated && m.tagType === 'Condition') && !(multiplier && m.tagVar === multiplier))) return null;
+  if (multiplier && (gated || perSocket)) return null;
+  if (perSocket && gated) return null;
   if (conditions.size > 0 && !gated) return null;
   if (gated && mods.some((m) => m.tagType !== 'Condition')) return null;
   const read: Template['mods'] = [];
@@ -142,7 +195,7 @@ function derive(entry: CacheEntry, n: number, text: string): Template | null {
     read.push({ pools, kind, sign: Math.sign(m.value) === Math.sign(n) ? 1 : -1 });
   }
   const condition = gated ? { name: [...conditions][0] as string, negate: NEGATED.test(text) } : undefined;
-  return { mods: read, global: mods.some((m) => m.tagType === 'Global'), ...(condition ? { condition } : {}) };
+  return { mods: read, global: mods.some((m) => m.tagType === 'Global'), ...(condition ? { condition } : {}), ...(perSocket ? { perSocket } : {}), ...(multiplier ? { multiplier } : {}) };
 }
 
 function build(): Map<string, Template | null> {
@@ -150,6 +203,9 @@ function build(): Map<string, Template | null> {
   for (const [text, entry] of Object.entries(modcache as Record<string, CacheEntry>)) {
     const numbers = text.match(NUMBER) ?? [];
     const key = text.replace(NUMBER, '#');
+    // A line of "0%" ("0% to Cold Resistance", cached with leftover text) is no real line: letting it share a key
+    // with "-15% to Cold Resistance" poisoned that template (failure mode 4) and dropped Sierran Inheritance's -15%.
+    if (numbers.length === 1 && Number(numbers[0]) === 0) continue;
     const template = numbers.length === 1 ? derive(entry, Number(numbers[0]), text) : null;
     // A key seen twice must read the same both times (failure mode 4); null poisons the template.
     if (!out.has(key)) out.set(key, template);
@@ -171,7 +227,31 @@ export function readLine(line: string): LineRead | null {
   if (template === null) return { unmodelled: line };
   const n = Number(numbers[0]);
   return {
-    mods: template.mods.flatMap((m) => m.pools.map((pool) => ({ pool, kind: m.kind, value: m.sign * n, ...(template.condition ? { condition: template.condition } : {}) }))),
+    mods: template.mods.flatMap((m) => m.pools.map((pool) => ({ pool, kind: m.kind, value: m.sign * n, ...(template.condition ? { condition: template.condition } : {}), ...(template.perSocket ? { perSocket: true } : {}), ...(template.multiplier ? { multiplier: template.multiplier } : {}) }))),
     global: template.global,
   };
+}
+
+/**
+ * A defence line that only exists on an item: the modcache above holds the text PoB parsed for passives and the gear
+ * lines it has seen, and an item-local wording ("22% increased Evasion and Energy Shield", a corrupted implicit on The
+ * Vertex) is often not in it. On an item with armour data these are LOCAL: they add to / scale the item's own
+ * Armour, Evasion and Energy Shield before quality (PoB Item.lua armourData). Percent forms only name the three
+ * defences; anything else (a "per", a condition, an extra word) is not read, never guessed.
+ */
+const LOCAL_WORD: Record<string, Pool> = { Armour: 'armour', 'Evasion Rating': 'evasion', Evasion: 'evasion', 'Energy Shield': 'energyShield' };
+const LOCAL_INC = /^(\d+(?:\.\d+)?)% increased (Armour|Evasion Rating|Evasion|Energy Shield)(?:(?:, | and )(Armour|Evasion Rating|Evasion|Energy Shield))?(?:(?:, | and )(Armour|Evasion Rating|Evasion|Energy Shield))?$/;
+const LOCAL_FLAT = /^\+(\d+(?:\.\d+)?) to (Armour|Evasion Rating|maximum Energy Shield)$/;
+
+export function readLocalDefenceLine(line: string): LineMod[] | null {
+  const text = line.trim();
+  const inc = LOCAL_INC.exec(text);
+  if (inc) {
+    const pools = new Set<Pool>();
+    for (const word of inc.slice(2)) if (word !== undefined) pools.add(LOCAL_WORD[word]);
+    return [...pools].map((pool) => ({ pool, kind: 'increased' as const, value: Number(inc[1]) }));
+  }
+  const flat = LOCAL_FLAT.exec(text);
+  if (flat) return [{ pool: LOCAL_WORD[flat[2].replace('maximum ', '')], kind: 'flat', value: Number(flat[1]) }];
+  return null;
 }

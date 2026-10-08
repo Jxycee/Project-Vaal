@@ -60,6 +60,7 @@ for (const [id, skill] of Object.entries(skills)) {
           const at = (set.stats ?? []).indexOf(stat);
           const column = at >= 0 ? set.levels?.v?.['v.' + at] : undefined;
           if (Array.isArray(column)) entry.values = column;
+          else if (at >= 0 && typeof set.levels?.c?.['v.' + at] === 'number') entry.value = set.levels.c['v.' + at]; // a level column that is the same at every level (Defiance Banner: 30)
           else if (typeof set.constantStats?.[stat] === 'number') entry.value = set.constantStats[stat];
           else needs.push('no-level-data');
         }
@@ -68,7 +69,7 @@ for (const [id, skill] of Object.entries(skills)) {
       }
     }
   }
-  if (effects.length > 0) out[id] = { name: skill.name, effects };
+  if (effects.length > 0) out[id] = { name: skill.name, ...((skill.skillTypes ?? []).includes('Banner') ? { banner: true } : {}), effects };
 }
 
 writeFileSync('src/lib/pob/data/skill-buffs.json', JSON.stringify(out));

@@ -80,7 +80,8 @@ export async function itemText(item: GearItem, where: string, report: ReportEntr
 
   const lines: string[] = [`Rarity: ${rarity.toUpperCase()}`];
   if (rarity === 'unique') {
-    lines.push(item.name, detail?.uniqueMods?.baseType ?? item.name);
+    const printedBase = craft.baseSlug ? ((await loadDetail('item', craft.baseSlug)) as WikiItemDetail | null) : null;
+    lines.push(item.name, printedBase?.name ?? detail?.uniqueMods?.baseType ?? item.name);
   } else if (rarity === 'rare') {
     lines.push(craft.name || 'New Item', item.name);
   } else if (rarity === 'magic') {
@@ -109,7 +110,9 @@ export async function itemText(item: GearItem, where: string, report: ReportEntr
   lines.push(`Implicits: ${runeImplicits.length + implicits.length}`, ...runeImplicits, ...implicits);
 
   if (rarity === 'unique') {
-    (detail?.uniqueMods?.explicitMods ?? []).forEach((template, i) => lines.push(renderLine(template, rowValues(template, craft.uniqueValues[i]))));
+    (detail?.uniqueMods?.explicitMods ?? []).forEach((template, i) => {
+      if (!craft.absentLines?.includes(i)) lines.push(renderLine(template, rowValues(template, craft.uniqueValues[i])));
+    });
   }
   for (const crafted of [...craft.prefixes, ...craft.suffixes]) {
     const mod = await modBySlug(crafted.slug);
