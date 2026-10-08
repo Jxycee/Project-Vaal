@@ -58,12 +58,29 @@ export function lifeReservation(gems: GemState | undefined, set: 1 | 2): { perce
 }
 
 /** The Configuration with the conditions the build's own reservations imply (failure mode 8: none without one). */
-export function withDerivedConditions(config: BuildConfig | undefined, lifeReservedPercent: number): BuildConfig | undefined {
+export function withDerivedConditions(config: BuildConfig | undefined, lifeReservedPercent: number, chaosInoculation = false): BuildConfig | undefined {
+  return withHitRecently(withLifeConditions(config, lifeReservedPercent, chaosInoculation));
+}
+
+/**
+ * A critical hit is a hit: a Configuration that ticks "Have you Crit Recently?" has Hit an Enemy Recently too (ordinary-witchhunter-1
+ * ticks only conditionCritRecently, yet Afterimage's "60% increased Evasion Rating if you have Hit an Enemy Recently" is in PoB's total).
+ * Nothing ticks HitRecently on its own here, and a build with no Configuration is never given one.
+ */
+function withHitRecently(config: BuildConfig | undefined): BuildConfig | undefined {
+  if (!config || !config.conditions.includes('CritRecently') || config.conditions.includes('HitRecently')) return config;
+  return { ...config, conditions: [...config.conditions, 'HitRecently'].sort() };
+}
+
+function withLifeConditions(config: BuildConfig | undefined, lifeReservedPercent: number, chaosInoculation: boolean): BuildConfig | undefined {
   if (!config) return config;
-  // Full Life: PoB counts a character whose Life is not reserved at all as on Full Life without the "Are you always on
-  // Full Life?" tick (ordinary-pathfinder-2: High Alert's "50% increased Evasion Rating when on Full Life" is in PoB's
-  // total with conditionFullLife unticked). Any Life reservation, or an always-Low-Life tick, rules it out.
+  // Full Life: PoB puts a Chaos Inoculation character on Full Life without the "Are you always on Full Life?" tick (ordinary-
+  // pathfinder-2, Life 1: High Alert's "50% increased Evasion Rating when on Full Life" is in PoB's total with conditionFullLife
+  // unticked). An ordinary character with unreserved Life is NOT: ordinary-witchhunter-1 (Life 1673 of 1673, nothing reserved)
+  // has neither Hyrri's Ire's "100% increased Evasion Rating when on Full Life" nor its "10% increased Movement Speed when on Full
+  // Life" counted. Any Life reservation, or an always-Low-Life tick, rules it out.
   if (lifeReservedPercent <= 0) {
+    if (!chaosInoculation) return config;
     return config.conditions.includes('FullLife') || config.conditions.includes('LowLife') ? config : { ...config, conditions: [...config.conditions, 'FullLife'].sort() };
   }
   const unreserved = (100 - lifeReservedPercent) / 100;

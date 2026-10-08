@@ -6878,28 +6878,20 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
-      "armour": [
-        "more -50 from 38601"
-      ],
-      "evasion": [
-        "increased 60 from 4716",
-        "more 100 from Hyrri's Ire, Armoured Vest",
-        "more -50 from 38601"
-      ],
+      "armour": [],
+      "evasion": [],
       "str": [],
       "dex": [],
       "int": []
     },
     "notCounted": [
-      "Hyrri's Ire: \"Evasion Rating is doubled if you have not been Hit Recently\" not counted",
       "Prism of Belief: unique — not in our data",
       "Against the Darkness: unique — not in our data",
-      "Heart of the Well: unique — not in our data",
-      "Unrecognised stat witchhunter_armour_evasion_+%_final (Obsessive Rituals)"
+      "Heart of the Well: unique — not in our data"
     ],
     "class": "Witchhunter",
     "source": "https://poe.ninja/poe2/builds/runesofaldur/character/Laza_K-6442/Laza_K",
-    "matched": 11,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -6939,8 +6931,8 @@
       },
       "evasion": {
         "want": 23064,
-        "got": 24523,
-        "ok": false
+        "got": 23064,
+        "ok": true
       },
       "fire": {
         "want": 45,
@@ -6959,8 +6951,8 @@
       },
       "chaos": {
         "want": 24,
-        "got": 20,
-        "ok": false
+        "got": 24,
+        "ok": true
       },
       "spirit": {
         "want": 130,
@@ -6978,8 +6970,8 @@
       },
       "evadeChance": {
         "want": 74,
-        "got": 74,
-        "ok": true
+        "got": 73,
+        "ok": false
       },
       "deflectionRating": {
         "want": 0,
@@ -7008,8 +7000,8 @@
       },
       "movementSpeed": {
         "want": 160,
-        "got": 169,
-        "ok": false
+        "got": 160,
+        "ok": true
       },
       "enduranceCharges": {
         "want": 3,
@@ -7028,7 +7020,7 @@
       },
       "effectiveHealthPool": {
         "want": 58126,
-        "got": 11930,
+        "got": 11560,
         "ok": false
       },
       "physicalMaxHit": {
@@ -7053,7 +7045,7 @@
       },
       "chaosMaxHit": {
         "want": 11441,
-        "got": 2219,
+        "got": 2336,
         "ok": false
       }
     }

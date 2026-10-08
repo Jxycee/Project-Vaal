@@ -189,6 +189,8 @@ interface Template {
   multiplier?: string;
   slots?: GearSlot[];
   itemClass?: string;
+  /** A line with no number in it ("Evasion Rating is doubled if you have not been Hit Recently"): the value is the cache's own (100). */
+  fixed?: number;
 }
 
 /**
@@ -260,7 +262,10 @@ function build(): Map<string, Template | null> {
     // A line of "0%" ("0% to Cold Resistance", cached with leftover text) is no real line: letting it share a key
     // with "-15% to Cold Resistance" poisoned that template (failure mode 4) and dropped Sierran Inheritance's -15%.
     if (numbers.length === 1 && Number(numbers[0]) === 0) continue;
-    const template = numbers.length === 1 ? derive(entry, Number(numbers[0]), text) : null;
+    // A line with no number is a fixed-value modifier ("doubled" = MORE 100); read only when the cache gives one plain value.
+    const cached = entry.mods?.[0]?.value;
+    const fixed = numbers.length === 0 && typeof cached === 'number' && cached !== 0 ? derive(entry, cached, text) : null;
+    const template = numbers.length === 1 ? derive(entry, Number(numbers[0]), text) : fixed ? { ...fixed, fixed: cached } : null;
     // A key seen twice must read the same both times (failure mode 4); null poisons the template.
     if (!out.has(key)) out.set(key, template);
     else if (JSON.stringify(out.get(key)) !== JSON.stringify(template)) out.set(key, null);
@@ -280,11 +285,12 @@ export function readLine(line: string): LineRead | null {
   }
   templates ??= build();
   const numbers = line.match(NUMBER) ?? [];
-  if (numbers.length !== 1) return null;
+  if (numbers.length > 1) return null;
   const template = templates.get(line.replace(NUMBER, '#'));
   if (template === undefined) return null;
+  if (numbers.length === 0 && template?.fixed === undefined) return null;
   if (template === null) return { unmodelled: line };
-  const n = Number(numbers[0]);
+  const n = numbers.length === 0 ? template.fixed! : Number(numbers[0]);
   return {
     mods: template.mods.flatMap((m) => m.pools.flatMap((pool) => (template.slots ?? [undefined]).map((slot) => ({ pool, kind: m.kind, value: m.sign * n, ...(m.allElemental ? { allElemental: true as const } : {}), ...(slot ? { slot } : {}), ...(slot && template.itemClass ? { itemClass: template.itemClass } : {}), ...(template.condition ? { condition: template.condition } : {}), ...(template.perSocket ? { perSocket: true } : {}), ...(template.multiplier ? { multiplier: template.multiplier } : {}) })))),
     global: template.global,

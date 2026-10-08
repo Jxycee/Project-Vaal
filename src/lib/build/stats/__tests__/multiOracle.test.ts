@@ -239,7 +239,7 @@ const FLOOR: Record<string, number> = {
   'ordinary-shaman-1.json': 12, // round 7: 12 of 13 (Bear Form: the main skill Rampage is a Bear skill, +10 x level + 10 flat Armour). round 5: 11 of 13 (Undying Hate's Conquered Attribute passives +3 to all Attributes, Wisdom of the Maji's Bonded rune lines, Iron Reflexes from the Legacy rune, Heavy Armour); was 5. Short: Lightning (72/75: Purity of Lightning is 39 in PoB, 49.53 here, aura magnitudes not applied)
   'ordinary-smith-of-kitava-1.json': 13,
   'ordinary-sorceress-1.json': 13, // round 8: 13 of 13, Discipline L20 (328) x 1.47 Aura magnitudes = 482.16, added after the rounded Energy Shield (EnergyShieldTotal)
-  'ordinary-witchhunter-1.json': 11, // short: Evasion (24523/23064: Afterimage's Hit Recently and Hyrri's Ire, Obsessive Rituals' final -50% not read), Chaos resistance (20/24)
+  'ordinary-witchhunter-1.json': 13, // round 8: 13 of 13. Full Life is Chaos Inoculation's, not every unreserved character's (Hyrri's Ire's Full Life rune lines are in neither PoB total); a CritRecently tick implies HitRecently (Afterimage); 'doubled if you have not been Hit Recently' (Hyrri's Ire) and Obsessive Rituals' final -50% are read; a Time-Lost jewel's Notable effect scales its 'also grant' lines (+5% Chaos Resistance x 1.24 = 6)
   'ordinary-warbringer-1.json': 13, // round 5: 13 of 13 (corrupted-item count excludes jewels, includes flasks and charms; Rage and Summoned Totems multiply Armour and Evasion passives); was 10. round 3: Blood Magic sets Mana 0 (engine.ts); short Life, Armour, Evasion; was 9 // 9 of 13 at the start: Mana 552 where PoB has 0, Armour and Evasion short, Life over
 };
 

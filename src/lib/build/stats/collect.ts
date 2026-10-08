@@ -151,7 +151,11 @@ function collectOnce(
   const assumed: string[] = [];
   // Low Life is derived when the gems reserve enough Life (reservation.ts); the Configuration's own conditions stay as imported.
   const lifeReserved = lifeReservation(input.gems, input.set);
-  const config = withShapeshifted(withDerivedConditions(input.passive.buildConfig, lifeReserved.percent), input.gems);
+  // Chaos Inoculation is what puts a character on Full Life in PoB (Life 1 is always full); an ordinary character is not on Full Life
+  // unless the Configuration ticks it (ordinary-witchhunter-1: Life unreserved, yet "100% increased Evasion Rating when on Full Life"
+  // and "10% increased Movement Speed when on Full Life" are in neither PoB total).
+  const inoculated = [...(input.set === 1 ? input.passive.set1 : input.passive.set2), ...input.passive.ascendancyNodes].some((id) => data.node(id)?.stats.some(([stat]) => stat === 'keystone_chaos_inoculation') === true);
+  const config = withShapeshifted(withDerivedConditions(input.passive.buildConfig, lifeReserved.percent, inoculated), input.gems);
   // "Per X" stats wait here until every passive is read: a Multiplier's count is the Configuration's (Rage) or derived from the
   // skills and the passives together (Summoned Totems, totems.ts), so it is known only at the end.
   const multiplierCounts: MultiplierCounts = { known: config !== undefined, pending: [] };
@@ -278,7 +282,7 @@ function collectOnce(
     if (socket !== undefined) radiusJewels.push({ item, socket });
     if (slot) wornAt.set(slot, { from, to: contributions.length, name: item.name });
   }
-  for (const { item, socket } of radiusJewels) radiusGrants(item, socket, nodes, data, contributions, notCounted, config);
+  for (const { item, socket } of radiusJewels) radiusGrants(item, socket, nodes, data, contributions, notCounted, config, nodeEffect);
   collectCharms(input.gear, data, contributions, notCounted, assumed, config);
   // "N% increased ... from Equipped Shield" carries PoB's Condition UsingShield: a focus in the same off-hand slot
   // is not a shield, so the increase must not scale its Energy Shield. Dropped when the slot's item is another class.
@@ -478,6 +482,8 @@ function radiusGrants(
   contributions: Contribution[],
   notCounted: string[],
   config: BuildConfig | undefined,
+  /** Node id -> "increased Effect of Notable Passive Skills in Radius" percent (jewelNotableEffect): it scales a notable's "also grant" line too. */
+  nodeEffect: ReadonlyMap<number, number> = new Map(),
 ): void {
   const grants = (item.craft?.verbatim ?? []).map((l) => RADIUS_GRANT_LINE.exec(l)).filter((m): m is RegExpExecArray => m !== null);
   if (grants.length === 0) return;
@@ -494,7 +500,7 @@ function radiusGrants(
   const limit = outer * JEWEL_DISTANCE_MULTIPLIER;
   for (const [, type, inner] of grants) {
     const kind = type === 'Notable' ? 0 : type === 'Small' ? 1 : 2;
-    const reached = near.filter(([id, distance, k]) => k === kind && distance <= limit && allocated.has(id)).length;
+    const reached = near.filter(([id, distance, k]) => k === kind && distance <= limit && allocated.has(id));
     const read = readLine(inner);
     if (read === null) continue;
     if ('unmodelled' in read) {
@@ -502,8 +508,11 @@ function radiusGrants(
       continue;
     }
     const counted = gate(read.mods, config, inner, item.name, notCounted);
-    for (let i = 0; i < reached; i++) {
-      for (const mod of counted) contributions.push({ pool: mod.pool, kind: mod.kind, value: mod.value, source: item.name, ...(mod.slot ? { slot: mod.slot } : {}), ...(mod.itemClass ? { itemClass: mod.itemClass } : {}), ...(mod.allElemental ? { allElemental: true as const } : {}) });
+    // PoB adds the granted modifier to each node's own list (ModParser.lua:7170), so a notable's effect increase scales it like the
+    // notable's own values (plague-vessel on witchhunter-1: +5% Chaos Resistance x 1.24 -> 6, four times).
+    for (const [id] of reached) {
+      const effect = kind === 0 ? (nodeEffect.get(id) ?? 0) : 0;
+      for (const mod of counted) contributions.push({ pool: mod.pool, kind: mod.kind, value: effect === 0 ? mod.value : scaleNodeValue(mod.value, effect), source: item.name, ...(mod.slot ? { slot: mod.slot } : {}), ...(mod.itemClass ? { itemClass: mod.itemClass } : {}), ...(mod.allElemental ? { allElemental: true as const } : {}) });
     }
   }
 }

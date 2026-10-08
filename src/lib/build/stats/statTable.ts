@@ -167,6 +167,8 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   'oracle_maximum_life_+%_final': more('life'),
   'oracle_maximum_mana_+%_final': more('mana'),
   'titan_maximum_life_+%_final': more('life'),
+  // Mercenary (Witchhunter) Obsessive Rituals: "50% less Armour and Evasion Rating" (-50, a MORE on both).
+  'witchhunter_armour_evasion_+%_final': more('armour', 'evasion'),
   // The Titan's Stone Skin: "50% more Armour from Equipped Body Armour" - a more with PoB's SlotName tag, so it multiplies the body
   // armour's Armour alone (engine.ts defence()), on top of the global more.
   'ascendancy_titan_damage_reduction_rating_from_body_armour_+%_final': [{ pool: 'armour', kind: 'more', slot: 'body' }],
@@ -314,6 +316,9 @@ export const CONDITIONAL_EFFECTS: Readonly<Record<string, ConditionalEffect>> = 
   'evasion_rating_+%_if_consumed_frenzy_charge_recently': { condition: 'UseFrenzyCharges', effects: inc('evasion') },
   // High Alert: "50% increased Evasion Rating when on Full Life". FullLife is derived from unreserved Life (reservation.ts).
   'evasion_rating_+%_when_on_full_life': { condition: 'FullLife', effects: inc('evasion') },
+  // Afterimage: "60% increased Evasion Rating if you have Hit an Enemy Recently". HitRecently follows from the Configuration's
+  // CritRecently tick (reservation.ts withHitRecently).
+  'evasion_rating_+%_if_you_have_hit_an_enemy_recently': { condition: 'HitRecently', effects: inc('evasion') },
   'evasion_rating_+%_if_have_not_been_hit_recently': { condition: 'BeenHitRecently', negate: true, effects: inc('evasion') },
   // Defiance: "80% increased Armour and Evasion Rating when on Low Life". LowLife is derived from Life reservation
   // (reservation.ts) or ticked in the Configuration ("Are you always on Low Life?").
