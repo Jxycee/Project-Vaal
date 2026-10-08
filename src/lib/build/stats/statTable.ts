@@ -48,6 +48,9 @@ export type Pool =
   | 'esRechargeFaster'
   | 'lifeRegen'
   | 'lifeRegenPercent'
+  // "N% of maximum Life converted to maximum Energy Shield" (Enhanced Barrier): PoB LifeConvertToEnergyShield, a BASE
+  // percent. engine.ts moves that share of the Life base into the Energy Shield base (CalcDefence.lua).
+  | 'lifeToEnergyShield'
   | 'deflection'
   | 'evasionToDeflection'
   | 'armourToDeflection'
@@ -121,6 +124,7 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   'global_armour_evasion_energy_shield_+%': inc('armour', 'evasion', 'energyShield', 'defences'),
   'evasion_and_physical_damage_reduction_rating_+%': inc('armour', 'evasion'),
   // "N% increased maximum Life, Mana and Energy Shield" - PoB2 ModParser.lua:5339.
+  'maximum_life_%_to_convert_to_maximum_energy_shield': flat('lifeToEnergyShield'),
   'maximum_life_mana_and_energy_shield_+%': inc('life', 'mana', 'energyShield'),
   // "N% increased Energy Shield from Equipped Body Armour / Helmet": PoB2's
   // SlotName tag (ModParser.lua:1191, 1197) - it scales only that slot's item,

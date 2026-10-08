@@ -34,6 +34,11 @@ export interface ItemCraft {
   implicitValues: number[][];
   /** One row per `uniqueMods.explicitMods` line, same rule. */
   uniqueValues: number[][];
+  /**
+   * Indexes of `uniqueMods.explicitMods` lines the PoB export did not print (a corrupted unique that lost a line):
+   * they are not on the item and must not be read at mid-roll. Absent = every line is worn. Importer only.
+   */
+  absentLines?: number[];
   prefixes: CraftedMod[];
   suffixes: CraftedMod[];
   /** SoulCore item slugs (runes, soul cores), in socket order. */

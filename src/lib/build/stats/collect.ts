@@ -59,6 +59,8 @@ export interface CollectData {
    * unknown or shared by several passives (never a guess). Optional: without it such an enchant is named, not counted.
    */
   nodeByName?(name: string): number | undefined;
+  /** The Sinister jewel socket nodes in slot order: the ones Voices' "Allocates N Sinister Jewel sockets" opens, first N. */
+  sinisterSockets?(): number[];
   item(slug: string):
     | {
         armour: { armour: number; evasion: number; energyShield: number; ward?: number } | null;
@@ -176,6 +178,17 @@ export function collectContributions(
       continue;
     }
     if (item && !otherSet.has(slot) && !NOT_ON_CHARACTER.has(slot)) equipped.push({ item, slot });
+  }
+  // Voices: "Allocates N Sinister Jewel sockets" allocates the first N of the tree's extra sockets (PoB grants the
+  // nodes), so a jewel in one of them counts. N is the variant line the export printed (a line the item lacks is in
+  // craft.absentLines); a jewel whose socket is not allocated opens nothing.
+  for (const [socket, jewel] of Object.entries(input.gear.jewels)) {
+    if (!nodes.has(Number(socket)) || !jewel.isUnique) continue;
+    const lines = data.unique(jewel.name, jewel.slug)?.lines ?? [];
+    lines.forEach((line, i) => {
+      const opens = /^Allocates (\d+) Sinister Jewel sockets$/.exec(line.text.trim());
+      if (opens && !jewel.craft?.absentLines?.includes(i)) for (const id of (data.sinisterSockets?.() ?? []).slice(0, Number(opens[1]))) nodes.add(id);
+    });
   }
   for (const [socket, jewel] of Object.entries(input.gear.jewels)) {
     if (nodes.has(Number(socket))) equipped.push({ item: jewel, socket: Number(socket) });
@@ -543,6 +556,7 @@ function collectItem(
       for (const name of unknownLegacies) notCounted.push(`${item.name}: Legacy of ${name} is not in this builder's legacy table, so it was not counted`);
     }
     unique.lines.forEach((line, i) => {
+      if (craft?.absentLines?.includes(i)) return; // not on the item as PoB printed it
       if (worn.length > 0 && (/^Legacy of \w+ /.test(line.text) || LEGACY_EFFECT_LINE.test(line.text))) return;
       const key = statKey(line.stats);
       if (key !== null && (seen.get(key) ?? 0) > 1) {
@@ -745,6 +759,7 @@ function readVerbatim(
 ): void {
   for (const line of lines ?? []) {
     const allocates = /^Allocates (.+)$/.exec(line);
+    if (allocates && /^\d+ Sinister Jewel sockets$/.test(allocates[1])) continue; // opens sockets (collectContributions), not a passive
     if (allocates) {
       allocate(allocates[1]);
       continue;

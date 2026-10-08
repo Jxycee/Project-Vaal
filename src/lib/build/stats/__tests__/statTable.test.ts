@@ -49,6 +49,7 @@ const POOL_WORDS: Record<Pool, RegExp> = {
   esRechargeFaster: /Energy Shield Recharge/,
   lifeRegen: /Life Regeneration|Regenerate .*Life/i,
   lifeRegenPercent: /Regenerate .*Life/i,
+  lifeToEnergyShield: /convert.*Energy Shield/i,
   deflection: /Deflection/,
   evasionToDeflection: /Deflection/,
   armourToDeflection: /Deflection/,

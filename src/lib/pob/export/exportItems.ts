@@ -110,7 +110,9 @@ export async function itemText(item: GearItem, where: string, report: ReportEntr
   lines.push(`Implicits: ${runeImplicits.length + implicits.length}`, ...runeImplicits, ...implicits);
 
   if (rarity === 'unique') {
-    (detail?.uniqueMods?.explicitMods ?? []).forEach((template, i) => lines.push(renderLine(template, rowValues(template, craft.uniqueValues[i]))));
+    (detail?.uniqueMods?.explicitMods ?? []).forEach((template, i) => {
+      if (!craft.absentLines?.includes(i)) lines.push(renderLine(template, rowValues(template, craft.uniqueValues[i])));
+    });
   }
   for (const crafted of [...craft.prefixes, ...craft.suffixes]) {
     const mod = await modBySlug(crafted.slug);

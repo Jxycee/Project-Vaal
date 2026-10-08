@@ -108,9 +108,9 @@ export function sameUnits(mod: CraftMod): boolean {
 }
 
 /** Matches lines to template lines, each template used once; rows sized to the templates. */
-function matchLines(lines: string[], templates: string[], notes: CraftNote[], what: string, verbatim: string[]): number[][] {
+function matchLines(lines: string[], templates: string[], notes: CraftNote[], what: string, verbatim: string[], matchedOut?: Set<number>): number[][] {
   const rows: number[][] = templates.map(() => []);
-  const used = new Set<number>();
+  const used = matchedOut ?? new Set<number>();
   for (const line of lines) {
     const plain = stripTags(line);
     let at = templates.findIndex((t, j) => !used.has(j) && matchTemplate(plain, t, rangeFractionOf(line)) !== null);
@@ -343,7 +343,18 @@ export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups):
   craft.implicitValues = matchLines(baseImplicits, lookups.base?.implicitLines ?? [], notes, 'The implicit', verbatim);
 
   if (isUnique) {
-    craft.uniqueValues = matchLines(explicitLines.filter((l) => !l.includes('{rune}')), lookups.base?.uniqueLines ?? [], notes, 'The unique line', verbatim);
+    // A corrupted unique can lose a line (Atziri's Step prints no "+(70-100) to maximum Life"): PoB counts what it
+    // prints, so a template line with no printed counterpart must not fall back to a mid-roll. Only for a corrupted
+    // item: an uncorrupted one missing a line is an export from another patch (the Cloak of Flame fixture), where
+    // the data's current line is the better guess.
+    const printed = explicitLines.filter((l) => !l.includes('{rune}'));
+    const matched = new Set<number>();
+    const templates = lookups.base?.uniqueLines ?? [];
+    craft.uniqueValues = matchLines(printed, templates, notes, 'The unique line', verbatim, matched);
+    if (craft.corrupted && printed.length > 0) {
+      const absent = templates.map((_, i) => i).filter((i) => !matched.has(i));
+      if (absent.length > 0) craft.absentLines = absent;
+    }
   } else if (isCrafted) {
     craft.prefixes = crafted.prefix;
     craft.suffixes = crafted.suffix;

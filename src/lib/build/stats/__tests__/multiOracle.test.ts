@@ -160,7 +160,7 @@ const DERIVED_FLOOR: Record<string, number> = {
   'hybrid-tactician.json': 7, // of 19
   'ordinary-armour-1.json': 9, // of 17
   'ordinary-caster-1.json': 9, // of 17
-  'ordinary-caster-2.json': 12, // of 19
+  'ordinary-caster-2.json': 13, // round 9; was 12 // of 19
   'ordinary-ci-acolyte.json': 18, // of 19
   'ordinary-ci-disciple.json': 19, // of 19
   'ordinary-ci-es-disciple.json': 12, // of 19
@@ -180,7 +180,7 @@ const FLOOR: Record<string, number> = {
   'armour-life-gemling.json': 8, // Gem Enthusiast now counted; Mageblood, a RELIC body armour and 36 unreadable item lines: item coverage, not the engine
   'es-life-stormweaver.json': 13, // round 8: 13 of 13 (Low Life derived from Atziri's Communion, Defiance); was 11 // Kalandra's Touch reflects the opposite ring (collect.ts); a radius jewel's notables (fire, spirit)
   'evasion-deadeye.json': 12, // the weapon set PoB had active (set 2) now read from the code; still short: chaos resistance via a Time-Lost jewel's radius grant
-  'hybrid-tactician.json': 9, // round 6: Ancient Aegis / Fortified Aegis scale one slot (statTable.ts); was 8
+  'hybrid-tactician.json': 10, // round 9 (printed-line truth for uniques); was 9 // round 6: Ancient Aegis / Fortified Aegis scale one slot (statTable.ts); was 8
   // The ordinary set (board item 30): mid-complexity public builds. The goal is 13 of 13 on every one.
   'ordinary-ci-acolyte.json': 13, // 13 of 13: Purity of Ice (a socketed Aura) puts +43% Cold Resistance on the character - skillBuffs.ts, scaled by 11% increased Aura magnitudes
   'ordinary-ci-disciple.json': 13, // 13 of 13: Time-Lost Sapphire's "Notable Passive Skills in Radius also grant" x7 (collect.ts radiusGrants) + Warding Fetish's Focus ES
@@ -193,7 +193,7 @@ const FLOOR: Record<string, number> = {
   'ordinary-armour-1.json': 13, // 13 of 13 (round 7): Runeseeker's 200% rune effect keeps the rune's 15% less AND an extra 30% less (0.85 x 0.70 -> 0.60, collect.ts splitRuneMore); was 12. Round 4: Virtuous Barrier motes (buildConfig.moteCounts), the printed Runemastered base (craft.baseSlug), PoB base defences; short: Life (Runeseeker rune 45% less); was: // Gemling Legionnaire, life/armour/evasion; Runeseeker's Call (-45% less maximum Life rune line) and Virtuous Barrier mote counts
   'ordinary-caster-1.json': 13, // 13 of 13 (round 5): a radius jewel's "also grant" lines count after every item's "Allocates X" (Megalomaniac) has allocated its notables; was: // Chronomancer; only Mana off
   'ordinary-hybrid-1.json': 13, // 13 of 13 (round 6): slot increases (Ancient Aegis armour, Fortified Aegis), the unticked Silent Hall quest (BuildConfig.questsOff), Kraken Bane's rune line 'Aura Skills have 25% increased Magnitudes'; was: 9
-  'ordinary-caster-2.json': 11, // round 8: Armour and Evasion match (Low Life derived from Atziri's Communion reserving 66% of Life: Defiance's 80%; The Winter Owl's 3% Evasion per 10 Int); short: Life (Atziri's Step corrupted line, Enhanced Barrier 5% of Life to ES) and ES (Voices' Sinister sockets); was 9 // Stormweaver; untyped unique lines read from their text (Controlled Metamorphosis -(20-5)% to all Elemental Resistances) + the "0% to" cache entry no longer poisons "-15% to Cold Resistance"; still short: Adonia's Ego per-Power-Charge resistances, ES/evasion nodes
+  'ordinary-caster-2.json': 13, // round 9: 13 of 13 (a corrupted unique no longer reads a line PoB did not print: Atziri's Step has no Life; Voices opens its Sinister sockets; Enhanced Barrier moves 5% of Life base to ES); round 8 was 11: Armour and Evasion match (Low Life derived from Atziri's Communion reserving 66% of Life: Defiance's 80%; The Winter Owl's 3% Evasion per 10 Int); short: Life (Atziri's Step corrupted line, Enhanced Barrier 5% of Life to ES) and ES (Voices' Sinister sockets); was 9 // Stormweaver; untyped unique lines read from their text (Controlled Metamorphosis -(20-5)% to all Elemental Resistances) + the "0% to" cache entry no longer poisons "-15% to Cold Resistance"; still short: Adonia's Ego per-Power-Charge resistances, ES/evasion nodes
   'ordinary-life-1.json': 13, // 13 of 13 (round 6): Crimson Power (life = 100% of body armour ES, PercentStat), Multiplier:CorruptedItem (Morior Invictus rune line); was 12. Round 4: the printed Runemastered base (Alpha's Howl); was: // weapon set 2 from the code + Gem Enthusiast (support colours); still short: Crimson Power (life from body ES), Morior +8% life; was: Blood Mage, life; Morior per-socket lines now counted; still short: 1% max Life per Corrupted Item Equipped, Alpha's Howl Runemastered cap, node 31223
   'ordinary-hybrid-2.json': 13, // 13 of 13: Ring 3 (Unfurled Finger), Mystic Attunement's 25% bonus copy of ring/amulet modifiers (collect.ts bonusEffectFromJewellery, floored), Andvarius's untyped -20% line, Grand Spectrum's per-jewel multiplier
   'ordinary-evasion-2.json': 13, // 13 of 13: the PoB code's weapon set (2) puts Palm of the Dreamer and the set-2 passives (Cooked, Chakra of Life) in; Charge Regulation counts with the Configuration's use-endurance-charges switch (skillBuffs.ts)

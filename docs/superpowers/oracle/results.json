@@ -60,7 +60,7 @@
       },
       "armour": {
         "want": 38359,
-        "got": 25678,
+        "got": 27439,
         "ok": false
       },
       "evasion": {
@@ -164,27 +164,27 @@
       },
       "effectiveHealthPool": {
         "want": 83813,
-        "got": 42230,
+        "got": 44596,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 8828,
-        "got": 6312,
+        "got": 6408,
         "ok": false
       },
       "fireMaxHit": {
         "want": 28041,
-        "got": 20810,
+        "got": 21074,
         "ok": false
       },
       "coldMaxHit": {
         "want": 27025,
-        "got": 20318,
+        "got": 20559,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 27025,
-        "got": 20318,
+        "got": 20559,
         "ok": false
       },
       "chaosMaxHit": {
@@ -402,7 +402,6 @@
       "int": []
     },
     "notCounted": [
-      "Guiding Palm of the Eye: \"50% of your Base Life Regeneration is granted to Allies in your Presence\" not counted",
       "Heart of the Well: unique — not in our data",
       "Megalomaniac: unique — not in our data"
     ],
@@ -592,12 +591,11 @@
     },
     "notCounted": [
       "Quest rewards you choose: Goddess of Justice (Abandoned Prison)",
-      "Unrecognised stat base_banner_resist_all_elements_%_to_apply (Inspiring Leader)",
-      "Unrecognised stat maximum_life_%_to_convert_to_maximum_energy_shield (Enhanced Barrier)"
+      "Unrecognised stat base_banner_resist_all_elements_%_to_apply (Inspiring Leader)"
     ],
     "class": "Tactician",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/pjf5845203344-2325/%E5%A4%A9%E7%A9%BA%E6%87%92%E7%8B%BC%E8%93%9D",
-    "matched": 9,
+    "matched": 10,
     "of": 13,
     "stats": {
       "str": {
@@ -617,8 +615,8 @@
       },
       "life": {
         "want": 2005,
-        "got": 2111,
-        "ok": false
+        "got": 2005,
+        "ok": true
       },
       "mana": {
         "want": 1133,
@@ -627,7 +625,7 @@
       },
       "energyShield": {
         "want": 4729,
-        "got": 3818,
+        "got": 4226,
         "ok": false
       },
       "armour": {
@@ -706,7 +704,7 @@
       },
       "esRecharge": {
         "want": 591,
-        "got": 477,
+        "got": 528,
         "ok": false
       },
       "esRechargeDelay": {
@@ -736,32 +734,32 @@
       },
       "effectiveHealthPool": {
         "want": 26777,
-        "got": 20661,
+        "got": 21582,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 8357,
-        "got": 7373,
+        "got": 7676,
         "ok": false
       },
       "fireMaxHit": {
         "want": 28096,
-        "got": 25221,
+        "got": 26300,
         "ok": false
       },
       "coldMaxHit": {
         "want": 28096,
-        "got": 25221,
+        "got": 26300,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 28096,
-        "got": 25221,
+        "got": 26300,
         "ok": false
       },
       "chaosMaxHit": {
         "want": 22010,
-        "got": 20612,
+        "got": 21004,
         "ok": false
       }
     }
@@ -1134,10 +1132,7 @@
     "gaps": {
       "life": [],
       "mana": [],
-      "energyShield": [
-        "increased 29 from Cataclysm Breath, Sapphire",
-        "increased 15 from 34006"
-      ],
+      "energyShield": [],
       "spirit": [],
       "evasion": [
         "increased 78 from 53185"
@@ -1148,7 +1143,6 @@
     },
     "notCounted": [
       "Adonia's Ego: \"-9% to all Elemental Resistances per Power Charge\" not counted",
-      "Adonia's Ego: \"-10% to all Elemental Resistances per Power Charge\" not counted",
       "Heart of the Well: unique — not in our data",
       "Megalomaniac: unique — not in our data",
       "From Nothing: unique — not in our data",
@@ -1157,12 +1151,11 @@
       "Unrecognised stat ailment_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Shimmering Mirage, Dampening Shield, Ailment Threshold from Energy Shield)",
       "Unrecognised stat broken_armour_and_sundered_armour_debuff_effect_+% (Tempered Mind)",
       "Unrecognised stat freeze_applies_cold_resistance_+ (Brain Freeze)",
-      "Unrecognised stat archon_grants_all_elemental_resistance_+% (Invigorating Archon)",
-      "Unrecognised stat maximum_life_%_to_convert_to_maximum_energy_shield (Enhanced Barrier)"
+      "Unrecognised stat archon_grants_all_elemental_resistance_+% (Invigorating Archon)"
     ],
     "class": "Stormweaver",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/qianqi77-5717/JokerBD",
-    "matched": 11,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -1182,8 +1175,8 @@
       },
       "life": {
         "want": 1402,
-        "got": 1566,
-        "ok": false
+        "got": 1402,
+        "ok": true
       },
       "mana": {
         "want": 2715,
@@ -1192,8 +1185,8 @@
       },
       "energyShield": {
         "want": 6771,
-        "got": 5844,
-        "ok": false
+        "got": 6771,
+        "ok": true
       },
       "armour": {
         "want": 4176,
@@ -1231,7 +1224,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 12,
+    "derivedMatched": 13,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -1271,8 +1264,8 @@
       },
       "esRecharge": {
         "want": 846,
-        "got": 730,
-        "ok": false
+        "got": 846,
+        "ok": true
       },
       "esRechargeDelay": {
         "want": 3.8462,
@@ -1301,32 +1294,32 @@
       },
       "effectiveHealthPool": {
         "want": 43686,
-        "got": 45735,
+        "got": 50017,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 7642,
-        "got": 7806,
+        "got": 8571,
         "ok": false
       },
       "fireMaxHit": {
         "want": 19071,
-        "got": 19500,
+        "got": 21508,
         "ok": false
       },
       "coldMaxHit": {
         "want": 21315,
-        "got": 21794,
+        "got": 24038,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 22647,
-        "got": 23156,
+        "got": 25541,
         "ok": false
       },
       "chaosMaxHit": {
         "want": 6228,
-        "got": 7239,
+        "got": 7722,
         "ok": false
       }
     }
@@ -1350,8 +1343,7 @@
       "Shavronne's Satchel: \"Life Recovery from Flasks also applies to Energy Shield\" not counted",
       "Quest rewards you choose: Seven Pillars (Qimah)",
       "Unrecognised stat stun_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Dampening Shield)",
-      "Unrecognised stat ailment_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Dampening Shield)",
-      "Unrecognised stat maximum_life_%_to_convert_to_maximum_energy_shield (Enhanced Barrier)"
+      "Unrecognised stat ailment_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Dampening Shield)"
     ],
     "class": "Acolyte of Chayula",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/HoangLong1101-3050/DOANXIEMm",
@@ -1541,8 +1533,7 @@
       "From Nothing: unique — not in our data",
       "Unrecognised stat stun_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Dampening Shield)",
       "Unrecognised stat ailment_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Dampening Shield)",
-      "Unrecognised stat base_penetrate_elemental_resistances_% (Stormcharged)",
-      "Unrecognised stat maximum_life_%_to_convert_to_maximum_energy_shield (Enhanced Barrier)"
+      "Unrecognised stat base_penetrate_elemental_resistances_% (Stormcharged)"
     ],
     "class": "Disciple of Varashta",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/KingFud-1121/KingFud_Djinn_FR",
@@ -1731,8 +1722,7 @@
     "notCounted": [
       "Unrecognised stat stun_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Eldritch Will, Dampening Shield)",
       "Unrecognised stat ailment_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Eldritch Will, Dampening Shield)",
-      "Unrecognised stat archon_grants_all_elemental_resistance_+% (Invigorating Archon)",
-      "Unrecognised stat maximum_life_%_to_convert_to_maximum_energy_shield (Enhanced Barrier)"
+      "Unrecognised stat archon_grants_all_elemental_resistance_+% (Invigorating Archon)"
     ],
     "class": "Disciple of Varashta",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/morloxIC-1573/morlox_v_v",

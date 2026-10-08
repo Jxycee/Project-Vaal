@@ -153,7 +153,11 @@ export function computeDefences(given: EngineInput): DefenceSheet {
 
   const lifePerStr = input.flags.giantsBlood ? 1 : 2;
   const ci = input.flags.chaosInoculation === true;
-  const life = ci ? 1 : Math.max(Math.round(scaled(12 * level + 16 + str * lifePerStr + flatOf('life'), 'life')), 1);
+  // Enhanced Barrier: a share of the Life BASE moves into the Energy Shield base (before either is scaled). Checked on
+  // ordinary-caster-2: Life base 1406, 5% -> 70 to the ES base, Life = 1406 x 1.05 x 0.95 = 1402 (PoB), ES 6771.
+  const lifeBase = 12 * level + 16 + str * lifePerStr + flatOf('life');
+  const lifeToEs = ci ? 0 : Math.min(Math.max(flatOf('lifeToEnergyShield'), 0), 100);
+  const life = ci ? 1 : Math.max(Math.round(scaled(lifeBase, 'life') * (1 - lifeToEs / 100)), 1);
   const converted = input.flags.eldritchBattery === true;
   const mana = Math.max(Math.round(scaled(4 * level + 30 + int * 2 + flatOf('mana') + (converted ? flatOf('energyShield') : 0), 'mana')), 1);
 
@@ -185,7 +189,7 @@ export function computeDefences(given: EngineInput): DefenceSheet {
     int,
     life,
     mana,
-    energyShield: converted ? 0 : defence('energyShield'),
+    energyShield: converted ? 0 : defence('energyShield', Math.round((lifeBase * lifeToEs) / 100)),
     armour: defence('armour'),
     evasion: defence('evasion', 7),
     fire: resist('fireRes', 'fireMax', input.resistancePenalty),

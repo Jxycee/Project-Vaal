@@ -121,6 +121,7 @@ export const POOLS: Record<string, Pool[]> = {
   MovementSpeed: ['movementSpeed'],
   LifeRegen: ['lifeRegen'],
   LifeRegenPercent: ['lifeRegenPercent'],
+  LifeConvertToEnergyShield: ['lifeToEnergyShield'],
   EnergyShieldRecharge: ['esRecharge'],
   EnergyShieldRechargeFaster: ['esRechargeFaster'],
   EnduranceChargesMax: ['maxEndurance'],

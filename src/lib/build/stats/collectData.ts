@@ -23,7 +23,7 @@ export interface RawCollectFiles {
    * The tree: names and flags for every reader. `jewelRadius` (lite.json) or, on the full export, node x/y with
    * the type flags, say which notables and smalls sit near each jewel socket.
    */
-  tree: { nodes: Record<string, { name?: string; isGenericAttribute?: boolean }>; jewelRadius?: Record<string, JewelRadiusNode[]> };
+  tree: { nodes: Record<string, { name?: string; isGenericAttribute?: boolean }>; jewelSlots?: (string | number)[]; jewelRadius?: Record<string, JewelRadiusNode[]> };
   nodeStats: { nodes: Record<string, [string, number][]> };
   implicitStats: { bases: Record<string, [string, number, number][][]> };
   uniqueStats: { uniques: Record<string, { baseType: string; baseSlug: string | null; lines: (string[] | null)[] }> };
@@ -55,6 +55,10 @@ export function makeCollectData(files: RawCollectFiles): CollectData {
         radius = positioned ? projectJewelRadius(files.tree.nodes) : null;
       }
       return radius?.[String(socket)];
+    },
+    sinisterSockets() {
+      // Voices' sockets are the tree's jewelSlots whose node is a "Sinister Jewel Socket", in slot order (slot1 first).
+      return (files.tree.jewelSlots ?? []).map(Number).filter((id) => files.tree.nodes[String(id)]?.name?.includes('SinisterJewelSockets'));
     },
     nodeByName(name) {
       if (!byName) {
