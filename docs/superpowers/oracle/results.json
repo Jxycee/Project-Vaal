@@ -13,7 +13,6 @@
       ],
       "spirit": [],
       "evasion": [
-        "increased -29 from The Adorned, Diamond",
         "increased 25 from VirtuousBarrierPlayer"
       ],
       "str": [
@@ -64,7 +63,7 @@
       },
       "evasion": {
         "want": 0,
-        "got": 1451,
+        "got": 1170,
         "ok": false
       },
       "fire": {
@@ -103,7 +102,7 @@
       },
       "evadeChance": {
         "want": 0,
-        "got": 17,
+        "got": 14,
         "ok": false
       },
       "deflectionRating": {
@@ -163,7 +162,7 @@
       },
       "effectiveHealthPool": {
         "want": 83813,
-        "got": 33976,
+        "got": 32779,
         "ok": false
       },
       "physicalMaxHit": {
@@ -1146,7 +1145,7 @@
     },
     "class": "Stormweaver",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/qianqi77-5717/JokerBD",
-    "matched": 6,
+    "matched": 9,
     "of": 13,
     "stats": {
       "str": {
@@ -1191,18 +1190,18 @@
       },
       "fire": {
         "want": 65,
-        "got": 70,
-        "ok": false
+        "got": 65,
+        "ok": true
       },
       "cold": {
         "want": 69,
-        "got": 74,
-        "ok": false
+        "got": 69,
+        "ok": true
       },
       "lightning": {
         "want": 71,
-        "got": 75,
-        "ok": false
+        "got": 71,
+        "ok": true
       },
       "chaos": {
         "want": 38,
@@ -1215,7 +1214,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 7,
+    "derivedMatched": 8,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -1280,12 +1279,12 @@
       },
       "powerCharges": {
         "want": 2,
-        "got": 3,
-        "ok": false
+        "got": 2,
+        "ok": true
       },
       "effectiveHealthPool": {
         "want": 43686,
-        "got": 32550,
+        "got": 31152,
         "ok": false
       },
       "physicalMaxHit": {
@@ -1295,17 +1294,17 @@
       },
       "fireMaxHit": {
         "want": 19071,
-        "got": 21527,
+        "got": 18695,
         "ok": false
       },
       "coldMaxHit": {
         "want": 21315,
-        "got": 24497,
+        "got": 20894,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 22647,
-        "got": 25371,
+        "got": 22200,
         "ok": false
       },
       "chaosMaxHit": {
@@ -2255,12 +2254,8 @@
       "life": [
         "increased 3 from 35031"
       ],
-      "mana": [
-        "flat 106 from Rapture Twirl, Gold Ring",
-        "flat 26 from Many Sources:^x88FFFF25% Ring 3 Bonus Effect"
-      ],
+      "mana": [],
       "energyShield": [
-        "increased 14 from Many Sources:^x88FFFF25% Amulet Bonus Effect",
         "increased -25 from 56776",
         "more 20 from ChargeRegulationPlayer"
       ],
@@ -2275,18 +2270,16 @@
         "flat 7 from Palm of the Dreamer, Shrine Sceptre"
       ],
       "dex": [
-        "flat 7 from Palm of the Dreamer, Shrine Sceptre",
-        "flat 2 from Many Sources:^x88FFFF25% Ring 1 Bonus Effect"
+        "flat 7 from Palm of the Dreamer, Shrine Sceptre"
       ],
       "int": [
         "flat 7 from Palm of the Dreamer, Shrine Sceptre",
-        "flat 3 from Many Sources:^x88FFFF25% Ring 2 Bonus Effect",
         "flat 10 from 38537"
       ]
     },
     "class": "Ritualist",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/WOSHICHINESE-3392/Arites",
-    "matched": 1,
+    "matched": 5,
     "of": 13,
     "stats": {
       "str": {
@@ -2296,12 +2289,12 @@
       },
       "dex": {
         "want": 173,
-        "got": 174,
+        "got": 176,
         "ok": false
       },
       "int": {
         "want": 155,
-        "got": 134,
+        "got": 137,
         "ok": false
       },
       "life": {
@@ -2311,12 +2304,12 @@
       },
       "mana": {
         "want": 654,
-        "got": 524,
+        "got": 627,
         "ok": false
       },
       "energyShield": {
         "want": 989,
-        "got": 862,
+        "got": 910,
         "ok": false
       },
       "armour": {
@@ -2331,23 +2324,23 @@
       },
       "fire": {
         "want": 29,
-        "got": 47,
-        "ok": false
+        "got": 29,
+        "ok": true
       },
       "cold": {
         "want": 30,
-        "got": -19,
-        "ok": false
+        "got": 30,
+        "ok": true
       },
       "lightning": {
         "want": 22,
-        "got": 40,
-        "ok": false
+        "got": 22,
+        "ok": true
       },
       "chaos": {
         "want": 47,
-        "got": 27,
-        "ok": false
+        "got": 47,
+        "ok": true
       },
       "spirit": {
         "want": 230,
@@ -2390,12 +2383,12 @@
       },
       "manaRegen": {
         "want": 26,
-        "got": 21,
+        "got": 25,
         "ok": false
       },
       "esRecharge": {
         "want": 123,
-        "got": 107,
+        "got": 113,
         "ok": false
       },
       "esRechargeDelay": {
@@ -2425,32 +2418,32 @@
       },
       "effectiveHealthPool": {
         "want": 14791,
-        "got": 10486,
+        "got": 11515,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 2621,
-        "got": 2467,
+        "got": 2515,
         "ok": false
       },
       "fireMaxHit": {
         "want": 3542,
-        "got": 4405,
+        "got": 3399,
         "ok": false
       },
       "coldMaxHit": {
         "want": 3590,
-        "got": 2073,
+        "got": 3445,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 3236,
-        "got": 3916,
+        "got": 3105,
         "ok": false
       },
       "chaosMaxHit": {
         "want": 4012,
-        "got": 2789,
+        "got": 3887,
         "ok": false
       }
     }
@@ -2651,31 +2644,16 @@
         "3 1 from 56349"
       ],
       "mana": [],
-      "energyShield": [
-        "increased 8 from Many Sources:^x88FFFF25% Amulet Bonus Effect",
-        "increased 14 from Many Sources:^x88FFFF25% Amulet Bonus Effect"
-      ],
-      "spirit": [
-        "flat 3 from Many Sources:^x88FFFF25% Amulet Bonus Effect",
-        "flat 12 from Many Sources:^x88FFFF25% Amulet Bonus Effect"
-      ],
-      "evasion": [
-        "increased 8 from Many Sources:^x88FFFF25% Amulet Bonus Effect"
-      ],
+      "energyShield": [],
+      "spirit": [],
+      "evasion": [],
       "str": [],
-      "dex": [
-        "flat 2 from Many Sources:^x88FFFF25% Ring 1 Bonus Effect",
-        "flat 2 from Many Sources:^x88FFFF25% Ring 2 Bonus Effect",
-        "flat 2 from Many Sources:^x88FFFF25% Ring 3 Bonus Effect",
-        "flat 10 from 61601"
-      ],
-      "int": [
-        "flat 7 from Many Sources:^x88FFFF25% Amulet Bonus Effect"
-      ]
+      "dex": [],
+      "int": []
     },
     "class": "Ritualist",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/Tomikpomik-4685/forbidden_vivod",
-    "matched": 5,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -2685,13 +2663,13 @@
       },
       "dex": {
         "want": 192,
-        "got": 175,
-        "ok": false
+        "got": 192,
+        "ok": true
       },
       "int": {
         "want": 116,
-        "got": 109,
-        "ok": false
+        "got": 116,
+        "ok": true
       },
       "life": {
         "want": 1,
@@ -2700,13 +2678,13 @@
       },
       "mana": {
         "want": 430,
-        "got": 421,
-        "ok": false
+        "got": 430,
+        "ok": true
       },
       "energyShield": {
         "want": 5945,
-        "got": 5708,
-        "ok": false
+        "got": 5945,
+        "ok": true
       },
       "armour": {
         "want": 0,
@@ -2715,18 +2693,18 @@
       },
       "evasion": {
         "want": 16300,
-        "got": 15961,
-        "ok": false
+        "got": 16300,
+        "ok": true
       },
       "fire": {
         "want": 15,
-        "got": 23,
-        "ok": false
+        "got": 15,
+        "ok": true
       },
       "cold": {
         "want": 1,
-        "got": 19,
-        "ok": false
+        "got": 1,
+        "ok": true
       },
       "lightning": {
         "want": 75,
@@ -2740,11 +2718,11 @@
       },
       "spirit": {
         "want": 211,
-        "got": 196,
-        "ok": false
+        "got": 211,
+        "ok": true
       }
     },
-    "derivedMatched": 8,
+    "derivedMatched": 10,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -2759,12 +2737,12 @@
       },
       "deflectionRating": {
         "want": 11899,
-        "got": 11651,
-        "ok": false
+        "got": 11899,
+        "ok": true
       },
       "deflectChance": {
         "want": 71,
-        "got": 68,
+        "got": 69,
         "ok": false
       },
       "ward": {
@@ -2784,8 +2762,8 @@
       },
       "esRecharge": {
         "want": 743,
-        "got": 713,
-        "ok": false
+        "got": 743,
+        "ok": true
       },
       "esRechargeDelay": {
         "want": 4.7619,
@@ -2814,27 +2792,27 @@
       },
       "effectiveHealthPool": {
         "want": 36367,
-        "got": 35944,
+        "got": 34772,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 6013,
-        "got": 5759,
+        "got": 5996,
         "ok": false
       },
       "fireMaxHit": {
         "want": 6833,
-        "got": 7199,
+        "got": 6814,
         "ok": false
       },
       "coldMaxHit": {
         "want": 6013,
-        "got": 6856,
+        "got": 5996,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 21475,
-        "got": 20568,
+        "got": 21414,
         "ok": false
       },
       "chaosMaxHit": {

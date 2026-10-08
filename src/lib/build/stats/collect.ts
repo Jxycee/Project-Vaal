@@ -26,7 +26,7 @@
 
 import type { AttributeChoice } from '@poe2-toolkit/tree-core';
 import type { CraftedMod } from '../craft';
-import { GEAR_SLOTS, type GearItem, type GearSlot } from '../gearSlots';
+import { GEAR_SLOTS, RING_SLOT_3_NODE, type GearItem, type GearSlot } from '../gearSlots';
 import type { GearState } from '../gearState';
 import type { GemState } from '../gemState';
 import { conditionHolds, type BuildConfig } from './buildConfig';
@@ -160,19 +160,27 @@ export function collectContributions(
   const equipped: { item: GearItem; slot?: GearSlot; socket?: number }[] = [];
   for (const slot of GEAR_SLOTS) {
     const item = input.gear[slot];
+    // The third ring exists only while "Unfurled Finger" (+1 Ring Slot) is allocated; PoB wears nothing in a slot it lacks.
+    if (item && slot === 'ring3' && !nodes.has(RING_SLOT_3_NODE)) {
+      notCounted.push(`${item.name}: in Ring 3, but the "Unfurled Finger" passive that opens a third ring slot is not allocated, so it was not counted`);
+      continue;
+    }
     if (item && !otherSet.has(slot) && !NOT_ON_CHARACTER.has(slot)) equipped.push({ item, slot });
   }
   for (const [socket, jewel] of Object.entries(input.gear.jewels)) {
     if (nodes.has(Number(socket))) equipped.push({ item: jewel, socket: Number(socket) });
   }
   const wornAt = new Map<GearSlot, { from: number; to: number; name: string }>();
+  // Gear-counted multipliers (lineMods.ts GEAR_MULTIPLIERS): PoB adds Multiplier:GrandSpectrum 1 per Grand Spectrum worn.
+  const gearCounts: Record<string, number> = { GrandSpectrum: equipped.filter((e) => e.item.name.includes('Grand Spectrum')).length };
   for (const { item, slot, socket } of equipped) {
     const from = contributions.length;
-    collectItem(item, slot, data, flags, contributions, notCounted, unknown, assumed, allocate, config);
+    collectItem(item, slot, data, flags, contributions, notCounted, unknown, assumed, allocate, config, gearCounts);
     if (socket !== undefined) radiusGrants(item, socket, nodes, data, contributions, notCounted, config);
     if (slot) wornAt.set(slot, { from, to: contributions.length, name: item.name });
   }
   reflectOppositeRing(wornAt, contributions);
+  bonusEffectFromJewellery(wornAt, contributions);
 
   // ---- Passives that scale off an item's defence, now that every item's own figure is known. An empty slot
   // is 0 steps. PoB floors the step count (PerStat tag, ModStore.lua).
@@ -300,6 +308,59 @@ function reflectOppositeRing(wornAt: ReadonlyMap<GearSlot, { from: number; to: n
 }
 
 /**
+ * "N% increased bonuses gained from Equipped Rings and Amulets" (Mystic Attunement, 25%): PoB2 adds a SECOND, scaled
+ * copy of the worn item's modifiers, value x N/100 (CalcSetup.lua:1814 for the Amulet, CalcPerform.lua:1491 for each
+ * Ring). Its breakdown lists them as "Many Sources: 25% Ring 1 Bonus Effect".
+ *
+ * Failure modes, decided before the code:
+ *   1. No "increased bonuses" on the sheet (the normal case): nothing is copied, nothing is named.
+ *   2. The slot is empty, or holds an item our data lacks: it has no contributions, so the copy is empty.
+ *   3. Only the item's own modifiers are scaled (contributions sourced by its name): a passive an item grants
+ *      ("Allocates Battle Trance") is not the item's modifier and is never scaled.
+ *   4. A Ring's flat and increased modifiers of one kind and pool are summed before scaling (PoB groups them by key);
+ *      the Amulet's are scaled one by one. A scaled value is floored to a whole number (verified: 10 x 25% = 2, 106 x 25% = 26, 57 x 25% = 14 in PoB's breakdown).
+ *   5. The item's local base defences (its slot-tagged contributions) are not modifiers: rings and amulets have none.
+ *   6. A reduction (a negative total) scales to nothing: PoB clamps the scale at 0.
+ *   7. Kalandra's Touch wears the opposite ring: the copy is of that ring's modifiers, as the reflection is.
+ */
+const EFFECT_POOLS = {
+  ring1: 'effectRing1',
+  ring2: 'effectRing2',
+  ring3: 'effectRing3',
+  amulet: 'effectAmulet',
+} as const;
+const EFFECT_LABEL = { ring1: 'Ring 1', ring2: 'Ring 2', ring3: 'Ring 3', amulet: 'Amulet' } as const;
+
+function bonusEffectFromJewellery(wornAt: ReadonlyMap<GearSlot, { from: number; to: number; name: string }>, contributions: Contribution[]): void {
+  const added: Contribution[] = [];
+  for (const slot of Object.keys(EFFECT_POOLS) as (keyof typeof EFFECT_POOLS)[]) {
+    const percent = contributions.filter((c) => c.pool === EFFECT_POOLS[slot] && c.kind === 'increased').reduce((n, c) => n + c.value, 0);
+    const scale = Math.max(percent, 0) / 100;
+    if (scale === 0) continue;
+    let worn = wornAt.get(slot);
+    if (worn && MIRROR_RING_NAMES.has(worn.name)) worn = wornAt.get(slot === 'ring1' ? 'ring2' : 'ring1');
+    if (!worn) continue;
+    const source = `Many Sources: ${percent}% ${EFFECT_LABEL[slot]} Bonus Effect`;
+    const mods = contributions.slice(worn.from, worn.to).filter((c) => c.source === worn!.name && !c.slot && !(c.pool in EFFECT_POOLS_BY_NAME));
+    const floored = (value: number) => Math.floor(value * scale);
+    if (slot === 'amulet') {
+      for (const c of mods) added.push({ pool: c.pool, kind: c.kind, value: floored(c.value), source });
+    } else {
+      const grouped = new Map<string, Contribution>();
+      for (const c of mods) {
+        const key = `${c.pool}|${c.kind}`;
+        const have = grouped.get(key);
+        if (have) have.value += c.value;
+        else grouped.set(key, { pool: c.pool, kind: c.kind, value: c.value, source });
+      }
+      for (const c of grouped.values()) added.push({ ...c, value: floored(c.value) });
+    }
+  }
+  contributions.push(...added);
+}
+const EFFECT_POOLS_BY_NAME: Readonly<Record<string, true>> = { effectRing1: true, effectRing2: true, effectRing3: true, effectAmulet: true };
+
+/**
  * The modifiers of one line that count under this Configuration: unconditional ones always; a conditional one when
  * its condition holds. Configuration absent = unknown: the line is named once and none of its conditional mods count.
  */
@@ -356,12 +417,15 @@ function collectItem(
   assumed: string[],
   allocate: (name: string) => void,
   config: BuildConfig | undefined,
+  gearCounts: Readonly<Record<string, number>>,
 ): void {
   const craft = item.craft;
   const stats: [string, number][] = [];
   let detail: ReturnType<CollectData['item']>;
   /** A unique's own implicit lines; undefined for a base (it shows its own). */
   let wornImplicitLines: string[] | undefined;
+  /** A unique's lines our data has no typed stat for, numbers filled in: read from their text below. */
+  const untypedLines: string[] = [];
 
   if (item.isUnique) {
     const unique = data.unique(item.name, item.slug);
@@ -370,7 +434,7 @@ function collectItem(
     if (!unique || !detail) {
       notCounted.push(`${item.name}: unique — not in our data`);
       // Its lines as the importer kept them still count, as global modifiers (no base to scale locally).
-      readVerbatim(craft?.verbatim, item.name, { defences: false, spirit: false }, {}, {}, contributions, notCounted, allocate, config, filledSockets(craft));
+      readVerbatim(craft?.verbatim, item.name, { defences: false, spirit: false }, {}, {}, contributions, notCounted, allocate, config, { sockets: filledSockets(craft), gear: gearCounts });
       return;
     }
     // Lines typed to exactly the same stats are one roll's alternatives, which
@@ -423,7 +487,14 @@ function collectItem(
         values.push(chosen ?? (Number(m[1]) + Number(m[2])) / 2);
       }
       if (!line.stats || line.stats.length !== values.length) {
-        if (DEFENCE_WORDS.test(line.text)) notCounted.push(`${item.name}: "${line.text}" not counted`);
+        // No typed stat for this line (Andvarius's "-20% to all Elemental Resistances"): its text is still what
+        // PoB parses, so it is read the way a verbatim line is (lineMods.ts) instead of being dropped.
+        // A line PoB's parse has no flat reading for stays named, never silently dropped.
+        if (DEFENCE_WORDS.test(line.text)) {
+          const text = resolveLine(line.text, values);
+          if (readLine(text) === null) notCounted.push(`${item.name}: "${line.text}" not counted`);
+          else untypedLines.push(text);
+        }
         return;
       }
       line.stats.forEach((stat, k) => stats.push([stat, values[k]]));
@@ -500,7 +571,7 @@ function collectItem(
   // Local stats shape the item's own defences and Spirit; the rest are global.
   const localFlat: Partial<Record<Pool, number>> = {};
   const localInc: Partial<Record<Pool, number>> = {};
-  readVerbatim(craft?.verbatim, item.name, { defences: detail.armour !== null, spirit: detail.spirit > 0 }, localFlat, localInc, contributions, notCounted, allocate, config, filledSockets(craft));
+  readVerbatim([...(craft?.verbatim ?? []), ...untypedLines], item.name, { defences: detail.armour !== null, spirit: detail.spirit > 0 }, localFlat, localInc, contributions, notCounted, allocate, config, { sockets: filledSockets(craft), gear: gearCounts });
   for (const [stat, value] of stats) {
     const local = LOCAL_EFFECTS[stat];
     if (local) {
@@ -563,7 +634,8 @@ function readVerbatim(
   notCounted: string[],
   allocate: (name: string) => void,
   config: BuildConfig | undefined,
-  sockets: number,
+  /** What a scaled line multiplies by: the runes in this item ("per Socket filled"), and the gear-wide counts (Grand Spectrum). */
+  counts: { sockets: number; gear: Readonly<Record<string, number>> },
 ): void {
   for (const line of lines ?? []) {
     const allocates = /^Allocates (.+)$/.exec(line);
@@ -579,13 +651,13 @@ function readVerbatim(
     }
     for (const mod of gate(read.mods, config, line, source, notCounted)) {
       const defence = mod.pool === 'armour' || mod.pool === 'evasion' || mod.pool === 'energyShield';
-      const local = !mod.condition && !mod.perSocket && !read.global && mod.kind !== 'more' && ((host.defences && defence) || (host.spirit && mod.pool === 'spirit' && mod.kind === 'increased'));
+      const local = !mod.condition && !mod.perSocket && !mod.multiplier && !read.global && mod.kind !== 'more' && ((host.defences && defence) || (host.spirit && mod.pool === 'spirit' && mod.kind === 'increased'));
       if (local) {
         const bucket = mod.kind === 'flat' ? localFlat : localInc;
         bucket[mod.pool] = (bucket[mod.pool] ?? 0) + mod.value;
       } else {
         // "per Socket filled" (Morior Invictus): PoB multiplies by the runes in this item (RunesSocketedIn<slot>).
-        contributions.push({ pool: mod.pool, kind: mod.kind, value: mod.perSocket ? mod.value * sockets : mod.value, source });
+        contributions.push({ pool: mod.pool, kind: mod.kind, value: mod.perSocket ? mod.value * counts.sockets : mod.multiplier ? mod.value * (counts.gear[mod.multiplier] ?? 0) : mod.value, source });
       }
     }
   }
@@ -598,4 +670,17 @@ function readVerbatim(
  */
 function filledSockets(craft: GearItem['craft']): number {
   return craft?.filledSockets ?? craft?.runes.length ?? 0;
+}
+
+/**
+ * A unique's line text with its numbers filled in: each "(a-b)" range and plain number is replaced by the value
+ * the build rolled (or the mid-roll collectItem assumed), in the order they appear. A minus written before a range
+ * ("-(20-5)% to all Elemental Resistances") belongs to the value: the roll is the magnitude, the line negative.
+ */
+function resolveLine(text: string, values: readonly number[]): string {
+  let i = 0;
+  return text.replace(new RegExp(`(-)?(?:${NUMBER_TOKEN.source})`, 'g'), (_all, minus: string | undefined, lo: string | undefined) => {
+    const value = values[i++];
+    return String(lo !== undefined && minus ? -value : value);
+  });
 }

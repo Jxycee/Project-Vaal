@@ -75,7 +75,13 @@ export type Pool =
   // against you is Unlucky".
   | 'critReduce'
   | 'enemyCrit'
-  | 'unluckyCrit';
+  | 'unluckyCrit'
+  // "N% increased bonuses gained from Equipped Rings and Amulets" (Mystic Attunement): PoB EffectOfBonusesFrom<slot>.
+  // Not a sheet number: collect.ts adds a second, scaled copy of that item's modifiers (CalcPerform.lua:1491).
+  | 'effectRing1'
+  | 'effectRing2'
+  | 'effectRing3'
+  | 'effectAmulet';
 
 /**
  * `flat` adds to the pool's base; `increased` adds percent to its "increased"
@@ -128,6 +134,8 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   'oracle_maximum_life_+%_final': more('life'),
   'oracle_maximum_mana_+%_final': more('mana'),
   'titan_maximum_life_+%_final': more('life'),
+
+  'equipped_jewellery_effect_of_bonuses_+%': inc('effectRing1', 'effectRing2', 'effectRing3', 'effectAmulet'),
 
   base_strength: flat('str'),
   base_dexterity: flat('dex'),

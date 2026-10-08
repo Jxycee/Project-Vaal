@@ -157,10 +157,10 @@ const DERIVED_FLOOR: Record<string, number> = {
   'armour-life-gemling.json': 8, // of 19
   'es-life-stormweaver.json': 5, // of 19
   'evasion-deadeye.json': 7, // of 19
-  'hybrid-tactician.json': 6, // of 19
+  'hybrid-tactician.json': 7, // of 19
   'ordinary-armour-1.json': 8, // of 17
   'ordinary-caster-1.json': 9, // of 17
-  'ordinary-caster-2.json': 7, // of 19
+  'ordinary-caster-2.json': 8, // of 19
   'ordinary-ci-acolyte.json': 18, // of 19
   'ordinary-ci-disciple.json': 19, // of 19
   'ordinary-ci-es-disciple.json': 12, // of 19
@@ -168,7 +168,7 @@ const DERIVED_FLOOR: Record<string, number> = {
   'ordinary-evasion-1.json': 8, // of 19
   'ordinary-evasion-2.json': 6, // of 19
   'ordinary-hybrid-1.json': 8, // of 19
-  'ordinary-hybrid-2.json': 8, // of 19
+  'ordinary-hybrid-2.json': 10, // of 19
   'ordinary-life-1.json': 9, // of 19
   'ordinary-oracle.json': 16, // of 17
 };
@@ -177,10 +177,10 @@ const ours = (sheet: DefenceSheet, k: Key): number => (k === 'fire' || k === 'co
 
 // Ratchet: the least number of the 13 stats each build must match. Raise it when a fix lands; never lower it.
 const FLOOR: Record<string, number> = {
-  'armour-life-gemling.json': 2, // Mageblood, a RELIC body armour and 36 unreadable item lines: item coverage, not the engine
-  'es-life-stormweaver.json': 7, // Kalandra's Touch reflects the opposite ring (collect.ts); a radius jewel's notables (fire, spirit)
+  'armour-life-gemling.json': 6, // Mageblood, a RELIC body armour and 36 unreadable item lines: item coverage, not the engine
+  'es-life-stormweaver.json': 10, // Kalandra's Touch reflects the opposite ring (collect.ts); a radius jewel's notables (fire, spirit)
   'evasion-deadeye.json': 5, // chaos resistance via a Time-Lost jewel's radius grant
-  'hybrid-tactician.json': 3,
+  'hybrid-tactician.json': 8,
   // The ordinary set (board item 30): mid-complexity public builds. The goal is 13 of 13 on every one.
   'ordinary-ci-acolyte.json': 13, // 13 of 13: Purity of Ice (a socketed Aura) puts +43% Cold Resistance on the character - skillBuffs.ts, scaled by 11% increased Aura magnitudes
   'ordinary-ci-disciple.json': 13, // 13 of 13: Time-Lost Sapphire's "Notable Passive Skills in Radius also grant" x7 (collect.ts radiusGrants) + Warding Fetish's Focus ES
@@ -193,10 +193,10 @@ const FLOOR: Record<string, number> = {
   'ordinary-armour-1.json': 10, // Gemling Legionnaire, life/armour/evasion; Runeseeker's Call (-45% less maximum Life rune line) and Virtuous Barrier mote counts
   'ordinary-caster-1.json': 12, // Chronomancer; only Mana off (Runeforged Sirenscale Gloves rune line)
   'ordinary-hybrid-1.json': 8, // Lich, ES + armour; Ancient Aegis body armour armour, Grip of Kulemak not in our data
-  'ordinary-caster-2.json': 6, // Stormweaver; Morior per-socket lines now counted (lineMods perSocket); still short: Adonia's Ego per-Power-Charge resistances, ES/evasion nodes
+  'ordinary-caster-2.json': 9, // Stormweaver; untyped unique lines read from their text (Controlled Metamorphosis -(20-5)% to all Elemental Resistances) + the "0% to" cache entry no longer poisons "-15% to Cold Resistance"; still short: Adonia's Ego per-Power-Charge resistances, ES/evasion nodes
   'ordinary-life-1.json': 8, // Blood Mage, life; Morior per-socket lines now counted; still short: 1% max Life per Corrupted Item Equipped, Alpha's Howl Runemastered cap, node 31223
-  'ordinary-hybrid-2.json': 5, // Ritualist, ES + evasion; Andvarius -20% all resistances, Shavronne's Satchel, uniques not in our data
-  'ordinary-evasion-2.json': 1, // Ritualist, evasion; Andvarius, Charge Regulation (endurance-charge threshold), Megalomaniac
+  'ordinary-hybrid-2.json': 13, // 13 of 13: Ring 3 (Unfurled Finger), Mystic Attunement's 25% bonus copy of ring/amulet modifiers (collect.ts bonusEffectFromJewellery, floored), Andvarius's untyped -20% line, Grand Spectrum's per-jewel multiplier
+  'ordinary-evasion-2.json': 5, // Ritualist, evasion; Ring 3 + the ring/amulet bonus copy now counted; still short: Palm of the Dreamer (a Weapon 2 Swap sceptre PoB counts), Charge Regulation (endurance-charge threshold), node 56776, Megalomaniac
 };
 
 

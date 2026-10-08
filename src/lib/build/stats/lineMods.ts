@@ -72,6 +72,8 @@ export interface LineMod {
   condition?: { name: string; negate: boolean };
   /** "... per Socket filled": the value is per rune in the item's sockets, so the caller multiplies it by that count. */
   perSocket?: boolean;
+  /** "... per socketed Grand Spectrum": the value is per item of this kind worn; the caller multiplies it by that count (collect.ts). */
+  multiplier?: string;
 }
 
 export type LineRead =
@@ -130,6 +132,10 @@ export const POOLS: Record<string, Pool[]> = {
   BlindEffect: ['blindEffect'],
   PhysicalDamageReduction: ['physReduction'],
   Ward: ['ward'],
+  'EffectOfBonusesFromRing 1': ['effectRing1'],
+  'EffectOfBonusesFromRing 2': ['effectRing2'],
+  'EffectOfBonusesFromRing 3': ['effectRing3'],
+  EffectOfBonusesFromAmulet: ['effectAmulet'],
 };
 
 const KINDS: Record<string, LineMod['kind']> = { BASE: 'flat', INC: 'increased', MORE: 'more' };
@@ -140,7 +146,15 @@ interface Template {
   global: boolean;
   condition?: { name: string; negate: boolean };
   perSocket?: boolean;
+  multiplier?: string;
 }
+
+/**
+ * Multipliers PoB counts from the gear itself, so a line scaled by one is a number we can read: the count of equipped
+ * Grand Spectrum jewels (Item.lua adds Multiplier:GrandSpectrum 1 for each, ModParser "per Grand Spectrum").
+ * Any other Multiplier (a charge count, a stat) stays unmodelled.
+ */
+export const GEAR_MULTIPLIERS: ReadonlySet<string> = new Set(['GrandSpectrum']);
 
 /** "+7 to all Attributes per Socket filled": PoB scales it by Multiplier:RunesSocketedIn<slot> (the runes in that item). */
 const PER_SOCKET = /per Socket filled$/i;
@@ -163,7 +177,10 @@ function derive(entry: CacheEntry, n: number, text: string): Template | null {
   const perSocket = PER_SOCKET.test(text);
   const gated = conditions.size === 1 && typeof [...conditions][0] === 'string' && !/\bper\b/i.test(text);
   const socketTag = (m: CachedMod) => perSocket && m.tagType === 'Multiplier' && SOCKET_MULTIPLIER.test(m.tagVar ?? '');
-  if (mods.some((m) => m.tagType !== undefined && m.tagType !== 'Global' && !socketTag(m) && !(gated && m.tagType === 'Condition'))) return null;
+  const gearTags = new Set(mods.filter((m) => m.tagType === 'Multiplier' && GEAR_MULTIPLIERS.has(m.tagVar ?? '')).map((m) => m.tagVar as string));
+  const multiplier = gearTags.size === 1 && mods.every((m) => m.tagType === 'Multiplier' && m.tagVar === [...gearTags][0]) ? [...gearTags][0] : undefined;
+  if (mods.some((m) => m.tagType !== undefined && m.tagType !== 'Global' && !socketTag(m) && !(gated && m.tagType === 'Condition') && !(multiplier && m.tagVar === multiplier))) return null;
+  if (multiplier && (gated || perSocket)) return null;
   if (perSocket && gated) return null;
   if (conditions.size > 0 && !gated) return null;
   if (gated && mods.some((m) => m.tagType !== 'Condition')) return null;
@@ -176,7 +193,7 @@ function derive(entry: CacheEntry, n: number, text: string): Template | null {
     read.push({ pools, kind, sign: Math.sign(m.value) === Math.sign(n) ? 1 : -1 });
   }
   const condition = gated ? { name: [...conditions][0] as string, negate: NEGATED.test(text) } : undefined;
-  return { mods: read, global: mods.some((m) => m.tagType === 'Global'), ...(condition ? { condition } : {}), ...(perSocket ? { perSocket } : {}) };
+  return { mods: read, global: mods.some((m) => m.tagType === 'Global'), ...(condition ? { condition } : {}), ...(perSocket ? { perSocket } : {}), ...(multiplier ? { multiplier } : {}) };
 }
 
 function build(): Map<string, Template | null> {
@@ -184,6 +201,9 @@ function build(): Map<string, Template | null> {
   for (const [text, entry] of Object.entries(modcache as Record<string, CacheEntry>)) {
     const numbers = text.match(NUMBER) ?? [];
     const key = text.replace(NUMBER, '#');
+    // A line of "0%" ("0% to Cold Resistance", cached with leftover text) is no real line: letting it share a key
+    // with "-15% to Cold Resistance" poisoned that template (failure mode 4) and dropped Sierran Inheritance's -15%.
+    if (numbers.length === 1 && Number(numbers[0]) === 0) continue;
     const template = numbers.length === 1 ? derive(entry, Number(numbers[0]), text) : null;
     // A key seen twice must read the same both times (failure mode 4); null poisons the template.
     if (!out.has(key)) out.set(key, template);
@@ -205,7 +225,7 @@ export function readLine(line: string): LineRead | null {
   if (template === null) return { unmodelled: line };
   const n = Number(numbers[0]);
   return {
-    mods: template.mods.flatMap((m) => m.pools.map((pool) => ({ pool, kind: m.kind, value: m.sign * n, ...(template.condition ? { condition: template.condition } : {}), ...(template.perSocket ? { perSocket: true } : {}) }))),
+    mods: template.mods.flatMap((m) => m.pools.map((pool) => ({ pool, kind: m.kind, value: m.sign * n, ...(template.condition ? { condition: template.condition } : {}), ...(template.perSocket ? { perSocket: true } : {}), ...(template.multiplier ? { multiplier: template.multiplier } : {}) }))),
     global: template.global,
   };
 }

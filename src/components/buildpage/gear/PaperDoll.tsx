@@ -123,6 +123,7 @@ export default function PaperDoll({
   onSelect,
   warnings,
   offHandOccupied,
+  ringSlot3Open,
 }: {
   gear: GearState;
   weaponSet: WeaponSet;
@@ -132,6 +133,8 @@ export default function PaperDoll({
   onSelect: (key: DollSlotKey) => void;
   warnings: readonly BuildWarning[];
   offHandOccupied: Record<WeaponSet, GearItem | null>;
+  /** "Unfurled Finger" is allocated: the third ring slot exists. It also shows when it already holds an item. */
+  ringSlot3Open: boolean;
 }) {
   // The hover card: desktop (md and up) with a mouse or keyboard focus only; touch uses the tap panel.
   const [hover, setHover] = useState<{ item: GearItem; anchor: DOMRect } | null>(null);
@@ -172,6 +175,7 @@ export default function PaperDoll({
       <div className="mx-auto grid w-full max-w-xl grid-cols-6 auto-rows-[3.25rem] gap-1.5 md:grid-cols-8 md:auto-rows-[4rem]">
         {DOLL_KEYS.map((key) => {
           const slot = dollSlot(key, weaponSet);
+          if (key === 'ring3' && !ringSlot3Open && !gear.ring3) return null;
           return (
             <DollCell
               key={key}

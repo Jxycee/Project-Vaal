@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import JewelsSheet from '@/components/build/JewelsSheet';
 import { headlineSet } from '@/lib/build/buildPage';
+import { RING_SLOT_3_NODE } from '@/lib/build/gearSlots';
 import { dollSlot, type DollSlotKey } from '@/lib/build/paperDoll';
 import type { WeaponSet } from '@poe2-toolkit/tree-core';
 import GearSlotDetail from '../gear/GearSlotDetail';
@@ -12,7 +13,7 @@ import { useBuildSession } from '../session/BuildSession';
 const EDIT_BUTTON = 'flex h-11 items-center rounded-lg border border-border px-4 text-sm font-medium text-foreground disabled:opacity-50';
 
 export default function GearTab({ edit }: { edit: boolean }) {
-  const { gear, gems, warnings, offHandOccupied, setGearSlot, jewels, pickJewel, clearJewel } = useBuildSession();
+  const { gear, gems, warnings, offHandOccupied, setGearSlot, jewels, pickJewel, clearJewel, livePassive } = useBuildSession();
   const [weaponSet, setWeaponSet] = useState<WeaponSet>(() => headlineSet(gems));
   const [selected, setSelected] = useState<DollSlotKey | null>(null);
   // Bumped on every cell tap, so re-tapping the selected cell also scrolls.
@@ -76,6 +77,7 @@ export default function GearTab({ edit }: { edit: boolean }) {
         }}
         warnings={warnings}
         offHandOccupied={offHandOccupied}
+        ringSlot3Open={livePassive.ascendancyNodes.includes(RING_SLOT_3_NODE)}
       />
 
       {selectedSlot ? (

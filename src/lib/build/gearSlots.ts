@@ -13,7 +13,10 @@
 
 import type { ItemCraft } from './craft';
 
-/** The 17 gear slots a character has. `weapon1_*`/`weapon2_*` mirror the tree's set1/set2 vocabulary. */
+/**
+ * The 18 gear slots a character has. `weapon1_*`/`weapon2_*` mirror the tree's set1/set2 vocabulary. `ring3` is the
+ * third ring slot the passive "Unfurled Finger" opens (RING_SLOT_3_NODE); until it is allocated the slot is not worn.
+ */
 export const GEAR_SLOTS = [
   'head',
   'body',
@@ -22,6 +25,7 @@ export const GEAR_SLOTS = [
   'amulet',
   'ring1',
   'ring2',
+  'ring3',
   'belt',
   'weapon1_main',
   'weapon1_off',
@@ -36,6 +40,9 @@ export const GEAR_SLOTS = [
 
 export type GearSlot = (typeof GEAR_SLOTS)[number];
 
+/** "Unfurled Finger": "+1 Ring Slot" (stat enable_ring_slot_3). The third ring is worn only while this passive is allocated. */
+export const RING_SLOT_3_NODE = 34785;
+
 export function isGearSlot(value: string): value is GearSlot {
   return (GEAR_SLOTS as readonly string[]).includes(value);
 }
@@ -49,6 +56,7 @@ export const GEAR_SLOT_LABELS: Record<GearSlot, string> = {
   amulet: 'Amulet',
   ring1: 'Ring 1',
   ring2: 'Ring 2',
+  ring3: 'Ring 3',
   belt: 'Belt',
   weapon1_main: 'Weapon',
   weapon1_off: 'Off-hand',
@@ -156,6 +164,7 @@ const SLOT_CATEGORIES: Record<GearSlot, readonly string[]> = {
   amulet: ['Amulet'],
   ring1: ['Ring'],
   ring2: ['Ring'],
+  ring3: ['Ring'],
   belt: ['Belt'],
   weapon1_main: WEAPON_MAIN_CATEGORIES,
   weapon1_off: WEAPON_OFF_CATEGORIES,

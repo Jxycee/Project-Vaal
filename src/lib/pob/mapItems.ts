@@ -14,8 +14,9 @@
 // - Items join on name. An unknown unique falls back to its base, reported.
 // - Slots map by name per the decode findings' table. Flasks map by what the
 //   item is, not by PoB's slot number: our flask1 is Life, flask2 is Mana.
-//   Ring 3, a second flask of one kind, and any slot name we do not know are
-//   reported, never forced into a wrong slot.
+//   A second flask of one kind and any slot name we do not know are reported,
+//   never forced into a wrong slot. Ring 3 is its own slot (the third ring
+//   the "Unfurled Finger" passive opens); it never lands in ring1 or ring2.
 // - Slice 4: each item's craft — rarity, name, quality, rolls, affixes,
 //   runes — is read by mapCraft (./mapCraft.ts) when the catalogue offers
 //   craftLookupsFor, and whatever it cannot match is reported. Without it
@@ -49,6 +50,7 @@ const SLOT_BY_POB_NAME: Record<string, GearSlot | 'flask'> = {
   Amulet: 'amulet',
   'Ring 1': 'ring1',
   'Ring 2': 'ring2',
+  'Ring 3': 'ring3',
   Belt: 'belt',
   'Flask 1': 'flask',
   'Flask 2': 'flask',
@@ -71,6 +73,7 @@ export const POB_SLOT_NAME: Record<GearSlot, string> = {
   amulet: 'Amulet',
   ring1: 'Ring 1',
   ring2: 'Ring 2',
+  ring3: 'Ring 3',
   belt: 'Belt',
   flask1: 'Flask 1',
   flask2: 'Flask 2',
@@ -254,8 +257,7 @@ export async function mapItems(
 
     const mapped = SLOT_BY_POB_NAME[pobSlot.name];
     if (!mapped) {
-      const why = pobSlot.name === 'Ring 3' ? 'Project Vaal has two ring slots' : 'Project Vaal has no such slot';
-      report.push(dropped(`${displayName} in Path of Building's ${pobSlot.name} was left out — ${why}.`));
+      report.push(dropped(`${displayName} in Path of Building's ${pobSlot.name} was left out — Project Vaal has no such slot.`));
       continue;
     }
 

@@ -68,6 +68,10 @@ const POOL_WORDS: Record<Pool, RegExp> = {
   critReduce: /Critical Damage Bonus/,
   enemyCrit: /Critical Hit Chance against you/,
   unluckyCrit: /Critical Hit Chance against you is/,
+  effectRing1: /bonuses gained from Equipped/,
+  effectRing2: /bonuses gained from Equipped/,
+  effectRing3: /bonuses gained from Equipped/,
+  effectAmulet: /bonuses gained from Equipped/,
 };
 
 const strip = (t: string) => t.replace(/\[[^|\]]*\|([^\]]*)\]/g, '$1').replace(/\[([^\]]*)\]/g, '$1');
