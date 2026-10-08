@@ -1,5 +1,32 @@
 {
   "armour-life-gemling.json": {
+    "gaps": {
+      "life": [
+        "flat 201 from Onslaught Glance, Imperial Greathelm",
+        "flat 265 from Morior Invictus, Grand Regalia",
+        "flat 103 from Pain Spiral, Gold Ring",
+        "increased 3 from Morior Invictus, Grand Regalia",
+        "increased 28 from VirtuousBarrierPlayer"
+      ],
+      "mana": [
+        "increased 5 from 32976"
+      ],
+      "energyShield": [
+        "increased 25 from VirtuousBarrierPlayer"
+      ],
+      "spirit": [
+        "flat 70 from Morior Invictus, Grand Regalia"
+      ],
+      "evasion": [
+        "increased -29 from The Adorned, Diamond",
+        "increased 25 from VirtuousBarrierPlayer"
+      ],
+      "str": [
+        "flat 6 from Apocalypse Bliss, Ruby"
+      ],
+      "dex": [],
+      "int": []
+    },
     "class": "Gemling Legionnaire",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/flyinghigh42-0275/StickyOildUp",
     "matched": 0,
@@ -73,6 +100,40 @@
     }
   },
   "es-life-stormweaver.json": {
+    "gaps": {
+      "life": [],
+      "mana": [
+        "flat 222 from Oblivion Spiral, Gold Ring",
+        "flat 260 from Morior Invictus, Grand Regalia",
+        "flat 222 from Kalandra's Touch, Ring",
+        "increased 8 from Oblivion Spiral, Gold Ring",
+        "increased 8 from Kalandra's Touch, Ring"
+      ],
+      "energyShield": [
+        "flat 397 from Morior Invictus, Grand Regalia",
+        "flat 107 from 34324",
+        "increased 32 from Ghoul Star, Sapphire",
+        "increased 29 from Ghoul Heart, Sapphire",
+        "increased 32 from Hypnotic Splinter, Sapphire",
+        "increased 33 from Eagle Joy, Sapphire"
+      ],
+      "spirit": [
+        "flat 70 from Morior Invictus, Grand Regalia",
+        "flat 12 from 21984",
+        "flat 12 from 21984"
+      ],
+      "evasion": [
+        "flat 1289 from Morior Invictus, Grand Regalia",
+        "flat 503 from 55193",
+        "increased 23 from Headhunter, Heavy Belt",
+        "increased 80 from 32354",
+        "increased 20 from 49356",
+        "increased 81 from 53185"
+      ],
+      "str": [],
+      "dex": [],
+      "int": []
+    },
     "class": "Stormweaver",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/nameking-0380/%E5%97%B6%E5%93%A9%E4%BD%90%E5%BE%B7%E5%B0%8F%E6%B1%BD%E8%BB%8A",
     "matched": 4,
@@ -146,6 +207,37 @@
     }
   },
   "evasion-deadeye.json": {
+    "gaps": {
+      "life": [],
+      "mana": [],
+      "energyShield": [
+        "flat 268 from 34324",
+        "more 20 from ChargeRegulationPlayer"
+      ],
+      "spirit": [
+        "flat 115 from Guiding Palm of the Eye"
+      ],
+      "evasion": [
+        "flat 577 from 55193",
+        "increased 54 from Gale Rosary, Jade Amulet",
+        "increased 25 from Evasive Leg",
+        "increased 20 from 19880",
+        "increased 20 from 49356",
+        "increased 20 from 51707",
+        "more 20 from ChargeRegulationPlayer",
+        "more 30 from WindDancerPlayer"
+      ],
+      "str": [
+        "flat 15 from Guiding Palm of the Eye, Shrine Sceptre"
+      ],
+      "dex": [
+        "flat 10 from 61601"
+      ],
+      "int": [
+        "flat 27 from Guiding Palm of the Eye, Shrine Sceptre",
+        "flat 10 from 38537"
+      ]
+    },
     "class": "Deadeye",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/olleyDE-4339/chillamaggiTTVsGlatze",
     "matched": 4,
@@ -219,6 +311,28 @@
     }
   },
   "hybrid-tactician.json": {
+    "gaps": {
+      "life": [],
+      "mana": [],
+      "energyShield": [
+        "increased 20 from Luminous Breath, Sapphire",
+        "increased 58 from Spirit Locket, Pearlescent Amulet"
+      ],
+      "spirit": [],
+      "evasion": [
+        "more 60 from DefianceBannerPlayer"
+      ],
+      "str": [
+        "flat 32 from Morior Invictus, Grand Regalia"
+      ],
+      "dex": [
+        "flat 32 from Morior Invictus, Grand Regalia"
+      ],
+      "int": [
+        "flat 32 from Morior Invictus, Grand Regalia",
+        "flat 10 from 48734"
+      ]
+    },
     "class": "Tactician",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/pjf5845203344-2325/%E5%A4%A9%E7%A9%BA%E6%87%92%E7%8B%BC%E8%93%9D",
     "matched": 3,
