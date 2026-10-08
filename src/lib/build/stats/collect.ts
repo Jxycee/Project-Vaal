@@ -99,7 +99,7 @@ const NUMBER_TOKEN = /\((-?\d+(?:\.\d+)?)-(-?\d+(?:\.\d+)?)\)|(-?\d+(?:\.\d+)?)/
 
 export interface Collected {
   contributions: Contribution[];
-  flags: { giantsBlood: boolean; lordOfTheWilds: boolean; noSpirit: boolean; noSpiritFromEquipment: boolean; chaosInoculation: boolean; eldritchBattery: boolean };
+  flags: { giantsBlood: boolean; lordOfTheWilds: boolean; noSpirit: boolean; noSpiritFromEquipment: boolean; chaosInoculation: boolean; eldritchBattery: boolean; bloodMagic: boolean };
   resistancePenalty: number;
   act: string;
   notCounted: string[];
@@ -123,7 +123,9 @@ export function collectContributions(
   if (lifeReserved.skills.length > 0) {
     assumed.push(`${lifeReserved.skills.join(', ')}: reserves ${lifeReserved.percent}% of Life (Low Life is derived from it); Reservation Efficiency modifiers are not modelled`);
   }
-  const flags = { giantsBlood: false, lordOfTheWilds: false, noSpirit: false, noSpiritFromEquipment: false, chaosInoculation: false, eldritchBattery: false };
+  /** Mind over Matter allocated: PoB leaves Mana alone beside Blood Magic (ordinary-titan-1, mana 963; ordinary-warbringer-1 without it, mana 0). */
+  let manaShield = false;
+  const flags = { giantsBlood: false, lordOfTheWilds: false, noSpirit: false, noSpiritFromEquipment: false, chaosInoculation: false, eldritchBattery: false, bloodMagic: false };
 
   // ---- Tree: this set's nodes (shared ones are in both lists) and the ascendancy.
   const nodes = new Set([...(input.set === 1 ? input.passive.set1 : input.passive.set2), ...input.passive.ascendancyNodes]);
@@ -153,6 +155,8 @@ export function collectContributions(
       else if (stat === 'keystone_lord_of_the_wilds') flags.lordOfTheWilds = true;
       else if (stat === 'keystone_chaos_inoculation') flags.chaosInoculation = true;
       else if (stat === 'keystone_eldritch_battery') flags.eldritchBattery = true;
+      else if (stat === 'keystone_blood_magic') flags.bloodMagic = true;
+      else if (stat === 'keystone_mana_shield') manaShield = true;
       else if (stat === 'cannot_gain_spirit_from_equipment') flags.noSpiritFromEquipment = true;
       if (SUPPORT_THRESHOLD[stat]) needsSupports.push({ stat, value, source: node.name });
       else if (PER_ITEM_DEFENCE[stat]) perItem.push({ rule: PER_ITEM_DEFENCE[stat], value, source: node.name });
@@ -290,6 +294,7 @@ export function collectContributions(
 
   for (const [stat, sources] of unknown) notCounted.push(`Unrecognised stat ${stat} (${[...sources].join(', ')})`);
 
+  if (manaShield) flags.bloodMagic = false;
   return { contributions, flags, resistancePenalty: campaign.resistancePenalty, act: campaign.act, notCounted, assumed };
 }
 

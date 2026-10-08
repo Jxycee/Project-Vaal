@@ -156,6 +156,14 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   // The Titan's Stone Skin: "50% more Armour from Equipped Body Armour" - a more with PoB's SlotName tag, so it multiplies the body
   // armour's Armour alone (engine.ts defence()), on top of the global more.
   'ascendancy_titan_damage_reduction_rating_from_body_armour_+%_final': [{ pool: 'armour', kind: 'more', slot: 'body' }],
+  // The Amazon's Stalking Panther: "Evasion Rating from Equipped Helmet, Gloves and Boots is doubled" / "... Body Armour is halved".
+  // PoB's modcache parses them as a SlotName MORE of +100 / -50 on Evasion, so they are slot-scoped mores (value 1 each, scaled).
+  double_evasion_rating_from_gloves_helmets_boots: [
+    { pool: 'evasion', kind: 'more', slot: 'head', scale: 100 },
+    { pool: 'evasion', kind: 'more', slot: 'gloves', scale: 100 },
+    { pool: 'evasion', kind: 'more', slot: 'boots', scale: 100 },
+  ],
+  halve_evasion_rating_from_body: [{ pool: 'evasion', kind: 'more', slot: 'body', scale: -50 }],
 
   // The Winter Owl: "3% increased Evasion Rating per 10 Intelligence" (PoB PerStat on Int, floor(260 / 10) x 3 = 78).
   'evasion_+%_per_10_intelligence': [{ pool: 'evasion', kind: 'increased', perAttribute: { attr: 'int', per: 10 } }],
@@ -286,6 +294,8 @@ export const CONDITIONAL_EFFECTS: Readonly<Record<string, ConditionalEffect>> = 
   // "if you've consumed a Frenzy Charge Recently": modcache.json gives Multiplier:RemovableFrenzyCharge, and PoB counted the
   // node once (20, not 20 x 3 charges) on evasion-deadeye, whose Configuration only ticks "use Frenzy Charges".
   'evasion_rating_+%_if_consumed_frenzy_charge_recently': { condition: 'UseFrenzyCharges', effects: inc('evasion') },
+  // High Alert: "50% increased Evasion Rating when on Full Life". FullLife is derived from unreserved Life (reservation.ts).
+  'evasion_rating_+%_when_on_full_life': { condition: 'FullLife', effects: inc('evasion') },
   'evasion_rating_+%_if_have_not_been_hit_recently': { condition: 'BeenHitRecently', negate: true, effects: inc('evasion') },
   // Defiance: "80% increased Armour and Evasion Rating when on Low Life". LowLife is derived from Life reservation
   // (reservation.ts) or ticked in the Configuration ("Are you always on Low Life?").

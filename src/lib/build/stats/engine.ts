@@ -72,6 +72,8 @@ export interface EngineInput {
      * into Mana's base, Mana's own increased and more apply to it, and Energy Shield's do not.
      */
     eldritchBattery?: boolean;
+    /** Blood Magic: "You have no Mana" (PoB OVERRIDE 0 on Mana: warbringer oracle shows 0, not the usual floor of 1). */
+    bloodMagic?: boolean;
   };
   /** The build's PoB Configuration (conditions such as EnemyBlinded). Absent = unknown, which reads as nothing ticked. */
   config?: BuildConfig;
@@ -159,7 +161,7 @@ export function computeDefences(given: EngineInput): DefenceSheet {
   const lifeToEs = ci ? 0 : Math.min(Math.max(flatOf('lifeToEnergyShield'), 0), 100);
   const life = ci ? 1 : Math.max(Math.round(scaled(lifeBase, 'life') * (1 - lifeToEs / 100)), 1);
   const converted = input.flags.eldritchBattery === true;
-  const mana = Math.max(Math.round(scaled(4 * level + 30 + int * 2 + flatOf('mana') + (converted ? flatOf('energyShield') : 0), 'mana')), 1);
+  const mana = input.flags.bloodMagic ? 0 : Math.max(Math.round(scaled(4 * level + 30 + int * 2 + flatOf('mana') + (converted ? flatOf('energyShield') : 0), 'mana')), 1);
 
   // Each slot's item gets the global increase plus its own slot's (CalcDefence.lua:1445-1453);
   // everything else (class base, global flats) gets the global one only. With no slot-scoped

@@ -964,13 +964,11 @@
       "Grip of Kulemak: unique — not in our data",
       "From Nothing: unique — not in our data",
       "Heart of the Well: unique — not in our data",
-      "Megalomaniac: unique — not in our data",
-      "Unrecognised stat double_evasion_rating_from_gloves_helmets_boots (Stalking Panther)",
-      "Unrecognised stat halve_evasion_rating_from_body (Stalking Panther)"
+      "Megalomaniac: unique — not in our data"
     ],
     "class": "Amazon",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/sawyer196-6413/W%C3%BCrdeohnew%C3%BCrde",
-    "matched": 12,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -1010,8 +1008,8 @@
       },
       "evasion": {
         "want": 30956,
-        "got": 15605,
-        "ok": false
+        "got": 30956,
+        "ok": true
       },
       "fire": {
         "want": 75,
@@ -1039,7 +1037,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 8,
+    "derivedMatched": 9,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -1049,17 +1047,17 @@
       },
       "evadeChance": {
         "want": 79,
-        "got": 66,
+        "got": 78,
         "ok": false
       },
       "deflectionRating": {
         "want": 16097,
-        "got": 8114,
-        "ok": false
+        "got": 16097,
+        "ok": true
       },
       "deflectChance": {
         "want": 84,
-        "got": 55,
+        "got": 80,
         "ok": false
       },
       "ward": {
@@ -1109,7 +1107,7 @@
       },
       "effectiveHealthPool": {
         "want": 89091,
-        "got": 43636,
+        "got": 78704,
         "ok": false
       },
       "physicalMaxHit": {
@@ -4172,9 +4170,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
-      "evasion": [
-        "increased 50 from 30456"
-      ],
+      "evasion": [],
       "str": [],
       "dex": [],
       "int": []
@@ -4191,7 +4187,7 @@
     ],
     "class": "Pathfinder",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/defaplayer-3684/chomame",
-    "matched": 12,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -4231,8 +4227,8 @@
       },
       "evasion": {
         "want": 4586,
-        "got": 3899,
-        "ok": false
+        "got": 4586,
+        "ok": true
       },
       "fire": {
         "want": 75,
@@ -4260,7 +4256,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 13,
+    "derivedMatched": 14,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -4270,8 +4266,8 @@
       },
       "evadeChance": {
         "want": 33,
-        "got": 30,
-        "ok": false
+        "got": 33,
+        "ok": true
       },
       "deflectionRating": {
         "want": 0,
@@ -4330,7 +4326,7 @@
       },
       "effectiveHealthPool": {
         "want": 32222,
-        "got": 27562,
+        "got": 28809,
         "ok": false
       },
       "physicalMaxHit": {
@@ -4967,7 +4963,7 @@
     ],
     "class": "Warbringer",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/Tukemon-0092/Totemocu_ANIKI",
-    "matched": 9,
+    "matched": 10,
     "of": 13,
     "stats": {
       "str": {
@@ -4992,8 +4988,8 @@
       },
       "mana": {
         "want": 0,
-        "got": 552,
-        "ok": false
+        "got": 0,
+        "ok": true
       },
       "energyShield": {
         "want": 0,
@@ -5036,7 +5032,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 8,
+    "derivedMatched": 9,
     "derivedOf": 17,
     "derived": {
       "enemyAccuracy": {
@@ -5071,8 +5067,8 @@
       },
       "manaRegen": {
         "want": 0,
-        "got": 30,
-        "ok": false
+        "got": 0,
+        "ok": true
       },
       "movementSpeed": {
         "want": 137,
