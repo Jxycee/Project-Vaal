@@ -2607,7 +2607,7 @@
       },
       "esRechargeDelay": {
         "want": 1.8182,
-        "got": 3.6364,
+        "got": 2.5,
         "ok": false
       },
       "movementSpeed": {
@@ -4489,7 +4489,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 13,
+    "derivedMatched": 14,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -4534,8 +4534,8 @@
       },
       "esRechargeDelay": {
         "want": 2.2472,
-        "got": 3.125,
-        "ok": false
+        "got": 2.2472,
+        "ok": true
       },
       "movementSpeed": {
         "want": 136,
@@ -5554,9 +5554,7 @@
       "spirit": [
         "more -50 from 61942"
       ],
-      "armour": [
-        "flat 1010 from Bear Form"
-      ],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -5570,7 +5568,7 @@
     ],
     "class": "Shaman",
     "source": "https://poe.ninja/poe2/builds/runesofaldur/character/Yorkerk-4812/WhichMonstersTasteGood",
-    "matched": 11,
+    "matched": 12,
     "of": 13,
     "stats": {
       "str": {
@@ -5605,8 +5603,8 @@
       },
       "armour": {
         "want": 17541,
-        "got": 13693,
-        "ok": false
+        "got": 17541,
+        "ok": true
       },
       "evasion": {
         "want": 0,
@@ -5709,27 +5707,27 @@
       },
       "effectiveHealthPool": {
         "want": 51499,
-        "got": 22995,
+        "got": 26322,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 8141,
-        "got": 5836,
+        "got": 6088,
         "ok": false
       },
       "fireMaxHit": {
         "want": 26467,
-        "got": 18155,
+        "got": 18484,
         "ok": false
       },
       "coldMaxHit": {
         "want": 26467,
-        "got": 18155,
+        "got": 18484,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 24230,
-        "got": 18155,
+        "got": 18484,
         "ok": false
       },
       "chaosMaxHit": {

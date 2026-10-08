@@ -31,7 +31,7 @@ import type { GearState } from '../gearState';
 import type { GemState } from '../gemState';
 import { conditionHolds, type BuildConfig } from './buildConfig';
 import { lifeReservation, withDerivedConditions } from './reservation';
-import { skillBuffContributions } from './skillBuffs';
+import { shapeshiftContributions, skillBuffContributions } from './skillBuffs';
 import { readSurrounded } from './surrounded';
 import { totemsSummoned, type TotemMods } from './totems';
 import type { PassiveState } from '../types';
@@ -345,6 +345,7 @@ function collectOnce(
     config,
   );
   contributions.push(...buffs.contributions);
+  contributions.push(...shapeshiftContributions(input.gems, input.level));
   notCounted.push(...buffs.notCounted);
   if (buffs.counted.length > 0) {
     assumed.push(`${buffs.counted.join(', ')}: read at the gem's own level; "+N to Level of all skills" from gear is not modelled`);

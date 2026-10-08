@@ -115,3 +115,20 @@ for (const skill of Object.values(skills)) {
 }
 writeFileSync('src/lib/pob/data/skill-totems.json', JSON.stringify(totems));
 console.log(Object.keys(totems.limit).length + ' totem skills -> skill-totems.json');
+
+// Shapeshift skills (skillTypes Bear, Wolf, Wyvern). PoB2 gives the character a form's bonus while its MAIN skill has
+// the form's type (CalcPerform.lua:398-416, in combat mode, which the poe.ninja simulation always is): Bear Form =
+// +10 + 10 x character level Armour, Wolf Form = 30% increased Movement Speed, Wyvern Form = 50% increased Energy
+// Shield recharge rate. A name that a skill of another kind (or another form) also uses is dropped, never guessed.
+const forms = { Bear: [], Wolf: [], Wyvern: [] };
+const nameForms = new Map();
+for (const skill of Object.values(skills)) {
+  if (skill.type !== 'active') continue;
+  const types = skill.skillTypes ?? [];
+  const mine = ['Bear', 'Wolf', 'Wyvern'].filter((f) => types.includes(f));
+  const key = mine.join('+') || 'none';
+  nameForms.set(skill.name, nameForms.has(skill.name) && nameForms.get(skill.name) !== key ? 'ambiguous' : key);
+}
+for (const [name, key] of nameForms) if (forms[key]) forms[key].push(name);
+writeFileSync('src/lib/pob/data/skill-shapeshift.json', JSON.stringify(forms));
+console.log(Object.entries(forms).map(([f, n]) => f + ' ' + n.length).join(', ') + ' -> skill-shapeshift.json');

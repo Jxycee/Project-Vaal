@@ -236,7 +236,7 @@ const FLOOR: Record<string, number> = {
   'ordinary-invoker-1.json': 12, // short: Mana (2253/2549)
   'ordinary-mercenary-1.json': 13, // round 2: 13 of 13, an active charm adds its base buff (collect.ts collectCharms: Sapphire +25% Cold, Topaz +25% Lightning, same-base charms merge); was 11
   'ordinary-monk-1.json': 12, // short: Energy Shield (8225/8387)
-  'ordinary-shaman-1.json': 11, // round 5: 11 of 13 (Undying Hate's Conquered Attribute passives +3 to all Attributes, Wisdom of the Maji's Bonded rune lines, Iron Reflexes from the Legacy rune, Heavy Armour); was 5. Short: Armour (13693/17541: PoB's Bear Form shapeshift adds 1010 flat Armour, not in our data) and Lightning (72/75: Purity of Lightning is 39 in PoB, 49.53 here, aura magnitudes not applied)
+  'ordinary-shaman-1.json': 12, // round 7: 12 of 13 (Bear Form: the main skill Rampage is a Bear skill, +10 x level + 10 flat Armour). round 5: 11 of 13 (Undying Hate's Conquered Attribute passives +3 to all Attributes, Wisdom of the Maji's Bonded rune lines, Iron Reflexes from the Legacy rune, Heavy Armour); was 5. Short: Lightning (72/75: Purity of Lightning is 39 in PoB, 49.53 here, aura magnitudes not applied)
   'ordinary-smith-of-kitava-1.json': 13,
   'ordinary-sorceress-1.json': 12, // short: Energy Shield (8661/9143)
   'ordinary-witchhunter-1.json': 11, // short: Evasion (24523/23064: Afterimage's Hit Recently and Hyrri's Ire, Obsessive Rituals' final -50% not read), Chaos resistance (20/24)

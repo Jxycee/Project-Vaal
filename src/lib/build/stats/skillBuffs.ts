@@ -44,8 +44,9 @@
 // =============================================================================
 
 import buffs from '@/lib/pob/data/skill-buffs.json';
+import shapeshift from '@/lib/pob/data/skill-shapeshift.json';
 import supportLevels from '@/lib/pob/data/support-levels.json';
-import type { GemState } from '../gemState';
+import { deriveMainSkill, type GemState } from '../gemState';
 import { conditionHolds, MOTE_VARS, moteCounts, NUMBER_INPUTS, type BuildConfig } from './buildConfig';
 import { POOLS as MODIFIER_POOLS } from './lineMods';
 import type { Contribution } from './engine';
@@ -185,4 +186,25 @@ export function skillBuffContributions(
     if (used) counted.push(skill.name);
   }
   return { contributions, notCounted, counted };
+}
+
+// SHAPESHIFT FORMS. PoB2 (CalcPerform.lua:398-416) gives the character a form's bonus while the MAIN skill has the
+// form's type (Bear, Wolf, Wyvern); the poe.ninja simulation is always in combat mode, so the bonus always applies:
+// Bear Form = Armour BASE 10 x character level + 10 (ModStore Multiplier tag: value x count + base), Wolf Form = 30%
+// increased Movement Speed, Wyvern Form = 50% increased Energy Shield recharge rate. (Bear Form also lets 30% of Armour
+// apply to elemental damage taken; that is a damage-reduction figure, not one of the sheet's numbers.)
+// Failure modes, decided first:
+//   1. No skills, or no main skill (deriveMainSkill is null): no form, nothing claimed.
+//   2. The main skill is the build's primary loadout, as imported from Build@mainSocketGroup (mapGems.ts); a form skill
+//      that is merely socketed elsewhere gives nothing, exactly as in PoB.
+//   3. A skill name another kind of skill shares is absent from the data (scripts/derive-skill-buffs.mjs): no bonus.
+//   4. Switching the primary skill in the app to a non-form skill drops the bonus, like PoB's main-skill selector.
+export function shapeshiftContributions(gems: GemState | undefined, level: number): Contribution[] {
+  const main = gems ? deriveMainSkill(gems) : null;
+  if (main === null) return [];
+  const forms = shapeshift as Record<'Bear' | 'Wolf' | 'Wyvern', string[]>;
+  if (forms.Bear.includes(main)) return [{ pool: 'armour', kind: 'flat', value: 10 * level + 10, source: 'Bear Form' }];
+  if (forms.Wolf.includes(main)) return [{ pool: 'movementSpeed', kind: 'increased', value: 30, source: 'Wolf Form' }];
+  if (forms.Wyvern.includes(main)) return [{ pool: 'esRechargeFaster', kind: 'increased', value: 50, source: 'Wyvern Form' }];
+  return [];
 }
