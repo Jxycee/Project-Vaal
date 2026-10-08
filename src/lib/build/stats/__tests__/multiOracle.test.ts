@@ -199,7 +199,7 @@ const ours = (sheet: DefenceSheet, k: Key): number => (k === 'fire' || k === 'co
 
 // Ratchet: the least number of the 13 stats each build must match. Raise it when a fix lands; never lower it.
 const FLOOR: Record<string, number> = {
-  'armour-life-gemling.json': 9, // round 5: 9 (Iron Reflexes, Heavy Armour); was 8 // Gem Enthusiast now counted; Mageblood, a RELIC body armour and 36 unreadable item lines: item coverage, not the engine
+  'armour-life-gemling.json': 12, // round 1 of the exotic loop: The Adorned's 62% Effect of Jewel Socket Passive Skills scales corrupted rare jewels (collect.ts jewelSocketEffect); was 9. round 5: 9 (Iron Reflexes, Heavy Armour); was 8 // Gem Enthusiast now counted; Mageblood, a RELIC body armour and 36 unreadable item lines: item coverage, not the engine
   'es-life-stormweaver.json': 13, // round 8: 13 of 13 (Low Life derived from Atziri's Communion, Defiance); was 11 // Kalandra's Touch reflects the opposite ring (collect.ts); a radius jewel's notables (fire, spirit)
   'evasion-deadeye.json': 12, // the weapon set PoB had active (set 2) now read from the code; still short: chaos resistance via a Time-Lost jewel's radius grant
   'hybrid-tactician.json': 10, // round 9 (printed-line truth for uniques); was 9 // round 6: Ancient Aegis / Fortified Aegis scale one slot (statTable.ts); was 8

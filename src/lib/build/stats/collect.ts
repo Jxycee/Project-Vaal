@@ -38,7 +38,7 @@ import type { PassiveState } from '../types';
 import { campaignAt } from './campaign';
 import { DEFENCE_WORDS, implicitStats } from './implicits';
 import { isLegacyLine, LEGACY_EFFECT_LINE, legacyContributions } from './legacies';
-import { RADIUS_GRANT_LINE, readLine, readLocalDefenceLine, type LineMod } from './lineMods';
+import { RADIUS_GRANT_LINE, SOCKET_EFFECT_LINE, readLine, readLocalDefenceLine, type LineMod } from './lineMods';
 import { switchedNode } from './switchableNodes';
 import type { JewelRadiusNode } from '@/lib/tree/treeLite';
 import { categoryApplies, isKnownCategory, readRuneLine } from './runes';
@@ -293,9 +293,11 @@ function collectOnce(
   };
   /** Radius jewels wait until every item has allocated what it grants (Megalomaniac's "Allocates X"): PoB counts a node in the radius however it was allocated. */
   const radiusJewels: { item: GearItem; socket: number }[] = [];
+  const socketEffect = jewelSocketEffect(equipped);
   for (const { item, slot, socket } of equipped) {
     const from = contributions.length;
     collectItem(item, slot, data, flags, contributions, notCounted, unknown, assumed, allocate, config, gearCounts, input.level, multiplierCounts, perItem);
+    if (socket !== undefined) scaleSocketedJewel(item, socketEffect, contributions, from);
     if (socket !== undefined) radiusJewels.push({ item, socket });
     if (slot) wornAt.set(slot, { from, to: contributions.length, name: item.name });
   }
@@ -570,6 +572,41 @@ function corruptedItemCount(equipped: readonly { item: GearItem; slot?: GearSlot
     if (opposite && !opposite.name.includes("Kalandra's Touch") && corrupted(opposite)) count++;
   }
   return count;
+}
+
+/**
+ * "N% increased Effect of Jewel Socket Passive Skills containing Corrupted Rare Jewels" (The Adorned): a jewel socket holding a
+ * corrupted jewel of that rarity gives its jewel's modifiers N% more value. Oracle armour-life-gemling: six corrupted rare Rubies
+ * and Sapphires under a 62% line, PoB lists floor(24 x 1.62) = 38, floor(29 x 1.62) = 46, floor(+4 Strength x 1.62) = 6 for them.
+ *
+ * Failure modes, decided first:
+ *   1. No such line worn (every other build): the table is empty and nothing is scaled.
+ *   2. The line sits on an item in no allocated socket (not in `equipped`): it does nothing, as in the game.
+ *   3. Only a CORRUPTED jewel of the named rarity is scaled; an uncorrupted rare, a unique, or a jewel of the other rarity is not.
+ *   4. Each modifier value is floored on its own after the scale (verified: 38.88 -> 38, 46.98 -> 46, 6.48 -> 6, 4.86 -> 4).
+ *   5. Two such lines add (PoB sums increases). Only what collectItem pushed for that jewel is scaled: a radius jewel's "also
+ *      grant" lines are added after this and are not.
+ */
+function jewelSocketEffect(equipped: readonly { item: GearItem; socket?: number }[]): { magic: number; rare: number } {
+  const out = { magic: 0, rare: 0 };
+  for (const { item, socket } of equipped) {
+    if (socket === undefined) continue;
+    for (const line of item.craft?.verbatim ?? []) {
+      const m = SOCKET_EFFECT_LINE.exec(line);
+      if (m) out[m[2] === 'Magic' ? 'magic' : 'rare'] += Number(m[1]);
+    }
+  }
+  return out;
+}
+
+function scaleSocketedJewel(item: GearItem, effect: { magic: number; rare: number }, contributions: Contribution[], from: number): void {
+  const rarity = item.craft?.rarity;
+  const percent = rarity === 'magic' ? effect.magic : rarity === 'rare' ? effect.rare : 0;
+  if (percent === 0 || item.isUnique || item.craft?.corrupted !== true) return;
+  for (let i = from; i < contributions.length; i++) {
+    const c = contributions[i];
+    contributions[i] = { ...c, value: Math.floor((c.value * (100 + percent)) / 100) };
+  }
 }
 
 function reflectOppositeRing(wornAt: ReadonlyMap<GearSlot, { from: number; to: number; name: string }>, contributions: Contribution[]): void {

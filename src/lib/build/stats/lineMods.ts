@@ -76,6 +76,13 @@ import type { Pool } from './statTable';
 export const RADIUS_GRANT_LINE = /^(Small|Notable|Conquered Attribute) Passive Skills(?: in Radius)? also grant (.+)$/;
 
 /**
+ * The Adorned prints "N% increased Effect of Jewel Socket Passive Skills" and, on the next line, "containing Corrupted
+ * Magic Jewels" (or Rare). The importer joins the two into this one line (mapCraft.ts joinSocketEffectLines) so a
+ * verbatim copy survives alone; collect.ts scales every modifier of each corrupted jewel of that rarity by N%.
+ */
+export const SOCKET_EFFECT_LINE = /^(\d+(?:\.\d+)?)% increased Effect of Jewel Socket Passive Skills containing Corrupted (Magic|Rare) Jewels$/;
+
+/**
  * "28% increased bonuses gained from left Equipped Ring" (Ingenuity), "... from Equipped Rings", "... from Equipped Amulet",
  * "... from Equipped Rings and Amulets": PoB's EffectOfBonusesFrom<slot> INC. modcache.json lacks these lines, so the
  * words decide. The sum per slot becomes a second, scaled copy of that ring or amulet's modifiers (collect.ts

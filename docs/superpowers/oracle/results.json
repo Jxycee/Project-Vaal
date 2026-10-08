@@ -7,18 +7,9 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
-      "armour": [
-        "increased 38 from Foe Ember, Ruby",
-        "increased 46 from Kraken Star, Ruby",
-        "increased 43 from Viper Sliver, Ruby",
-        "increased 35 from Viper Wound, Ruby",
-        "increased 46 from Hypnotic Hope, Ruby",
-        "increased 45 from Apocalypse Bliss, Ruby"
-      ],
+      "armour": [],
       "evasion": [],
-      "str": [
-        "flat 6 from Apocalypse Bliss, Ruby"
-      ],
+      "str": [],
       "dex": [],
       "int": []
     },
@@ -32,13 +23,13 @@
     ],
     "class": "Gemling Legionnaire",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/flyinghigh42-0275/StickyOildUp",
-    "matched": 9,
+    "matched": 12,
     "of": 13,
     "stats": {
       "str": {
         "want": 306,
-        "got": 304,
-        "ok": false
+        "got": 306,
+        "ok": true
       },
       "dex": {
         "want": 99,
@@ -52,7 +43,7 @@
       },
       "life": {
         "want": 4075,
-        "got": 3838,
+        "got": 3844,
         "ok": false
       },
       "mana": {
@@ -67,8 +58,8 @@
       },
       "armour": {
         "want": 38359,
-        "got": 32110,
-        "ok": false
+        "got": 38359,
+        "ok": true
       },
       "evasion": {
         "want": 0,
@@ -92,8 +83,8 @@
       },
       "chaos": {
         "want": 68,
-        "got": 67,
-        "ok": false
+        "got": 68,
+        "ok": true
       },
       "spirit": {
         "want": 220,
@@ -171,32 +162,32 @@
       },
       "effectiveHealthPool": {
         "want": 83813,
-        "got": 40696,
+        "got": 45477,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 8828,
-        "got": 6652,
+        "got": 6966,
         "ok": false
       },
       "fireMaxHit": {
         "want": 28041,
-        "got": 21750,
+        "got": 22629,
         "ok": false
       },
       "coldMaxHit": {
         "want": 27025,
-        "got": 21176,
+        "got": 21982,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 27025,
-        "got": 21176,
+        "got": 21982,
         "ok": false
       },
       "chaosMaxHit": {
         "want": 14791,
-        "got": 12918,
+        "got": 13341,
         "ok": false
       }
     }
