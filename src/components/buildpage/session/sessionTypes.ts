@@ -24,6 +24,7 @@ import type { WeaponSet } from '@poe2-toolkit/tree-core';
 import type { BuildEditorState, PassiveState } from '@/lib/build/types';
 import type { GearItem, GearSlot } from '@/lib/build/gearSlots';
 import type { GearState } from '@/lib/build/gearState';
+import type { BuildConfig } from '@/lib/build/stats/buildConfig';
 import type { GemState } from '@/lib/build/gemState';
 import type { BuildWarning } from '@/lib/build/validate';
 import type { JewelsSummary } from '@/lib/build/jewelState';
@@ -62,6 +63,8 @@ export interface BuildSessionValue {
   livePassive: PassiveState;
   /** Quest id -> chosen option id; the same map livePassive carries as `questChoices`. */
   questChoices: Record<string, string>;
+  /** The build's PoB Configuration as edited (undefined = none; conditional modifiers are then named, not counted). */
+  buildConfig: BuildConfig | undefined;
   gear: GearState;
   gems: GemState;
   meta: BuildMeta;
@@ -92,6 +95,10 @@ export interface BuildSessionValue {
   setMeta(patch: Partial<BuildMeta>): void;
   /** Owner-only (a no-op otherwise). `null` clears the quest's choice; an id that is not that quest's option is dropped. */
   setQuestChoice(questId: string, optionId: string | null): void;
+  /** Owner-only (a no-op otherwise). Ticks or unticks a PoB condition; flags the panel has no toggle for are kept. */
+  setConfigCondition(name: string, on: boolean): void;
+  /** Owner-only (a no-op otherwise). Sets a multiplier's count (whole, clamped; 0 removes it). */
+  setConfigMultiplier(name: string, count: number): void;
   /**
    * The build's name was just saved to the database by something other than
    * `save()` (the settings menu's rename, which calls `renameBuild`). Sets the
