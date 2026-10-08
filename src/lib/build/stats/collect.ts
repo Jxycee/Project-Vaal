@@ -213,7 +213,7 @@ export function collectContributions(
   const radiusJewels: { item: GearItem; socket: number }[] = [];
   for (const { item, slot, socket } of equipped) {
     const from = contributions.length;
-    collectItem(item, slot, data, flags, contributions, notCounted, unknown, assumed, allocate, config, gearCounts);
+    collectItem(item, slot, data, flags, contributions, notCounted, unknown, assumed, allocate, config, gearCounts, input.level);
     if (socket !== undefined) radiusJewels.push({ item, socket });
     if (slot) wornAt.set(slot, { from, to: contributions.length, name: item.name });
   }
@@ -508,6 +508,8 @@ function collectItem(
   allocate: (name: string) => void,
   config: BuildConfig | undefined,
   gearCounts: Readonly<Record<string, number>>,
+  /** The character's level: "Has +3 to Evasion Rating per player level" scales by it. */
+  level: number,
 ): void {
   const craft = item.craft;
   const stats: [string, number][] = [];
@@ -528,7 +530,7 @@ function collectItem(
     if (!unique || !detail) {
       notCounted.push(`${item.name}: unique — not in our data`);
       // Its lines as the importer kept them still count, as global modifiers (no base to scale locally).
-      readVerbatim(craft?.verbatim, item.name, { defences: false, spirit: false }, {}, {}, contributions, notCounted, allocate, config, { sockets: filledSockets(craft), gear: gearCounts });
+      readVerbatim(craft?.verbatim, item.name, { defences: false, spirit: false }, {}, {}, contributions, notCounted, allocate, config, { sockets: filledSockets(craft), gear: gearCounts, level });
       return;
     }
     // Lines typed to exactly the same stats are one roll's alternatives, which
@@ -618,7 +620,12 @@ function collectItem(
   const implicits = implicitStats(detail.implicits, baseLines, wornImplicitLines ?? baseLines, craft?.implicitValues ?? []);
   stats.push(...implicits.stats);
   if (implicits.assumedMidRoll) assumed.push(`${item.name}: implicit at mid-roll`);
-  for (const line of implicits.uncoveredLines) notCounted.push(`${item.name}: implicit "${line}" not counted`);
+  // A base implicit "Has +3 to Evasion Rating per player level" (Fists of Stone) has no typed stat: it is the item's own defence.
+  const perLevelImplicits = implicits.uncoveredLines.flatMap((line) => (item.isUnique ? [] : readLocalDefenceLine(line)?.filter((m) => m.perLevel) ?? []));
+  for (const line of implicits.uncoveredLines) {
+    if (!item.isUnique && readLocalDefenceLine(line)?.some((m) => m.perLevel)) continue;
+    notCounted.push(`${item.name}: implicit "${line}" not counted`);
+  }
 
   for (const affix of [...(craft?.prefixes ?? []), ...(craft?.suffixes ?? [])] as CraftedMod[]) {
     const rolls = data.mod(affix.slug);
@@ -702,7 +709,8 @@ function collectItem(
   // Local stats shape the item's own defences and Spirit; the rest are global.
   const localFlat: Partial<Record<Pool, number>> = {};
   const localInc: Partial<Record<Pool, number>> = {};
-  readVerbatim([...(craft?.verbatim ?? []), ...untypedLines, ...runeVerbatim], item.name, { defences: detail.armour !== null, spirit: detail.spirit > 0 }, localFlat, localInc, contributions, notCounted, allocate, config, { sockets: filledSockets(craft), gear: gearCounts });
+  for (const m of perLevelImplicits) localFlat[m.pool] = (localFlat[m.pool] ?? 0) + m.value * level;
+  readVerbatim([...(craft?.verbatim ?? []), ...untypedLines, ...runeVerbatim], item.name, { defences: detail.armour !== null, spirit: detail.spirit > 0 }, localFlat, localInc, contributions, notCounted, allocate, config, { sockets: filledSockets(craft), gear: gearCounts, level });
   for (const [stat, value] of stats) {
     const local = LOCAL_EFFECTS[stat];
     if (local) {
@@ -766,7 +774,7 @@ function readVerbatim(
   allocate: (name: string) => void,
   config: BuildConfig | undefined,
   /** What a scaled line multiplies by: the runes in this item ("per Socket filled"), and the gear-wide counts (Grand Spectrum). */
-  counts: { sockets: number; gear: Readonly<Record<string, number>> },
+  counts: { sockets: number; gear: Readonly<Record<string, number>>; level: number },
 ): void {
   for (const line of lines ?? []) {
     const allocates = /^Allocates (.+)$/.exec(line);
@@ -781,7 +789,7 @@ function readVerbatim(
       if (host.defences) {
         for (const mod of readLocalDefenceLine(line) ?? []) {
           const bucket = mod.kind === 'flat' ? localFlat : localInc;
-          bucket[mod.pool] = (bucket[mod.pool] ?? 0) + mod.value;
+          bucket[mod.pool] = (bucket[mod.pool] ?? 0) + (mod.perLevel ? mod.value * counts.level : mod.value);
         }
       }
       continue;

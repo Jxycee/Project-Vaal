@@ -61,7 +61,7 @@ export interface CraftLookups {
   /** Prefix and suffix tiers that can roll on this base, for pasted text. */
   candidates: CraftMod[];
   /** The base's implicit lines and, for a unique, its own lines. */
-  base: { implicitLines: string[]; uniqueLines: string[] } | null;
+  base: { implicitLines: string[]; uniqueLines: string[]; /** A unique's own base name ("Tempered Mitts"), to tell a transformed base from a Runemastered one. */ baseType?: string } | null;
   runeSlugByName(name: string): string | null;
 }
 
@@ -351,7 +351,13 @@ export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups):
     const matched = new Set<number>();
     const templates = lookups.base?.uniqueLines ?? [];
     craft.uniqueValues = matchLines(printed, templates, notes, 'The unique line', verbatim, matched);
-    if (craft.corrupted && printed.length > 0) {
+    // Way of the Stonefist (and any effect like it) turns a unique's base into another one and its explicit lines into
+    // different ones: PoB prints the transformed item and counts only what it prints. A Runemastered/Runeforged base keeps
+    // the original name inside its own, so a printed base that does not contain the unique's base is a transformed item.
+    const baseType = lookups.base?.baseType;
+    const printedBase = lines[2];
+    const transformed = baseType !== undefined && printedBase !== undefined && !/^(Rarity|Item Level|Quality|Sockets|Unique ID|LevelReq|Implicits|Rune|Selected Variant):/.test(printedBase) && !printedBase.includes(baseType);
+    if ((craft.corrupted || transformed) && printed.length > 0) {
       const absent = templates.map((_, i) => i).filter((i) => !matched.has(i));
       if (absent.length > 0) craft.absentLines = absent;
     }

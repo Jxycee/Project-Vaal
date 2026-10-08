@@ -50,6 +50,9 @@
 //      The cache keeps only a mod's FIRST tag, so the Global-tagged "increased Global Armour, Evasion and Energy
 //      Shield per Socket filled" lines lose their Multiplier: the line's own words decide. A per-socket line that
 //      also carries a Condition is not read. An item with no runes multiplies by 0 (adds nothing, never a guess).
+//   9. "Has +N to Evasion Rating per player level" (the Fists of Stone base, Way of the Stonefist): PoB adds N x character
+//      level to the item's OWN defence, before its increases and quality (oracle: ordinary-martial-artist-*). Read as a local flat
+//      with perLevel set; without the character level it would count as N, so the caller must pass the level.
 //   7. Fragments of a wrapped line ("enemy affected by Abyssal Wasting") or a
 //      pure offence line: no template, so null = "not a defence line", silently
 //      ignored by the caller (it is only named when it LOOKS like a defence).
@@ -74,6 +77,8 @@ export interface LineMod {
   perSocket?: boolean;
   /** "... per socketed Grand Spectrum": the value is per item of this kind worn; the caller multiplies it by that count (collect.ts). */
   multiplier?: string;
+  /** "Has +3 to Evasion Rating per player level": the value is per character level, so the caller multiplies it by the level. */
+  perLevel?: boolean;
 }
 
 export type LineRead =
@@ -243,8 +248,12 @@ const LOCAL_WORD: Record<string, Pool> = { Armour: 'armour', 'Evasion Rating': '
 const LOCAL_INC = /^(\d+(?:\.\d+)?)% increased (Armour|Evasion Rating|Evasion|Energy Shield)(?:(?:, | and )(Armour|Evasion Rating|Evasion|Energy Shield))?(?:(?:, | and )(Armour|Evasion Rating|Evasion|Energy Shield))?$/;
 const LOCAL_FLAT = /^\+(\d+(?:\.\d+)?) to (Armour|Evasion Rating|maximum Energy Shield)$/;
 
+const LOCAL_PER_LEVEL = /^Has \+(\d+(?:\.\d+)?) to (Armour|Evasion Rating|maximum Energy Shield) per player level$/;
+
 export function readLocalDefenceLine(line: string): LineMod[] | null {
   const text = line.trim();
+  const perLevel = LOCAL_PER_LEVEL.exec(text);
+  if (perLevel) return [{ pool: LOCAL_WORD[perLevel[2].replace('maximum ', '')], kind: 'flat', value: Number(perLevel[1]), perLevel: true }];
   const inc = LOCAL_INC.exec(text);
   if (inc) {
     const pools = new Set<Pool>();

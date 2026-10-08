@@ -3439,7 +3439,7 @@
     ],
     "class": "Martial Artist",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/phantasmal-4964/KungFuVibing",
-    "matched": 9,
+    "matched": 12,
     "of": 13,
     "stats": {
       "str": {
@@ -3464,22 +3464,22 @@
       },
       "mana": {
         "want": 869,
-        "got": 766,
-        "ok": false
+        "got": 869,
+        "ok": true
       },
       "energyShield": {
         "want": 8993,
-        "got": 7342,
-        "ok": false
+        "got": 8993,
+        "ok": true
       },
       "armour": {
         "want": 0,
-        "got": 60,
-        "ok": false
+        "got": 0,
+        "ok": true
       },
       "evasion": {
         "want": 19587,
-        "got": 14280,
+        "got": 18598,
         "ok": false
       },
       "fire": {
@@ -3508,7 +3508,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 7,
+    "derivedMatched": 8,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -3518,17 +3518,17 @@
       },
       "evadeChance": {
         "want": 73,
-        "got": 64,
+        "got": 70,
         "ok": false
       },
       "deflectionRating": {
         "want": 6071,
-        "got": 4426,
+        "got": 5765,
         "ok": false
       },
       "deflectChance": {
         "want": 50,
-        "got": 36,
+        "got": 44,
         "ok": false
       },
       "ward": {
@@ -3543,13 +3543,13 @@
       },
       "manaRegen": {
         "want": 89,
-        "got": 54,
+        "got": 61,
         "ok": false
       },
       "esRecharge": {
         "want": 1124,
-        "got": 917,
-        "ok": false
+        "got": 1124,
+        "ok": true
       },
       "esRechargeDelay": {
         "want": 3.5714,
@@ -3578,27 +3578,27 @@
       },
       "effectiveHealthPool": {
         "want": 100269,
-        "got": 57600,
+        "got": 87129,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 9242,
-        "got": 7549,
+        "got": 9195,
         "ok": false
       },
       "fireMaxHit": {
         "want": 29813,
-        "got": 24335,
+        "got": 29661,
         "ok": false
       },
       "coldMaxHit": {
         "want": 33007,
-        "got": 26943,
+        "got": 32839,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 33007,
-        "got": 26943,
+        "got": 32839,
         "ok": false
       },
       "chaosMaxHit": {
@@ -3633,7 +3633,7 @@
     ],
     "class": "Martial Artist",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/Sirsyd-4681/Syd_XV",
-    "matched": 5,
+    "matched": 7,
     "of": 13,
     "stats": {
       "str": {
@@ -3653,27 +3653,27 @@
       },
       "life": {
         "want": 1528,
-        "got": 1576,
+        "got": 1524,
         "ok": false
       },
       "mana": {
         "want": 1079,
-        "got": 947,
+        "got": 1075,
         "ok": false
       },
       "energyShield": {
         "want": 3726,
-        "got": 2927,
-        "ok": false
+        "got": 3726,
+        "ok": true
       },
       "armour": {
         "want": 0,
-        "got": 34,
-        "ok": false
+        "got": 0,
+        "ok": true
       },
       "evasion": {
         "want": 27279,
-        "got": 24110,
+        "got": 27080,
         "ok": false
       },
       "fire": {
@@ -3702,7 +3702,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 6,
+    "derivedMatched": 7,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -3712,17 +3712,17 @@
       },
       "evadeChance": {
         "want": 78,
-        "got": 74,
+        "got": 76,
         "ok": false
       },
       "deflectionRating": {
         "want": 21004,
-        "got": 18323,
+        "got": 20580,
         "ok": false
       },
       "deflectChance": {
         "want": 95,
-        "got": 85,
+        "got": 89,
         "ok": false
       },
       "ward": {
@@ -3737,13 +3737,13 @@
       },
       "manaRegen": {
         "want": 77,
-        "got": 56,
+        "got": 64,
         "ok": false
       },
       "esRecharge": {
         "want": 465,
-        "got": 365,
-        "ok": false
+        "got": 465,
+        "ok": true
       },
       "esRechargeDelay": {
         "want": 2.2472,
@@ -3772,32 +3772,32 @@
       },
       "effectiveHealthPool": {
         "want": 64736,
-        "got": 44343,
+        "got": 56989,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 5254,
-        "got": 4506,
+        "got": 5250,
         "ok": false
       },
       "fireMaxHit": {
         "want": 18764,
-        "got": 16082,
+        "got": 18750,
         "ok": false
       },
       "coldMaxHit": {
         "want": 9730,
-        "got": 8339,
+        "got": 9722,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 8757,
-        "got": 7505,
+        "got": 8750,
         "ok": false
       },
       "chaosMaxHit": {
         "want": 13564,
-        "got": 12158,
+        "got": 13548,
         "ok": false
       }
     }
