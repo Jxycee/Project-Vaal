@@ -42,7 +42,7 @@ import { RADIUS_GRANT_LINE, readLine, readLocalDefenceLine, type LineMod } from 
 import type { JewelRadiusNode } from '@/lib/tree/treeLite';
 import { categoryApplies, isKnownCategory, readRuneLine } from './runes';
 import type { Contribution } from './engine';
-import { CONDITIONAL_EFFECTS, GLOBAL_EFFECTS, LOCAL_EFFECTS, looksLikeDefenceStat, MULTIPLIED_EFFECTS, NOT_MODELLED, PER_ITEM_DEFENCE, SUPPORT_THRESHOLD, type PerItemDefence, type Pool } from './statTable';
+import { CONDITIONAL_EFFECTS, GLOBAL_EFFECTS, LOCAL_EFFECTS, looksLikeDefenceStat, MULTIPLIED_EFFECTS, NOT_MODELLED, PER_ITEM_DEFENCE, readPerItemLine, SUPPORT_THRESHOLD, type PerItemDefence, type Pool } from './statTable';
 import supportColours from '@/lib/pob/data/support-colours.json';
 import charmBuffs from '@/lib/pob/data/charm-buffs.json';
 
@@ -274,7 +274,7 @@ function collectOnce(
   const radiusJewels: { item: GearItem; socket: number }[] = [];
   for (const { item, slot, socket } of equipped) {
     const from = contributions.length;
-    collectItem(item, slot, data, flags, contributions, notCounted, unknown, assumed, allocate, config, gearCounts, input.level, multiplierCounts);
+    collectItem(item, slot, data, flags, contributions, notCounted, unknown, assumed, allocate, config, gearCounts, input.level, multiplierCounts, perItem);
     if (socket !== undefined) radiusJewels.push({ item, socket });
     if (slot) wornAt.set(slot, { from, to: contributions.length, name: item.name });
   }
@@ -684,6 +684,8 @@ function collectItem(
   /** The character's level: "Has +3 to Evasion Rating per player level" scales by it. */
   level: number,
   multiplierCounts: MultiplierCounts,
+  /** Printed "+N to maximum X per D Item <defence> on Equipped <slot>" lines wait here until every item's own figure is known. */
+  perItem: { rule: PerItemDefence; value: number; source: string }[],
 ): void {
   const craft = item.craft;
   const stats: [string, number][] = [];
@@ -850,6 +852,11 @@ function collectItem(
     return [line.replace(/\d+(?:\.\d+)?/, String(base)), line.replace(/\d+(?:\.\d+)?/, String(extra))];
   };
   for (const printed of printedRunes ?? []) {
+    const perItemLine = readPerItemLine(printed);
+    if (perItemLine) {
+      perItem.push({ ...perItemLine, source: item.name });
+      continue;
+    }
     // A bare keystone name on a rune ("Iron Reflexes", Legacy of The Knight-errant) gives the character that keystone.
     if (printed.trim() === 'Iron Reflexes') {
       flags.ironReflexes = true;
@@ -898,7 +905,13 @@ function collectItem(
   const localFlat: Partial<Record<Pool, number>> = {};
   const localInc: Partial<Record<Pool, number>> = {};
   for (const m of perLevelImplicits) localFlat[m.pool] = (localFlat[m.pool] ?? 0) + m.value * level;
-  readVerbatim([...(craft?.verbatim ?? []), ...untypedLines, ...runeVerbatim], item.name, { defences: detail.armour !== null, spirit: detail.spirit > 0 }, localFlat, localInc, contributions, notCounted, allocate, config, { sockets: filledSockets(craft), gear: gearCounts, level });
+  const notPerItem = (list: readonly string[]) =>
+    list.filter((l) => {
+      const perItemLine = readPerItemLine(l);
+      if (perItemLine) perItem.push({ ...perItemLine, source: item.name });
+      return !perItemLine;
+    });
+  readVerbatim([...notPerItem(craft?.verbatim ?? []), ...notPerItem(untypedLines), ...runeVerbatim], item.name, { defences: detail.armour !== null, spirit: detail.spirit > 0 }, localFlat, localInc, contributions, notCounted, allocate, config, { sockets: filledSockets(craft), gear: gearCounts, level });
   for (const [stat, value] of stats) {
     const local = LOCAL_EFFECTS[stat];
     if (local) {

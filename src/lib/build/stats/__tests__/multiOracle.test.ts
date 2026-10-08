@@ -233,7 +233,7 @@ const FLOOR: Record<string, number> = {
   'ordinary-druid-1.json': 13, // round 8: 13 of 13, the main skill's form sets Condition:Shapeshifted (skillBuffs.ts withShapeshifted) so Scales of the Wyvern's +1% Maximum Lightning Resistance counts. Round 5 of the engine loop: Ingenuity's "N% increased bonuses gained from left/right Equipped Ring" (lineMods.ts EFFECT_OF_BONUSES_LINE) scales both rings; was 8. Short: Lightning (76/75: "+1% Maximum Lightning Resistance while Shapeshifted" needs the Shapeshifted condition PoB derives from the main skill)
   'ordinary-huntress-1.json': 13, // 13 of 13 at the start
   'ordinary-infernalist-1.json': 13,
-  'ordinary-invoker-1.json': 12, // short: Mana (2253/2549)
+  'ordinary-invoker-1.json': 13, // round 8: 13 of 13, the printed rune line '+1 to maximum Mana per 2 Item Energy Shield on Equipped Helmet' (statTable.ts readPerItemLine, resolved with the passives' per-item rules)
   'ordinary-mercenary-1.json': 13, // round 2: 13 of 13, an active charm adds its base buff (collect.ts collectCharms: Sapphire +25% Cold, Topaz +25% Lightning, same-base charms merge); was 11
   'ordinary-monk-1.json': 13, // round 8: 13 of 13, Discipline's 'maximum Energy Shield' is PoB's EnergyShieldTotal, added after the increases (L13 = 162)
   'ordinary-shaman-1.json': 12, // round 7: 12 of 13 (Bear Form: the main skill Rampage is a Bear skill, +10 x level + 10 flat Armour). round 5: 11 of 13 (Undying Hate's Conquered Attribute passives +3 to all Attributes, Wisdom of the Maji's Bonded rune lines, Iron Reflexes from the Legacy rune, Heavy Armour); was 5. Short: Lightning (72/75: Purity of Lightning is 39 in PoB, 49.53 here, aura magnitudes not applied)

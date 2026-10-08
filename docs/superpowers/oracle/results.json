@@ -3833,8 +3833,7 @@
         "3 1 from 56349"
       ],
       "mana": [
-        "flat 180 from Horror Call, Omen Sceptre",
-        "flat 249 from Carrion Horn, Ancestral Tiara"
+        "flat 180 from Horror Call, Omen Sceptre"
       ],
       "energyShield": [],
       "spirit": [],
@@ -3845,7 +3844,6 @@
       "int": []
     },
     "notCounted": [
-      "Ancestral Tiara: rune line \"+1 to maximum Mana per 2 Item Energy Shield on Equipped Helmet\" not counted",
       "Unrecognised stat stun_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Dampening Shield, Sapphire)",
       "Unrecognised stat ailment_threshold_+_from_%_maximum_energy_shield (Stun and Ailment Threshold from Energy Shield, Dampening Shield)",
       "Unrecognised stat base_reduce_enemy_cold_resistance_% (Glaciation)",
@@ -3854,7 +3852,7 @@
     ],
     "class": "Invoker",
     "source": "https://poe.ninja/poe2/builds/runesofaldur/character/Tomnus-1549/PoTayToms",
-    "matched": 12,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -3879,8 +3877,8 @@
       },
       "mana": {
         "want": 2549,
-        "got": 2253,
-        "ok": false
+        "got": 2549,
+        "ok": true
       },
       "energyShield": {
         "want": 9585,
@@ -3958,7 +3956,7 @@
       },
       "manaRegen": {
         "want": 470,
-        "got": 268,
+        "got": 303,
         "ok": false
       },
       "esRecharge": {

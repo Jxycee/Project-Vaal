@@ -392,6 +392,28 @@ export const PER_ITEM_DEFENCE: Readonly<Record<string, PerItemDefence>> = {
   '+1_spirit_per_X_energy_shield_on_body_armour': { pool: 'spirit', slot: 'body', from: 'energyShield', valueIs: 'div', fixed: 1 },
 };
 
+// FAILURE MODES of the printed per-item line (readPerItemLine), decided before the code:
+//   1. The printed line names a different defence or step than the synced rune data ("+1 to maximum Mana per 2 Item Energy Shield on
+//      Equipped Helmet" on invoker-1's Jiquani's Thesis, where the data says "per 3 Item Armour"): the PRINTED line wins, it is what
+//      Path of Building parsed.
+//   2. The named slot is empty or has none of that defence: zero steps, nothing added (the same floor as the passives above).
+//   3. A line that merely looks similar ("per 10 Strength", "per Item Level") does not match and is left to the other readers.
+const PER_ITEM_LINE =
+  /^\+(\d+(?:\.\d+)?) to (?:maximum )?(Life|Mana|Energy Shield|Evasion Rating|Armour|Spirit) per (\d+(?:\.\d+)?) Item (Armour|Evasion Rating|Energy Shield) on Equipped (Helmet|Body Armour|Gloves|Boots)$/i;
+const PER_ITEM_POOL: Record<string, Pool> = { life: 'life', mana: 'mana', 'energy shield': 'energyShield', 'evasion rating': 'evasion', armour: 'armour', spirit: 'spirit' };
+const PER_ITEM_FROM: Record<string, PerItemDefence['from']> = { armour: 'armour', 'evasion rating': 'evasion', 'energy shield': 'energyShield' };
+const PER_ITEM_SLOT: Record<string, GearSlot> = { helmet: 'head', 'body armour': 'body', gloves: 'gloves', boots: 'boots' };
+
+/** "+N to maximum Mana per D Item Energy Shield on Equipped Helmet" -> the rule and the step size D, or null. */
+export function readPerItemLine(line: string): { rule: PerItemDefence; value: number } | null {
+  const m = PER_ITEM_LINE.exec(line.trim());
+  if (!m) return null;
+  return {
+    rule: { pool: PER_ITEM_POOL[m[2].toLowerCase()], slot: PER_ITEM_SLOT[m[5].toLowerCase()], from: PER_ITEM_FROM[m[4].toLowerCase()], valueIs: 'div', fixed: Number(m[1]) },
+    value: Number(m[3]),
+  };
+}
+
 /**
  * Passives that need N support gems of one colour in the skills ("5% increased maximum Life if you have at least 10
  * Red Support Gems Socketed", Gem Enthusiast). PoB2 tags them MultiplierThreshold on RedSupportGems etc. (modcache.json);
