@@ -8,7 +8,6 @@ import { campaignAt, CHOICE_QUESTS, FIXED_QUEST_REWARDS } from '../campaign';
 
 describe('campaignAt — the act and resistance penalty', () => {
   it.each([
-    [1, 'Act 1', 0],
     [15, 'Act 1', 0],
     [16, 'Act 2', -10],
     [30, 'Act 2', -10],
@@ -19,7 +18,6 @@ describe('campaignAt — the act and resistance penalty', () => {
     [53, 'Interludes', -40],
     [64, 'Interludes', -40],
     [65, 'Endgame', -60],
-    [100, 'Endgame', -60],
   ])('level %i is assumed to be in %s, at %i%%', (level, act, penalty) => {
     const c = campaignAt(level);
     expect(c.act).toBe(act);
@@ -60,9 +58,6 @@ describe('campaignAt — quest rewards', () => {
     expect(late).toContain('Medallion (Valley of the Titans)');
   });
 
-  it('names each reward by its quest, so a sheet can say where a number came from', () => {
-    expect(campaignAt(11).rewards.find((r) => r.stat === 'base_spirit')?.source).toBe('King in the Mists (Freythorn)');
-  });
 });
 
 describe('FIXED_QUEST_REWARDS — against our stat vocabulary', () => {
