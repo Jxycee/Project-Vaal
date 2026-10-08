@@ -404,5 +404,480 @@
         "ok": false
       }
     }
+  },
+  "ordinary-ci-acolyte.json": {
+    "gaps": {
+      "life": [
+        "3 1 from 56349"
+      ],
+      "mana": [],
+      "energyShield": [
+        "increased 39 from Grip of Kulemak, Abyssal Signet",
+        "increased 60 from Fate Collar, Stellar Amulet",
+        "increased 20 from 49356"
+      ],
+      "spirit": [],
+      "evasion": [
+        "increased 20 from 49356"
+      ],
+      "str": [],
+      "dex": [],
+      "int": []
+    },
+    "class": "Acolyte of Chayula",
+    "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/HoangLong1101-3050/DOANXIEMm",
+    "matched": 7,
+    "of": 13,
+    "stats": {
+      "str": {
+        "want": 38,
+        "got": 38,
+        "ok": true
+      },
+      "dex": {
+        "want": 115,
+        "got": 115,
+        "ok": true
+      },
+      "int": {
+        "want": 369,
+        "got": 369,
+        "ok": true
+      },
+      "life": {
+        "want": 1,
+        "got": 1421,
+        "ok": false
+      },
+      "mana": {
+        "want": 1194,
+        "got": 1194,
+        "ok": true
+      },
+      "energyShield": {
+        "want": 12581,
+        "got": 11628,
+        "ok": false
+      },
+      "armour": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "evasion": {
+        "want": 1594,
+        "got": 1450,
+        "ok": false
+      },
+      "fire": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "cold": {
+        "want": 75,
+        "got": 38,
+        "ok": false
+      },
+      "lightning": {
+        "want": 75,
+        "got": 70,
+        "ok": false
+      },
+      "chaos": {
+        "want": 100,
+        "got": 7,
+        "ok": false
+      },
+      "spirit": {
+        "want": 208,
+        "got": 208,
+        "ok": true
+      }
+    }
+  },
+  "ordinary-ci-disciple.json": {
+    "gaps": {
+      "life": [
+        "3 1 from 56349"
+      ],
+      "mana": [],
+      "energyShield": [
+        "increased 3 from 7960",
+        "increased 3 from 7960",
+        "increased 3 from 7960",
+        "increased 3 from 7960",
+        "increased 3 from 7960",
+        "increased 3 from 7960",
+        "increased 3 from 7960"
+      ],
+      "spirit": [
+        "flat 12 from Doom Sole, Sekhema Sandals"
+      ],
+      "evasion": [
+        "increased 3 from 7960",
+        "increased 3 from 7960",
+        "increased 3 from 7960",
+        "increased 3 from 7960",
+        "increased 3 from 7960",
+        "increased 3 from 7960",
+        "increased 3 from 7960"
+      ],
+      "str": [],
+      "dex": [],
+      "int": []
+    },
+    "class": "Disciple of Varashta",
+    "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/KingFud-1121/KingFud_Djinn_FR",
+    "matched": 8,
+    "of": 13,
+    "stats": {
+      "str": {
+        "want": 32,
+        "got": 32,
+        "ok": true
+      },
+      "dex": {
+        "want": 37,
+        "got": 37,
+        "ok": true
+      },
+      "int": {
+        "want": 165,
+        "got": 165,
+        "ok": true
+      },
+      "life": {
+        "want": 1,
+        "got": 1411,
+        "ok": false
+      },
+      "mana": {
+        "want": 1161,
+        "got": 1161,
+        "ok": true
+      },
+      "energyShield": {
+        "want": 14882,
+        "got": 14165,
+        "ok": false
+      },
+      "armour": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "evasion": {
+        "want": 12,
+        "got": 10,
+        "ok": false
+      },
+      "fire": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "cold": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "lightning": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "chaos": {
+        "want": 100,
+        "got": 8,
+        "ok": false
+      },
+      "spirit": {
+        "want": 322,
+        "got": 310,
+        "ok": false
+      }
+    }
+  },
+  "ordinary-ci-es-disciple.json": {
+    "gaps": {
+      "life": [
+        "3 1 from 56349"
+      ],
+      "mana": [],
+      "energyShield": [],
+      "spirit": [],
+      "evasion": [],
+      "str": [],
+      "dex": [],
+      "int": []
+    },
+    "class": "Disciple of Varashta",
+    "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/morloxIC-1573/morlox_v_v",
+    "matched": 8,
+    "of": 13,
+    "stats": {
+      "str": {
+        "want": 103,
+        "got": 103,
+        "ok": true
+      },
+      "dex": {
+        "want": 45,
+        "got": 45,
+        "ok": true
+      },
+      "int": {
+        "want": 183,
+        "got": 183,
+        "ok": true
+      },
+      "life": {
+        "want": 1,
+        "got": 1697,
+        "ok": false
+      },
+      "mana": {
+        "want": 1149,
+        "got": 1149,
+        "ok": true
+      },
+      "energyShield": {
+        "want": 14222,
+        "got": 14222,
+        "ok": true
+      },
+      "armour": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "evasion": {
+        "want": 147,
+        "got": 147,
+        "ok": true
+      },
+      "fire": {
+        "want": 75,
+        "got": 74,
+        "ok": false
+      },
+      "cold": {
+        "want": 75,
+        "got": 70,
+        "ok": false
+      },
+      "lightning": {
+        "want": 75,
+        "got": 43,
+        "ok": false
+      },
+      "chaos": {
+        "want": 100,
+        "got": 25,
+        "ok": false
+      },
+      "spirit": {
+        "want": 346,
+        "got": 346,
+        "ok": true
+      }
+    }
+  },
+  "ordinary-deadeye.json": {
+    "gaps": {
+      "life": [],
+      "mana": [],
+      "energyShield": [
+        "flat 34 from Morbid Rosary, Lunar Amulet",
+        "flat 94 from Morbid Rosary, Lunar Amulet",
+        "flat 252 from Storm Halo, Kamasan Tiara",
+        "flat 122 from 34324"
+      ],
+      "spirit": [],
+      "evasion": [
+        "flat 252 from 55193",
+        "increased 40 from 22811",
+        "more 30 from WindDancerPlayer"
+      ],
+      "str": [
+        "flat 9 from Oblivion Reach, Warmonger Bow"
+      ],
+      "dex": [
+        "flat 9 from Oblivion Reach, Warmonger Bow"
+      ],
+      "int": [
+        "flat 9 from Oblivion Reach, Warmonger Bow"
+      ]
+    },
+    "class": "Deadeye",
+    "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/WOualey-0844/BowberKurw%C3%A0",
+    "matched": 5,
+    "of": 13,
+    "stats": {
+      "str": {
+        "want": 117,
+        "got": 108,
+        "ok": false
+      },
+      "dex": {
+        "want": 204,
+        "got": 195,
+        "ok": false
+      },
+      "int": {
+        "want": 121,
+        "got": 112,
+        "ok": false
+      },
+      "life": {
+        "want": 2267,
+        "got": 2248,
+        "ok": false
+      },
+      "mana": {
+        "want": 706,
+        "got": 687,
+        "ok": false
+      },
+      "energyShield": {
+        "want": 1746,
+        "got": 1359,
+        "ok": false
+      },
+      "armour": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "evasion": {
+        "want": 13693,
+        "got": 7244,
+        "ok": false
+      },
+      "fire": {
+        "want": 75,
+        "got": 73,
+        "ok": false
+      },
+      "cold": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "lightning": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "chaos": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "spirit": {
+        "want": 148,
+        "got": 148,
+        "ok": true
+      }
+    }
+  },
+  "ordinary-oracle.json": {
+    "gaps": {
+      "life": [
+        "3 1 from 56349"
+      ],
+      "mana": [
+        "flat 198 from Soul Circle, Mnemonic Ring",
+        "flat 188 from Sol Spire, Dueling Wand",
+        "flat 198 from Kalandra's Touch, Ring",
+        "increased 3 from Viper Crest, Ancestral Tiara",
+        "increased 7 from Soul Circle, Mnemonic Ring",
+        "increased 7 from Soul Circle, Mnemonic Ring",
+        "increased 7 from Kalandra's Touch, Ring",
+        "increased 7 from Kalandra's Touch, Ring"
+      ],
+      "energyShield": [
+        "flat 469 from Blood League, Sekhema Sandals"
+      ],
+      "spirit": [
+        "flat 115 from Palm of the Dreamer"
+      ],
+      "evasion": [],
+      "str": [],
+      "dex": [],
+      "int": []
+    },
+    "class": "Oracle",
+    "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/perceptionofreality-7468/BABYROSHANCOM",
+    "matched": 5,
+    "of": 13,
+    "stats": {
+      "str": {
+        "want": 65,
+        "got": 65,
+        "ok": true
+      },
+      "dex": {
+        "want": 54,
+        "got": 54,
+        "ok": true
+      },
+      "int": {
+        "want": 341,
+        "got": 341,
+        "ok": true
+      },
+      "life": {
+        "want": 1,
+        "got": 1525,
+        "ok": false
+      },
+      "mana": {
+        "want": 5175,
+        "got": 2218,
+        "ok": false
+      },
+      "energyShield": {
+        "want": 0,
+        "got": 1980,
+        "ok": false
+      },
+      "armour": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "evasion": {
+        "want": 9,
+        "got": 9,
+        "ok": true
+      },
+      "fire": {
+        "want": 75,
+        "got": 70,
+        "ok": false
+      },
+      "cold": {
+        "want": 57,
+        "got": 41,
+        "ok": false
+      },
+      "lightning": {
+        "want": 57,
+        "got": 41,
+        "ok": false
+      },
+      "chaos": {
+        "want": 100,
+        "got": 0,
+        "ok": false
+      },
+      "spirit": {
+        "want": 279,
+        "got": 304,
+        "ok": false
+      }
+    }
   }
 }

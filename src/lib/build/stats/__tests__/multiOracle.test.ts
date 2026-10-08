@@ -70,6 +70,12 @@ const FLOOR: Record<string, number> = {
   'es-life-stormweaver.json': 4,
   'evasion-deadeye.json': 4,
   'hybrid-tactician.json': 3,
+  // The ordinary set (board item 30): mid-complexity public builds. The goal is 13 of 13 on every one.
+  'ordinary-ci-acolyte.json': 7,
+  'ordinary-ci-disciple.json': 8,
+  'ordinary-ci-es-disciple.json': 8,
+  'ordinary-deadeye.json': 5,
+  'ordinary-oracle.json': 5,
 };
 
 // PoB's own per-stat build-up (breakdowns.stats[i].mods = [kind 0 flat|1 inc|2 more, value, sourceIndex]) says WHICH
