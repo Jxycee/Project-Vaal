@@ -74,3 +74,25 @@ for (const [id, skill] of Object.entries(skills)) {
 
 writeFileSync('src/lib/pob/data/skill-buffs.json', JSON.stringify(out));
 console.log(Object.keys(out).length + ' skills with sheet-relevant buff modifiers -> skill-buffs.json');
+
+// Support gems that raise the supported skill's gem level by a count of the supports in its group (Uhtred's Exodus:
+// +3 with no other support). PoB's statMap puts a SupportedGemProperty "level" LIST mod behind a MultiplierThreshold on
+// SupportCount (the group's whole support count, the gem itself included, `equals`). Others (an element Mastery's
+// "+1 to fire skills", Dialla's Desire, which has no statMap) are not kept: they need the skill's tags, or PoB ignores them.
+const levels = {};
+for (const skill of Object.values(skills)) {
+  if (skill.type !== 'support') continue;
+  for (const set of skill.statSets ?? []) {
+    for (const [stat, calls] of Object.entries(set.statMap ?? {})) {
+      for (const c of Array.isArray(calls) ? calls : []) {
+        const [name, type, fixed, , , tag] = c.args ?? [];
+        if (c.call !== 'mod' || name !== 'SupportedGemProperty' || type !== 'LIST' || fixed?.key !== 'level' || fixed?.keyword !== 'grants_active_skill') continue;
+        if (tag?.type !== 'MultiplierThreshold' || tag.var !== 'SupportCount' || tag.equals !== true || typeof tag.threshold !== 'number') continue;
+        const bonus = set.constantStats?.[stat];
+        if (typeof bonus === 'number') levels[skill.name] = { supportCount: tag.threshold, bonus };
+      }
+    }
+  }
+}
+writeFileSync('src/lib/pob/data/support-levels.json', JSON.stringify(levels));
+console.log(Object.keys(levels).length + ' level-granting supports -> support-levels.json');

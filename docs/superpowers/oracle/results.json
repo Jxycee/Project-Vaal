@@ -4360,13 +4360,9 @@
     "gaps": {
       "life": [],
       "mana": [],
-      "energyShield": [
-        "more 21 from ChargeRegulationPlayer"
-      ],
+      "energyShield": [],
       "spirit": [],
-      "evasion": [
-        "more 21 from ChargeRegulationPlayer"
-      ],
+      "evasion": [],
       "str": [
         "flat 9 from Domination Span, Runeforged Cryptic Leggings",
         "flat 15 from Domination Span, Runeforged Cryptic Leggings"
@@ -4386,7 +4382,7 @@
     ],
     "class": "Spirit Walker",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/THCm0ke-2799/OwlnadoZ",
-    "matched": 10,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -4416,18 +4412,18 @@
       },
       "energyShield": {
         "want": 678,
-        "got": 672,
-        "ok": false
+        "got": 678,
+        "ok": true
       },
       "armour": {
         "want": 127,
-        "got": 126,
-        "ok": false
+        "got": 127,
+        "ok": true
       },
       "evasion": {
         "want": 409,
-        "got": 406,
-        "ok": false
+        "got": 409,
+        "ok": true
       },
       "fire": {
         "want": 73,
@@ -4525,32 +4521,32 @@
       },
       "effectiveHealthPool": {
         "want": 2961,
-        "got": 7621,
+        "got": 7633,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 1621,
-        "got": 3892,
+        "got": 3898,
         "ok": false
       },
       "fireMaxHit": {
         "want": 5174,
-        "got": 12933,
+        "got": 12953,
         "ok": false
       },
       "coldMaxHit": {
         "want": 5174,
-        "got": 12933,
+        "got": 12953,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 5174,
-        "got": 12933,
+        "got": 12953,
         "ok": false
       },
       "chaosMaxHit": {
         "want": 1679,
-        "got": 5063,
+        "got": 5067,
         "ok": false
       }
     }

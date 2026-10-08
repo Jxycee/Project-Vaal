@@ -36,9 +36,15 @@
 //      rule is in PoB's Lua and not in the synced data. Left short rather than guessed.
 //   8. "+N to Level of all skills" from gear is not modelled: the table is read at the gem's own level, which
 //      is exactly right only when no such modifier is worn. (An assumption, listed in `assumed` when it applies.)
+//  11. A support that raises the skill's level by the size of its group (Uhtred's Exodus: +3 with no other support,
+//      Omen +2 with one, Augury +2 with two; data/support-levels.json, derived from PoB's SupportedGemProperty level
+//      mod behind MultiplierThreshold SupportCount): the bonus applies only when the loadout's support count equals
+//      the threshold (the gem itself counted); any other count adds nothing. Level-granting supports that need the
+//      skill's tags (an element Mastery) are not in the data and stay an assumption (8).
 // =============================================================================
 
 import buffs from '@/lib/pob/data/skill-buffs.json';
+import supportLevels from '@/lib/pob/data/support-levels.json';
 import type { GemState } from '../gemState';
 import { conditionHolds, MOTE_VARS, moteCounts, NUMBER_INPUTS, type BuildConfig } from './buildConfig';
 import { POOLS as MODIFIER_POOLS } from './lineMods';
@@ -121,6 +127,12 @@ export function skillBuffContributions(
     if (!skill || seen.has(skill.name)) continue;
     seen.add(skill.name);
     let used = false;
+    // The gem level the tables are read at: its own, plus a group-size support's bonus (failure mode 11).
+    let gemLevel = loadout.level;
+    for (const support of loadout.supports) {
+      const grant = (supportLevels as Record<string, { supportCount: number; bonus: number }>)[support.name];
+      if (grant && grant.supportCount === loadout.supports.length) gemLevel += grant.bonus;
+    }
     for (const e of skill.effects) {
       if (e.effect !== 'Aura' && e.effect !== 'Buff') continue;
       const pools = MODIFIER_POOLS[e.mod];
@@ -153,9 +165,9 @@ export function skillBuffContributions(
       }
       let value = e.value;
       if (value === undefined && e.values) {
-        value = e.values[loadout.level - 1];
+        value = e.values[gemLevel - 1];
         if (value === undefined) {
-          notCounted.push(`${skill.name}: level ${loadout.level} is outside its table, so its ${e.mod} was not counted`);
+          notCounted.push(`${skill.name}: level ${gemLevel} is outside its table, so its ${e.mod} was not counted`);
           continue;
         }
       }

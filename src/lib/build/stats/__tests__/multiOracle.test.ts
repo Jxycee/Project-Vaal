@@ -215,7 +215,7 @@ const FLOOR: Record<string, number> = {
   'ordinary-martial-artist-2.json': 13, // round 1 of the accuracy loop: 13 of 13 (Fists of Stone per-level defences; a Time-Lost jewel's 22% increased Effect of Notable Passive Skills in Radius scales its notables, floored); was 5 at the start: attributes, Life (over), Mana, ES, Evasion short; Armour 34 where PoB has 0
   'ordinary-pathfinder-1.json': 13, // 13 of 13 at the start (zzzuzaha2, flask/charm build)
   'ordinary-pathfinder-2.json': 13, // round 3: 13 of 13, High Alert counts because an unreserved-Life character is on Full Life (reservation.ts); was 12 // 12 of 13 at the start: short Evasion (3899/4586)
-  'ordinary-spirit-walker-1.json': 10, // 10 of 13 at the start: ES, Armour, Evasion off by 1 to 6 (rounding or a small flat source)
+  'ordinary-spirit-walker-1.json': 13, // round 4 of the accuracy loop: 13 of 13 (Uhtred's Exodus: +3 gem levels with no other support, so Charge Regulation reads 21% more not 20%: skillBuffs.ts, support-levels.json); was 10: ES, Armour, Evasion off by 1 to 6
   'ordinary-spirit-walker-2.json': 13, // 13 of 13 at the start
   'ordinary-titan-1.json': 13, // round 1 of the accuracy loop: 13 of 13 (Hulking Form scales plain small passives by 50%, floored, never the generic attribute nodes or ascendancy ones; Stone Skin is a body-armour-only more; Kaom's Heart 'You have no Spirit'); was 4 at the start: strength/Life/Mana/ES/Armour/Evasion short, Spirit 200 where PoB has 0 (Grand Spectrum x3, Darkness Enthroned)
   'ordinary-warbringer-1.json': 10, // round 3: Blood Magic sets Mana 0 (engine.ts); short Life, Armour, Evasion; was 9 // 9 of 13 at the start: Mana 552 where PoB has 0, Armour and Evasion short, Life over
