@@ -74,6 +74,12 @@ export interface EngineInput {
     eldritchBattery?: boolean;
     /** Blood Magic: "You have no Mana" (PoB OVERRIDE 0 on Mana: warbringer oracle shows 0, not the usual floor of 1). */
     bloodMagic?: boolean;
+    /**
+     * Iron Reflexes: "Converts all Evasion Rating to Armour" (the keystone, or a rune line of that name: Legacy of The
+     * Knight-errant). Measured on ordinary-shaman-1: Armour 17541 = (3682 Armour base + 922 Evasion base, the 7 constant
+     * included) x 3.81 (only Armour's increases), Evasion 0. See convertEvasionToArmour.
+     */
+    ironReflexes?: boolean;
   };
   /** The build's PoB Configuration (conditions such as EnemyBlinded). Absent = unknown, which reads as nothing ticked. */
   config?: BuildConfig;
@@ -147,7 +153,8 @@ export function computeDefences(given: EngineInput): DefenceSheet {
   const str = attrOf('str');
   const dex = attrOf('dex');
   const int = attrOf('int');
-  const input: EngineInput = { ...given, contributions: resolvePerAttribute(given.contributions, { str, dex, int }) };
+  const ironReflexes = given.flags.ironReflexes === true;
+  const input: EngineInput = { ...given, contributions: resolvePerAttribute(ironReflexes ? convertEvasionToArmour(given.contributions) : given.contributions, { str, dex, int }) };
   const flatOf = (pool: Pool) => sum(input.contributions, pool, 'flat', true);
   const incOf = (pool: Pool) => sum(input.contributions, pool, 'increased', false);
   const moreOf = (pool: Pool) => product(input.contributions, pool);
@@ -192,8 +199,8 @@ export function computeDefences(given: EngineInput): DefenceSheet {
     life,
     mana,
     energyShield: converted ? 0 : defence('energyShield', Math.round((lifeBase * lifeToEs) / 100)),
-    armour: defence('armour'),
-    evasion: defence('evasion', 7),
+    armour: defence('armour', ironReflexes ? 7 : 0),
+    evasion: ironReflexes ? 0 : defence('evasion', 7),
     fire: resist('fireRes', 'fireMax', input.resistancePenalty),
     cold: resist('coldRes', 'coldMax', input.resistancePenalty),
     lightning: resist('lightningRes', 'lightningMax', input.resistancePenalty),
@@ -201,6 +208,20 @@ export function computeDefences(given: EngineInput): DefenceSheet {
     spirit: Math.max(Math.round(spirit), 0),
   };
   return { ...sheet, derived: computeDerived(input, sheet, { flatOf, incOf, moreOf }) };
+}
+
+/**
+ * Iron Reflexes. Failure modes, decided before the code:
+ *   1. Every flat Evasion becomes flat Armour of the same slot, so an item's slot increase to Armour still scales it; the
+ *      constant base Evasion (7) moves too (defence() above).
+ *   2. Evasion's own increases and mores are dropped: there is no Evasion left for them to scale. Armour's apply to the sum.
+ *   3. A build without the flag never reaches this.
+ */
+function convertEvasionToArmour(list: readonly Contribution[]): Contribution[] {
+  return list.flatMap((c): Contribution[] => {
+    if (c.pool !== 'evasion') return [c];
+    return c.kind === 'flat' ? [{ ...c, pool: 'armour' }] : [];
+  });
 }
 
 /**

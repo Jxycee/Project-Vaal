@@ -22,8 +22,11 @@ export interface TreeLiteClass {
   base_int: number;
 }
 
-/** One passive near a jewel socket: its id, its distance from the socket, and its kind (0 notable, 1 small). */
-export type JewelRadiusNode = [id: number, distance: number, kind: 0 | 1];
+/**
+ * One passive near a jewel socket: its id, its distance from the socket, and its kind (0 notable, 1 small, 2 a generic
+ * "+5 to any Attribute" passive: only a Timeless jewel's "Conquered Attribute Passive Skills also grant ..." reaches those).
+ */
+export type JewelRadiusNode = [id: number, distance: number, kind: 0 | 1 | 2];
 
 export interface TreeLite {
   nodes: Record<string, TreeLiteNode>;
@@ -64,8 +67,9 @@ interface RadiusSourceNode {
 
 /**
  * Notables and smalls near each jewel socket. PoB2's node types: Notable, and Normal-and-not-an-attribute for
- * Small (ModParser.lua "^(%w+) Passive Skills in Radius also grant"); sockets, keystones, masteries, blighted
- * nodes and attribute passives are never in either set (PassiveTree.lua nodesInRadius skips blighted and mastery).
+ * Small (ModParser.lua "^(%w+) Passive Skills in Radius also grant"); sockets, keystones, masteries and blighted
+ * nodes are never in any set (PassiveTree.lua nodesInRadius skips blighted and mastery). Attribute passives are kept as
+ * their own kind (2), outside the notable and small sets, for the Timeless jewels' "Conquered Attribute Passive Skills".
  */
 export function projectJewelRadius(nodes: Record<string, unknown>): Record<string, JewelRadiusNode[]> {
   const all = Object.entries(nodes).filter(([id]) => id !== 'root') as [string, RadiusSourceNode][];
@@ -75,9 +79,9 @@ export function projectJewelRadius(nodes: Record<string, unknown>): Record<strin
     const near: JewelRadiusNode[] = [];
     for (const [id, n] of all) {
       if (id === socketId || n.x === undefined || n.y === undefined) continue;
-      if (n.isKeystone || n.isMastery || n.isJewelSocket || n.isBlighted || n.isGenericAttribute || n.isAscendancyStart || n.isMultipleChoiceOption) continue;
+      if (n.isKeystone || n.isMastery || n.isJewelSocket || n.isBlighted || n.isAscendancyStart || n.isMultipleChoiceOption) continue;
       const distance = Math.hypot(n.x - socket.x, n.y - socket.y);
-      if (distance <= JEWEL_RADIUS_REACH) near.push([Number(id), Math.round(distance * 10) / 10, n.isNotable ? 0 : 1]);
+      if (distance <= JEWEL_RADIUS_REACH) near.push([Number(id), Math.round(distance * 10) / 10, n.isGenericAttribute ? 2 : n.isNotable ? 0 : 1]);
     }
     out[socketId] = near.sort((a, b) => a[0] - b[0]);
   }

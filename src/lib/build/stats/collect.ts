@@ -69,6 +69,8 @@ export interface CollectData {
         /** The armour base's movement speed penalty as a fraction (0.03 = 3% slower), 0 for none (base-movement-penalty.json). */
         movementPenalty?: number;
         spirit: number;
+        /** The base's Strength requirement (Heavy Armour reads it from the helmet, gloves and boots). */
+        strRequirement?: number;
         implicits?: [string, number, number][][];
         /** The item file's implicit display lines — what `implicits` describes. */
         implicitLines?: string[];
@@ -101,12 +103,15 @@ const NUMBER_TOKEN = /\((-?\d+(?:\.\d+)?)-(-?\d+(?:\.\d+)?)\)|(-?\d+(?:\.\d+)?)/
 
 export interface Collected {
   contributions: Contribution[];
-  flags: { giantsBlood: boolean; lordOfTheWilds: boolean; noSpirit: boolean; noSpiritFromEquipment: boolean; chaosInoculation: boolean; eldritchBattery: boolean; bloodMagic: boolean };
+  flags: { giantsBlood: boolean; lordOfTheWilds: boolean; noSpirit: boolean; noSpiritFromEquipment: boolean; chaosInoculation: boolean; eldritchBattery: boolean; bloodMagic: boolean; ironReflexes?: boolean; bondedMods?: boolean };
   resistancePenalty: number;
   act: string;
   notCounted: string[];
   assumed: string[];
 }
+
+/** Heavy Armour's typed stat (node 59589): the number is the percent of the Strength requirements. */
+const STR_REQUIREMENT_ARMOUR = 'armour_+_from_%_strength_requirements_from_boots_gloves_helmets';
 
 const NOT_ON_CHARACTER: ReadonlySet<GearSlot> = new Set(['flask1', 'flask2', 'charm1', 'charm2', 'charm3']);
 const ATTRIBUTE_POOL: Record<AttributeChoice, Pool> = { str: 'str', dex: 'dex', int: 'int' };
@@ -131,13 +136,21 @@ export function collectContributions(
   }
   /** Mind over Matter allocated: PoB leaves Mana alone beside Blood Magic (ordinary-titan-1, mana 963; ordinary-warbringer-1 without it, mana 0). */
   let manaShield = false;
-  const flags = { giantsBlood: false, lordOfTheWilds: false, noSpirit: false, noSpiritFromEquipment: false, chaosInoculation: false, eldritchBattery: false, bloodMagic: false };
+  /**
+   * flags.bondedMods is Wisdom of the Maji ("Gain the benefits of Bonded modifiers on Runes and Idols", stat ascendancy_shaman_gain_additional_socketable_mods):
+   * without it PoB prints a rune's "Bonded:" lines on the item but parses none of them (Item.lua:2146); with it every one counts
+   * (ordinary-shaman-1: Perfect Body Rune's +20 Life and +20 Mana, 4 of them on Morior Invictus = +80 each). The printed value
+   * already includes the item's "increased effect of Socketed Augment Items".
+   */
+  const flags: Collected['flags'] = { giantsBlood: false, lordOfTheWilds: false, noSpirit: false, noSpiritFromEquipment: false, chaosInoculation: false, eldritchBattery: false, bloodMagic: false };
 
   // ---- Tree: this set's nodes (shared ones are in both lists) and the ascendancy.
   const nodes = new Set([...(input.set === 1 ? input.passive.set1 : input.passive.set2), ...input.passive.ascendancyNodes]);
   let unchosen = 0;
   /** Passives that scale off an item's own defence: resolved once every item is read (statTable PER_ITEM_DEFENCE). */
   const perItem: { rule: PerItemDefence; value: number; source: string }[] = [];
+  /** Heavy Armour: "Gain Armour equal to N% of total Strength Requirements of Equipped Boots, Gloves and Helmet" (resolved with perItem). */
+  const strRequirementArmour: { value: number; source: string }[] = [];
   /** Passives that need N support gems of a colour (statTable SUPPORT_THRESHOLD): resolved once the gems are read. */
   const needsSupports: { stat: string; value: number; source: string }[] = [];
   // ---- Passive effect: "50% increased effect of Small Passive Skills" (Hulking Form) and a jewel's "N% increased Effect of
@@ -163,12 +176,15 @@ export function collectContributions(
       else if (stat === 'keystone_eldritch_battery') flags.eldritchBattery = true;
       else if (stat === 'keystone_blood_magic') flags.bloodMagic = true;
       else if (stat === 'keystone_mana_shield') manaShield = true;
+      else if (stat === 'keystone_iron_reflexes') flags.ironReflexes = true;
+      else if (stat === 'ascendancy_shaman_gain_additional_socketable_mods') flags.bondedMods = true;
       else if (stat === 'cannot_gain_spirit_from_equipment') flags.noSpiritFromEquipment = true;
       if (stat === 'number_of_additional_totems_allowed') totemMods.global += value;
       else if (stat === 'attack_skills_additional_ballista_totems_allowed') totemMods.ballista += value;
       else if (stat === 'melee_attack_skills_additional_totems_allowed') totemMods.meleeAttack += value;
       if (SUPPORT_THRESHOLD[stat]) needsSupports.push({ stat, value, source: node.name });
       else if (PER_ITEM_DEFENCE[stat]) perItem.push({ rule: PER_ITEM_DEFENCE[stat], value, source: node.name });
+      else if (stat === STR_REQUIREMENT_ARMOUR) strRequirementArmour.push({ value, source: node.name });
       else addGlobal(contributions, notCounted, unknown, stat, value, node.name, config, multiplierCounts);
     }
   };
@@ -260,6 +276,20 @@ export function collectContributions(
     const steps = rule.valueIs === 'percent' ? Math.floor((have * value) / 100) : div > 0 ? Math.floor(have / div) : 0;
     if (steps * amount !== 0) {
       contributions.push({ pool: rule.pool, kind: 'flat', value: steps * amount, source });
+    }
+  }
+
+  // Heavy Armour: one Armour flat per helmet, gloves and boots worn, each N% of that base's Strength requirement, rounded half up
+  // (ordinary-shaman-1: requirements 44, 101 and 115 give 66, 152 and 173 at 150%). An attribute-requirement modifier on the item
+  // (Adherent's Raiment) is not read, so the base's own figure is used.
+  for (const { value, source } of strRequirementArmour) {
+    for (const slot of ['head', 'gloves', 'boots'] as const) {
+      const worn = input.gear[slot];
+      if (!worn) continue;
+      const unique = worn.isUnique ? data.unique(worn.name, worn.slug) : undefined;
+      const base = unique ? ((worn.craft?.baseSlug ? data.item(worn.craft.baseSlug) : undefined) ?? data.item(unique.baseSlug)) : data.item(worn.slug);
+      const amount = Math.round(((base?.strRequirement ?? 0) * value) / 100);
+      if (amount > 0) contributions.push({ pool: 'armour', kind: 'flat', value: amount, source });
     }
   }
 
@@ -435,7 +465,7 @@ function radiusGrants(
   }
   const limit = outer * JEWEL_DISTANCE_MULTIPLIER;
   for (const [, type, inner] of grants) {
-    const kind = type === 'Notable' ? 0 : 1;
+    const kind = type === 'Notable' ? 0 : type === 'Small' ? 1 : 2;
     const reached = near.filter(([id, distance, k]) => k === kind && distance <= limit && allocated.has(id)).length;
     const read = readLine(inner);
     if (read === null) continue;
@@ -791,13 +821,22 @@ function collectItem(
     const extra = Math.round((n - base) * 100) / 100;
     return [line.replace(/\d+(?:\.\d+)?/, String(base)), line.replace(/\d+(?:\.\d+)?/, String(extra))];
   };
-  for (const line of printedRunes ?? []) {
+  for (const printed of printedRunes ?? []) {
+    // A bare keystone name on a rune ("Iron Reflexes", Legacy of The Knight-errant) gives the character that keystone.
+    if (printed.trim() === 'Iron Reflexes') {
+      flags.ironReflexes = true;
+      continue;
+    }
+    // "Bonded:" lines count only for a character with Wisdom of the Maji (flags.bondedMods); the value is the printed one.
+    const bonded = /^Bonded:\s*/i.test(printed);
+    if (bonded && !flags.bondedMods) continue;
+    const line = bonded ? printed.replace(/^Bonded:\s*/i, '') : printed;
     const read = readRuneLine(line);
     if (read !== null && 'stat' in read) {
       stats.push([runeStat(read.stat), read.value]);
       continue;
     }
-    if (!/^Bonded:/i.test(line) && readLine(line) !== null) {
+    if (readLine(line) !== null) {
       runeVerbatim.push(...splitRuneMore(line));
       continue;
     }

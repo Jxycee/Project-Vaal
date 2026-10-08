@@ -154,7 +154,7 @@ function oursDerived(sheet: DefenceSheet): Record<DKey, number> {
 
 /** Ratchet for the derived keys: the least number each build must match. Raise it when a fix lands; never lower it. */
 const DERIVED_FLOOR: Record<string, number> = {
-  'armour-life-gemling.json': 9, // of 19
+  'armour-life-gemling.json': 10, // round 5 (Iron Reflexes, Heavy Armour); was 9 // of 19
   'es-life-stormweaver.json': 8, // of 19
   'evasion-deadeye.json': 14, // of 19
   'hybrid-tactician.json': 9, // round 10: Defiance Banner partly counted (bannerPlanted, Banner aura magnitudes); was 7 // of 19
@@ -188,7 +188,7 @@ const DERIVED_FLOOR: Record<string, number> = {
   'ordinary-invoker-1.json': 18, // of 19
   'ordinary-mercenary-1.json': 17, // round 2: charms count through their base buff (Sapphire +25% Cold, Topaz +25% Lightning); was 14 // of 19
   'ordinary-monk-1.json': 12, // of 19
-  'ordinary-shaman-1.json': 9, // of 19
+  'ordinary-shaman-1.json': 10, // round 5; was 9 // of 19
   'ordinary-smith-of-kitava-1.json': 8, // of 17
   'ordinary-sorceress-1.json': 10, // of 19
   'ordinary-witchhunter-1.json': 7, // of 17
@@ -199,7 +199,7 @@ const ours = (sheet: DefenceSheet, k: Key): number => (k === 'fire' || k === 'co
 
 // Ratchet: the least number of the 13 stats each build must match. Raise it when a fix lands; never lower it.
 const FLOOR: Record<string, number> = {
-  'armour-life-gemling.json': 8, // Gem Enthusiast now counted; Mageblood, a RELIC body armour and 36 unreadable item lines: item coverage, not the engine
+  'armour-life-gemling.json': 9, // round 5: 9 (Iron Reflexes, Heavy Armour); was 8 // Gem Enthusiast now counted; Mageblood, a RELIC body armour and 36 unreadable item lines: item coverage, not the engine
   'es-life-stormweaver.json': 13, // round 8: 13 of 13 (Low Life derived from Atziri's Communion, Defiance); was 11 // Kalandra's Touch reflects the opposite ring (collect.ts); a radius jewel's notables (fire, spirit)
   'evasion-deadeye.json': 12, // the weapon set PoB had active (set 2) now read from the code; still short: chaos resistance via a Time-Lost jewel's radius grant
   'hybrid-tactician.json': 10, // round 9 (printed-line truth for uniques); was 9 // round 6: Ancient Aegis / Fortified Aegis scale one slot (statTable.ts); was 8
@@ -236,7 +236,7 @@ const FLOOR: Record<string, number> = {
   'ordinary-invoker-1.json': 12, // short: Mana (2253/2549)
   'ordinary-mercenary-1.json': 13, // round 2: 13 of 13, an active charm adds its base buff (collect.ts collectCharms: Sapphire +25% Cold, Topaz +25% Lightning, same-base charms merge); was 11
   'ordinary-monk-1.json': 12, // short: Energy Shield (8225/8387)
-  'ordinary-shaman-1.json': 5, // short: attributes, Life, Mana, Armour, Evasion, Lightning (Armour 8691/17541, Evasion 1291/0)
+  'ordinary-shaman-1.json': 11, // round 5: 11 of 13 (Undying Hate's Conquered Attribute passives +3 to all Attributes, Wisdom of the Maji's Bonded rune lines, Iron Reflexes from the Legacy rune, Heavy Armour); was 5. Short: Armour (13693/17541: PoB's Bear Form shapeshift adds 1010 flat Armour, not in our data) and Lightning (72/75: Purity of Lightning is 39 in PoB, 49.53 here, aura magnitudes not applied)
   'ordinary-smith-of-kitava-1.json': 9, // short: Armour, Evasion, Cold and Lightning resistance (-24/87)
   'ordinary-sorceress-1.json': 12, // short: Energy Shield (8661/9143)
   'ordinary-witchhunter-1.json': 11, // short: Evasion (20875/23064), Chaos resistance (20/24)
@@ -246,7 +246,7 @@ const FLOOR: Record<string, number> = {
 
 // PoB's own per-stat build-up (breakdowns.stats[i].mods = [kind 0 flat|1 inc|2 more, value, sourceIndex]) says WHICH
 // modifiers PoB counts that we do not. Stat index -> our pool, and the diff itself.
-const BREAKDOWN_POOLS: Record<string, Pool> = { '0': 'life', '1': 'mana', '2': 'energyShield', '3': 'spirit', '5': 'evasion', '6': 'str', '7': 'dex', '8': 'int' };
+const BREAKDOWN_POOLS: Record<string, Pool> = { '0': 'life', '1': 'mana', '2': 'energyShield', '3': 'spirit', '4': 'armour', '5': 'evasion', '6': 'str', '7': 'dex', '8': 'int' };
 const KIND = ['flat', 'increased', 'more'] as const;
 type Breakdowns = { stats: Record<string, { mods: [number, number, number][] }>; sources: ([number, string?, string?] | [number])[] };
 

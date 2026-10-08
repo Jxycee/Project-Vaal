@@ -69,9 +69,11 @@ import type { Pool } from './statTable';
 
 /**
  * A Time-Lost jewel's "Notable / Small Passive Skills in Radius also grant <line>" (PoB2 ModParser.lua:7170). The
- * inner line is read by readLine; how many passives it reaches is collect.ts's job (the jewel's radius).
+ * inner line is read by readLine; how many passives it reaches is collect.ts's job (the jewel's radius). A Timeless jewel
+ * (Undying Hate) words the same thing "Conquered Attribute Passive Skills also grant +3 to all Attributes": once per
+ * allocated "+5 to any Attribute" passive in its radius (oracle ordinary-shaman-1: three of them, +3 to each attribute each).
  */
-export const RADIUS_GRANT_LINE = /^(Small|Notable) Passive Skills in Radius also grant (.+)$/;
+export const RADIUS_GRANT_LINE = /^(Small|Notable|Conquered Attribute) Passive Skills(?: in Radius)? also grant (.+)$/;
 
 /**
  * "28% increased bonuses gained from left Equipped Ring" (Ingenuity), "... from Equipped Rings", "... from Equipped Amulet",

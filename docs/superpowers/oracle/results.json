@@ -7,6 +7,14 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [
+        "increased 38 from Foe Ember, Ruby",
+        "increased 46 from Kraken Star, Ruby",
+        "increased 43 from Viper Sliver, Ruby",
+        "increased 35 from Viper Wound, Ruby",
+        "increased 46 from Hypnotic Hope, Ruby",
+        "increased 45 from Apocalypse Bliss, Ruby"
+      ],
       "evasion": [],
       "str": [
         "flat 6 from Apocalypse Bliss, Ruby"
@@ -24,7 +32,7 @@
     ],
     "class": "Gemling Legionnaire",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/flyinghigh42-0275/StickyOildUp",
-    "matched": 8,
+    "matched": 9,
     "of": 13,
     "stats": {
       "str": {
@@ -59,13 +67,13 @@
       },
       "armour": {
         "want": 38359,
-        "got": 27439,
+        "got": 32110,
         "ok": false
       },
       "evasion": {
         "want": 0,
-        "got": 1412,
-        "ok": false
+        "got": 0,
+        "ok": true
       },
       "fire": {
         "want": 75,
@@ -93,7 +101,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 9,
+    "derivedMatched": 10,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -103,8 +111,8 @@
       },
       "evadeChance": {
         "want": 0,
-        "got": 16,
-        "ok": false
+        "got": 0,
+        "ok": true
       },
       "deflectionRating": {
         "want": 0,
@@ -163,27 +171,27 @@
       },
       "effectiveHealthPool": {
         "want": 83813,
-        "got": 44596,
+        "got": 40696,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 8828,
-        "got": 6408,
+        "got": 6652,
         "ok": false
       },
       "fireMaxHit": {
         "want": 28041,
-        "got": 21074,
+        "got": 21750,
         "ok": false
       },
       "coldMaxHit": {
         "want": 27025,
-        "got": 20559,
+        "got": 21176,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 27025,
-        "got": 20559,
+        "got": 21176,
         "ok": false
       },
       "chaosMaxHit": {
@@ -199,6 +207,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [
         "increased 81 from 53185"
       ],
@@ -390,6 +399,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -576,6 +586,9 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [
+        "more 60 from DefianceBannerPlayer"
+      ],
       "evasion": [
         "more 60 from DefianceBannerPlayer"
       ],
@@ -764,6 +777,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -953,6 +967,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -1144,6 +1159,7 @@
       ],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -1321,6 +1337,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -1505,6 +1522,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [
         "increased 78 from 53185"
       ],
@@ -1703,6 +1721,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -1895,6 +1914,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -2085,6 +2105,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -2272,6 +2293,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -2459,6 +2481,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -2645,6 +2668,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -2838,6 +2862,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -3027,6 +3052,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -3220,6 +3246,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -3418,6 +3445,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -3618,6 +3646,7 @@
       "spirit": [
         "flat 140 from 46644"
       ],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -3810,6 +3839,7 @@
       ],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -4000,6 +4030,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -4192,6 +4223,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -4377,6 +4409,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -4563,6 +4596,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -4750,6 +4784,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -4939,6 +4974,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -5117,6 +5153,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -5311,6 +5348,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -5505,73 +5543,61 @@
         "flat 75 from Wrath Grasp, Runeforged Bound Cuffs",
         "flat 12 from Plague Track, Vaal Greaves",
         "flat 20 from Plague Track, Vaal Greaves",
-        "flat 80 from Morior Invictus, Grand Regalia",
         "flat 20 from Act 1: Ogham Manor"
       ],
       "mana": [
         "flat 12 from Wrath Grasp, Runeforged Bound Cuffs",
         "flat 20 from Wrath Grasp, Runeforged Bound Cuffs",
         "flat 12 from Plague Track, Vaal Greaves",
-        "flat 20 from Plague Track, Vaal Greaves",
-        "flat 80 from Morior Invictus, Grand Regalia"
+        "flat 20 from Plague Track, Vaal Greaves"
       ],
       "energyShield": [],
       "spirit": [
         "more -50 from 61942"
       ],
+      "armour": [
+        "flat 1010 from Bear Form"
+      ],
       "evasion": [],
-      "str": [
-        "flat 3 from 26196",
-        "flat 3 from 26196",
-        "flat 3 from 26196"
-      ],
-      "dex": [
-        "flat 3 from 26196",
-        "flat 3 from 26196",
-        "flat 3 from 26196"
-      ],
-      "int": [
-        "flat 3 from 26196",
-        "flat 3 from 26196",
-        "flat 3 from 26196"
-      ]
+      "str": [],
+      "dex": [],
+      "int": []
     },
     "notCounted": [
       "Heart of the Well: unique — not in our data",
       "From Nothing: unique — not in our data",
       "Prism of Belief: unique — not in our data",
-      "Unrecognised stat armour_+_from_%_strength_requirements_from_boots_gloves_helmets (Heavy Armour)",
       "Unrecognised stat ignore_armour_movement_penalties (Momentum)"
     ],
     "class": "Shaman",
     "source": "https://poe.ninja/poe2/builds/runesofaldur/character/Yorkerk-4812/WhichMonstersTasteGood",
-    "matched": 5,
+    "matched": 11,
     "of": 13,
     "stats": {
       "str": {
         "want": 218,
-        "got": 209,
-        "ok": false
+        "got": 218,
+        "ok": true
       },
       "dex": {
         "want": 86,
-        "got": 77,
-        "ok": false
+        "got": 86,
+        "ok": true
       },
       "int": {
         "want": 108,
-        "got": 99,
-        "ok": false
+        "got": 108,
+        "ok": true
       },
       "life": {
         "want": 3234,
-        "got": 3046,
-        "ok": false
+        "got": 3234,
+        "ok": true
       },
       "mana": {
         "want": 864,
-        "got": 710,
-        "ok": false
+        "got": 864,
+        "ok": true
       },
       "energyShield": {
         "want": 427,
@@ -5580,13 +5606,13 @@
       },
       "armour": {
         "want": 17541,
-        "got": 8691,
+        "got": 13693,
         "ok": false
       },
       "evasion": {
         "want": 0,
-        "got": 1291,
-        "ok": false
+        "got": 0,
+        "ok": true
       },
       "fire": {
         "want": 75,
@@ -5614,7 +5640,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 9,
+    "derivedMatched": 10,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -5624,8 +5650,8 @@
       },
       "evadeChance": {
         "want": 0,
-        "got": 13,
-        "ok": false
+        "got": 0,
+        "ok": true
       },
       "deflectionRating": {
         "want": 0,
@@ -5649,7 +5675,7 @@
       },
       "manaRegen": {
         "want": 88,
-        "got": 58,
+        "got": 70,
         "ok": false
       },
       "esRecharge": {
@@ -5684,32 +5710,32 @@
       },
       "effectiveHealthPool": {
         "want": 51499,
-        "got": 20456,
+        "got": 22995,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 8141,
-        "got": 5248,
+        "got": 5836,
         "ok": false
       },
       "fireMaxHit": {
         "want": 26467,
-        "got": 16909,
+        "got": 18155,
         "ok": false
       },
       "coldMaxHit": {
         "want": 26467,
-        "got": 16909,
+        "got": 18155,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 24230,
-        "got": 16909,
+        "got": 18155,
         "ok": false
       },
       "chaosMaxHit": {
         "want": 21904,
-        "got": 17159,
+        "got": 18054,
         "ok": false
       }
     }
@@ -5722,6 +5748,11 @@
       ],
       "energyShield": [],
       "spirit": [],
+      "armour": [
+        "increased 30 from 31566",
+        "increased 20 from 45585",
+        "increased 20 from 55617"
+      ],
       "evasion": [
         "increased 20 from 45585",
         "increased 20 from 55617"
@@ -5910,6 +5941,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -6098,6 +6130,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [],
       "str": [
         "flat 9 from Domination Span, Runeforged Cryptic Leggings",
@@ -6293,6 +6326,7 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -6483,6 +6517,7 @@
       "spirit": [
         "3 0 from Kaom's Heart, Conqueror Plate"
       ],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -6675,6 +6710,7 @@
       ],
       "energyShield": [],
       "spirit": [],
+      "armour": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -6856,6 +6892,11 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
+      "armour": [
+        "increased 20 from 55617",
+        "increased 20 from 56910",
+        "more -50 from 38601"
+      ],
       "evasion": [
         "increased 30 from 11257",
         "increased 30 from 22556",
