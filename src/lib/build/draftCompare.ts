@@ -20,6 +20,7 @@ import { GEAR_SLOTS } from '@/lib/build/gearSlots';
 import type { GearItem } from '@/lib/build/gearSlots';
 import { parseCraft } from '@/lib/build/craft';
 import { parseGearState, type GearState } from '@/lib/build/gearState';
+import { sameBuildConfig } from '@/lib/build/stats/buildConfig';
 import { parseGemState, type GemLoadout, type GemState } from '@/lib/build/gemState';
 
 function sortedNumbers(nums: number[]): number[] {
@@ -121,7 +122,7 @@ export function draftDiffersFrom(
   if (draft.tree.className !== build.class) return true;
   if ((draft.tree.ascendancyId ?? null) !== build.ascendancy) return true;
 
-  const draftState = toPassiveState(draft.tree.main, draft.tree.ascendancyNodes, draft.tree.attributeChoices, draft.quest);
+  const draftState = toPassiveState(draft.tree.main, draft.tree.ascendancyNodes, draft.tree.attributeChoices, draft.quest, draft.config);
   const savedState = build.passive_state;
 
   if (
@@ -129,7 +130,9 @@ export function draftDiffersFrom(
     !sameNumberSet(draftState.set2, savedState.set2) ||
     !sameNumberSet(draftState.ascendancyNodes, savedState.ascendancyNodes) ||
     !sameChoices(draftState.attributeChoices, savedState.attributeChoices) ||
-    !sameChoices(draftState.questChoices, savedState.questChoices)
+    !sameChoices(draftState.questChoices, savedState.questChoices) ||
+    // A draft with no config key (written before the Config panel) says nothing about it: not a difference.
+    (draft.config !== undefined && !sameBuildConfig(draftState.buildConfig, savedState.buildConfig))
   ) {
     return true;
   }

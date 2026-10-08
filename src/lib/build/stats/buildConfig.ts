@@ -89,3 +89,58 @@ export function conditionHolds(config: BuildConfig | undefined, name: string, ne
   if (!config) return undefined;
   return config.conditions.includes(name) !== negate;
 }
+
+// ---- The Config panel's editing (Stats tab) --------------------------------------------------------------------
+//
+// FAILURE MODES of editing (decided before the code; the round trip is covered end to end by
+// e2e/config-panel.spec.ts):
+//   7. A flag the panel has no toggle for (imported "Blinded", a name from a newer table): carried through every
+//      edit untouched. Editing Moving must never drop it.
+//   8. A flag set on a build whose engine ignores it (no modifier uses "Bleeding"): stored and shown, inert.
+//      The panel says so in words; it does not hide the toggle.
+//   9. No Config yet (hand-built, scratch, imported without one) and the owner ticks something: the build gains a
+//      Config holding exactly what was ticked. Every other condition is then false, as PoB treats an unticked
+//      box, so the sheet stops naming conditional modifiers as "needing a condition" and counts them as off.
+//  10. Readers: the panel renders values only. The session setter also refuses when the viewer cannot edit.
+//  11. A stack count that is not a whole number, is negative or is absurd is clamped (0 removes the multiplier),
+//      so a typed "-3" or "1e9" never reaches storage.
+
+/** The conditions the engine reads from the Config today (statTable CONDITIONAL_EFFECTS), in the panel's order. */
+export const CONFIG_CONDITIONS: readonly { name: string; label: string }[] = [
+  { name: 'Moving', label: 'Moving' },
+  { name: 'Stationary', label: 'Stationary' },
+  { name: 'BeenHitRecently', label: 'Hit recently' },
+  { name: 'Bleeding', label: 'Bleeding' },
+  { name: 'Ignited', label: 'Ignited' },
+];
+
+/** The count inputs the panel edits: the Multiplier name -> its label. Names come from NUMBER_INPUTS. */
+export const CONFIG_MULTIPLIERS: readonly { name: string; label: string }[] = [{ name: NUMBER_INPUTS.windDancerStacks, label: 'Wind Dancer stacks' }];
+
+export const MAX_STACKS = 99;
+
+/** The config with `name` ticked or unticked. Starts a Config when there is none (failure mode 9). */
+export function withCondition(config: BuildConfig | undefined, name: string, on: boolean): BuildConfig {
+  const base = config ?? { conditions: [], multipliers: {} };
+  const rest = base.conditions.filter((c) => c !== name);
+  return parseBuildConfig({ conditions: on ? [...rest, name] : rest, multipliers: { ...base.multipliers } }) ?? base;
+}
+
+/** The config with a multiplier's count set; 0, a negative or a non-number removes it (failure mode 11). */
+export function withMultiplier(config: BuildConfig | undefined, name: string, count: number): BuildConfig {
+  const base = config ?? { conditions: [], multipliers: {} };
+  const { [name]: _dropped, ...rest } = base.multipliers;
+  void _dropped;
+  const n = Number.isFinite(count) ? Math.min(MAX_STACKS, Math.floor(count)) : 0;
+  return parseBuildConfig({ conditions: [...base.conditions], multipliers: n > 0 ? { ...rest, [name]: n } : rest }) ?? base;
+}
+
+/** Same Config by content (both parsed, so order never counts); absent equals absent only. */
+export function sameBuildConfig(a: BuildConfig | undefined, b: BuildConfig | undefined): boolean {
+  const x = parseBuildConfig(a);
+  const y = parseBuildConfig(b);
+  if (!x || !y) return !x && !y;
+  const mx = Object.entries(x.multipliers).sort(([p], [q]) => p.localeCompare(q));
+  const my = Object.entries(y.multipliers).sort(([p], [q]) => p.localeCompare(q));
+  return JSON.stringify([x.conditions, mx]) === JSON.stringify([y.conditions, my]);
+}
