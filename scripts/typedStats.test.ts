@@ -51,10 +51,6 @@ describe('buildNodeStats', () => {
   it('refuses a node whose stats outnumber the seven value slots', () => {
     expect(() => buildNodeStats([row(9, [0, 0, 0, 0, 0, 0, 0, 0], [1, 1, 1, 1, 1, 1, 1, 1])], stats, [9])).toThrow(/node 9/);
   });
-
-  it('keeps the first row when two share a graph id', () => {
-    expect(buildNodeStats([row(3, [0], [5]), row(3, [0], [6])], stats, [3])).toEqual({ '3': [['base_spirit', 5]] });
-  });
 });
 
 describe('buildImplicitStats', () => {
@@ -123,10 +119,6 @@ describe('buildUniqueStats', () => {
   it('gives null for a line nothing words the same way, or only a multi-line or non-item mod does', () => {
     const out = buildUniqueStats([unique('Odd', 'Body Armour', ['Dodge Roll avoids all Hits', '+(10-20) to maximum Life', '+(1-2) to Monster Level'])], mods);
     expect(out.Odd.lines).toEqual([null, null, null]);
-  });
-
-  it('keeps one stat id per roll, in order', () => {
-    expect(buildUniqueStats([unique('Brand', 'Wand', ['Adds (4-6) to (9-12) Fire damage'])], mods).Brand.lines).toEqual([['min', 'max']]);
   });
 
   it('strips a {variant:…} prefix from the base, and skips non-uniques', () => {

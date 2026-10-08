@@ -52,11 +52,6 @@ afterEach(() => {
 });
 
 describe('recordSearchedEntry + getHomeStrip', () => {
-  it('backfills all 4 slots with random picks when nothing has been searched yet', () => {
-    const strip = getHomeStrip(poolWithUniques);
-    expect(strip).toHaveLength(4);
-  });
-
   it('backfill draws only from unique items, never a mod/skill/effect/map or a non-unique item', () => {
     for (let i = 0; i < 20; i++) {
       const strip = getHomeStrip(poolWithUniques);

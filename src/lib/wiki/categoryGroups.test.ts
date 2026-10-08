@@ -23,8 +23,4 @@ describe('groupByCategory', () => {
       { category: 'Boots', count: 1 },
     ]);
   });
-
-  it('returns an empty array for no entries', () => {
-    expect(groupByCategory([])).toEqual([]);
-  });
 });

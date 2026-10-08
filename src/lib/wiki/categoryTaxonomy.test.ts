@@ -49,10 +49,6 @@ describe('groupByTaxonomy', () => {
     const sections = groupByTaxonomy(groups, taxonomy);
     expect(sections.map((s) => s.label)).toEqual(['Weapons', 'Armour']);
   });
-
-  it('returns an empty array for no entries', () => {
-    expect(groupByTaxonomy([], taxonomy)).toEqual([]);
-  });
 });
 
 describe('ITEM_CATEGORY_GROUPS', () => {

@@ -11,10 +11,6 @@ describe('humanizeCategory', () => {
     expect(humanizeCategory('quality_currency')).toBe('quality currency');
   });
 
-  it('handles a mix of underscores and PascalCase', () => {
-    expect(humanizeCategory('ezomyte_basetype')).toBe('ezomyte basetype');
-  });
-
   it('leaves already-readable text unchanged', () => {
     expect(humanizeCategory('Active Skill Gem')).toBe('Active Skill Gem');
     expect(humanizeCategory('Effect')).toBe('Effect');

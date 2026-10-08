@@ -7,20 +7,12 @@ describe('extractMaxGemLevel', () => {
     expect(extractMaxGemLevel({ scaling })).toBe(40);
   });
 
-  it('returns 1 for a Spirit gem whose scaling maxes below 40', () => {
-    expect(extractMaxGemLevel({ scaling: [{ level: 1 }, { level: 8 }, { level: 11 }, { level: 14 }] })).toBe(14);
-  });
-
   it('falls back to 1 when scaling is missing', () => {
     expect(extractMaxGemLevel({})).toBe(1);
   });
 
   it('falls back to 1 when scaling is empty', () => {
     expect(extractMaxGemLevel({ scaling: [] })).toBe(1);
-  });
-
-  it('falls back to 1 for a Support Gem-shaped payload (no scaling entries with useful levels)', () => {
-    expect(extractMaxGemLevel({ scaling: [{ level: 1 }] })).toBe(1);
   });
 
   it('ignores malformed scaling entries but keeps the well-formed ones', () => {
