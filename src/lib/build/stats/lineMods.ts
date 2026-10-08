@@ -45,6 +45,11 @@
 //      matches a one-number template, reads as unmodelled/ignored.
 //   6. A modifier name we do not report: not turned into a contribution; the line reads as unmodelled so it is
 //      named. (Ward, Deflection, movement speed, charges and regeneration ARE reported now - POOLS below.)
+//   8. "... per Socket filled" (Morior Invictus): PoB scales the value by the runes in that item
+//      (Multiplier:RunesSocketedIn<slot>). Read with perSocket set; collect.ts multiplies by the filled sockets.
+//      The cache keeps only a mod's FIRST tag, so the Global-tagged "increased Global Armour, Evasion and Energy
+//      Shield per Socket filled" lines lose their Multiplier: the line's own words decide. A per-socket line that
+//      also carries a Condition is not read. An item with no runes multiplies by 0 (adds nothing, never a guess).
 //   7. Fragments of a wrapped line ("enemy affected by Abyssal Wasting") or a
 //      pure offence line: no template, so null = "not a defence line", silently
 //      ignored by the caller (it is only named when it LOOKS like a defence).
@@ -65,6 +70,8 @@ export interface LineMod {
   value: number;
   /** Counts only while this PoB condition is true (or, negated, false). Absent = always. */
   condition?: { name: string; negate: boolean };
+  /** "... per Socket filled": the value is per rune in the item's sockets, so the caller multiplies it by that count. */
+  perSocket?: boolean;
 }
 
 export type LineRead =
@@ -132,7 +139,12 @@ interface Template {
   mods: { pools: Pool[]; kind: LineMod['kind']; sign: 1 | -1 }[];
   global: boolean;
   condition?: { name: string; negate: boolean };
+  perSocket?: boolean;
 }
+
+/** "+7 to all Attributes per Socket filled": PoB scales it by Multiplier:RunesSocketedIn<slot> (the runes in that item). */
+const PER_SOCKET = /per Socket filled$/i;
+const SOCKET_MULTIPLIER = /^RunesSocketedIn/;
 
 /** "if you haven't been Hit Recently", "while not on Low Life": PoB's neg flag, which modcache.json does not keep. */
 const NEGATED = /\b(haven't|have not|havent|hasn't|not|without|aren't|isn't)\b/i;
@@ -145,8 +157,14 @@ function derive(entry: CacheEntry, n: number, text: string): Template | null {
   if (entry.rest !== undefined || mods.length === 0 || n === 0) return null;
   // One shared Condition tag is a gate; any other tag is a scaling we cannot invert.
   const conditions = new Set(mods.filter((m) => m.tagType === 'Condition').map((m) => m.tagVar));
+  // "per Socket filled" is a scaling we CAN invert: the count of runes in the item. The cache keeps only a mod's
+  // FIRST tag, so a line tagged Global ("12% increased Global Armour, Evasion and Energy Shield per Socket filled")
+  // hides its Multiplier behind it; the line's own words say it scales, and the oracle confirms (12 x 5 sockets = 60).
+  const perSocket = PER_SOCKET.test(text);
   const gated = conditions.size === 1 && typeof [...conditions][0] === 'string' && !/\bper\b/i.test(text);
-  if (mods.some((m) => m.tagType !== undefined && m.tagType !== 'Global' && !(gated && m.tagType === 'Condition'))) return null;
+  const socketTag = (m: CachedMod) => perSocket && m.tagType === 'Multiplier' && SOCKET_MULTIPLIER.test(m.tagVar ?? '');
+  if (mods.some((m) => m.tagType !== undefined && m.tagType !== 'Global' && !socketTag(m) && !(gated && m.tagType === 'Condition'))) return null;
+  if (perSocket && gated) return null;
   if (conditions.size > 0 && !gated) return null;
   if (gated && mods.some((m) => m.tagType !== 'Condition')) return null;
   const read: Template['mods'] = [];
@@ -158,7 +176,7 @@ function derive(entry: CacheEntry, n: number, text: string): Template | null {
     read.push({ pools, kind, sign: Math.sign(m.value) === Math.sign(n) ? 1 : -1 });
   }
   const condition = gated ? { name: [...conditions][0] as string, negate: NEGATED.test(text) } : undefined;
-  return { mods: read, global: mods.some((m) => m.tagType === 'Global'), ...(condition ? { condition } : {}) };
+  return { mods: read, global: mods.some((m) => m.tagType === 'Global'), ...(condition ? { condition } : {}), ...(perSocket ? { perSocket } : {}) };
 }
 
 function build(): Map<string, Template | null> {
@@ -187,7 +205,7 @@ export function readLine(line: string): LineRead | null {
   if (template === null) return { unmodelled: line };
   const n = Number(numbers[0]);
   return {
-    mods: template.mods.flatMap((m) => m.pools.map((pool) => ({ pool, kind: m.kind, value: m.sign * n, ...(template.condition ? { condition: template.condition } : {}) }))),
+    mods: template.mods.flatMap((m) => m.pools.map((pool) => ({ pool, kind: m.kind, value: m.sign * n, ...(template.condition ? { condition: template.condition } : {}), ...(template.perSocket ? { perSocket: true } : {}) }))),
     global: template.global,
   };
 }

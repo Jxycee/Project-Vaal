@@ -39,6 +39,11 @@ export interface ItemCraft {
   /** SoulCore item slugs (runes, soul cores), in socket order. */
   runes: string[];
   /**
+   * How many sockets hold a rune or soul core when that is more than `runes` lists (the importer drops a rune our
+   * data lacks). What "per Socket filled" lines multiply by (stats/collect.ts). Absent = `runes.length`. Importer only.
+   */
+  filledSockets?: number;
+  /**
    * Mod lines the item really shows that the wiki-slug model above cannot hold: a desecrated or
    * corrupted mod the base's pool lacks, a unique our data never typed, a roll past its tier cap,
    * an "Allocates X" enchant. Final text with the roll filled in ("+9 to all Attributes"), read by

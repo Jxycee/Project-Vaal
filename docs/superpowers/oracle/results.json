@@ -2,7 +2,6 @@
   "armour-life-gemling.json": {
     "gaps": {
       "life": [
-        "flat 265 from Morior Invictus, Grand Regalia",
         "increased 28 from VirtuousBarrierPlayer",
         "increased 5 from 32976"
       ],
@@ -12,9 +11,7 @@
       "energyShield": [
         "increased 25 from VirtuousBarrierPlayer"
       ],
-      "spirit": [
-        "flat 70 from Morior Invictus, Grand Regalia"
-      ],
+      "spirit": [],
       "evasion": [
         "increased -29 from The Adorned, Diamond",
         "increased 25 from VirtuousBarrierPlayer"
@@ -27,7 +24,7 @@
     },
     "class": "Gemling Legionnaire",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/flyinghigh42-0275/StickyOildUp",
-    "matched": 2,
+    "matched": 6,
     "of": 13,
     "stats": {
       "str": {
@@ -47,7 +44,7 @@
       },
       "life": {
         "want": 4075,
-        "got": 2831,
+        "got": 3117,
         "ok": false
       },
       "mana": {
@@ -72,18 +69,18 @@
       },
       "fire": {
         "want": 75,
-        "got": 45,
-        "ok": false
+        "got": 75,
+        "ok": true
       },
       "cold": {
         "want": 75,
-        "got": 43,
-        "ok": false
+        "got": 75,
+        "ok": true
       },
       "lightning": {
         "want": 75,
-        "got": 35,
-        "ok": false
+        "got": 75,
+        "ok": true
       },
       "chaos": {
         "want": 68,
@@ -92,8 +89,8 @@
       },
       "spirit": {
         "want": 220,
-        "got": 150,
-        "ok": false
+        "got": 220,
+        "ok": true
       }
     },
     "derivedMatched": 8,
@@ -166,32 +163,32 @@
       },
       "effectiveHealthPool": {
         "want": 83813,
-        "got": 24312,
+        "got": 33976,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 8828,
-        "got": 5046,
+        "got": 5364,
         "ok": false
       },
       "fireMaxHit": {
         "want": 28041,
-        "got": 9504,
+        "got": 17594,
         "ok": false
       },
       "coldMaxHit": {
         "want": 27025,
-        "got": 8945,
+        "got": 17149,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 27025,
-        "got": 8167,
+        "got": 17149,
         "ok": false
       },
       "chaosMaxHit": {
         "want": 14791,
-        "got": 9758,
+        "got": 10624,
         "ok": false
       }
     }
@@ -199,16 +196,12 @@
   "es-life-stormweaver.json": {
     "gaps": {
       "life": [],
-      "mana": [
-        "flat 260 from Morior Invictus, Grand Regalia"
-      ],
+      "mana": [],
       "energyShield": [
         "flat 397 from Morior Invictus, Grand Regalia",
         "flat 107 from 34324"
       ],
-      "spirit": [
-        "flat 70 from Morior Invictus, Grand Regalia"
-      ],
+      "spirit": [],
       "evasion": [
         "flat 1289 from Morior Invictus, Grand Regalia",
         "increased 80 from 32354",
@@ -220,7 +213,7 @@
     },
     "class": "Stormweaver",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/nameking-0380/%E5%97%B6%E5%93%A9%E4%BD%90%E5%BE%B7%E5%B0%8F%E6%B1%BD%E8%BB%8A",
-    "matched": 7,
+    "matched": 10,
     "of": 13,
     "stats": {
       "str": {
@@ -245,8 +238,8 @@
       },
       "mana": {
         "want": 2306,
-        "got": 1992,
-        "ok": false
+        "got": 2306,
+        "ok": true
       },
       "energyShield": {
         "want": 8286,
@@ -280,13 +273,13 @@
       },
       "chaos": {
         "want": 75,
-        "got": 17,
-        "ok": false
+        "got": 75,
+        "ok": true
       },
       "spirit": {
         "want": 244,
-        "got": 174,
-        "ok": false
+        "got": 244,
+        "ok": true
       }
     },
     "derivedMatched": 5,
@@ -324,7 +317,7 @@
       },
       "manaRegen": {
         "want": 155,
-        "got": 111,
+        "got": 129,
         "ok": false
       },
       "esRecharge": {
@@ -359,7 +352,7 @@
       },
       "effectiveHealthPool": {
         "want": 87491,
-        "got": 48407,
+        "got": 59817,
         "ok": false
       },
       "physicalMaxHit": {
@@ -384,7 +377,7 @@
       },
       "chaosMaxHit": {
         "want": 17964,
-        "got": 6944,
+        "got": 23054,
         "ok": false
       }
     }
@@ -597,45 +590,39 @@
       "evasion": [
         "more 60 from DefianceBannerPlayer"
       ],
-      "str": [
-        "flat 32 from Morior Invictus, Grand Regalia"
-      ],
-      "dex": [
-        "flat 32 from Morior Invictus, Grand Regalia"
-      ],
-      "int": [
-        "flat 32 from Morior Invictus, Grand Regalia"
-      ]
+      "str": [],
+      "dex": [],
+      "int": []
     },
     "class": "Tactician",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/pjf5845203344-2325/%E5%A4%A9%E7%A9%BA%E6%87%92%E7%8B%BC%E8%93%9D",
-    "matched": 3,
+    "matched": 8,
     "of": 13,
     "stats": {
       "str": {
         "want": 406,
-        "got": 374,
-        "ok": false
+        "got": 406,
+        "ok": true
       },
       "dex": {
         "want": 144,
-        "got": 112,
-        "ok": false
+        "got": 144,
+        "ok": true
       },
       "int": {
         "want": 148,
-        "got": 116,
-        "ok": false
+        "got": 148,
+        "ok": true
       },
       "life": {
         "want": 2005,
-        "got": 2077,
+        "got": 2111,
         "ok": false
       },
       "mana": {
         "want": 1133,
-        "got": 1066,
-        "ok": false
+        "got": 1133,
+        "ok": true
       },
       "energyShield": {
         "want": 4729,
@@ -669,8 +656,8 @@
       },
       "chaos": {
         "want": 75,
-        "got": 19,
-        "ok": false
+        "got": 75,
+        "ok": true
       },
       "spirit": {
         "want": 216,
@@ -678,7 +665,7 @@
         "ok": false
       }
     },
-    "derivedMatched": 6,
+    "derivedMatched": 7,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -713,8 +700,8 @@
       },
       "manaRegen": {
         "want": 34,
-        "got": 32,
-        "ok": false
+        "got": 34,
+        "ok": true
       },
       "esRecharge": {
         "want": 591,
@@ -748,32 +735,32 @@
       },
       "effectiveHealthPool": {
         "want": 26777,
-        "got": 17073,
+        "got": 20661,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 8357,
-        "got": 7272,
+        "got": 7373,
         "ok": false
       },
       "fireMaxHit": {
         "want": 28096,
-        "got": 24861,
+        "got": 25221,
         "ok": false
       },
       "coldMaxHit": {
         "want": 28096,
-        "got": 24861,
+        "got": 25221,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 28096,
-        "got": 24861,
+        "got": 25221,
         "ok": false
       },
       "chaosMaxHit": {
         "want": 22010,
-        "got": 6237,
+        "got": 20612,
         "ok": false
       }
     }
@@ -1140,20 +1127,16 @@
   "ordinary-caster-2.json": {
     "gaps": {
       "life": [],
-      "mana": [
-        "flat 300 from Morior Invictus, Grand Regalia"
-      ],
+      "mana": [],
       "energyShield": [
         "flat 408 from Morior Invictus, Grand Regalia",
         "flat 110 from 34324",
-        "increased 60 from Morior Invictus, Grand Regalia",
         "increased 29 from Cataclysm Breath, Sapphire",
         "increased 15 from 34006"
       ],
       "spirit": [],
       "evasion": [
         "flat 1324 from Morior Invictus, Grand Regalia",
-        "increased 60 from Morior Invictus, Grand Regalia",
         "increased 80 from 32354",
         "increased 78 from 53185"
       ],
@@ -1163,7 +1146,7 @@
     },
     "class": "Stormweaver",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/qianqi77-5717/JokerBD",
-    "matched": 5,
+    "matched": 6,
     "of": 13,
     "stats": {
       "str": {
@@ -1188,37 +1171,37 @@
       },
       "mana": {
         "want": 2715,
-        "got": 2352,
-        "ok": false
+        "got": 2715,
+        "ok": true
       },
       "energyShield": {
         "want": 6771,
-        "got": 4908,
+        "got": 5538,
         "ok": false
       },
       "armour": {
         "want": 4176,
-        "got": 2002,
+        "got": 2596,
         "ok": false
       },
       "evasion": {
         "want": 12508,
-        "got": 6960,
+        "got": 8004,
         "ok": false
       },
       "fire": {
         "want": 65,
-        "got": 20,
+        "got": 70,
         "ok": false
       },
       "cold": {
         "want": 69,
-        "got": 24,
+        "got": 74,
         "ok": false
       },
       "lightning": {
         "want": 71,
-        "got": 26,
+        "got": 75,
         "ok": false
       },
       "chaos": {
@@ -1232,7 +1215,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 6,
+    "derivedMatched": 7,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -1242,17 +1225,17 @@
       },
       "evadeChance": {
         "want": 57,
-        "got": 43,
+        "got": 46,
         "ok": false
       },
       "deflectionRating": {
         "want": 12615,
-        "got": 7019,
+        "got": 8072,
         "ok": false
       },
       "deflectChance": {
         "want": 63,
-        "got": 43,
+        "got": 47,
         "ok": false
       },
       "ward": {
@@ -1267,12 +1250,12 @@
       },
       "manaRegen": {
         "want": 124,
-        "got": 108,
-        "ok": false
+        "got": 124,
+        "ok": true
       },
       "esRecharge": {
         "want": 846,
-        "got": 613,
+        "got": 692,
         "ok": false
       },
       "esRechargeDelay": {
@@ -1302,32 +1285,32 @@
       },
       "effectiveHealthPool": {
         "want": 43686,
-        "got": 16190,
+        "got": 32550,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 7642,
-        "got": 6668,
+        "got": 7354,
         "ok": false
       },
       "fireMaxHit": {
         "want": 19071,
-        "got": 7800,
+        "got": 21527,
         "ok": false
       },
       "coldMaxHit": {
         "want": 21315,
-        "got": 8195,
+        "got": 24497,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 22647,
-        "got": 8408,
+        "got": 25371,
         "ok": false
       },
       "chaosMaxHit": {
         "want": 6228,
-        "got": 6484,
+        "got": 6992,
         "ok": false
       }
     }
@@ -2864,7 +2847,6 @@
   "ordinary-life-1.json": {
     "gaps": {
       "life": [
-        "flat 295 from Morior Invictus, Grand Regalia",
         "flat 288 from 31223",
         "increased 8 from Morior Invictus, Grand Regalia",
         "increased 5 from 32976"
@@ -2877,44 +2859,38 @@
       "evasion": [
         "flat 395 from Alpha's Howl, Runemastered Armoured Cap"
       ],
-      "str": [
-        "flat 35 from Morior Invictus, Grand Regalia"
-      ],
-      "dex": [
-        "flat 35 from Morior Invictus, Grand Regalia"
-      ],
-      "int": [
-        "flat 35 from Morior Invictus, Grand Regalia"
-      ]
+      "str": [],
+      "dex": [],
+      "int": []
     },
     "class": "Blood Mage",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/Shaelmao-0831/Rakurimosa",
-    "matched": 3,
+    "matched": 8,
     "of": 13,
     "stats": {
       "str": {
         "want": 299,
-        "got": 264,
-        "ok": false
+        "got": 299,
+        "ok": true
       },
       "dex": {
         "want": 174,
-        "got": 124,
+        "got": 159,
         "ok": false
       },
       "int": {
         "want": 160,
-        "got": 125,
-        "ok": false
+        "got": 160,
+        "ok": true
       },
       "life": {
         "want": 4800,
-        "got": 3454,
+        "got": 3987,
         "ok": false
       },
       "mana": {
         "want": 871,
-        "got": 758,
+        "got": 832,
         "ok": false
       },
       "energyShield": {
@@ -2934,18 +2910,18 @@
       },
       "fire": {
         "want": 75,
-        "got": 42,
-        "ok": false
+        "got": 75,
+        "ok": true
       },
       "cold": {
         "want": 75,
-        "got": 36,
-        "ok": false
+        "got": 75,
+        "ok": true
       },
       "lightning": {
         "want": 75,
-        "got": 38,
-        "ok": false
+        "got": 75,
+        "ok": true
       },
       "chaos": {
         "want": 69,
@@ -2993,7 +2969,7 @@
       },
       "manaRegen": {
         "want": 54,
-        "got": 47,
+        "got": 52,
         "ok": false
       },
       "esRecharge": {
@@ -3028,32 +3004,32 @@
       },
       "effectiveHealthPool": {
         "want": 21021,
-        "got": 7834,
+        "got": 14105,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 7601,
-        "got": 4477,
+        "got": 5011,
         "ok": false
       },
       "fireMaxHit": {
         "want": 26586,
-        "got": 7085,
+        "got": 17339,
         "ok": false
       },
       "coldMaxHit": {
         "want": 26586,
-        "got": 6451,
+        "got": 17339,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 26586,
-        "got": 6649,
+        "got": 17339,
         "ok": false
       },
       "chaosMaxHit": {
         "want": 23410,
-        "got": 13339,
+        "got": 15058,
         "ok": false
       }
     }

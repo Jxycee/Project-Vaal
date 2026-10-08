@@ -370,7 +370,7 @@ function collectItem(
     if (!unique || !detail) {
       notCounted.push(`${item.name}: unique — not in our data`);
       // Its lines as the importer kept them still count, as global modifiers (no base to scale locally).
-      readVerbatim(craft?.verbatim, item.name, { defences: false, spirit: false }, {}, {}, contributions, notCounted, allocate, config);
+      readVerbatim(craft?.verbatim, item.name, { defences: false, spirit: false }, {}, {}, contributions, notCounted, allocate, config, filledSockets(craft));
       return;
     }
     // Lines typed to exactly the same stats are one roll's alternatives, which
@@ -500,7 +500,7 @@ function collectItem(
   // Local stats shape the item's own defences and Spirit; the rest are global.
   const localFlat: Partial<Record<Pool, number>> = {};
   const localInc: Partial<Record<Pool, number>> = {};
-  readVerbatim(craft?.verbatim, item.name, { defences: detail.armour !== null, spirit: detail.spirit > 0 }, localFlat, localInc, contributions, notCounted, allocate, config);
+  readVerbatim(craft?.verbatim, item.name, { defences: detail.armour !== null, spirit: detail.spirit > 0 }, localFlat, localInc, contributions, notCounted, allocate, config, filledSockets(craft));
   for (const [stat, value] of stats) {
     const local = LOCAL_EFFECTS[stat];
     if (local) {
@@ -563,6 +563,7 @@ function readVerbatim(
   notCounted: string[],
   allocate: (name: string) => void,
   config: BuildConfig | undefined,
+  sockets: number,
 ): void {
   for (const line of lines ?? []) {
     const allocates = /^Allocates (.+)$/.exec(line);
@@ -578,13 +579,23 @@ function readVerbatim(
     }
     for (const mod of gate(read.mods, config, line, source, notCounted)) {
       const defence = mod.pool === 'armour' || mod.pool === 'evasion' || mod.pool === 'energyShield';
-      const local = !mod.condition && !read.global && mod.kind !== 'more' && ((host.defences && defence) || (host.spirit && mod.pool === 'spirit' && mod.kind === 'increased'));
+      const local = !mod.condition && !mod.perSocket && !read.global && mod.kind !== 'more' && ((host.defences && defence) || (host.spirit && mod.pool === 'spirit' && mod.kind === 'increased'));
       if (local) {
         const bucket = mod.kind === 'flat' ? localFlat : localInc;
         bucket[mod.pool] = (bucket[mod.pool] ?? 0) + mod.value;
       } else {
-        contributions.push({ pool: mod.pool, kind: mod.kind, value: mod.value, source });
+        // "per Socket filled" (Morior Invictus): PoB multiplies by the runes in this item (RunesSocketedIn<slot>).
+        contributions.push({ pool: mod.pool, kind: mod.kind, value: mod.perSocket ? mod.value * sockets : mod.value, source });
       }
     }
   }
+}
+
+/**
+ * Sockets with a rune or soul core in them: what "per Socket filled" multiplies by (PoB Multiplier:RunesSocketedIn<slot>).
+ * The importer counts PoB's own "Rune:" lines (filledSockets) because a rune our data lacks is not in `runes`; a
+ * hand-built item has only `runes`. An empty item is 0, so the line adds nothing rather than a guess.
+ */
+function filledSockets(craft: GearItem['craft']): number {
+  return craft?.filledSockets ?? craft?.runes.length ?? 0;
 }

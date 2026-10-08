@@ -286,6 +286,7 @@ export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups):
   const verbatim: string[] = [];
   const crafted: Record<'prefix' | 'suffix', CraftedMod[]> = { prefix: [], suffix: [] };
   let isCrafted = false;
+  let runeLinesSeen = 0;
   for (const line of header) {
     const quality = /^Quality: (\d+)$/.exec(line);
     if (quality) {
@@ -300,6 +301,7 @@ export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups):
     if (radius && craft.radius === undefined) craft.radius = radius[1];
     const rune = /^Rune: (.+)$/.exec(line);
     if (rune) {
+      runeLinesSeen++;
       const slug = lookups.runeSlugByName(rune[1]);
       if (slug) craft.runes.push(slug);
       else notes.push({ kind: 'dropped', message: `The rune "${rune[1]}" is not in this patch's data, so it was not kept.` });
@@ -318,6 +320,8 @@ export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups):
     }
   }
   if (craft.runes.length > MAX_RUNES) craft.runes = craft.runes.slice(0, MAX_RUNES);
+  // A rune our data lacks is dropped from `runes` but still fills its socket ("per Socket filled" counts it).
+  if (runeLinesSeen > craft.runes.length) craft.filledSockets = Math.min(MAX_RUNES, runeLinesSeen);
 
   // Implicits: an {enchant} line is an enchantment, or rune-granted if also {rune}.
   const baseImplicits: string[] = [];

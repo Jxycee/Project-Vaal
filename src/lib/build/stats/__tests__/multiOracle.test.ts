@@ -160,7 +160,7 @@ const DERIVED_FLOOR: Record<string, number> = {
   'hybrid-tactician.json': 6, // of 19
   'ordinary-armour-1.json': 8, // of 17
   'ordinary-caster-1.json': 9, // of 17
-  'ordinary-caster-2.json': 6, // of 19
+  'ordinary-caster-2.json': 7, // of 19
   'ordinary-ci-acolyte.json': 18, // of 19
   'ordinary-ci-disciple.json': 19, // of 19
   'ordinary-ci-es-disciple.json': 12, // of 19
@@ -193,8 +193,8 @@ const FLOOR: Record<string, number> = {
   'ordinary-armour-1.json': 10, // Gemling Legionnaire, life/armour/evasion; Runeseeker's Call (-45% less maximum Life rune line) and Virtuous Barrier mote counts
   'ordinary-caster-1.json': 12, // Chronomancer; only Mana off (Runeforged Sirenscale Gloves rune line)
   'ordinary-hybrid-1.json': 8, // Lich, ES + armour; Ancient Aegis body armour armour, Grip of Kulemak not in our data
-  'ordinary-caster-2.json': 5, // Stormweaver; Morior Invictus per-socket lines, Adonia's Ego per-Power-Charge resistances
-  'ordinary-life-1.json': 3, // Blood Mage, life; Morior Invictus per-socket lines (attributes, life, resistances)
+  'ordinary-caster-2.json': 6, // Stormweaver; Morior per-socket lines now counted (lineMods perSocket); still short: Adonia's Ego per-Power-Charge resistances, ES/evasion nodes
+  'ordinary-life-1.json': 8, // Blood Mage, life; Morior per-socket lines now counted; still short: 1% max Life per Corrupted Item Equipped, Alpha's Howl Runemastered cap, node 31223
   'ordinary-hybrid-2.json': 5, // Ritualist, ES + evasion; Andvarius -20% all resistances, Shavronne's Satchel, uniques not in our data
   'ordinary-evasion-2.json': 1, // Ritualist, evasion; Andvarius, Charge Regulation (endurance-charge threshold), Megalomaniac
 };
