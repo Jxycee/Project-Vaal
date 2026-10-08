@@ -39,10 +39,6 @@ import {
 const RESTORE = /Unsaved changes from last time/;
 const TABS = ['Overview', 'Gear', 'Skills', 'Tree', 'Stats'] as const;
 
-function horizontalOverflow(page: Page): Promise<number> {
-  return page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-}
-
 /** How many /builds cards are named exactly `name`. */
 async function countNamed(page: Page, name: string): Promise<number> {
   return (await listedBuildNames(page)).filter((n) => n === name).length;
@@ -105,12 +101,8 @@ test.describe('scratch planner on the build page', () => {
     await page.locator('#build-name').fill('');
     await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
 
-    // Every tab renders without a horizontal scrollbar at 375px.
-    for (const tab of TABS) {
-      await page.getByRole('tab', { name: tab, exact: true }).click();
-      await expect(page.getByRole('tab', { name: tab, exact: true })).toHaveAttribute('aria-selected', 'true');
-      expect(await horizontalOverflow(page), `${tab} tab overflows horizontally`).toBeLessThanOrEqual(0);
-    }
+    // (Per-tab horizontal overflow at 375px is asserted by build-page.spec.ts and
+    // build-page-edit.spec.ts, which sweep the same tabs of the same page.)
   });
 
   test('first save creates the build and lands on its page with tree, gear, gems and meta', async ({ page }) => {

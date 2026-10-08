@@ -65,28 +65,7 @@ test.describe('defence stats', () => {
     await cleanupWithFreshPage(browser);
   });
 
-  test('choosing Strength on an attribute passive adds exactly 5 Str and 10 Life, and survives a reload', async ({ page }) => {
-    await openTree(page);
-    const node = await nearestAttributeNode(page);
-    expect(await page.evaluate((id) => window.__vaalTree!.allocate(id), node)).toBe(true);
-
-    const lifeBefore = await readStat(page, 'stat-life');
-    const strBefore = await readStat(page, 'stat-str');
-
-    expect(await page.evaluate((id) => window.__vaalTree!.setAttributeChoice(id, 'str'), node)).toBe(true);
-    expect(await readStat(page, 'stat-str')).toBe(strBefore + 5);
-    expect(await readStat(page, 'stat-life')).toBe(lifeBefore + 10);
-
-    const name = testBuildName('stats');
-    await saveBuild(page, { name });
-    expect(await listedBuildNames(page)).toContain(name);
-    await openTree(page, await readBuildId(page, name));
-
-    expect((await treeState(page)).attributeChoices[node]).toBe('str');
-    expect(await readStat(page, 'stat-life')).toBe(lifeBefore + 10);
-  });
-
-  test('a choice does not come back by itself after its node is deallocated or the class changes', async ({ page }) => {
+  test('choosing Strength on an attribute passive adds exactly 5 Str and 10 Life, survives a reload, and a choice never comes back by itself', async ({ page }) => {
     await openTree(page);
     const node = await nearestAttributeNode(page);
     const choice = () => treeState(page).then((s) => s.attributeChoices[node]);
@@ -109,6 +88,23 @@ test.describe('defence stats', () => {
     expect((await treeState(page)).allocated).toEqual([]);
     await page.evaluate((id) => window.__vaalTree!.allocate(id), node);
     expect(await choice()).toBeUndefined();
+
+    // The node is allocated again and fresh (no choice) going into the measured part.
+
+    const lifeBefore = await readStat(page, 'stat-life');
+    const strBefore = await readStat(page, 'stat-str');
+
+    expect(await page.evaluate((id) => window.__vaalTree!.setAttributeChoice(id, 'str'), node)).toBe(true);
+    expect(await readStat(page, 'stat-str')).toBe(strBefore + 5);
+    expect(await readStat(page, 'stat-life')).toBe(lifeBefore + 10);
+
+    const name = testBuildName('stats');
+    await saveBuild(page, { name });
+    expect(await listedBuildNames(page)).toContain(name);
+    await openTree(page, await readBuildId(page, name));
+
+    expect((await treeState(page)).attributeChoices[node]).toBe('str');
+    expect(await readStat(page, 'stat-life')).toBe(lifeBefore + 10);
   });
 });
 

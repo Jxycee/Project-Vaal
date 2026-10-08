@@ -6,8 +6,6 @@ import {
   measureTapTargets,
   MIN_TAP_PX,
   nodesNearStart,
-  openTree,
-  saveBuild,
   testBuildName,
   treeState,
   waitForTreeApi,
@@ -309,40 +307,8 @@ test.describe('build page checkpoint management (switcher)', () => {
     expect(ids, 'the checkpoint landed on is not in the remaining rows').toContain(landedId);
   });
 
-  test('the last checkpoint cannot be deleted', async ({ page }) => {
-    const soloName = testBuildName('cp-switcher-solo');
-    await openTree(page);
-    await allocateNodes(page, await nodesNearStart(page, 3));
-    const [response] = await Promise.all([
-      page.waitForResponse((r) => r.url().endsWith('/api/builds') && r.request().method() === 'POST'),
-      saveBuild(page, { name: soloName, level: 10, league: 'Standard' }),
-    ]);
-    const body = (await response.json()) as { build: { id: string; share_token: string } };
-    const soloToken = body.build.share_token;
-    expect(soloToken, 'save response carried no share token').toBeTruthy();
-
-    await goto(page, `/builds/${soloToken}?edit=1`);
-    await expect(page.getByTestId('build-page')).toBeVisible({ timeout: 30_000 });
-
-    await openManage(page);
-    const rows = page.getByTestId('checkpoint-row');
-    await expect(rows).toHaveCount(1);
-    const soloCheckpointId = await rows.first().getAttribute('data-checkpoint-id');
-
-    await rows.first().getByRole('button', { name: 'Delete', exact: true }).click();
-    await rows.first().getByRole('button', { name: 'Confirm delete', exact: true }).click();
-    await expect(page.getByTestId('checkpoint-menu').getByRole('alert')).toHaveText(
-      'A build must keep at least one checkpoint.',
-    );
-
-    await goto(page, `/builds/${soloToken}?edit=1`);
-    await expect(page.getByTestId('build-page')).toBeVisible({ timeout: 30_000 });
-    await openManage(page);
-    await expect(page.getByTestId('checkpoint-row')).toHaveCount(1);
-    expect(await page.getByTestId('checkpoint-row').first().getAttribute('data-checkpoint-id')).toBe(
-      soloCheckpointId,
-    );
-  });
+  // "The last checkpoint cannot be deleted" is pinned end to end by the final
+  // step of checkpoints.spec.ts (delete down to one, then the refusal alert).
 
   test('dirty hint', async ({ page }) => {
     await goto(page, `/builds/${token}?edit=1`);

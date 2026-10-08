@@ -94,14 +94,8 @@ test.describe('build page (read mode)', () => {
     await expect(page).toHaveURL(new RegExp(`checkpoint=${firstId}`));
   });
 
-  test('the main skill is listed first on the Skills tab', async ({ page }) => {
-    await page.goto(`/builds/${token}?tab=skills`);
-    const main = (await page.getByTestId('build-main-skill').textContent())?.trim() ?? '';
-    expect(main.length, 'the imported fixture has no main skill in the header').toBeGreaterThan(0);
-    const first = page.getByTestId('skills-tab').getByTestId('skill-row').first();
-    await expect(first.getByTestId('skill-main-badge')).toHaveText('Main');
-    await expect(first).toContainText(main);
-  });
+  // "Main skill first on the Skills tab" is asserted by build-page-skills.spec.ts
+  // ("five compact rows fit a phone, main skill first").
 
   test('without the tree export, the page still reads; stats and tree say why they are missing', async ({ page }) => {
     await page.route(/\/data\/tree\/[^/]+\/(lite|data)\.json$/, (route) => route.abort());

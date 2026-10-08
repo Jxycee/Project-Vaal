@@ -25,21 +25,8 @@ test.describe('draft restore', () => {
     await cleanupWithFreshPage(browser);
   });
 
-  test('offers to restore unsaved work after a reload, and restores it', async ({ page }) => {
-    await openTree(page);
-    await allocateNodes(page, await twoNodes(page));
-    const before = (await treeState(page)).allocated.length;
-    expect(before).toBeGreaterThan(0);
-    await waitForDraft(page);
-
-    // Reload without saving — the draft safety net is the whole point.
-    await page.reload();
-    await waitForTreeApi(page);
-    await expect(page.getByText(RESTORE)).toBeVisible({ timeout: 30_000 });
-
-    await page.getByRole('button', { name: 'Restore' }).click();
-    await expect.poll(async () => (await treeState(page)).allocated.length).toBe(before);
-  });
+  // "Offers to restore unsaved work after a reload, and restores it" is covered by
+  // scratch-planner.spec.ts ("unsaved scratch work offers Restore after a reload").
 
   test('edits made while the first scratch save is in flight reach the new build page', async ({ page }) => {
     // The save only carries the state at the moment it was sent. Clearing the
@@ -148,20 +135,9 @@ test.describe('draft restore', () => {
     await expect(page.getByText(RESTORE)).toBeHidden();
   });
 
-  test('a saved build reopened unchanged does NOT prompt', async ({ page }) => {
-    // The bogus-prompt regression. PassiveTree reports its freshly-seeded state
-    // upward on mount, and the draft-save effect writes that straight to
-    // localStorage — so without comparing the draft against the build, every
-    // single visit to a saved build would offer to restore an "unsaved change"
-    // that is really just an echo of what was loaded.
-    await openTree(page);
-    await allocateNodes(page, await twoNodes(page));
-    await saveBuild(page, { name: testBuildName('no-prompt'), level: 12, league: 'Standard' });
-
-    await page.reload();
-    await waitForTreeApi(page);
-    await expect(page.getByText(RESTORE)).toBeHidden();
-  });
+  // "A saved build reopened unchanged does NOT prompt" (the bogus-prompt
+  // regression) is covered by build-page-edit.spec.ts "no bogus restore prompt"
+  // and by scratch-planner.spec.ts (no prompt after the first save).
 });
 
 test.describe('auth gating', () => {
