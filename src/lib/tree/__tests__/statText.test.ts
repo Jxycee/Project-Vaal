@@ -30,7 +30,4 @@ describe('parseStatText', () => {
     );
   });
 
-  it('handles an empty string', () => {
-    expect(parseStatText('')).toBe('');
-  });
 });

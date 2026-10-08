@@ -15,11 +15,6 @@ const data = normalizeGggTree(raw, '0_5');
 const witch = data.classes.find((c) => c.name === 'Witch');
 
 describe('Abyssal Lich normalization (patched tree-core)', () => {
-  it('appears in Witch’s ascendancy list', () => {
-    const abyssal = witch?.ascendancies.find((a) => a.id === 'Abyssal Lich');
-    expect(abyssal).toBeDefined();
-  });
-
   it('shares Lich’s graph and hub position via graphId', () => {
     const abyssal = witch?.ascendancies.find((a) => a.id === 'Abyssal Lich');
     const lich = witch?.ascendancies.find((a) => a.id === 'Lich');

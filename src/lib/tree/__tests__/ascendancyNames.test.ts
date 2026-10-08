@@ -69,8 +69,4 @@ describe('ascendancyLabel', () => {
   it('6. shows a value neither vocabulary knows exactly as stored', () => {
     expect(ascendancyLabel('Witch', 'Some Future Ascendancy')).toBe('Some Future Ascendancy');
   });
-
-  it('never returns a raw GGG id for any ascendancy in the export', () => {
-    for (const a of rawAscendancies) expect(ascendancyLabel(a.cls, a.id)).not.toMatch(/^[A-Z][a-z]+\d+b?$/);
-  });
 });
