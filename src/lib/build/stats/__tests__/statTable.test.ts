@@ -41,6 +41,8 @@ const POOL_WORDS: Record<Pool, RegExp> = {
   spirit: /Spirit/,
   auraEffect: /Aura.*Magnitudes/,
   bannerAuraEffect: /Banner.*Aura Magnitudes|Banner.*Magnitudes|Aura.*Magnitudes/,
+  surroundedMinimum: /Surrounded/,
+  surroundedArea: /Surrounded Area of Effect/,
   // The derived defence stats: the wording of the line that carries the stat.
   maxEndurance: /Endurance Charges/,
   maxFrenzy: /Frenzy Charges/,

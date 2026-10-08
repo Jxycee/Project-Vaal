@@ -151,6 +151,8 @@ export const POOLS: Record<string, Pool[]> = {
   ElementalResistMax: ['fireMax', 'coldMax', 'lightningMax'],
   MaxResist: ['fireMax', 'coldMax', 'lightningMax', 'chaosMax'],
   AuraEffect: ['auraEffect'],
+  SurroundedMinimum: ['surroundedMinimum'],
+  SurroundedArea: ['surroundedArea'],
   // The derived defence stats (engine.ts). Values stay in PoB's own units: percent points, life regen per second.
   MovementSpeed: ['movementSpeed'],
   LifeRegen: ['lifeRegen'],

@@ -32,6 +32,7 @@ import type { GemState } from '../gemState';
 import { conditionHolds, type BuildConfig } from './buildConfig';
 import { lifeReservation, withDerivedConditions } from './reservation';
 import { skillBuffContributions } from './skillBuffs';
+import { readSurrounded } from './surrounded';
 import { totemsSummoned, type TotemMods } from './totems';
 import type { PassiveState } from '../types';
 import { campaignAt } from './campaign';
@@ -110,13 +111,35 @@ export interface Collected {
   assumed: string[];
 }
 
+/** Lines that only set up the derived Surrounded condition (surrounded.ts): "Require 4 fewer enemies to be Surrounded", "42% increased Surrounded Area of Effect". */
+const SURROUNDED_WORDS = /Surrounded Area of Effect|fewer enemies to be Surrounded/;
+
 /** Heavy Armour's typed stat (node 59589): the number is the percent of the Strength requirements. */
 const STR_REQUIREMENT_ARMOUR = 'armour_+_from_%_strength_requirements_from_boots_gloves_helmets';
 
 const NOT_ON_CHARACTER: ReadonlySet<GearSlot> = new Set(['flask1', 'flask2', 'charm1', 'charm2', 'charm3']);
 const ATTRIBUTE_POOL: Record<AttributeChoice, Pool> = { str: 'str', dex: 'dex', int: 'int' };
 
+/**
+ * Tree + gear + campaign -> contributions. Surrounded is derived from the first pass's own "Require N fewer enemies to
+ * be Surrounded" and "increased Surrounded Area" lines (surrounded.ts); when it holds and the Configuration does not
+ * already say so, one more pass runs with the condition on. A build with no Configuration is never given one.
+ */
 export function collectContributions(
+  input: { passive: PassiveState; gear: GearState; level: number; set: 1 | 2; gems?: GemState },
+  data: CollectData,
+): Collected {
+  const first = collectOnce(input, data);
+  const config = input.passive.buildConfig;
+  if (!config || config.conditions.includes('Surrounded')) return first;
+  const surrounded = readSurrounded(first.contributions, config);
+  if (!surrounded.holds) return first;
+  const second = collectOnce({ ...input, passive: { ...input.passive, buildConfig: { ...config, conditions: [...config.conditions, 'Surrounded'].sort() } } }, data);
+  second.assumed.push(`Surrounded: ${5 - surrounded.required} fewer enemies required and a ${surrounded.radius / 10} metre radius make you Surrounded, so the "while Surrounded" modifiers count`);
+  return second;
+}
+
+function collectOnce(
   input: { passive: PassiveState; gear: GearState; level: number; set: 1 | 2; gems?: GemState },
   data: CollectData,
 ): Collected {
@@ -744,7 +767,7 @@ function collectItem(
           flags.noSpirit = true;
           return;
         }
-        if (DEFENCE_WORDS.test(line.text) || /bonuses gained from/.test(line.text)) {
+        if (DEFENCE_WORDS.test(line.text) || /bonuses gained from/.test(line.text) || SURROUNDED_WORDS.test(line.text)) {
           const text = resolveLine(line.text, values);
           if (readLine(text) === null) notCounted.push(`${item.name}: "${line.text}" not counted`);
           else untypedLines.push(text);

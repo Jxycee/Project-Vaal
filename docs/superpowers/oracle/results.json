@@ -5748,15 +5748,8 @@
       ],
       "energyShield": [],
       "spirit": [],
-      "armour": [
-        "increased 30 from 31566",
-        "increased 20 from 45585",
-        "increased 20 from 55617"
-      ],
-      "evasion": [
-        "increased 20 from 45585",
-        "increased 20 from 55617"
-      ],
+      "armour": [],
+      "evasion": [],
       "str": [],
       "dex": [],
       "int": []
@@ -5776,7 +5769,7 @@
     ],
     "class": "Smith of Kitava",
     "source": "https://poe.ninja/poe2/builds/runesofaldur/character/Aberattio-9076/Andwinn",
-    "matched": 9,
+    "matched": 11,
     "of": 13,
     "stats": {
       "str": {
@@ -5811,13 +5804,13 @@
       },
       "armour": {
         "want": 11489,
-        "got": 9251,
-        "ok": false
+        "got": 11489,
+        "ok": true
       },
       "evasion": {
         "want": 374,
-        "got": 305,
-        "ok": false
+        "got": 374,
+        "ok": true
       },
       "fire": {
         "want": 87,
@@ -5845,7 +5838,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 8,
+    "derivedMatched": 9,
     "derivedOf": 17,
     "derived": {
       "enemyAccuracy": {
@@ -5855,8 +5848,8 @@
       },
       "evadeChance": {
         "want": 4,
-        "got": 3,
-        "ok": false
+        "got": 4,
+        "ok": true
       },
       "deflectionRating": {
         "want": 0,
@@ -5885,7 +5878,7 @@
       },
       "movementSpeed": {
         "want": 153,
-        "got": 131,
+        "got": 140,
         "ok": false
       },
       "enduranceCharges": {
@@ -5905,27 +5898,27 @@
       },
       "effectiveHealthPool": {
         "want": 27333,
-        "got": 6654,
+        "got": 7340,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 4499,
-        "got": 3976,
+        "got": 4124,
         "ok": false
       },
       "fireMaxHit": {
         "want": 23222,
-        "got": 20825,
+        "got": 20979,
         "ok": false
       },
       "coldMaxHit": {
         "want": 23222,
-        "got": 3164,
+        "got": 3276,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 23222,
-        "got": 3164,
+        "got": 3276,
         "ok": false
       },
       "chaosMaxHit": {
@@ -6893,16 +6886,10 @@
       "energyShield": [],
       "spirit": [],
       "armour": [
-        "increased 20 from 55617",
-        "increased 20 from 56910",
         "more -50 from 38601"
       ],
       "evasion": [
-        "increased 30 from 11257",
-        "increased 30 from 22556",
         "increased 60 from 4716",
-        "increased 20 from 55617",
-        "increased 20 from 56910",
         "more 100 from Hyrri's Ire, Armoured Vest",
         "more -50 from 38601"
       ],
@@ -6959,7 +6946,7 @@
       },
       "evasion": {
         "want": 23064,
-        "got": 20875,
+        "got": 24523,
         "ok": false
       },
       "fire": {
@@ -6988,7 +6975,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 7,
+    "derivedMatched": 8,
     "derivedOf": 17,
     "derived": {
       "enemyAccuracy": {
@@ -6998,8 +6985,8 @@
       },
       "evadeChance": {
         "want": 74,
-        "got": 72,
-        "ok": false
+        "got": 74,
+        "ok": true
       },
       "deflectionRating": {
         "want": 0,
@@ -7018,7 +7005,7 @@
       },
       "lifeRegen": {
         "want": 1,
-        "got": 0,
+        "got": 2509,
         "ok": false
       },
       "manaRegen": {
@@ -7028,7 +7015,7 @@
       },
       "movementSpeed": {
         "want": 160,
-        "got": 158,
+        "got": 169,
         "ok": false
       },
       "enduranceCharges": {
@@ -7048,7 +7035,7 @@
       },
       "effectiveHealthPool": {
         "want": 58126,
-        "got": 11075,
+        "got": 11930,
         "ok": false
       },
       "physicalMaxHit": {

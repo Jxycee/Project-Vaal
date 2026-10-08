@@ -37,7 +37,7 @@ const URL = 'https://raw.githubusercontent.com/PathOfBuildingCommunity/PathOfBui
 // physical reduction, armour applying to elemental damage) are kept too, so a quest reward or unique line that PoB
 // parses into them is readable (lineMods.ts POOLS says which of these the engine models).
 export const KEEP =
-  /^(Life|Mana|EnergyShield|Armour|Evasion|Spirit|Str|Dex|Int|Deflection|Ward|AllAttributes|(Fire|Cold|Lightning|Chaos|Elemental)Resist(Max)?|(Fire|Cold|Lightning|Chaos|Elemental)?MaxResist|MaxElementalResist|MovementSpeed|LifeRegen|LifeRegenPercent|EnergyShieldRecharge|EnergyShieldRechargeFaster|(Power|Frenzy|Endurance)ChargesMax|DeflectionRating|EvasionGainAsDeflection|ArmourGainAsDeflection|DeflectEffect|BlindEffect|PhysicalDamageReduction|ArmourDefense|ArmourAppliesTo(Physical|Fire|Cold|Lightning|Chaos)DamageTaken)$/;
+  /^(Life|Mana|EnergyShield|Armour|Evasion|Spirit|Str|Dex|Int|Deflection|Ward|AllAttributes|(Fire|Cold|Lightning|Chaos|Elemental)Resist(Max)?|(Fire|Cold|Lightning|Chaos|Elemental)?MaxResist|MaxElementalResist|MovementSpeed|LifeRegen|LifeRegenPercent|EnergyShieldRecharge|EnergyShieldRechargeFaster|(Power|Frenzy|Endurance)ChargesMax|DeflectionRating|EvasionGainAsDeflection|ArmourGainAsDeflection|DeflectEffect|BlindEffect|PhysicalDamageReduction|ArmourDefense|ArmourAppliesTo(Physical|Fire|Cold|Lightning|Chaos)DamageTaken|SurroundedMinimum|SurroundedArea)$/;
 
 type Lua = null | boolean | number | string | Lua[] | { [k: string]: Lua };
 

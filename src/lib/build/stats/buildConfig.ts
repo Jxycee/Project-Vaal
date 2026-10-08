@@ -76,6 +76,8 @@ export const NUMBER_INPUTS: Readonly<Record<string, string>> = {
   multiplierRage: 'RageStack',
   // "# of Summoned Totems (if not maximum):" overrides the count the skills give (totems.ts).
   TotemsSummoned: 'TotemsSummoned',
+  // "Distance to enemy:" (ConfigOptions.lua enemyDistance -> Multiplier:enemyDistance): Surrounded needs its radius to reach it (surrounded.ts).
+  enemyDistance: 'enemyDistance',
 };
 
 /**

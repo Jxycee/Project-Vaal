@@ -40,6 +40,11 @@ export type Pool =
   | 'auraEffect'
   // Percent increased magnitudes of Banner skills only ("banner_aura_effect_+%"): added to auraEffect for a Banner, not for other Auras.
   | 'bannerAuraEffect'
+  // Surrounded (CalcPerform.lua:521-527): "Require N fewer enemies to be Surrounded" is a BASE on SurroundedMinimum (the
+  // flat 5 required is added by the collector), "N% increased Surrounded Area of Effect" an INC on SurroundedArea. Not
+  // sheet numbers: collect.ts derives the Condition:Surrounded from them (surrounded.ts).
+  | 'surroundedMinimum'
+  | 'surroundedArea'
   // The derived defence stats (engine.ts; DERIVED in multiOracle.test.ts). They are PoB's own modifier names in
   // lower camel case: a pool's `flat` is its BASE, `increased` its INC, `more` its MORE.
   | 'maxEndurance'
@@ -267,6 +272,7 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   // "Aura Skills have N% increased Magnitudes": scales the Auras' own modifiers (skillBuffs.ts), PoB2 AuraEffect.
   'aura_effect_+%': inc('auraEffect'),
   'banner_aura_effect_+%': inc('bannerAuraEffect'),
+  'surrounded_area_of_effect_+%': inc('surroundedArea'),
 };
 
 /**
@@ -300,6 +306,13 @@ export const CONDITIONAL_EFFECTS: Readonly<Record<string, ConditionalEffect>> = 
   // Defiance: "80% increased Armour and Evasion Rating when on Low Life". LowLife is derived from Life reservation
   // (reservation.ts) or ticked in the Configuration ("Are you always on Low Life?").
   'armour_and_evasion_on_low_life_+%': { condition: 'LowLife', effects: inc('armour', 'evasion') },
+  // "while Surrounded": PoB derives Condition:Surrounded itself from the enemies required (surrounded.ts), or the
+  // Configuration's "Are you surrounded?" ticks it.
+  'armour_+%_while_surrounded': { condition: 'Surrounded', effects: inc('armour') },
+  'evasion_rating_+%_while_surrounded': { condition: 'Surrounded', effects: inc('evasion') },
+  'deflection_rating_+%_while_surrounded': { condition: 'Surrounded', effects: inc('deflection') },
+  'movement_speed_+%_while_surrounded': { condition: 'Surrounded', effects: inc('movementSpeed') },
+  'life_regeneration_rate_per_minute_%_while_surrounded': { condition: 'Surrounded', effects: perMinute('lifeRegenPercent', 'flat') },
 };
 
 /**
