@@ -1,0 +1,294 @@
+{
+  "armour-life-gemling.json": {
+    "class": "Gemling Legionnaire",
+    "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/flyinghigh42-0275/StickyOildUp",
+    "matched": 0,
+    "of": 13,
+    "stats": {
+      "str": {
+        "want": 306,
+        "got": 295,
+        "ok": false
+      },
+      "dex": {
+        "want": 99,
+        "got": 94,
+        "ok": false
+      },
+      "int": {
+        "want": 160,
+        "got": 155,
+        "ok": false
+      },
+      "life": {
+        "want": 4075,
+        "got": 2597,
+        "ok": false
+      },
+      "mana": {
+        "want": 825,
+        "got": 777,
+        "ok": false
+      },
+      "energyShield": {
+        "want": 448,
+        "got": 0,
+        "ok": false
+      },
+      "armour": {
+        "want": 38359,
+        "got": 6526,
+        "ok": false
+      },
+      "evasion": {
+        "want": 0,
+        "got": 23,
+        "ok": false
+      },
+      "fire": {
+        "want": 75,
+        "got": 0,
+        "ok": false
+      },
+      "cold": {
+        "want": 75,
+        "got": -1,
+        "ok": false
+      },
+      "lightning": {
+        "want": 75,
+        "got": 22,
+        "ok": false
+      },
+      "chaos": {
+        "want": 68,
+        "got": 60,
+        "ok": false
+      },
+      "spirit": {
+        "want": 220,
+        "got": 150,
+        "ok": false
+      }
+    }
+  },
+  "es-life-stormweaver.json": {
+    "class": "Stormweaver",
+    "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/nameking-0380/%E5%97%B6%E5%93%A9%E4%BD%90%E5%BE%B7%E5%B0%8F%E6%B1%BD%E8%BB%8A",
+    "matched": 4,
+    "of": 13,
+    "stats": {
+      "str": {
+        "want": 50,
+        "got": 50,
+        "ok": true
+      },
+      "dex": {
+        "want": 80,
+        "got": 80,
+        "ok": true
+      },
+      "int": {
+        "want": 278,
+        "got": 278,
+        "ok": true
+      },
+      "life": {
+        "want": 1446,
+        "got": 1446,
+        "ok": true
+      },
+      "mana": {
+        "want": 2306,
+        "got": 1533,
+        "ok": false
+      },
+      "energyShield": {
+        "want": 8286,
+        "got": 6572,
+        "ok": false
+      },
+      "armour": {
+        "want": 3014,
+        "got": 1383,
+        "ok": false
+      },
+      "evasion": {
+        "want": 13959,
+        "got": 5445,
+        "ok": false
+      },
+      "fire": {
+        "want": 75,
+        "got": 32,
+        "ok": false
+      },
+      "cold": {
+        "want": 74,
+        "got": 60,
+        "ok": false
+      },
+      "lightning": {
+        "want": 75,
+        "got": 63,
+        "ok": false
+      },
+      "chaos": {
+        "want": 75,
+        "got": 17,
+        "ok": false
+      },
+      "spirit": {
+        "want": 244,
+        "got": 150,
+        "ok": false
+      }
+    }
+  },
+  "evasion-deadeye.json": {
+    "class": "Deadeye",
+    "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/olleyDE-4339/chillamaggiTTVsGlatze",
+    "matched": 4,
+    "of": 13,
+    "stats": {
+      "str": {
+        "want": 67,
+        "got": 62,
+        "ok": false
+      },
+      "dex": {
+        "want": 172,
+        "got": 166,
+        "ok": false
+      },
+      "int": {
+        "want": 160,
+        "got": 128,
+        "ok": false
+      },
+      "life": {
+        "want": 1792,
+        "got": 1782,
+        "ok": false
+      },
+      "mana": {
+        "want": 918,
+        "got": 851,
+        "ok": false
+      },
+      "energyShield": {
+        "want": 2784,
+        "got": 1685,
+        "ok": false
+      },
+      "armour": {
+        "want": 0,
+        "got": 0,
+        "ok": true
+      },
+      "evasion": {
+        "want": 35368,
+        "got": 13539,
+        "ok": false
+      },
+      "fire": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "cold": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "lightning": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "chaos": {
+        "want": 68,
+        "got": 74,
+        "ok": false
+      },
+      "spirit": {
+        "want": 255,
+        "got": 140,
+        "ok": false
+      }
+    }
+  },
+  "hybrid-tactician.json": {
+    "class": "Tactician",
+    "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/pjf5845203344-2325/%E5%A4%A9%E7%A9%BA%E6%87%92%E7%8B%BC%E8%93%9D",
+    "matched": 3,
+    "of": 13,
+    "stats": {
+      "str": {
+        "want": 406,
+        "got": 374,
+        "ok": false
+      },
+      "dex": {
+        "want": 144,
+        "got": 112,
+        "ok": false
+      },
+      "int": {
+        "want": 148,
+        "got": 106,
+        "ok": false
+      },
+      "life": {
+        "want": 2005,
+        "got": 2077,
+        "ok": false
+      },
+      "mana": {
+        "want": 1133,
+        "got": 1045,
+        "ok": false
+      },
+      "energyShield": {
+        "want": 4729,
+        "got": 3553,
+        "ok": false
+      },
+      "armour": {
+        "want": 5207,
+        "got": 2395,
+        "ok": false
+      },
+      "evasion": {
+        "want": 2311,
+        "got": 1444,
+        "ok": false
+      },
+      "fire": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "cold": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "lightning": {
+        "want": 75,
+        "got": 75,
+        "ok": true
+      },
+      "chaos": {
+        "want": 75,
+        "got": 21,
+        "ok": false
+      },
+      "spirit": {
+        "want": 216,
+        "got": 250,
+        "ok": false
+      }
+    }
+  }
+}
