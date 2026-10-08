@@ -210,7 +210,7 @@ const FLOOR: Record<string, number> = {
   'ordinary-evasion-2.json': 13, // 13 of 13: the PoB code's weapon set (2) puts Palm of the Dreamer and the set-2 passives (Cooked, Chakra of Life) in; Charge Regulation counts with the Configuration's use-endurance-charges switch (skillBuffs.ts)
   // Round-4 class-coverage set: 10 characters (no Mageblood, no RELIC item) of classes the ordinary set lacked; FLOOR = the match when added.
   'ordinary-amazon-1.json': 13, // 13 of 13 at the start (Kustu, evasion/ES)
-  'ordinary-amazon-2.json': 11, // 11 of 13 at the start: short ES (4123/4800) and Evasion (15605/30956)
+  'ordinary-amazon-2.json': 12, // round 2: 12 of 13; a verbatim "N% increased ... from Equipped Body Armour" line (Heart of the Well) scopes to the body slot; was 11, short ES (4123/4800) and Evasion (15605/30956)
   'ordinary-martial-artist-1.json': 12, // round 1 of the accuracy loop: 12 of 13 (Way of the Stonefist's Fists of Stone: its per-player-level defences count and the unique's untransformed lines do not); short: Evasion (the Evasive Leg limb slot); was 9 at the start: short Mana, ES, Evasion; Armour 60 where PoB has 0
   'ordinary-martial-artist-2.json': 13, // round 1 of the accuracy loop: 13 of 13 (Fists of Stone per-level defences; a Time-Lost jewel's 22% increased Effect of Notable Passive Skills in Radius scales its notables, floored); was 5 at the start: attributes, Life (over), Mana, ES, Evasion short; Armour 34 where PoB has 0
   'ordinary-pathfinder-1.json': 13, // 13 of 13 at the start (zzzuzaha2, flask/charm build)

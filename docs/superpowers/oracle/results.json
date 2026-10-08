@@ -17,7 +17,6 @@
     "notCounted": [
       "Morior Invictus: rune line \"+3 to Spirit per Idol socketed in your Equipment\" not counted",
       "Morior Invictus: \"+10% of Armour also applies to Chaos Damage\" not counted",
-      "Ruby: \"41% increased Armour, Evasion and Energy Shield from Equipped Shield\" not counted",
       "Prism of Belief: unique — not in our data",
       "Unrecognised stat global_item_attribute_requirements_+% (Reduced Attribute Requirements)",
       "Unrecognised stat intelligence_skill_gem_level_+ (Neurological Implants)",
@@ -965,14 +964,13 @@
       "Grip of Kulemak: unique — not in our data",
       "From Nothing: unique — not in our data",
       "Heart of the Well: unique — not in our data",
-      "Heart of the Well: \"60% increased Energy Shield from Equipped Body Armour\" not counted",
       "Megalomaniac: unique — not in our data",
       "Unrecognised stat double_evasion_rating_from_gloves_helmets_boots (Stalking Panther)",
       "Unrecognised stat halve_evasion_rating_from_body (Stalking Panther)"
     ],
     "class": "Amazon",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/sawyer196-6413/W%C3%BCrdeohnew%C3%BCrde",
-    "matched": 11,
+    "matched": 12,
     "of": 13,
     "stats": {
       "str": {
@@ -1002,8 +1000,8 @@
       },
       "energyShield": {
         "want": 4800,
-        "got": 4123,
-        "ok": false
+        "got": 4800,
+        "ok": true
       },
       "armour": {
         "want": 0,
@@ -1041,7 +1039,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 7,
+    "derivedMatched": 8,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -1081,8 +1079,8 @@
       },
       "esRecharge": {
         "want": 600,
-        "got": 515,
-        "ok": false
+        "got": 600,
+        "ok": true
       },
       "esRechargeDelay": {
         "want": 2.8369,
@@ -1111,32 +1109,32 @@
       },
       "effectiveHealthPool": {
         "want": 89091,
-        "got": 38502,
+        "got": 43636,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 6731,
-        "got": 5661,
+        "got": 6338,
         "ok": false
       },
       "fireMaxHit": {
         "want": 24040,
-        "got": 20218,
+        "got": 22636,
         "ok": false
       },
       "coldMaxHit": {
         "want": 24040,
-        "got": 20218,
+        "got": 22636,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 24040,
-        "got": 20218,
+        "got": 22636,
         "ok": false
       },
       "chaosMaxHit": {
         "want": 5419,
-        "got": 4799,
+        "got": 5251,
         "ok": false
       }
     }
@@ -4960,7 +4958,6 @@
     },
     "notCounted": [
       "Heart of the Well: unique — not in our data",
-      "Heart of the Well: \"72% increased Armour from Equipped Body Armour\" not counted",
       "Megalomaniac: unique — not in our data",
       "Prism of Belief: unique — not in our data",
       "From Nothing: unique — not in our data",
@@ -5005,7 +5002,7 @@
       },
       "armour": {
         "want": 16280,
-        "got": 13218,
+        "got": 14613,
         "ok": false
       },
       "evasion": {
@@ -5099,27 +5096,27 @@
       },
       "effectiveHealthPool": {
         "want": 20006,
-        "got": 17882,
+        "got": 19040,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 4273,
-        "got": 4177,
+        "got": 4261,
         "ok": false
       },
       "fireMaxHit": {
         "want": 13572,
-        "got": 13448,
+        "got": 13639,
         "ok": false
       },
       "coldMaxHit": {
         "want": 13572,
-        "got": 13448,
+        "got": 13639,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 13572,
-        "got": 13448,
+        "got": 13639,
         "ok": false
       },
       "chaosMaxHit": {

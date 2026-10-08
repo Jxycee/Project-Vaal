@@ -53,12 +53,18 @@
 //   9. "Has +N to Evasion Rating per player level" (the Fists of Stone base, Way of the Stonefist): PoB adds N x character
 //      level to the item's OWN defence, before its increases and quality (oracle: ordinary-martial-artist-*). Read as a local flat
 //      with perLevel set; without the character level it would count as N, so the caller must pass the level.
+//  10. "N% increased Armour from Equipped Body Armour" (Heart of the Well, 72% printed; Ancient Aegis): PoB tags it SlotName, so
+//      it scales that slot's item alone, on top of the global increase. The cache keeps the tag's TYPE but not which slot, so
+//      the line's own words name it; the mod carries `slot` (and itemClass Shield for a shield) and the engine scopes it.
+//      A SlotName line with no slot we know, or with a "per" scaling, stays unmodelled. Read as global it would add 72% to
+//      every item's Armour (a worse error than leaving it out), so a consumer that cannot scope by slot must not use it.
 //   7. Fragments of a wrapped line ("enemy affected by Abyssal Wasting") or a
 //      pure offence line: no template, so null = "not a defence line", silently
 //      ignored by the caller (it is only named when it LOOKS like a defence).
 // =============================================================================
 
 import modcache from '@/lib/pob/data/modcache.json';
+import type { GearSlot } from '../gearSlots';
 import type { Pool } from './statTable';
 
 /**
@@ -79,6 +85,10 @@ export interface LineMod {
   multiplier?: string;
   /** "Has +3 to Evasion Rating per player level": the value is per character level, so the caller multiplies it by the level. */
   perLevel?: boolean;
+  /** "... from Equipped Body Armour": scales only the item worn in this slot (one entry per slot it may sit in). */
+  slot?: GearSlot;
+  /** With a slot: counts only while the item there is of this class (a shield in an off-hand slot). */
+  itemClass?: string;
 }
 
 export type LineRead =
@@ -153,6 +163,8 @@ interface Template {
   condition?: { name: string; negate: boolean };
   perSocket?: boolean;
   multiplier?: string;
+  slots?: GearSlot[];
+  itemClass?: string;
 }
 
 /**
@@ -165,6 +177,16 @@ export const GEAR_MULTIPLIERS: ReadonlySet<string> = new Set(['GrandSpectrum', '
 
 /** "+7 to all Attributes per Socket filled": PoB scales it by Multiplier:RunesSocketedIn<slot> (the runes in that item). */
 const PER_SOCKET = /per Socket filled$/i;
+/** "... from Equipped Body Armour": the slots PoB's SlotName tag names (ModParser.lua:1189-1197); a shield or focus sits in the off hand of either weapon set. */
+const FROM_SLOT = /^[^]* from Equipped (Body Armour|Helmet|Gloves|Boots|Shield|Focus)$/i;
+const SLOTS_OF: Record<string, { slots: GearSlot[]; itemClass?: string }> = {
+  'body armour': { slots: ['body'] },
+  helmet: { slots: ['head'] },
+  gloves: { slots: ['gloves'] },
+  boots: { slots: ['boots'] },
+  shield: { slots: ['weapon1_off', 'weapon2_off'], itemClass: 'Shield' },
+  focus: { slots: ['weapon1_off', 'weapon2_off'] },
+};
 const SOCKET_MULTIPLIER = /^RunesSocketedIn/;
 
 /** "if you haven't been Hit Recently", "while not on Low Life": PoB's neg flag, which modcache.json does not keep. */
@@ -186,7 +208,10 @@ function derive(entry: CacheEntry, n: number, text: string): Template | null {
   const socketTag = (m: CachedMod) => perSocket && m.tagType === 'Multiplier' && SOCKET_MULTIPLIER.test(m.tagVar ?? '');
   const gearTags = new Set(mods.filter((m) => m.tagType === 'Multiplier' && GEAR_MULTIPLIERS.has(m.tagVar ?? '')).map((m) => m.tagVar as string));
   const multiplier = gearTags.size === 1 && mods.every((m) => m.tagType === 'Multiplier' && m.tagVar === [...gearTags][0]) ? [...gearTags][0] : undefined;
-  if (mods.some((m) => m.tagType !== undefined && m.tagType !== 'Global' && !socketTag(m) && !(gated && m.tagType === 'Condition') && !(multiplier && m.tagVar === multiplier))) return null;
+  const fromSlot = !/\bper\b/i.test(text) ? FROM_SLOT.exec(text) : null;
+  const slotted = fromSlot ? SLOTS_OF[fromSlot[1].toLowerCase()] : undefined;
+  const slotTag = (m: CachedMod) => slotted !== undefined && m.tagType === 'SlotName' && m.type !== 'BASE';
+  if (mods.some((m) => m.tagType !== undefined && m.tagType !== 'Global' && !socketTag(m) && !slotTag(m) && !(gated && m.tagType === 'Condition') && !(multiplier && m.tagVar === multiplier))) return null;
   if (multiplier && (gated || perSocket)) return null;
   if (perSocket && gated) return null;
   if (conditions.size > 0 && !gated) return null;
@@ -200,7 +225,7 @@ function derive(entry: CacheEntry, n: number, text: string): Template | null {
     read.push({ pools, kind, sign: Math.sign(m.value) === Math.sign(n) ? 1 : -1 });
   }
   const condition = gated ? { name: [...conditions][0] as string, negate: NEGATED.test(text) } : undefined;
-  return { mods: read, global: mods.some((m) => m.tagType === 'Global'), ...(condition ? { condition } : {}), ...(perSocket ? { perSocket } : {}), ...(multiplier ? { multiplier } : {}) };
+  return { mods: read, global: mods.some((m) => m.tagType === 'Global'), ...(condition ? { condition } : {}), ...(perSocket ? { perSocket } : {}), ...(multiplier ? { multiplier } : {}), ...(slotted ? { slots: slotted.slots, ...(slotted.itemClass ? { itemClass: slotted.itemClass } : {}) } : {}) };
 }
 
 function build(): Map<string, Template | null> {
@@ -232,7 +257,7 @@ export function readLine(line: string): LineRead | null {
   if (template === null) return { unmodelled: line };
   const n = Number(numbers[0]);
   return {
-    mods: template.mods.flatMap((m) => m.pools.map((pool) => ({ pool, kind: m.kind, value: m.sign * n, ...(template.condition ? { condition: template.condition } : {}), ...(template.perSocket ? { perSocket: true } : {}), ...(template.multiplier ? { multiplier: template.multiplier } : {}) }))),
+    mods: template.mods.flatMap((m) => m.pools.flatMap((pool) => (template.slots ?? [undefined]).map((slot) => ({ pool, kind: m.kind, value: m.sign * n, ...(slot ? { slot } : {}), ...(slot && template.itemClass ? { itemClass: template.itemClass } : {}), ...(template.condition ? { condition: template.condition } : {}), ...(template.perSocket ? { perSocket: true } : {}), ...(template.multiplier ? { multiplier: template.multiplier } : {}) })))),
     global: template.global,
   };
 }

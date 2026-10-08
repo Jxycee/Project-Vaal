@@ -417,7 +417,7 @@ function radiusGrants(
     }
     const counted = gate(read.mods, config, inner, item.name, notCounted);
     for (let i = 0; i < reached; i++) {
-      for (const mod of counted) contributions.push({ pool: mod.pool, kind: mod.kind, value: mod.value, source: item.name });
+      for (const mod of counted) contributions.push({ pool: mod.pool, kind: mod.kind, value: mod.value, source: item.name, ...(mod.slot ? { slot: mod.slot } : {}), ...(mod.itemClass ? { itemClass: mod.itemClass } : {}) });
     }
   }
 }
@@ -878,13 +878,13 @@ function readVerbatim(
     }
     for (const mod of gate(read.mods, config, line, source, notCounted)) {
       const defence = mod.pool === 'armour' || mod.pool === 'evasion' || mod.pool === 'energyShield';
-      const local = !mod.condition && !mod.perSocket && !mod.multiplier && !read.global && mod.kind !== 'more' && ((host.defences && defence) || (host.spirit && mod.pool === 'spirit' && mod.kind === 'increased'));
+      const local = !mod.condition && !mod.slot && !mod.perSocket && !mod.multiplier && !read.global && mod.kind !== 'more' && ((host.defences && defence) || (host.spirit && mod.pool === 'spirit' && mod.kind === 'increased'));
       if (local) {
         const bucket = mod.kind === 'flat' ? localFlat : localInc;
         bucket[mod.pool] = (bucket[mod.pool] ?? 0) + mod.value;
       } else {
         // "per Socket filled" (Morior Invictus): PoB multiplies by the runes in this item (RunesSocketedIn<slot>).
-        contributions.push({ pool: mod.pool, kind: mod.kind, value: mod.perSocket ? mod.value * counts.sockets : mod.multiplier ? mod.value * (counts.gear[mod.multiplier] ?? 0) : mod.value, source });
+        contributions.push({ pool: mod.pool, kind: mod.kind, value: mod.perSocket ? mod.value * counts.sockets : mod.multiplier ? mod.value * (counts.gear[mod.multiplier] ?? 0) : mod.value, source, ...(mod.slot ? { slot: mod.slot } : {}), ...(mod.itemClass ? { itemClass: mod.itemClass } : {}) });
       }
     }
   }
