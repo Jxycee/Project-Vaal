@@ -181,7 +181,7 @@ const DERIVED_FLOOR: Record<string, number> = {
   'ordinary-spirit-walker-1.json': 12, // of 19
   'ordinary-spirit-walker-2.json': 15, // of 19
   'ordinary-titan-1.json': 15, // round 1 of the accuracy loop: Hulking Form (effect of Small Passive Skills), Stone Skin (slot more); was 10 // of 19
-  'ordinary-warbringer-1.json': 9, // round 3: Blood Magic; was 8 // of 17
+  'ordinary-warbringer-1.json': 14, // round 5: Rage and Summoned Totems feed Armour/Evasion, so Life/Armour/Evasion match; was 9 (round 3: Blood Magic; was 8) // of 17
 };
 
 const ours = (sheet: DefenceSheet, k: Key): number => (k === 'fire' || k === 'cold' || k === 'lightning' || k === 'chaos' ? sheet[k].value : sheet[k]);
@@ -218,7 +218,7 @@ const FLOOR: Record<string, number> = {
   'ordinary-spirit-walker-1.json': 13, // round 4 of the accuracy loop: 13 of 13 (Uhtred's Exodus: +3 gem levels with no other support, so Charge Regulation reads 21% more not 20%: skillBuffs.ts, support-levels.json); was 10: ES, Armour, Evasion off by 1 to 6
   'ordinary-spirit-walker-2.json': 13, // 13 of 13 at the start
   'ordinary-titan-1.json': 13, // round 1 of the accuracy loop: 13 of 13 (Hulking Form scales plain small passives by 50%, floored, never the generic attribute nodes or ascendancy ones; Stone Skin is a body-armour-only more; Kaom's Heart 'You have no Spirit'); was 4 at the start: strength/Life/Mana/ES/Armour/Evasion short, Spirit 200 where PoB has 0 (Grand Spectrum x3, Darkness Enthroned)
-  'ordinary-warbringer-1.json': 10, // round 3: Blood Magic sets Mana 0 (engine.ts); short Life, Armour, Evasion; was 9 // 9 of 13 at the start: Mana 552 where PoB has 0, Armour and Evasion short, Life over
+  'ordinary-warbringer-1.json': 13, // round 5: 13 of 13 (corrupted-item count excludes jewels, includes flasks and charms; Rage and Summoned Totems multiply Armour and Evasion passives); was 10. round 3: Blood Magic sets Mana 0 (engine.ts); short Life, Armour, Evasion; was 9 // 9 of 13 at the start: Mana 552 where PoB has 0, Armour and Evasion short, Life over
 };
 
 

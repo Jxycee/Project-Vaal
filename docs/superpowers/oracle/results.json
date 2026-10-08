@@ -4933,17 +4933,13 @@
   },
   "ordinary-warbringer-1.json": {
     "gaps": {
-      "life": [
-        "increased 4 from Plague Carapace, Ornate Plate"
-      ],
+      "life": [],
       "mana": [
         "3 0 from 51749"
       ],
       "energyShield": [],
       "spirit": [],
-      "evasion": [
-        "increased 10 from 53607"
-      ],
+      "evasion": [],
       "str": [],
       "dex": [],
       "int": []
@@ -4959,7 +4955,7 @@
     ],
     "class": "Warbringer",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/Tukemon-0092/Totemocu_ANIKI",
-    "matched": 10,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -4979,8 +4975,8 @@
       },
       "life": {
         "want": 2986,
-        "got": 3064,
-        "ok": false
+        "got": 2986,
+        "ok": true
       },
       "mana": {
         "want": 0,
@@ -4994,13 +4990,13 @@
       },
       "armour": {
         "want": 16280,
-        "got": 14613,
-        "ok": false
+        "got": 16280,
+        "ok": true
       },
       "evasion": {
         "want": 11,
-        "got": 10,
-        "ok": false
+        "got": 11,
+        "ok": true
       },
       "fire": {
         "want": 75,
@@ -5028,7 +5024,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 9,
+    "derivedMatched": 14,
     "derivedOf": 17,
     "derived": {
       "enemyAccuracy": {
@@ -5058,7 +5054,7 @@
       },
       "lifeRegen": {
         "want": 183,
-        "got": 107,
+        "got": 105,
         "ok": false
       },
       "manaRegen": {
@@ -5088,33 +5084,33 @@
       },
       "effectiveHealthPool": {
         "want": 20006,
-        "got": 19040,
+        "got": 19569,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 4273,
-        "got": 4261,
-        "ok": false
+        "got": 4273,
+        "ok": true
       },
       "fireMaxHit": {
         "want": 13572,
-        "got": 13639,
-        "ok": false
+        "got": 13572,
+        "ok": true
       },
       "coldMaxHit": {
         "want": 13572,
-        "got": 13639,
-        "ok": false
+        "got": 13572,
+        "ok": true
       },
       "lightningMaxHit": {
         "want": 13572,
-        "got": 13639,
-        "ok": false
+        "got": 13572,
+        "ok": true
       },
       "chaosMaxHit": {
         "want": 11904,
-        "got": 12204,
-        "ok": false
+        "got": 11904,
+        "ok": true
       }
     }
   }

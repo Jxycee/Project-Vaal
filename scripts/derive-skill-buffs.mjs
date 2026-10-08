@@ -96,3 +96,22 @@ for (const skill of Object.values(skills)) {
 }
 writeFileSync('src/lib/pob/data/support-levels.json', JSON.stringify(levels));
 console.log(Object.keys(levels).length + ' level-granting supports -> support-levels.json');
+
+// Totem skills (skillTypes SummonsTotem, PoB's skillFlags.totem) and what PoB reads off the MAIN skill to get the number
+// of totems (CalcPerform.lua:1299, ActiveTotemLimit): the totem skill's own constant stat base_number_of_totems_allowed
+// (`limit`; a totem skill without it, Ancestral Warrior Totem's non_modifiable_totem_limit, is kept with 0), whether the
+// skill's totems are ballistae (`ballista`: "Attack Skills have +1 Ballista Totems" needs TotemsAreBallistae) and which
+// skills are melee attacks (`meleeAttack`: "Melee Attack Skills have +1 to maximum Summoned Totems"). stats/totems.ts adds
+// the passives' share to these.
+const totems = { limit: {}, ballista: [], meleeAttack: [] };
+for (const skill of Object.values(skills)) {
+  if (skill.type !== 'active') continue;
+  const types = skill.skillTypes ?? [];
+  if (types.includes('Attack') && types.includes('Melee')) totems.meleeAttack.push(skill.name);
+  if (!types.includes('SummonsTotem')) continue;
+  const limit = (skill.statSets ?? []).map((set) => set.constantStats?.base_number_of_totems_allowed).find((n) => typeof n === 'number') ?? 0;
+  totems.limit[skill.name] = Math.max(totems.limit[skill.name] ?? 0, limit);
+  if (types.includes('TotemsAreBallistae')) totems.ballista.push(skill.name);
+}
+writeFileSync('src/lib/pob/data/skill-totems.json', JSON.stringify(totems));
+console.log(Object.keys(totems.limit).length + ' totem skills -> skill-totems.json');

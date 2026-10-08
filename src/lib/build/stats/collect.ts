@@ -32,6 +32,7 @@ import type { GemState } from '../gemState';
 import { conditionHolds, type BuildConfig } from './buildConfig';
 import { lifeReservation, withDerivedConditions } from './reservation';
 import { skillBuffContributions } from './skillBuffs';
+import { totemsSummoned, type TotemMods } from './totems';
 import type { PassiveState } from '../types';
 import { campaignAt } from './campaign';
 import { DEFENCE_WORDS, implicitStats } from './implicits';
@@ -40,7 +41,7 @@ import { RADIUS_GRANT_LINE, readLine, readLocalDefenceLine, type LineMod } from 
 import type { JewelRadiusNode } from '@/lib/tree/treeLite';
 import { categoryApplies, isKnownCategory, readRuneLine } from './runes';
 import type { Contribution } from './engine';
-import { CONDITIONAL_EFFECTS, GLOBAL_EFFECTS, LOCAL_EFFECTS, looksLikeDefenceStat, NOT_MODELLED, PER_ITEM_DEFENCE, SUPPORT_THRESHOLD, type PerItemDefence, type Pool } from './statTable';
+import { CONDITIONAL_EFFECTS, GLOBAL_EFFECTS, LOCAL_EFFECTS, looksLikeDefenceStat, MULTIPLIED_EFFECTS, NOT_MODELLED, PER_ITEM_DEFENCE, SUPPORT_THRESHOLD, type PerItemDefence, type Pool } from './statTable';
 import supportColours from '@/lib/pob/data/support-colours.json';
 
 /**
@@ -120,6 +121,10 @@ export function collectContributions(
   // Low Life is derived when the gems reserve enough Life (reservation.ts); the Configuration's own conditions stay as imported.
   const lifeReserved = lifeReservation(input.gems, input.set);
   const config = withDerivedConditions(input.passive.buildConfig, lifeReserved.percent);
+  // "Per X" stats wait here until every passive is read: a Multiplier's count is the Configuration's (Rage) or derived from the
+  // skills and the passives together (Summoned Totems, totems.ts), so it is known only at the end.
+  const multiplierCounts: MultiplierCounts = { known: config !== undefined, pending: [] };
+  const totemMods: TotemMods = { global: 0, ballista: 0, meleeAttack: 0 };
   if (lifeReserved.skills.length > 0) {
     assumed.push(`${lifeReserved.skills.join(', ')}: reserves ${lifeReserved.percent}% of Life (Low Life is derived from it); Reservation Efficiency modifiers are not modelled`);
   }
@@ -158,9 +163,12 @@ export function collectContributions(
       else if (stat === 'keystone_blood_magic') flags.bloodMagic = true;
       else if (stat === 'keystone_mana_shield') manaShield = true;
       else if (stat === 'cannot_gain_spirit_from_equipment') flags.noSpiritFromEquipment = true;
+      if (stat === 'number_of_additional_totems_allowed') totemMods.global += value;
+      else if (stat === 'attack_skills_additional_ballista_totems_allowed') totemMods.ballista += value;
+      else if (stat === 'melee_attack_skills_additional_totems_allowed') totemMods.meleeAttack += value;
       if (SUPPORT_THRESHOLD[stat]) needsSupports.push({ stat, value, source: node.name });
       else if (PER_ITEM_DEFENCE[stat]) perItem.push({ rule: PER_ITEM_DEFENCE[stat], value, source: node.name });
-      else addGlobal(contributions, notCounted, unknown, stat, value, node.name, config);
+      else addGlobal(contributions, notCounted, unknown, stat, value, node.name, config, multiplierCounts);
     }
   };
   for (const id of nodes) addNode(id);
@@ -217,13 +225,13 @@ export function collectContributions(
   // Gear-counted multipliers (lineMods.ts GEAR_MULTIPLIERS): PoB adds Multiplier:GrandSpectrum 1 per Grand Spectrum worn.
   const gearCounts: Record<string, number> = {
     GrandSpectrum: equipped.filter((e) => e.item.name.includes('Grand Spectrum')).length,
-    CorruptedItem: corruptedItemCount(equipped),
+    CorruptedItem: corruptedItemCount(equipped, [...NOT_ON_CHARACTER].map((slot) => input.gear[slot])),
   };
   /** Radius jewels wait until every item has allocated what it grants (Megalomaniac's "Allocates X"): PoB counts a node in the radius however it was allocated. */
   const radiusJewels: { item: GearItem; socket: number }[] = [];
   for (const { item, slot, socket } of equipped) {
     const from = contributions.length;
-    collectItem(item, slot, data, flags, contributions, notCounted, unknown, assumed, allocate, config, gearCounts, input.level);
+    collectItem(item, slot, data, flags, contributions, notCounted, unknown, assumed, allocate, config, gearCounts, input.level, multiplierCounts);
     if (socket !== undefined) radiusJewels.push({ item, socket });
     if (slot) wornAt.set(slot, { from, to: contributions.length, name: item.name });
   }
@@ -286,10 +294,23 @@ export function collectContributions(
 
   // ---- Campaign, derived from the level.
   const campaign = campaignAt(input.level, input.passive.questChoices, config?.questsOff);
-  for (const r of [...campaign.rewards, ...campaign.choiceRewards]) addGlobal(contributions, notCounted, unknown, r.stat, r.value, r.source, config);
+  for (const r of [...campaign.rewards, ...campaign.choiceRewards]) addGlobal(contributions, notCounted, unknown, r.stat, r.value, r.source, config, multiplierCounts);
   notCounted.push(...campaign.choiceRewardsUnmodelled);
   if (campaign.choiceRewardsNotCounted.length > 0) {
     notCounted.push(`Quest rewards you choose: ${campaign.choiceRewardsNotCounted.join(', ')}`);
+  }
+
+  // ---- "Per X" stats, now that the counts are known.
+  const counts: Record<string, number> = { ...(config?.multipliers ?? {}) };
+  const totems = totemsSummoned(input.gems, input.set, config?.multipliers.TotemsSummoned, totemMods);
+  if (totems !== undefined) counts.TotemsSummoned = totems;
+  for (const { stat, value, source } of multiplierCounts.pending) {
+    const rule = MULTIPLIED_EFFECTS[stat];
+    const count = counts[rule.multiplier];
+    if (count !== undefined) for (const e of rule.effects) contributions.push({ pool: e.pool, kind: e.kind, value: value * count, source });
+    else if (!multiplierCounts.known || rule.multiplier === 'TotemsSummoned') {
+      notCounted.push(`${source}: ${stat} needs Multiplier:${rule.multiplier} (a Path of Building configuration setting), so it was not counted`);
+    }
   }
 
   for (const [stat, sources] of unknown) notCounted.push(`Unrecognised stat ${stat} (${[...sources].join(', ')})`);
@@ -445,13 +466,16 @@ function radiusGrants(
 export const MIRROR_RING_NAMES: ReadonlySet<string> = new Set(["Kalandra's Touch"]);
 
 /**
- * Multiplier:CorruptedItem (CalcSetup.lua 1640-1711): one for each corrupted item in a gear slot, plus the corrupted
- * jewels in allocated sockets (ordinary-life-1: body, gloves, boots, ring + 3 jewels = 7), and Kalandra's Touch swaps its
- * own corruption for the opposite ring's (it does not count itself, it counts the ring it copies): +1 = PoB's 8.
+ * Multiplier:CorruptedItem (CalcSetup.lua 1640-1711): one for each corrupted item in a gear, flask or charm slot, and Kalandra's
+ * Touch swaps its own corruption for the opposite ring's (it does not count itself, it counts the ring it copies). Jewels
+ * never count. Both halves are measured, not read: ordinary-life-1 is 8 = body, gloves, boots, Grim Band, two charms, one
+ * flask, and Kalandra's copy (its 3 jewels are not in it); ordinary-warbringer-1 is 4 = body, boots, amulet, belt, where
+ * counting its three corrupted jewels made 7 and over-counted "1% increased Maximum Life for each Corrupted Item
+ * Equipped" (Life 3064 vs PoB 2986). `worn` is the flask and charm items (they are not in `equipped`).
  */
-function corruptedItemCount(equipped: readonly { item: GearItem; slot?: GearSlot }[]): number {
-  const corrupted = (item: GearItem | undefined) => item?.craft?.corrupted === true;
-  let count = equipped.filter((e) => corrupted(e.item)).length;
+function corruptedItemCount(equipped: readonly { item: GearItem; slot?: GearSlot }[], worn: readonly (GearItem | null | undefined)[]): number {
+  const corrupted = (item: GearItem | null | undefined) => item?.craft?.corrupted === true;
+  let count = equipped.filter((e) => e.slot !== undefined && corrupted(e.item)).length + worn.filter(corrupted).length;
   for (const [slot, other] of [['ring1', 'ring2'], ['ring2', 'ring1']] as const) {
     const ring = equipped.find((e) => e.slot === slot);
     if (!ring?.item.name.includes("Kalandra's Touch")) continue;
@@ -544,6 +568,12 @@ function gate(mods: readonly LineMod[], config: BuildConfig | undefined, line: s
   return kept;
 }
 
+/** The PoB Multiplier counts a "per X" stat can read. `known` false = the build came without a Configuration, so an absent count is unknown rather than zero. */
+interface MultiplierCounts {
+  known: boolean;
+  pending: { stat: string; value: number; source: string }[];
+}
+
 function addGlobal(
   out: Contribution[],
   notCounted: string[],
@@ -552,7 +582,12 @@ function addGlobal(
   value: number,
   source: string,
   config: BuildConfig | undefined,
+  counts: MultiplierCounts,
 ): void {
+  if (MULTIPLIED_EFFECTS[stat]) {
+    counts.pending.push({ stat, value, source });
+    return;
+  }
   const conditional = CONDITIONAL_EFFECTS[stat];
   if (conditional) {
     const holds = conditionHolds(config, conditional.condition, conditional.negate);
@@ -588,6 +623,7 @@ function collectItem(
   gearCounts: Readonly<Record<string, number>>,
   /** The character's level: "Has +3 to Evasion Rating per player level" scales by it. */
   level: number,
+  multiplierCounts: MultiplierCounts,
 ): void {
   const craft = item.craft;
   const stats: [string, number][] = [];
@@ -802,7 +838,7 @@ function collectItem(
         bucket[e.pool] = (bucket[e.pool] ?? 0) + value;
       }
     } else {
-      addGlobal(contributions, notCounted, unknown, stat, value, item.name, config);
+      addGlobal(contributions, notCounted, unknown, stat, value, item.name, config, multiplierCounts);
     }
   }
 

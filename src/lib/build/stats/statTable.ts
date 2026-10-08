@@ -302,6 +302,22 @@ export const CONDITIONAL_EFFECTS: Readonly<Record<string, ConditionalEffect>> = 
   'armour_and_evasion_on_low_life_+%': { condition: 'LowLife', effects: inc('armour', 'evasion') },
 };
 
+/**
+ * Tree stats that repeat once per count of a PoB Multiplier ("Every Rage also grants 1% increased Armour": 1 x Rage;
+ * "10% increased Armour and Evasion Rating per Summoned Totem in your Presence": 10 x totems). The count comes from the
+ * build's Configuration (multiplierRage -> RageStack) or, for TotemsSummoned, from the skills (totems.ts).
+ * No count known for the name = counts nothing and is named in notCounted, never defaulted. Rage's own cap (30) is the
+ * Configuration's number; it is not re-applied. Checked on ordinary-warbringer-1: 30 Rage x 1 and 1 totem x 10 on Armour.
+ */
+export interface MultipliedEffect {
+  multiplier: string;
+  effects: Effect[];
+}
+export const MULTIPLIED_EFFECTS: Readonly<Record<string, MultipliedEffect>> = {
+  'armour_+%_per_rage': { multiplier: 'RageStack', effects: inc('armour') },
+  'armour_and_evasion_rating_+%_per_active_totem_in_presence': { multiplier: 'TotemsSummoned', effects: inc('armour', 'evasion') },
+};
+
 /** Applied to the carrying item's own base defences / spirit, before quality. */
 export const LOCAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   local_base_physical_damage_reduction_rating: flat('armour'),
