@@ -3,7 +3,6 @@
     "gaps": {
       "life": [
         "flat 265 from Morior Invictus, Grand Regalia",
-        "flat 103 from Pain Spiral, Gold Ring",
         "increased 3 from Morior Invictus, Grand Regalia",
         "increased 28 from VirtuousBarrierPlayer"
       ],
@@ -48,7 +47,7 @@
       },
       "life": {
         "want": 4075,
-        "got": 2770,
+        "got": 2883,
         "ok": false
       },
       "mana": {
@@ -73,12 +72,12 @@
       },
       "fire": {
         "want": 75,
-        "got": 0,
+        "got": 45,
         "ok": false
       },
       "cold": {
         "want": 75,
-        "got": -1,
+        "got": 43,
         "ok": false
       },
       "lightning": {
@@ -102,9 +101,7 @@
     "gaps": {
       "life": [],
       "mana": [
-        "flat 260 from Morior Invictus, Grand Regalia",
-        "flat 222 from Kalandra's Touch, Ring",
-        "increased 8 from Kalandra's Touch, Ring"
+        "flat 260 from Morior Invictus, Grand Regalia"
       ],
       "energyShield": [
         "flat 397 from Morior Invictus, Grand Regalia",
@@ -126,7 +123,7 @@
     },
     "class": "Stormweaver",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/nameking-0380/%E5%97%B6%E5%93%A9%E4%BD%90%E5%BE%B7%E5%B0%8F%E6%B1%BD%E8%BB%8A",
-    "matched": 4,
+    "matched": 5,
     "of": 13,
     "stats": {
       "str": {
@@ -151,7 +148,7 @@
       },
       "mana": {
         "want": 2306,
-        "got": 1609,
+        "got": 1992,
         "ok": false
       },
       "energyShield": {
@@ -171,18 +168,18 @@
       },
       "fire": {
         "want": 75,
-        "got": 32,
+        "got": 47,
         "ok": false
       },
       "cold": {
         "want": 74,
-        "got": 60,
+        "got": 75,
         "ok": false
       },
       "lightning": {
         "want": 75,
-        "got": 63,
-        "ok": false
+        "got": 75,
+        "ok": true
       },
       "chaos": {
         "want": 75,
@@ -751,17 +748,12 @@
         "3 1 from 56349"
       ],
       "mana": [
-        "flat 198 from Kalandra's Touch, Ring",
-        "increased 3 from Viper Crest, Ancestral Tiara",
-        "increased 7 from Kalandra's Touch, Ring",
-        "increased 7 from Kalandra's Touch, Ring"
+        "increased 3 from Viper Crest, Ancestral Tiara"
       ],
       "energyShield": [
         "flat 469 from Blood League, Sekhema Sandals"
       ],
-      "spirit": [
-        "flat 115 from Palm of the Dreamer"
-      ],
+      "spirit": [],
       "evasion": [],
       "str": [],
       "dex": [],
@@ -769,7 +761,7 @@
     },
     "class": "Oracle",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/perceptionofreality-7468/BABYROSHANCOM",
-    "matched": 7,
+    "matched": 11,
     "of": 13,
     "stats": {
       "str": {
@@ -794,7 +786,7 @@
       },
       "mana": {
         "want": 5175,
-        "got": 2327,
+        "got": 2864,
         "ok": false
       },
       "energyShield": {
@@ -814,18 +806,18 @@
       },
       "fire": {
         "want": 75,
-        "got": 70,
-        "ok": false
+        "got": 75,
+        "ok": true
       },
       "cold": {
         "want": 57,
-        "got": 41,
-        "ok": false
+        "got": 57,
+        "ok": true
       },
       "lightning": {
         "want": 57,
-        "got": 41,
-        "ok": false
+        "got": 57,
+        "ok": true
       },
       "chaos": {
         "want": 100,
@@ -834,8 +826,8 @@
       },
       "spirit": {
         "want": 279,
-        "got": 304,
-        "ok": false
+        "got": 279,
+        "ok": true
       }
     }
   }

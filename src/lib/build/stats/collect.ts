@@ -148,7 +148,13 @@ export function collectContributions(
   for (const [socket, jewel] of Object.entries(input.gear.jewels)) {
     if (nodes.has(Number(socket))) equipped.push({ item: jewel });
   }
-  for (const { item, slot } of equipped) collectItem(item, slot, data, flags, contributions, notCounted, unknown, assumed, allocate);
+  const wornAt = new Map<GearSlot, { from: number; to: number; name: string }>();
+  for (const { item, slot } of equipped) {
+    const from = contributions.length;
+    collectItem(item, slot, data, flags, contributions, notCounted, unknown, assumed, allocate);
+    if (slot) wornAt.set(slot, { from, to: contributions.length, name: item.name });
+  }
+  reflectOppositeRing(wornAt, contributions);
 
   // ---- Passives that scale off an item's defence, now that every item's own figure is known. An empty slot
   // is 0 steps. PoB floors the step count (PerStat tag, ModStore.lua).
@@ -172,6 +178,34 @@ export function collectContributions(
   for (const [stat, sources] of unknown) notCounted.push(`Unrecognised stat ${stat} (${[...sources].join(', ')})`);
 
   return { contributions, flags, resistancePenalty: campaign.resistancePenalty, act: campaign.act, notCounted, assumed };
+}
+
+/**
+ * Kalandra's Touch: "Reflects opposite Ring" (PoB2 uniques.json lists it as the only item with that line,
+ * pinned in __tests__/collect.reflect.test.ts). It wears a COPY of the other ring's modifiers, implicit
+ * included: PoB's breakdown for the oracle build counts Soul Circle's +198 mana and both of its 7% increased
+ * maximum Mana lines a second time under "Kalandra's Touch", and its +16% to all Elemental Resistances too.
+ *
+ * Failure modes, decided before the code:
+ *   1. The opposite ring slot is empty: nothing to reflect, nothing added.
+ *   2. Both rings are Kalandra's Touch: each would reflect the other; PoB has nothing to copy, so neither does.
+ *   3. The opposite ring is a unique our data lacks: it contributes only what the importer kept, and the copy
+ *      carries exactly that (never more than the original).
+ *   4. Passives an item grants ("Allocates X") are NOT the ring's modifiers: only contributions sourced by
+ *      the other ring's own name are copied, so a granted node is not counted twice.
+ *   5. A rare ring named like the unique: the name is checked on the equipped item, not on the lines.
+ */
+export const MIRROR_RING_NAMES: ReadonlySet<string> = new Set(["Kalandra's Touch"]);
+
+function reflectOppositeRing(wornAt: ReadonlyMap<GearSlot, { from: number; to: number; name: string }>, contributions: Contribution[]): void {
+  const rings: GearSlot[] = ['ring1', 'ring2'];
+  for (const slot of rings) {
+    const mirror = wornAt.get(slot);
+    const other = wornAt.get(slot === 'ring1' ? 'ring2' : 'ring1');
+    if (!mirror || !other || !MIRROR_RING_NAMES.has(mirror.name) || MIRROR_RING_NAMES.has(other.name)) continue;
+    const copied = contributions.slice(other.from, other.to).filter((c) => c.source === other.name);
+    for (const c of copied) contributions.push({ ...c, source: mirror.name });
+  }
 }
 
 function addGlobal(out: Contribution[], notCounted: string[], unknown: Map<string, Set<string>>, stat: string, value: number, source: string): void {
@@ -318,7 +352,9 @@ function collectItem(
         const read = readRuneLine(line);
         if (read === null) continue;
         if ('unmodelled' in read) notCounted.push(`${item.name}: rune line "${read.unmodelled}" not counted`);
-        else stats.push([read.stat, read.value]);
+        // "15% increased Spirit" on an item that has Spirit of its own (a sceptre, a body armour) is LOCAL in PoB2:
+        // the item's Spirit becomes round(base x 1.15), as the oracle's Palm of the Dreamer shows (100 -> 115).
+        else stats.push([read.stat === 'spirit_+%' && detail.spirit > 0 ? 'local_spirit_+%' : read.stat, read.value]);
       }
     }
   }
