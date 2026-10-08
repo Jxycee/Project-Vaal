@@ -237,7 +237,7 @@ const FLOOR: Record<string, number> = {
   'ordinary-mercenary-1.json': 13, // round 2: 13 of 13, an active charm adds its base buff (collect.ts collectCharms: Sapphire +25% Cold, Topaz +25% Lightning, same-base charms merge); was 11
   'ordinary-monk-1.json': 12, // short: Energy Shield (8225/8387)
   'ordinary-shaman-1.json': 11, // round 5: 11 of 13 (Undying Hate's Conquered Attribute passives +3 to all Attributes, Wisdom of the Maji's Bonded rune lines, Iron Reflexes from the Legacy rune, Heavy Armour); was 5. Short: Armour (13693/17541: PoB's Bear Form shapeshift adds 1010 flat Armour, not in our data) and Lightning (72/75: Purity of Lightning is 39 in PoB, 49.53 here, aura magnitudes not applied)
-  'ordinary-smith-of-kitava-1.json': 11, // short: Cold and Lightning resistance (-24/87; Forged in Flame max-resistance sharing)
+  'ordinary-smith-of-kitava-1.json': 13,
   'ordinary-sorceress-1.json': 12, // short: Energy Shield (8661/9143)
   'ordinary-witchhunter-1.json': 11, // short: Evasion (24523/23064: Afterimage's Hit Recently and Hyrri's Ire, Obsessive Rituals' final -50% not read), Chaos resistance (20/24)
   'ordinary-warbringer-1.json': 13, // round 5: 13 of 13 (corrupted-item count excludes jewels, includes flasks and charms; Rage and Summoned Totems multiply Armour and Evasion passives); was 10. round 3: Blood Magic sets Mana 0 (engine.ts); short Life, Armour, Evasion; was 9 // 9 of 13 at the start: Mana 552 where PoB has 0, Armour and Evasion short, Life over

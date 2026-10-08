@@ -27,6 +27,9 @@ export type Pool =
   | 'str'
   | 'dex'
   | 'int'
+  // Smith of Kitava: Coal Stoker (fireResConvert, percent) and Forged in Flame (fireMaxConvert, percent): PoB FireResConvertToCold/Lightning and FireMaxResConvertToCold/Lightning (CalcDefence.lua:858-902).
+  | 'fireResConvert'
+  | 'fireMaxConvert'
   | 'fireRes'
   | 'coldRes'
   | 'lightningRes'
@@ -100,6 +103,8 @@ export type Pool =
  */
 export interface Effect {
   pool: Pool;
+  /** Parsed by PoB as ElementalResist(Max), not FireResist(Max): the Smith's conversion tabulates only the named modifier, so it skips these. */
+  allElemental?: true;
   kind: 'flat' | 'increased' | 'more';
   slot?: GearSlot;
   /** With a slot: the increase counts only when the item worn there is of this class ("from Equipped Shield" needs a shield, not a focus). */
@@ -111,6 +116,7 @@ export interface Effect {
 }
 
 const flat = (...pools: Pool[]): Effect[] => pools.map((pool) => ({ pool, kind: 'flat' }));
+const flatAllElemental = (...pools: Pool[]): Effect[] => pools.map((pool) => ({ pool, kind: 'flat', allElemental: true }));
 const inc = (...pools: Pool[]): Effect[] => pools.map((pool) => ({ pool, kind: 'increased' }));
 const more = (...pools: Pool[]): Effect[] => pools.map((pool) => ({ pool, kind: 'more' }));
 const perMinute = (pool: Pool, kind: Effect['kind']): Effect[] => [{ pool, kind, scale: 1 / 60 }];
@@ -199,7 +205,7 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   'base_cold_damage_resistance_%': flat('coldRes'),
   'base_lightning_damage_resistance_%': flat('lightningRes'),
   'base_chaos_damage_resistance_%': flat('chaosRes'),
-  'base_resist_all_elements_%': flat('fireRes', 'coldRes', 'lightningRes'),
+  'base_resist_all_elements_%': flatAllElemental('fireRes', 'coldRes', 'lightningRes'),
   'fire_and_cold_damage_resistance_%': flat('fireRes', 'coldRes'),
   'fire_and_lightning_damage_resistance_%': flat('fireRes', 'lightningRes'),
   'cold_and_lightning_damage_resistance_%': flat('coldRes', 'lightningRes'),
@@ -210,7 +216,10 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   'base_maximum_cold_damage_resistance_%': flat('coldMax'),
   'base_maximum_lightning_damage_resistance_%': flat('lightningMax'),
   'base_maximum_chaos_damage_resistance_%': flat('chaosMax'),
-  'additional_maximum_all_elemental_resistances_%': flat('fireMax', 'coldMax', 'lightningMax'),
+  'additional_maximum_all_elemental_resistances_%': flatAllElemental('fireMax', 'coldMax', 'lightningMax'),
+  // Smith of Kitava (Coal Stoker / Forged in Flame): the node's number is the percent (50) or 1 (= 100% of the maximum).
+  'modifiers_to_fire_resistance_also_apply_to_cold_lightning_resistance_at_%_value': flat('fireResConvert'),
+  modifiers_to_maximum_fire_resistance_apply_to_maximum_cold_and_lightning_resistance: [{ pool: 'fireMaxConvert', kind: 'flat', scale: 100 }],
   'additional_maximum_all_resistances_%': flat('fireMax', 'coldMax', 'lightningMax', 'chaosMax'),
 
   base_spirit: flat('spirit'),

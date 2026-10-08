@@ -108,6 +108,8 @@ export interface LineMod {
   slot?: GearSlot;
   /** With a slot: counts only while the item there is of this class (a shield in an off-hand slot). */
   itemClass?: string;
+  /** PoB parsed the line as ElementalResist(Max): the Smith's fire-to-cold/lightning conversion skips it. */
+  allElemental?: true;
 }
 
 export type LineRead =
@@ -179,7 +181,7 @@ const KINDS: Record<string, LineMod['kind']> = { BASE: 'flat', INC: 'increased',
 
 interface Template {
   /** Per modifier: its pools, kind and the sign it applies to the line's number. */
-  mods: { pools: Pool[]; kind: LineMod['kind']; sign: 1 | -1 }[];
+  mods: { pools: Pool[]; kind: LineMod['kind']; sign: 1 | -1; allElemental?: true }[];
   global: boolean;
   condition?: { name: string; negate: boolean };
   perSocket?: boolean;
@@ -243,7 +245,7 @@ function derive(entry: CacheEntry, n: number, text: string): Template | null {
     const kind = KINDS[m.type];
     // The cached value must be the line's number up to sign; anything else is a scaling we cannot invert.
     if (!pools || !kind || typeof m.value !== 'number' || Math.abs(m.value) !== Math.abs(n)) return null;
-    read.push({ pools, kind, sign: Math.sign(m.value) === Math.sign(n) ? 1 : -1 });
+    read.push({ pools, kind, sign: Math.sign(m.value) === Math.sign(n) ? 1 : -1, ...(m.name === 'ElementalResist' || m.name === 'ElementalResistMax' ? { allElemental: true as const } : {}) });
   }
   const condition = gated ? { name: [...conditions][0] as string, negate: NEGATED.test(text) } : undefined;
   return { mods: read, global: mods.some((m) => m.tagType === 'Global'), ...(condition ? { condition } : {}), ...(perSocket ? { perSocket } : {}), ...(multiplier ? { multiplier } : {}), ...(slotted ? { slots: slotted.slots, ...(slotted.itemClass ? { itemClass: slotted.itemClass } : {}) } : {}) };
@@ -283,7 +285,7 @@ export function readLine(line: string): LineRead | null {
   if (template === null) return { unmodelled: line };
   const n = Number(numbers[0]);
   return {
-    mods: template.mods.flatMap((m) => m.pools.flatMap((pool) => (template.slots ?? [undefined]).map((slot) => ({ pool, kind: m.kind, value: m.sign * n, ...(slot ? { slot } : {}), ...(slot && template.itemClass ? { itemClass: template.itemClass } : {}), ...(template.condition ? { condition: template.condition } : {}), ...(template.perSocket ? { perSocket: true } : {}), ...(template.multiplier ? { multiplier: template.multiplier } : {}) })))),
+    mods: template.mods.flatMap((m) => m.pools.flatMap((pool) => (template.slots ?? [undefined]).map((slot) => ({ pool, kind: m.kind, value: m.sign * n, ...(m.allElemental ? { allElemental: true as const } : {}), ...(slot ? { slot } : {}), ...(slot && template.itemClass ? { itemClass: template.itemClass } : {}), ...(template.condition ? { condition: template.condition } : {}), ...(template.perSocket ? { perSocket: true } : {}), ...(template.multiplier ? { multiplier: template.multiplier } : {}) })))),
     global: template.global,
   };
 }

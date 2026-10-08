@@ -499,7 +499,7 @@ function radiusGrants(
     }
     const counted = gate(read.mods, config, inner, item.name, notCounted);
     for (let i = 0; i < reached; i++) {
-      for (const mod of counted) contributions.push({ pool: mod.pool, kind: mod.kind, value: mod.value, source: item.name, ...(mod.slot ? { slot: mod.slot } : {}), ...(mod.itemClass ? { itemClass: mod.itemClass } : {}) });
+      for (const mod of counted) contributions.push({ pool: mod.pool, kind: mod.kind, value: mod.value, source: item.name, ...(mod.slot ? { slot: mod.slot } : {}), ...(mod.itemClass ? { itemClass: mod.itemClass } : {}), ...(mod.allElemental ? { allElemental: true as const } : {}) });
     }
   }
 }
@@ -656,7 +656,7 @@ function addGlobal(
   const effects = GLOBAL_EFFECTS[stat];
   if (effects) {
     for (const e of effects) {
-      out.push({ pool: e.pool, kind: e.kind, value: value * (e.scale ?? 1), source, ...(e.slot ? { slot: e.slot } : {}), ...(e.itemClass ? { itemClass: e.itemClass } : {}), ...(e.perAttribute ? { perAttribute: e.perAttribute } : {}) });
+      out.push({ pool: e.pool, kind: e.kind, value: value * (e.scale ?? 1), source, ...(e.slot ? { slot: e.slot } : {}), ...(e.itemClass ? { itemClass: e.itemClass } : {}), ...(e.perAttribute ? { perAttribute: e.perAttribute } : {}), ...(e.allElemental ? { allElemental: true as const } : {}) });
     }
   } else if (NOT_MODELLED[stat]) {
     notCounted.push(`${source}: ${NOT_MODELLED[stat]}`);

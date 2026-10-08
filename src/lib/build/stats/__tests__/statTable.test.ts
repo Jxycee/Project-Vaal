@@ -30,6 +30,8 @@ const POOL_WORDS: Record<Pool, RegExp> = {
   str: /Strength|Attributes/,
   dex: /Dexterity|Attributes/,
   int: /Intelligence|Attributes/,
+  fireResConvert: /Fire Resistance also grant/,
+  fireMaxConvert: /Maximum Fire Resistance also grant/,
   fireRes: /Fire.*Resistance|Elemental Resistances/,
   coldRes: /Cold.*Resistance|Elemental Resistances/,
   lightningRes: /Lightning.*Resistance|Elemental Resistances/,

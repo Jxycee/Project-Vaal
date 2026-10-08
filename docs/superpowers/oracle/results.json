@@ -5763,13 +5763,11 @@
       "Heart of the Well: unique — not in our data",
       "Scavenged Plating: Armour more needs Multiplier:ScavengedPlatingStacks (a Path of Building configuration setting), so it was not counted",
       "Unrecognised stat broken_armour_and_sundered_armour_debuff_effect_+% (The Molten One's Gift, Armour Break Effect)",
-      "Unrecognised stat ignore_armour_movement_penalties (Momentum)",
-      "Unrecognised stat modifiers_to_maximum_fire_resistance_apply_to_maximum_cold_and_lightning_resistance (Forged in Flame)",
-      "Unrecognised stat modifiers_to_fire_resistance_also_apply_to_cold_lightning_resistance_at_%_value (Coal Stoker)"
+      "Unrecognised stat ignore_armour_movement_penalties (Momentum)"
     ],
     "class": "Smith of Kitava",
     "source": "https://poe.ninja/poe2/builds/runesofaldur/character/Aberattio-9076/Andwinn",
-    "matched": 11,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -5819,13 +5817,13 @@
       },
       "cold": {
         "want": 87,
-        "got": -24,
-        "ok": false
+        "got": 87,
+        "ok": true
       },
       "lightning": {
         "want": 87,
-        "got": -24,
-        "ok": false
+        "got": 87,
+        "ok": true
       },
       "chaos": {
         "want": 75,
@@ -5898,7 +5896,7 @@
       },
       "effectiveHealthPool": {
         "want": 27333,
-        "got": 7340,
+        "got": 17792,
         "ok": false
       },
       "physicalMaxHit": {
@@ -5913,12 +5911,12 @@
       },
       "coldMaxHit": {
         "want": 23222,
-        "got": 3276,
+        "got": 20979,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 23222,
-        "got": 3276,
+        "got": 20979,
         "ok": false
       },
       "chaosMaxHit": {

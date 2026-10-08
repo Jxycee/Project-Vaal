@@ -49,6 +49,8 @@ export interface Contribution {
   itemClass?: string;
   /** Counts once per `per` points of the character's final attribute (PoB's PerStat tag), resolved in computeDefences. */
   perAttribute?: { attr: 'str' | 'dex' | 'int'; per: number };
+  /** PoB parsed it as ElementalResist(Max), which the Smith's fire-to-cold/lightning conversion does not tabulate. */
+  allElemental?: true;
 }
 
 export interface EngineInput {
@@ -154,7 +156,7 @@ export function computeDefences(given: EngineInput): DefenceSheet {
   const dex = attrOf('dex');
   const int = attrOf('int');
   const ironReflexes = given.flags.ironReflexes === true;
-  const input: EngineInput = { ...given, contributions: resolvePerAttribute(ironReflexes ? convertEvasionToArmour(given.contributions) : given.contributions, { str, dex, int }) };
+  const input: EngineInput = { ...given, contributions: convertFireResistance(resolvePerAttribute(ironReflexes ? convertEvasionToArmour(given.contributions) : given.contributions, { str, dex, int })) };
   const flatOf = (pool: Pool) => sum(input.contributions, pool, 'flat', true);
   const incOf = (pool: Pool) => sum(input.contributions, pool, 'increased', false);
   const moreOf = (pool: Pool) => product(input.contributions, pool);
@@ -238,6 +240,25 @@ function resolvePerAttribute(list: readonly Contribution[], attrs: Record<'str' 
 }
 
 /** Sum of one kind for one pool. `withSlots` false skips slot-tagged contributions. */
+/**
+ * Smith of Kitava, Coal Stoker ("Modifiers to Fire Resistance also grant Cold and Lightning Resistance at 50% of their value")
+ * and Forged in Flame (the same for maximum resistance, 100%). PoB (CalcDefence.lua:858-902) adds, to each target, rate x the sum
+ * of the BASE mods literally named FireResist / FireResistMax whose source is not "Base" (the -60% penalty and the 75% cap are
+ * the base here). A mod parsed as ElementalResist (all Elemental Resistances) is not named FireResist, so it is skipped.
+ * Checked on ordinary-smith-of-kitava-1: Cold and Lightning were -24 (nothing converted), PoB 87.
+ */
+function convertFireResistance(list: Contribution[]): Contribution[] {
+  const add: Contribution[] = [];
+  const pass = (rate: number, from: Pool, to: readonly Pool[], source: string) => {
+    if (rate === 0) return;
+    const named = sum(list.filter((c) => !c.allElemental), from, 'flat', true);
+    if (named !== 0) for (const pool of to) add.push({ pool, kind: 'flat', value: (named * rate) / 100, source });
+  };
+  pass(sum(list, 'fireMaxConvert', 'flat', true), 'fireMax', ['coldMax', 'lightningMax'], 'Fire to Cold and Lightning Max Resistance Conversion');
+  pass(sum(list, 'fireResConvert', 'flat', true), 'fireRes', ['coldRes', 'lightningRes'], 'Fire to Cold and Lightning Resistance Conversion');
+  return add.length > 0 ? [...list, ...add] : list;
+}
+
 function sum(list: readonly Contribution[], pool: Pool, kind: Contribution['kind'], withSlots: boolean): number {
   let total = 0;
   for (const c of list) {
