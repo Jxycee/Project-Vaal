@@ -437,7 +437,8 @@ function jewelNotableEffect(jewels: GearState['jewels'], nodes: ReadonlySet<numb
  *   6. The jewel's socket is not allocated: never reaches here (the jewel is not worn).
  *   8. Another item allocates a passive inside the radius (Megalomaniac's "Allocates X") and sits in a later socket:
  *      radius jewels are measured after every item is read, so the order of sockets never changes the count.
- *   7. Attribute passives, keystones, masteries, sockets and blighted nodes are in neither set (treeLite.ts).
+ *   7. Keystones, masteries, sockets and blighted nodes are in no set (treeLite.ts). Attribute passives are kind 2: only a
+ *      Timeless jewel's "Conquered Attribute Passive Skills also grant ..." reaches them, once per ALLOCATED one in the radius.
  */
 const RADIUS_OUTER: Readonly<Record<string, number>> = { Small: 1000, Medium: 1150, Large: 1300, 'Very Large': 1500 };
 const JEWEL_DISTANCE_MULTIPLIER = 1.2;
