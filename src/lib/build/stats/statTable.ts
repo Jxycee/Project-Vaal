@@ -406,7 +406,6 @@ export const SUPPORT_THRESHOLD: Readonly<Record<string, SupportThreshold>> = {
 export const NOT_MODELLED: Readonly<Record<string, string>> = {
   'spirit_+_per_empty_charm_slot': 'Spirit per empty charm slot',
   'body_armour_grants_spirit_+%': 'increased Spirit from body armour',
-  'ascendancy_beidats_will_spirit_+_per_X_maximum_life': 'Spirit per maximum Life',
   base_physical_damage_reduction_rating_no_display: 'hidden Armour',
   'maximum_fire_resistance_+%_if_at_least_5_red_supports_socketed': 'Maximum Fire Resistance with 5 red supports socketed',
   // Harmony Within: ModCache.lua:8219-8221 leaves this sentence unparsed, so Path of Building 2 counts nothing for it either.

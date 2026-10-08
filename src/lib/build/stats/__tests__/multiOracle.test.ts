@@ -232,7 +232,7 @@ const FLOOR: Record<string, number> = {
   // Round-5 class-coverage set (Runes of Aldur, no Mageblood, no RELIC item): classes with no fixture yet; FLOOR = the match when added.
   'ordinary-druid-1.json': 12, // round 5 of the engine loop: Ingenuity's "N% increased bonuses gained from left/right Equipped Ring" (lineMods.ts EFFECT_OF_BONUSES_LINE) scales both rings; was 8. Short: Lightning (76/75: "+1% Maximum Lightning Resistance while Shapeshifted" needs the Shapeshifted condition PoB derives from the main skill)
   'ordinary-huntress-1.json': 13, // 13 of 13 at the start
-  'ordinary-infernalist-1.json': 12, // short: Spirit (234/380)
+  'ordinary-infernalist-1.json': 13,
   'ordinary-invoker-1.json': 12, // short: Mana (2253/2549)
   'ordinary-mercenary-1.json': 13, // round 2: 13 of 13, an active charm adds its base buff (collect.ts collectCharms: Sapphire +25% Cold, Topaz +25% Lightning, same-base charms merge); was 11
   'ordinary-monk-1.json': 12, // short: Energy Shield (8225/8387)

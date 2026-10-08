@@ -49,6 +49,8 @@ export interface Contribution {
   itemClass?: string;
   /** Counts once per `per` points of the character's final attribute (PoB's PerStat tag), resolved in computeDefences. */
   perAttribute?: { attr: 'str' | 'dex' | 'int'; per: number };
+  /** Counts once per `per` points of the character's final maximum Life (PoB PerStat on Life; Beidat's Will), resolved in computeDefences. */
+  perLife?: { per: number };
   /** PoB parsed it as ElementalResist(Max), which the Smith's fire-to-cold/lightning conversion does not tabulate. */
   allElemental?: true;
 }
@@ -190,7 +192,9 @@ export function computeDefences(given: EngineInput): DefenceSheet {
     return { value: Math.max(Math.min(uncapped, max), RESIST_FLOOR), max, uncapped };
   };
 
-  let spirit = scaled(flatOf('spirit'), 'spirit');
+  // Beidat's Will: "+1 to Maximum Spirit per 25 Maximum Life" - floor(final Life / 25) steps, the flat is then scaled like any Spirit.
+  const spiritFlat = flatOf('spirit') + input.contributions.filter((c) => c.pool === 'spirit' && c.kind === 'flat' && c.perLife && c.perLife.per > 0).reduce((n, c) => n + (c.value * Math.floor(life / c.perLife!.per) - c.value), 0);
+  let spirit = scaled(spiritFlat, 'spirit');
   if (input.flags.lordOfTheWilds) spirit *= 0.5;
   if (input.flags.noSpirit) spirit = 0;
 

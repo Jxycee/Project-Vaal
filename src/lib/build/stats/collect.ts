@@ -115,6 +115,8 @@ export interface Collected {
 const SURROUNDED_WORDS = /Surrounded Area of Effect|fewer enemies to be Surrounded/;
 
 /** Heavy Armour's typed stat (node 59589): the number is the percent of the Strength requirements. */
+/** Infernalist Beidat's Will: +1 Spirit per `value` (25) maximum Life, resolved in the engine once Life is known. */
+const BEIDATS_WILL = 'ascendancy_beidats_will_spirit_+_per_X_maximum_life';
 const STR_REQUIREMENT_ARMOUR = 'armour_+_from_%_strength_requirements_from_boots_gloves_helmets';
 
 const NOT_ON_CHARACTER: ReadonlySet<GearSlot> = new Set(['flask1', 'flask2', 'charm1', 'charm2', 'charm3']);
@@ -207,6 +209,7 @@ function collectOnce(
       else if (stat === 'melee_attack_skills_additional_totems_allowed') totemMods.meleeAttack += value;
       if (SUPPORT_THRESHOLD[stat]) needsSupports.push({ stat, value, source: node.name });
       else if (PER_ITEM_DEFENCE[stat]) perItem.push({ rule: PER_ITEM_DEFENCE[stat], value, source: node.name });
+      else if (stat === BEIDATS_WILL) contributions.push({ pool: 'spirit', kind: 'flat', value: 1, perLife: { per: value }, source: node.name });
       else if (stat === STR_REQUIREMENT_ARMOUR) strRequirementArmour.push({ value, source: node.name });
       else addGlobal(contributions, notCounted, unknown, stat, value, node.name, config, multiplierCounts);
     }

@@ -3653,13 +3653,12 @@
       "int": []
     },
     "notCounted": [
-      "Beidat's Will: Spirit per maximum Life",
       "Heart of the Well: unique — not in our data",
       "Unrecognised stat base_reduce_enemy_cold_resistance_% (Glaciation)"
     ],
     "class": "Infernalist",
     "source": "https://poe.ninja/poe2/builds/runesofaldur/character/iternus-0992/StickOnThePlan",
-    "matched": 12,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -3724,8 +3723,8 @@
       },
       "spirit": {
         "want": 380,
-        "got": 234,
-        "ok": false
+        "got": 380,
+        "ok": true
       }
     },
     "derivedMatched": 11,
