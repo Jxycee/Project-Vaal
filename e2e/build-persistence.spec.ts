@@ -50,7 +50,7 @@ test('saving twice from scratch updates one row instead of creating two', async 
   expect(names.filter((n) => n === name)).toHaveLength(1);
 });
 
-test('switching between two builds shows the second one, not the first', async ({ page }) => {
+test('switching between two builds shows the second one, not the first, and leaving for scratch mode does not overwrite either', async ({ page }) => {
   const nameA = testBuildName('A');
   const nameB = testBuildName('B');
 
@@ -87,25 +87,12 @@ test('switching between two builds shows the second one, not the first', async (
   await softNavigate(page, '/builds');
   await softOpenBuild(page, tokenA);
   await expect.poll(async () => (await treeState(page)).allocated.length).toBe(allocA);
-});
 
-test('leaving a build for scratch mode does not overwrite that build', async ({ page }) => {
-  const name = testBuildName('scratch-guard');
-
-  await openTree(page);
-  await allocateNodes(page, await nodesNearStart(page, 6));
-  await saveBuild(page, { name, level: 33, league: 'Standard' });
-  const saved = (await treeState(page)).allocated.length;
-
-  const token = await readShareToken(page, name);
-  await softOpenBuild(page, token);
-  await expect.poll(async () => (await treeState(page)).allocated.length).toBe(saved);
-
-  // Soft-navigate to plain /tree. This must be an empty scratch editor, and a
-  // save here must create a NEW row rather than silently overwriting the one
-  // above with whatever scratch happens to hold.
-  // The nav no longer has a Tree entry: scratch is reached from the library's
-  // "Quick plan" link, so the soft navigation goes build -> /builds -> /tree.
+  // Leaving a build for scratch mode must not overwrite it. Soft-navigate to
+  // plain /tree (the nav has no Tree entry: scratch is reached from the
+  // library's "Quick plan" link, so build -> /builds -> /tree). This must be an
+  // empty scratch editor, and a save here must create a NEW row rather than
+  // silently overwriting build A with whatever scratch happens to hold.
   await softNavigate(page, '/builds');
   await softNavigate(page, '/tree');
   await expect.poll(async () => (await treeState(page)).allocated.length).toBe(0);
@@ -115,35 +102,32 @@ test('leaving a build for scratch mode does not overwrite that build', async ({ 
   await saveBuild(page, { name: scratchName, level: 5, league: 'Standard' });
 
   const names = await listedBuildNames(page);
-  expect(names).toContain(name);
+  expect(names).toContain(nameA);
+  expect(names).toContain(nameB);
   expect(names).toContain(scratchName);
 
   // And the original is untouched.
-  await openTree(page, await readBuildId(page, name));
-  await expect.poll(async () => (await treeState(page)).allocated.length).toBe(saved);
+  await openTree(page, await readBuildId(page, nameA));
+  await expect.poll(async () => (await treeState(page)).allocated.length).toBe(allocA);
 });
 
-test('a build id that is malformed or not ours reports not-found without a 500', async ({
+test('a build id that is malformed or not ours reports not-found without a 500, and saving from that state clears the error', async ({
   page,
 }) => {
-  for (const bad of ['00000000-0000-0000-0000-000000000000', 'garbage']) {
+  for (const bad of ['garbage', '00000000-0000-0000-0000-000000000000']) {
     const response = await page.goto(`/tree?build=${bad}`);
     expect(response?.status(), `GET /tree?build=${bad}`).toBeLessThan(500);
     await expect(page.getByText('That build could not be found.')).toBeVisible({
       timeout: 30_000,
     });
   }
-});
 
-test('saving from a not-found state clears the stale error', async ({ page }) => {
   // Regression cover for a bug found in review on 2026-09-20: loadError became
   // a server prop, and nothing could clear it, so a SUCCESSFUL save still
   // showed "That build could not be found." for the rest of the session — with
   // the saved confirmation suppressed, because it renders only when there is no
-  // error. Indistinguishable from a hard failure.
-  await openTree(page, '00000000-0000-0000-0000-000000000000');
-  await expect(page.getByText('That build could not be found.')).toBeVisible({ timeout: 30_000 });
-
+  // error. Indistinguishable from a hard failure. The page is still on the
+  // not-found state from the loop above.
   await allocateNodes(page, await nodesNearStart(page, 2));
   await saveBuild(page, { name: testBuildName('after-notfound'), level: 7, league: 'Standard' });
 

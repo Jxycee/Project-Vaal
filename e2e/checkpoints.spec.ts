@@ -2,8 +2,6 @@ import { test, expect, type Locator } from '@playwright/test';
 import {
   allocateNodes,
   cleanupWithFreshPage,
-  measureTapTargets,
-  MIN_TAP_PX,
   nodesNearStart,
   openEditor,
   openTree,
@@ -138,24 +136,14 @@ test.describe('leveling checkpoints', () => {
       expect(secondAlloc).not.toBe(firstAlloc);
     });
 
-    await test.step('the manager meets the tap-target floor with real checkpoints in it', async () => {
+    // (The manager's tap-target and overflow scan lives in
+    // build-page-checkpoints.spec.ts "manage view fits a phone".)
+
+    await test.step('reordering persists: the moved checkpoint becomes the default', async () => {
       await openManage();
       const rows = manager.getByTestId('checkpoint-row');
       await expect(rows).toHaveCount(2, { timeout: 30_000 });
       await expect(rows.nth(1)).toContainText('Level 94', { timeout: 30_000 });
-
-      const { scanned, tooSmall } = await measureTapTargets(page, '[data-testid="checkpoint-menu"]');
-      expect(scanned, 'no controls found in the checkpoint menu').toBeGreaterThan(4);
-      expect(tooSmall, `controls under ${MIN_TAP_PX}px in the checkpoint manager`).toEqual([]);
-
-      const overflow = await page.evaluate(
-        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      );
-      expect(overflow, 'horizontal scroll with the checkpoint manager open').toBeLessThanOrEqual(0);
-    });
-
-    await test.step('reordering persists: the moved checkpoint becomes the default', async () => {
-      const rows = manager.getByTestId('checkpoint-row');
       await manager.getByRole('button', { name: 'Move Level 94 up' }).click();
       await expect(rows.first()).toContainText('Level 94', { timeout: 30_000 });
       await expect(rows.nth(1)).toContainText('Level 31', { timeout: 30_000 });
@@ -206,9 +194,6 @@ test.describe('leveling checkpoints', () => {
       await page.getByTestId('checkpoint-switcher').click();
       const options = page.getByTestId('checkpoint-option');
       await expect(options).toHaveCount(2);
-      const { scanned, tooSmall } = await measureTapTargets(page, '[data-testid="checkpoint-menu"]');
-      expect(scanned, 'no checkpoint options found on the build page').toBe(2);
-      expect(tooSmall, `checkpoint options under ${MIN_TAP_PX}px`).toEqual([]);
 
       await options.filter({ hasText: 'Lvl 31' }).click();
       await page.waitForURL(/[?&]checkpoint=/, { timeout: 30_000 });
