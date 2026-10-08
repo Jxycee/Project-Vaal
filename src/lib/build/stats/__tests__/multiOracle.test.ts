@@ -82,6 +82,16 @@ const FLOOR: Record<string, number> = {
   'ordinary-ci-es-disciple.json': 13, // 13 of 13: Mageblood's legacies (stats/legacies.ts)
   'ordinary-deadeye.json': 13, // 13 of 13: the PoB Configuration (conditionMoving, windDancerStacks) gates The Wild Cat and Wind Dancer (buildConfig.ts) + Beastial Skin's body armour Evasion
   'ordinary-oracle.json': 13, // 13 of 13: Eldritch Battery moves flat ES into Mana (engine.ts) + PoB's printed rune lines (Blood League 469, Viper Crest 3%)
+  // Round-3 pool (31 Forbidden Rites characters fetched with scripts/fetch-oracle-pool.mjs, the 8 best that wear no Mageblood or RELIC item).
+  // FLOOR = the match when added; the gaps lists in results.json say what is missing. Shape = the build's defence layer.
+  'ordinary-evasion-1.json': 4, // Deadeye; five uniques not in our data (Hand of Wisdom and Action, From Nothing, Against the Darkness, Megalomaniac, Heart of the Well)
+  'ordinary-armour-1.json': 10, // Gemling Legionnaire, life/armour/evasion; Runeseeker's Call (-45% less maximum Life rune line) and Virtuous Barrier mote counts
+  'ordinary-caster-1.json': 12, // Chronomancer; only Mana off (Runeforged Sirenscale Gloves rune line)
+  'ordinary-hybrid-1.json': 8, // Lich, ES + armour; Ancient Aegis body armour armour, Grip of Kulemak not in our data
+  'ordinary-caster-2.json': 5, // Stormweaver; Morior Invictus per-socket lines, Adonia's Ego per-Power-Charge resistances
+  'ordinary-life-1.json': 3, // Blood Mage, life; Morior Invictus per-socket lines (attributes, life, resistances)
+  'ordinary-hybrid-2.json': 5, // Ritualist, ES + evasion; Andvarius -20% all resistances, Shavronne's Satchel, uniques not in our data
+  'ordinary-evasion-2.json': 1, // Ritualist, evasion; Andvarius, Charge Regulation (endurance-charge threshold), Megalomaniac
 };
 
 // PoB's own per-stat build-up (breakdowns.stats[i].mods = [kind 0 flat|1 inc|2 more, value, sourceIndex]) says WHICH

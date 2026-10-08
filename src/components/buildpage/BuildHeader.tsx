@@ -13,6 +13,7 @@ import { VISIBILITY_HINT, VISIBILITY_LABEL, isBuildVisibility } from '@/lib/buil
 import { ascendancyLabel } from '@/lib/tree/ascendancyNames';
 import CheckpointSwitcher, { useCheckpointManage } from './CheckpointSwitcher';
 import BuildSettings from './BuildSettings';
+import ReaderExport from './ReaderExport';
 import HeaderStats from './HeaderStats';
 import UsernameHint from './UsernameHint';
 import { useBuildSession } from './session/BuildSession';
@@ -207,6 +208,8 @@ export function HeaderActions({
       {mode === 'owner' && !compact ? (
         <BuildSettings buildId={row.id} visibility={row.visibility} tags={tags} edit={edit} checkpointIds={checkpointIds} activeCheckpointId={activeCheckpointId} />
       ) : null}
+      {/* Read mode, owner and reader alike: exports what the viewer can read, by share token. Edit mode has Build settings and unsaved edits are not exported. */}
+      {!edit && !compact ? <ReaderExport shareToken={shareToken} activeCheckpointId={activeCheckpointId} /> : null}
       {mode === 'owner' ? (
         <button
           type="button"
