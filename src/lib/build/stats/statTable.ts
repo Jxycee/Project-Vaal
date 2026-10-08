@@ -46,6 +46,8 @@ export type Pool =
   | 'auraEffect'
   // Percent increased magnitudes of Banner skills only ("banner_aura_effect_+%"): added to auraEffect for a Banner, not for other Auras.
   | 'bannerAuraEffect'
+  // PoB's Magnitude INC tagged SkillType Aura ("Aura Skills have N% increased Magnitudes"): a SEPARATE multiplier from auraEffect.
+  | 'auraMagnitude'
   // Surrounded (CalcPerform.lua:521-527): "Require N fewer enemies to be Surrounded" is a BASE on SurroundedMinimum (the
   // flat 5 required is added by the collector), "N% increased Surrounded Area of Effect" an INC on SurroundedArea. Not
   // sheet numbers: collect.ts derives the Condition:Surrounded from them (surrounded.ts).
@@ -284,7 +286,7 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   'current_energy_shield_%_as_physical_damage_reduction': flat('esToPhysical'),
 
   // "Aura Skills have N% increased Magnitudes": scales the Auras' own modifiers (skillBuffs.ts), PoB2 AuraEffect.
-  'aura_effect_+%': inc('auraEffect'),
+  'aura_effect_+%': inc('auraMagnitude'),
   'banner_aura_effect_+%': inc('bannerAuraEffect'),
   'surrounded_area_of_effect_+%': inc('surroundedArea'),
 };

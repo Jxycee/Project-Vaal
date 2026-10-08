@@ -365,6 +365,7 @@ function collectOnce(
     input.set,
     contributions.filter((c) => c.pool === 'auraEffect' && c.kind === 'increased').reduce((n, c) => n + c.value, 0),
     contributions.filter((c) => c.pool === 'bannerAuraEffect' && c.kind === 'increased').reduce((n, c) => n + c.value, 0),
+    contributions.filter((c) => c.pool === 'auraMagnitude' && c.kind === 'increased').reduce((n, c) => n + c.value, 0),
     config,
   );
   contributions.push(...buffs.contributions);

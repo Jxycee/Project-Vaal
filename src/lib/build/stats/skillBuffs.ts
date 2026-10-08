@@ -29,15 +29,14 @@
 //   9. A charge threshold ("StatThreshold:EnduranceCharges:1", Charge Regulation) holds when the Configuration ticks
 //      the matching "use charges" switch and the threshold is within the base maximum of 3; off when it is not
 //      ticked; named in notCounted with no Configuration at all.
-//  10. A Banner (skillTypes "Banner") is scaled by "increased Aura magnitudes" PLUS "increased Banner Aura magnitudes"
-//      (the pool bannerAuraEffect); its buff counts only with the Configuration's "Is your Banner planted?"
-//      (bannerPlanted -> Condition:BannerPlanted). KNOWN GAP: PoB's Defiance Banner on hybrid-tactician is exactly 60%
-//      more (30 x 2.00), we reach 56.1 (30 x 1.87). It is NOT Valour (checked round 5): no skill in PoB's Lua supplies
-//      banner_aura_magnitude_+%_final_per_resource (a removed pre-0.3 quality stat), so Config bannerValour has no effect.
-//      PoB scales an Aura by (1 + inc AuraEffect/100) x more x (1 + inc Magnitude/100) (CalcPerform.lua:2306); "Aura Skills
-//      have N% increased Magnitudes" parses to Magnitude, "Banner Skills have N% increased Aura Magnitudes" to AuraEffect,
-//      but no split of this build's tree (24 Banner, 63 Aura) reaches 2.00 (all-additive 1.87, split 2.02), so a source is
-//      still unidentified. One data point cannot fix it without special-casing; left short rather than guessed.
+//  10. An Aura is scaled by PoB's TWO pools, which multiply (CalcPerform.lua:2306): (1 + AuraEffect/100) x (1 + Magnitude/100).
+//      "Aura Skills have N% increased Magnitudes" is Magnitude (pool auraMagnitude); "Banner Skills have N% increased Aura
+//      Magnitudes" and the untagged AuraEffect lines are AuraEffect (pools bannerAuraEffect, auraEffect). The Banner pool
+//      reaches a Banner skill only. A build with one pool is unchanged by the split. A Banner's buff counts only with the
+//      Configuration's "Is your Banner planted?" (bannerPlanted -> Condition:BannerPlanted). Valour is a dead end (no skill
+//      supplies banner_aura_magnitude_+%_final_per_resource). Hybrid-tactician: 30 x 1.24 x 1.63 = 60.636 -> 60.
+//      Rounding (ModStore ScaleAddMod): an integer base whose mod is not high-precision is truncated to a whole number after
+//      round2; any other value is floored to the mod's precision (1 decimal by default, 2 for the regen/crit mods).
 //   8. "+N to Level of all skills" from gear is not modelled: the table is read at the gem's own level, which
 //      is exactly right only when no such modifier is worn. (An assumption, listed in `assumed` when it applies.)
 //  11. A support that raises the skill's level by the size of its group (Uhtred's Exodus: +3 with no other support,
@@ -110,16 +109,26 @@ function chargeThreshold(config: BuildConfig | undefined, need: string): boolean
   return wanted <= BASE_MAX_CHARGES ? true : undefined;
 }
 
-/** PoB's ScaleAddMod rounding for a scaled buff modifier. */
-const scale = (value: number, factor: number): number => Math.floor(value * factor * 100) / 100;
+const HIGH_PRECISION_MODS = new Set(['LifeRegenPercent', 'ManaRegenPercent', 'EnergyShieldRegenPercent', 'CritChance', 'LifeRegen', 'ManaRegen']);
+
+/** PoB's ScaleAddMod rounding for a scaled buff modifier (see failure mode 10). */
+function scale(value: number, factor: number, mod: string): number {
+  const scaled = value * factor;
+  const round2 = Math.round(scaled * 100) / 100;
+  if (HIGH_PRECISION_MODS.has(mod)) return Math.floor(round2 * 100) / 100;
+  if (Number.isInteger(value)) return Math.trunc(round2);
+  return Math.floor(round2 * 10) / 10;
+}
 
 export function skillBuffContributions(
   gems: GemState | undefined,
   set: 1 | 2,
-  /** The summed "increased Aura magnitudes" percent from the tree and gear. */
+  /** The summed AuraEffect percent (untagged "increased Aura magnitudes") from the tree and gear. */
   auraEffectPercent: number,
   /** The summed "increased Banner Aura magnitudes"; added to the Aura magnitudes for a Banner skill only. */
   bannerEffectPercent = 0,
+  /** The summed "increased Magnitudes" of Aura Skills (PoB Magnitude): a separate multiplier from the two above. */
+  magnitudePercent = 0,
   /** The build's Path of Building Configuration; undefined = it came without one. */
   config?: BuildConfig,
 ): { contributions: Contribution[]; notCounted: string[]; counted: string[] } {
@@ -181,8 +190,8 @@ export function skillBuffContributions(
         }
       }
       if (value === undefined) continue;
-      const effectPercent = auraEffectPercent + (skill.banner ? bannerEffectPercent : 0);
-      if (e.effect === 'Aura' && effectPercent !== 0) value = scale(value, 1 + effectPercent / 100);
+      const factor = (1 + (auraEffectPercent + (skill.banner ? bannerEffectPercent : 0)) / 100) * (1 + magnitudePercent / 100);
+      if (e.effect === 'Aura' && factor !== 1) value = scale(value, factor, e.mod);
       if (e.multiplier) {
         const count = Math.min(config?.multipliers[e.multiplier.var] ?? motes[e.multiplier.var] ?? 0, e.multiplier.limit ?? Infinity);
         if (count === 0) continue;

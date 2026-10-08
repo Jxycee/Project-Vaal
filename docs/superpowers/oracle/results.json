@@ -575,12 +575,8 @@
       "mana": [],
       "energyShield": [],
       "spirit": [],
-      "armour": [
-        "more 60 from DefianceBannerPlayer"
-      ],
-      "evasion": [
-        "more 60 from DefianceBannerPlayer"
-      ],
+      "armour": [],
+      "evasion": [],
       "str": [],
       "dex": [],
       "int": []
@@ -591,7 +587,7 @@
     ],
     "class": "Tactician",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/pjf5845203344-2325/%E5%A4%A9%E7%A9%BA%E6%87%92%E7%8B%BC%E8%93%9D",
-    "matched": 11,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -626,13 +622,13 @@
       },
       "armour": {
         "want": 5207,
-        "got": 5077,
-        "ok": false
+        "got": 5207,
+        "ok": true
       },
       "evasion": {
         "want": 2311,
-        "got": 2253,
-        "ok": false
+        "got": 2311,
+        "ok": true
       },
       "fire": {
         "want": 75,
@@ -660,7 +656,7 @@
         "ok": true
       }
     },
-    "derivedMatched": 14,
+    "derivedMatched": 17,
     "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
@@ -675,8 +671,8 @@
       },
       "deflectionRating": {
         "want": 1041,
-        "got": 1015,
-        "ok": false
+        "got": 1041,
+        "ok": true
       },
       "deflectChance": {
         "want": 8,
@@ -730,13 +726,13 @@
       },
       "effectiveHealthPool": {
         "want": 26777,
-        "got": 26610,
-        "ok": false
+        "got": 26777,
+        "ok": true
       },
       "physicalMaxHit": {
         "want": 8357,
-        "got": 8345,
-        "ok": false
+        "got": 8357,
+        "ok": true
       },
       "fireMaxHit": {
         "want": 28096,

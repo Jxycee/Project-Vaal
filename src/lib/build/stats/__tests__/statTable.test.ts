@@ -43,6 +43,7 @@ const POOL_WORDS: Record<Pool, RegExp> = {
   chaosMax: /Maximum Chaos Resistance|all maximum Resistances/i,
   spirit: /Spirit/,
   auraEffect: /Aura.*Magnitudes/,
+  auraMagnitude: /Aura.*Magnitudes/,
   bannerAuraEffect: /Banner.*Aura Magnitudes|Banner.*Magnitudes|Aura.*Magnitudes/,
   surroundedMinimum: /Surrounded/,
   surroundedArea: /Surrounded Area of Effect/,
