@@ -22,7 +22,7 @@
       },
       "life": {
         "want": 4075,
-        "got": 2597,
+        "got": 2720,
         "ok": false
       },
       "mana": {
@@ -32,17 +32,17 @@
       },
       "energyShield": {
         "want": 448,
-        "got": 0,
+        "got": 376,
         "ok": false
       },
       "armour": {
         "want": 38359,
-        "got": 6526,
+        "got": 10604,
         "ok": false
       },
       "evasion": {
         "want": 0,
-        "got": 23,
+        "got": 1451,
         "ok": false
       },
       "fire": {
