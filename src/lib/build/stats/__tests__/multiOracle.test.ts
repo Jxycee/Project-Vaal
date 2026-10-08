@@ -171,6 +171,17 @@ const DERIVED_FLOOR: Record<string, number> = {
   'ordinary-hybrid-2.json': 10, // of 19
   'ordinary-life-1.json': 12, // of 19
   'ordinary-oracle.json': 16, // of 17
+  // Round-4 class-coverage pool (docs/superpowers/oracle, fetched with scripts/fetch-oracle-pool.mjs): classes the set lacked.
+  'ordinary-amazon-1.json': 15, // of 19
+  'ordinary-amazon-2.json': 7, // of 19
+  'ordinary-martial-artist-1.json': 7, // of 19
+  'ordinary-martial-artist-2.json': 6, // of 19
+  'ordinary-pathfinder-1.json': 12, // of 19
+  'ordinary-pathfinder-2.json': 13, // of 19
+  'ordinary-spirit-walker-1.json': 12, // of 19
+  'ordinary-spirit-walker-2.json': 15, // of 19
+  'ordinary-titan-1.json': 10, // of 19
+  'ordinary-warbringer-1.json': 8, // of 17
 };
 
 const ours = (sheet: DefenceSheet, k: Key): number => (k === 'fire' || k === 'cold' || k === 'lightning' || k === 'chaos' ? sheet[k].value : sheet[k]);
@@ -197,6 +208,17 @@ const FLOOR: Record<string, number> = {
   'ordinary-life-1.json': 13, // 13 of 13 (round 6): Crimson Power (life = 100% of body armour ES, PercentStat), Multiplier:CorruptedItem (Morior Invictus rune line); was 12. Round 4: the printed Runemastered base (Alpha's Howl); was: // weapon set 2 from the code + Gem Enthusiast (support colours); still short: Crimson Power (life from body ES), Morior +8% life; was: Blood Mage, life; Morior per-socket lines now counted; still short: 1% max Life per Corrupted Item Equipped, Alpha's Howl Runemastered cap, node 31223
   'ordinary-hybrid-2.json': 13, // 13 of 13: Ring 3 (Unfurled Finger), Mystic Attunement's 25% bonus copy of ring/amulet modifiers (collect.ts bonusEffectFromJewellery, floored), Andvarius's untyped -20% line, Grand Spectrum's per-jewel multiplier
   'ordinary-evasion-2.json': 13, // 13 of 13: the PoB code's weapon set (2) puts Palm of the Dreamer and the set-2 passives (Cooked, Chakra of Life) in; Charge Regulation counts with the Configuration's use-endurance-charges switch (skillBuffs.ts)
+  // Round-4 class-coverage set: 10 characters (no Mageblood, no RELIC item) of classes the ordinary set lacked; FLOOR = the match when added.
+  'ordinary-amazon-1.json': 13, // 13 of 13 at the start (Kustu, evasion/ES)
+  'ordinary-amazon-2.json': 11, // 11 of 13 at the start: short ES (4123/4800) and Evasion (15605/30956)
+  'ordinary-martial-artist-1.json': 9, // 9 of 13 at the start: short Mana, ES, Evasion; Armour 60 where PoB has 0
+  'ordinary-martial-artist-2.json': 5, // 5 of 13 at the start: attributes, Life (over), Mana, ES, Evasion short; Armour 34 where PoB has 0
+  'ordinary-pathfinder-1.json': 13, // 13 of 13 at the start (zzzuzaha2, flask/charm build)
+  'ordinary-pathfinder-2.json': 12, // 12 of 13 at the start: short Evasion (3899/4586)
+  'ordinary-spirit-walker-1.json': 10, // 10 of 13 at the start: ES, Armour, Evasion off by 1 to 6 (rounding or a small flat source)
+  'ordinary-spirit-walker-2.json': 13, // 13 of 13 at the start
+  'ordinary-titan-1.json': 4, // 4 of 13 at the start: strength/Life/Mana/ES/Armour/Evasion short, Spirit 200 where PoB has 0 (Grand Spectrum x3, Darkness Enthroned)
+  'ordinary-warbringer-1.json': 9, // 9 of 13 at the start: Mana 552 where PoB has 0, Armour and Evasion short, Life over
 };
 
 

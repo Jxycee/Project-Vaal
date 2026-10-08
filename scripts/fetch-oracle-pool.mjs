@@ -1,11 +1,13 @@
-// Downloads a pool of public poe.ninja characters (Forbidden Rites, first page of the builds list) into a
+// Downloads a pool of public poe.ninja characters (Forbidden Rites by default, any league via pairsFile) into a
 // scratch directory, so the best oracle candidates can be ranked by how well our engine already matches them.
 //
-// Run: node scripts/fetch-oracle-pool.mjs <outDir> [count]
+// Run: node scripts/fetch-oracle-pool.mjs <outDir> [pairsFile]
+// pairsFile: one "<overview> <account>/<name>" per line (overview = forbidden-rites | runes-of-aldur); default is PAIRS below.
+// A character already saved in outDir is skipped, and a 429 is retried with a growing wait, so a re-run resumes a pool; a long Retry-After stops the run instead of hammering.
 // The data version comes from https://poe.ninja/poe2/api/data/index-state; the character list comes from
 // the builds page, which is rendered client-side, so the (account, name) pairs are given below (copied from
 // the page's links on 2026-10-08).
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
 const VERSION = '0223-20261008-34370';
 const LEAGUE = 'forbidden-rites';
@@ -46,13 +48,32 @@ WOualey-0844/BowberKurw%C3%A0
   .split('\n');
 
 const out = process.argv[2];
-if (!out) throw new Error('usage: node scripts/fetch-oracle-pool.mjs <outDir>');
+if (!out) throw new Error('usage: node scripts/fetch-oracle-pool.mjs <outDir> [pairsFile]');
+// Optional pairsFile: one "<overview> <account>/<name>" per line (overview = forbidden-rites | runes-of-aldur), so a pool
+// for other leagues or classes needs no edit here. Without it the PAIRS list above is fetched from LEAGUE.
+const fromFile = process.argv[3]
+  ? readFileSync(process.argv[3], 'utf8').split('\n').map((l) => l.trim()).filter(Boolean).map((l) => l.split(' '))
+  : PAIRS.map((p) => [LEAGUE, p]);
 mkdirSync(out, { recursive: true });
 let n = 0;
-for (const pair of PAIRS) {
+for (const [overview, pair] of fromFile) {
   const [account, name] = pair.split('/');
-  const url = `https://poe.ninja/poe2/api/builds/${VERSION}/character?account=${account}&name=${name}&overview=${LEAGUE}&timeMachine=`;
-  const res = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0' } });
+  const url = `https://poe.ninja/poe2/api/builds/${VERSION}/character?account=${account}&name=${name}&overview=${overview}&timeMachine=`;
+  const file = `${out}/${account}__${decodeURIComponent(name).replace(/[^A-Za-z0-9_-]/g, '_')}.json`;
+  if (existsSync(file)) continue; // re-runs resume after a rate limit
+  let res;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await new Promise((r) => setTimeout(r, 2000)); // poe.ninja answers 429 to a fast burst
+    res = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0' } });
+    if (res.status !== 429) break;
+    // The limit lasts ~30 minutes (Retry-After); hammering extends it, so wait it out once, then give up on the rest.
+    const wait = Number(res.headers.get('retry-after') ?? 60);
+    if (wait > 900) {
+      console.log('rate limited for', wait, 's: stop here and re-run later (saved characters are skipped)');
+      process.exit(2);
+    }
+    await new Promise((r) => setTimeout(r, (wait + 5) * 1000));
+  }
   if (!res.ok) {
     console.log('skip', pair, res.status);
     continue;
@@ -61,7 +82,7 @@ for (const pair of PAIRS) {
   writeFileSync(
     `${out}/${account}__${decodeURIComponent(name).replace(/[^A-Za-z0-9_-]/g, '_')}.json`,
     JSON.stringify({
-      source: `https://poe.ninja/poe2/builds/forbiddenrites/character/${account}/${name}`,
+      source: `https://poe.ninja/poe2/builds/${overview.replace(/-/g, "")}/character/${account}/${name}`,
       fetchedAt: new Date().toISOString(),
       class: j.class,
       level: j.level,
