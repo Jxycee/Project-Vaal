@@ -2,7 +2,7 @@
  * FAILURE MODES (written before the sync script):
  *  1. Lua parser mishandles nested tables / escaped quotes / math.huge and the
  *     script throws or silently truncates entries -> entry count collapses.
- *  2. Filter regex too loose (keeps LifeRegen, ManaCost, damage mods) or too
+ *  2. Filter regex too loose (keeps ManaCost, damage mods) or too
  *     tight (drops ColdResistMax / ElementalResist) -> wrong names in the file.
  *  3. Tags lost: a per-socket / per-gem-count line comes out as flat BASE and
  *     would be applied unscaled.
@@ -38,7 +38,10 @@ describe('modcache.json', () => {
     for (const n of ['Life', 'Mana', 'EnergyShield', 'Armour', 'Evasion', 'Str', 'Dex', 'Int', 'Spirit', 'FireResist', 'ColdResistMax', 'ElementalResist', 'ChaosResist']) {
       expect(names.has(n)).toBe(true);
     }
-    expect(names.has('LifeRegen')).toBe(false);
+    // The derived defence stats are kept now (movement speed, regeneration, charges, deflection, ward); cost and damage stay out.
+    for (const n of ['MovementSpeed', 'LifeRegen', 'DeflectionRating']) expect(names.has(n), n).toBe(true);
+    expect(names.has('ManaCost')).toBe(false);
+    expect(names.has('Damage')).toBe(false);
   });
 
   it('parses flat life / attribute / resist lines', () => {

@@ -30,8 +30,13 @@ import { computeDefences, type DefenceSheet } from '../engine';
 //      Evasion Rating while moving" and Wind Dancer x3 stacks are the whole gap) with the Configuration as
 //      imported, with Moving unticked, with no Configuration at all, and with the stack count removed.
 //
+//   6. A derived stat (DERIVED: evade, deflection, Runic Ward, regeneration, ES recharge, movement speed, charges,
+//      effective health pool, maximum hits) that stops matching: the per-build DERIVED_FLOOR below only goes up.
+//      The derived stats are kept apart from the 13 so "13 of 13" keeps its meaning; a derived key is compared only
+//      when the fixture carries it; an immune hit (2147483647 on poe.ninja) is Infinity in the engine.
+//
 // Artifact: docs/superpowers/oracle/results.json, rewritten every run: per build, per stat, expected vs
-// ours, and the match count. Diffing it is the accuracy report.
+// ours, and the match count (`derived` / `derivedMatched` for the derived keys). Diffing it is the accuracy report.
 
 const DIR = 'docs/superpowers/oracle';
 const FILES = readdirSync(DIR).filter((f) => f.endsWith('.json') && f !== 'results.json');
@@ -85,6 +90,7 @@ const DERIVED = [
   'enduranceCharges',
   'frenzyCharges',
   'powerCharges',
+  'effectiveHealthPool',
   'physicalMaxHit',
   'fireMaxHit',
   'coldMaxHit',
@@ -111,6 +117,7 @@ function expectedDerived(d: Record<string, unknown>): Partial<Record<DKey, numbe
     enduranceCharges: n(d.enduranceCharges),
     frenzyCharges: n(d.frenzyCharges),
     powerCharges: n(d.powerCharges),
+    effectiveHealthPool: n(d.effectiveHealthPool),
     physicalMaxHit: n(d.physicalMaximumHitTaken),
     fireMaxHit: n(d.fireMaximumHitTaken),
     coldMaxHit: n(d.coldMaximumHitTaken),
@@ -136,6 +143,7 @@ function oursDerived(sheet: DefenceSheet): Record<DKey, number> {
     enduranceCharges: x.enduranceCharges,
     frenzyCharges: x.frenzyCharges,
     powerCharges: x.powerCharges,
+    effectiveHealthPool: hit(x.effectiveHealthPool),
     physicalMaxHit: hit(x.maxHit.physical),
     fireMaxHit: hit(x.maxHit.fire),
     coldMaxHit: hit(x.maxHit.cold),
@@ -146,23 +154,23 @@ function oursDerived(sheet: DefenceSheet): Record<DKey, number> {
 
 /** Ratchet for the derived keys: the least number each build must match. Raise it when a fix lands; never lower it. */
 const DERIVED_FLOOR: Record<string, number> = {
-  'armour-life-gemling.json': 8, // of 18
-  'es-life-stormweaver.json': 5, // of 18
-  'evasion-deadeye.json': 7, // of 18
-  'hybrid-tactician.json': 6, // of 18
-  'ordinary-armour-1.json': 8, // of 16
-  'ordinary-caster-1.json': 9, // of 16
-  'ordinary-caster-2.json': 6, // of 18
-  'ordinary-ci-acolyte.json': 18, // of 18
-  'ordinary-ci-disciple.json': 17, // of 18
-  'ordinary-ci-es-disciple.json': 11, // of 18
-  'ordinary-deadeye.json': 13, // of 18
-  'ordinary-evasion-1.json': 8, // of 18
-  'ordinary-evasion-2.json': 6, // of 18
-  'ordinary-hybrid-1.json': 8, // of 18
-  'ordinary-hybrid-2.json': 8, // of 18
-  'ordinary-life-1.json': 9, // of 18
-  'ordinary-oracle.json': 15, // of 16
+  'armour-life-gemling.json': 8, // of 19
+  'es-life-stormweaver.json': 5, // of 19
+  'evasion-deadeye.json': 7, // of 19
+  'hybrid-tactician.json': 6, // of 19
+  'ordinary-armour-1.json': 8, // of 17
+  'ordinary-caster-1.json': 9, // of 17
+  'ordinary-caster-2.json': 6, // of 19
+  'ordinary-ci-acolyte.json': 18, // of 19
+  'ordinary-ci-disciple.json': 19, // of 19
+  'ordinary-ci-es-disciple.json': 12, // of 19
+  'ordinary-deadeye.json': 13, // of 19
+  'ordinary-evasion-1.json': 8, // of 19
+  'ordinary-evasion-2.json': 6, // of 19
+  'ordinary-hybrid-1.json': 8, // of 19
+  'ordinary-hybrid-2.json': 8, // of 19
+  'ordinary-life-1.json': 9, // of 19
+  'ordinary-oracle.json': 16, // of 17
 };
 
 const ours = (sheet: DefenceSheet, k: Key): number => (k === 'fire' || k === 'cold' || k === 'lightning' || k === 'chaos' ? sheet[k].value : sheet[k]);

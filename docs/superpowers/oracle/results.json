@@ -97,7 +97,7 @@
       }
     },
     "derivedMatched": 8,
-    "derivedOf": 18,
+    "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
         "want": 1522,
@@ -163,6 +163,11 @@
         "want": 3,
         "got": 3,
         "ok": true
+      },
+      "effectiveHealthPool": {
+        "want": 83813,
+        "got": 24312,
+        "ok": false
       },
       "physicalMaxHit": {
         "want": 8828,
@@ -285,7 +290,7 @@
       }
     },
     "derivedMatched": 5,
-    "derivedOf": 18,
+    "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
         "want": 1437,
@@ -351,6 +356,11 @@
         "want": 3,
         "got": 3,
         "ok": true
+      },
+      "effectiveHealthPool": {
+        "want": 87491,
+        "got": 48407,
+        "ok": false
       },
       "physicalMaxHit": {
         "want": 8925,
@@ -479,7 +489,7 @@
       }
     },
     "derivedMatched": 7,
-    "derivedOf": 18,
+    "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
         "want": 2114,
@@ -545,6 +555,11 @@
         "want": 3,
         "got": 3,
         "ok": true
+      },
+      "effectiveHealthPool": {
+        "want": 63542,
+        "got": 43756,
+        "ok": false
       },
       "physicalMaxHit": {
         "want": 4935,
@@ -664,7 +679,7 @@
       }
     },
     "derivedMatched": 6,
-    "derivedOf": 18,
+    "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
         "want": 2114,
@@ -730,6 +745,11 @@
         "want": 3,
         "got": 3,
         "ok": true
+      },
+      "effectiveHealthPool": {
+        "want": 26777,
+        "got": 14203,
+        "ok": false
       },
       "physicalMaxHit": {
         "want": 8357,
@@ -854,7 +874,7 @@
       }
     },
     "derivedMatched": 8,
-    "derivedOf": 16,
+    "derivedOf": 17,
     "derived": {
       "enemyAccuracy": {
         "want": 2114,
@@ -910,6 +930,11 @@
         "want": 3,
         "got": 3,
         "ok": true
+      },
+      "effectiveHealthPool": {
+        "want": 26259,
+        "got": 17237,
+        "ok": false
       },
       "physicalMaxHit": {
         "want": 5510,
@@ -1023,7 +1048,7 @@
       }
     },
     "derivedMatched": 9,
-    "derivedOf": 16,
+    "derivedOf": 17,
     "derived": {
       "enemyAccuracy": {
         "want": 1902,
@@ -1079,6 +1104,11 @@
         "want": 3,
         "got": 3,
         "ok": true
+      },
+      "effectiveHealthPool": {
+        "want": 1525,
+        "got": 9778,
+        "ok": false
       },
       "physicalMaxHit": {
         "want": 967,
@@ -1203,7 +1233,7 @@
       }
     },
     "derivedMatched": 6,
-    "derivedOf": 18,
+    "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
         "want": 2114,
@@ -1268,6 +1298,11 @@
       "powerCharges": {
         "want": 2,
         "got": 3,
+        "ok": false
+      },
+      "effectiveHealthPool": {
+        "want": 43686,
+        "got": 16190,
         "ok": false
       },
       "physicalMaxHit": {
@@ -1382,7 +1417,7 @@
       }
     },
     "derivedMatched": 18,
-    "derivedOf": 18,
+    "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
         "want": 2114,
@@ -1448,6 +1483,11 @@
         "want": 3,
         "got": 3,
         "ok": true
+      },
+      "effectiveHealthPool": {
+        "want": 35039,
+        "got": 34951,
+        "ok": false
       },
       "physicalMaxHit": {
         "want": 12582,
@@ -1560,8 +1600,8 @@
         "ok": true
       }
     },
-    "derivedMatched": 17,
-    "derivedOf": 18,
+    "derivedMatched": 19,
+    "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
         "want": 2114,
@@ -1605,8 +1645,8 @@
       },
       "esRechargeDelay": {
         "want": 3.2609,
-        "got": 4.3478,
-        "ok": false
+        "got": 3.2609,
+        "ok": true
       },
       "movementSpeed": {
         "want": 131,
@@ -1626,6 +1666,11 @@
       "powerCharges": {
         "want": 3,
         "got": 3,
+        "ok": true
+      },
+      "effectiveHealthPool": {
+        "want": 35063,
+        "got": 35063,
         "ok": true
       },
       "physicalMaxHit": {
@@ -1739,8 +1784,8 @@
         "ok": true
       }
     },
-    "derivedMatched": 11,
-    "derivedOf": 18,
+    "derivedMatched": 12,
+    "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
         "want": 2114,
@@ -1784,8 +1829,8 @@
       },
       "esRechargeDelay": {
         "want": 2.0548,
-        "got": 2.7397,
-        "ok": false
+        "got": 2.0548,
+        "ok": true
       },
       "movementSpeed": {
         "want": 185,
@@ -1806,6 +1851,11 @@
         "want": 3,
         "got": 3,
         "ok": true
+      },
+      "effectiveHealthPool": {
+        "want": 51135,
+        "got": 45936,
+        "ok": false
       },
       "physicalMaxHit": {
         "want": 16614,
@@ -1917,7 +1967,7 @@
       }
     },
     "derivedMatched": 13,
-    "derivedOf": 18,
+    "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
         "want": 1437,
@@ -1983,6 +2033,11 @@
         "want": 3,
         "got": 3,
         "ok": true
+      },
+      "effectiveHealthPool": {
+        "want": 33956,
+        "got": 29706,
+        "ok": false
       },
       "physicalMaxHit": {
         "want": 4164,
@@ -2113,7 +2168,7 @@
       }
     },
     "derivedMatched": 8,
-    "derivedOf": 18,
+    "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
         "want": 2114,
@@ -2179,6 +2234,11 @@
         "want": 3,
         "got": 3,
         "ok": true
+      },
+      "effectiveHealthPool": {
+        "want": 7119,
+        "got": 6322,
+        "ok": false
       },
       "physicalMaxHit": {
         "want": 3418,
@@ -2313,7 +2373,7 @@
       }
     },
     "derivedMatched": 6,
-    "derivedOf": 18,
+    "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
         "want": 2114,
@@ -2379,6 +2439,11 @@
         "want": 3,
         "got": 3,
         "ok": true
+      },
+      "effectiveHealthPool": {
+        "want": 14791,
+        "got": 10486,
+        "ok": false
       },
       "physicalMaxHit": {
         "want": 2621,
@@ -2498,7 +2563,7 @@
       }
     },
     "derivedMatched": 8,
-    "derivedOf": 18,
+    "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
         "want": 2114,
@@ -2564,6 +2629,11 @@
         "want": 3,
         "got": 3,
         "ok": true
+      },
+      "effectiveHealthPool": {
+        "want": 141535,
+        "got": 50368,
+        "ok": false
       },
       "physicalMaxHit": {
         "want": 11052,
@@ -2692,7 +2762,7 @@
       }
     },
     "derivedMatched": 8,
-    "derivedOf": 18,
+    "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
         "want": 1606,
@@ -2758,6 +2828,11 @@
         "want": 3,
         "got": 3,
         "ok": true
+      },
+      "effectiveHealthPool": {
+        "want": 36367,
+        "got": 35944,
+        "ok": false
       },
       "physicalMaxHit": {
         "want": 6013,
@@ -2884,7 +2959,7 @@
       }
     },
     "derivedMatched": 9,
-    "derivedOf": 18,
+    "derivedOf": 19,
     "derived": {
       "enemyAccuracy": {
         "want": 2114,
@@ -2950,6 +3025,11 @@
         "want": 3,
         "got": 3,
         "ok": true
+      },
+      "effectiveHealthPool": {
+        "want": 21021,
+        "got": 7834,
+        "ok": false
       },
       "physicalMaxHit": {
         "want": 7601,
@@ -3062,8 +3142,8 @@
         "ok": true
       }
     },
-    "derivedMatched": 15,
-    "derivedOf": 16,
+    "derivedMatched": 16,
+    "derivedOf": 17,
     "derived": {
       "enemyAccuracy": {
         "want": 2114,
@@ -3118,6 +3198,11 @@
       "powerCharges": {
         "want": 3,
         "got": 3,
+        "ok": true
+      },
+      "effectiveHealthPool": {
+        "want": 10349,
+        "got": 10349,
         "ok": true
       },
       "physicalMaxHit": {

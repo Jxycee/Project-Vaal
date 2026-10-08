@@ -66,6 +66,9 @@ const POOL_WORDS: Record<Pool, RegExp> = {
   momHarmony: /taken from Mana before Life/i,
   esToPhysical: /Energy Shield[\s\S]*Armour/,
   manaRegen: /Mana Regeneration/,
+  critReduce: /Critical Damage Bonus/,
+  enemyCrit: /Critical Hit Chance against you/,
+  unluckyCrit: /Critical Hit Chance against you is/,
 };
 
 const strip = (t: string) => t.replace(/\[[^|\]]*\|([^\]]*)\]/g, '$1').replace(/\[([^\]]*)\]/g, '$1');

@@ -70,7 +70,13 @@ export type Pool =
   // (EnergyShieldAppliesToPhysicalDamageTaken, CalcDefence.lua:2570).
   | 'esToPhysical'
   // "N% increased Mana Regeneration Rate": PoB ManaRegen INC (CalcDefence.lua:1722).
-  | 'manaRegen';
+  | 'manaRegen'
+  // Enemy critical hits against you (CalcDefence.lua:2010, 2283-2289): "Hits against you have N% reduced Critical
+  // Damage Bonus" (ReduceCritExtraDamage), "N% reduced Critical Hit Chance against you", and "Enemy Critical Hit Chance
+  // against you is Unlucky".
+  | 'critReduce'
+  | 'enemyCrit'
+  | 'unluckyCrit';
 
 /**
  * `flat` adds to the pool's base; `increased` adds percent to its "increased"
@@ -176,6 +182,8 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   // "N% increased Energy Shield Recharge Rate" and "N% faster start of Energy Shield Recharge": CalcDefence.lua:1796, 1837-1838.
   'energy_shield_recharge_rate_+%': inc('esRecharge'),
   'energy_shield_delay_-%': inc('esRechargeFaster'),
+  // "Energy Shield Recharge starts N seconds sooner" (stored in milliseconds): a BASE of -N on the 4 second start.
+  energy_shield_recharge_starts_X_ms_sooner: [{ pool: 'esRechargeFaster', kind: 'flat', scale: -1 / 1000 }],
   // Life regeneration is stored per minute and shown per second: "Regenerate 0.2% of maximum Life per second" is 12,
   // "1 Life Regeneration per second" is 60 (mod files and the tree both).
   'life_regeneration_rate_per_minute_%': perMinute('lifeRegenPercent', 'flat'),
@@ -200,6 +208,9 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   'base_armour_%_applies_to_chaos_damage': flat('armourToChaos'),
 
   'mana_regeneration_rate_+%': inc('manaRegen'),
+  'base_self_critical_strike_multiplier_-%': flat('critReduce'),
+  'base_enemy_critical_strike_chance_+%_against_self': inc('enemyCrit'),
+  critical_chance_vs_self_is_unlucky: flat('unluckyCrit'),
 
   // Mind over Matter: damage is taken from Mana before Life, and "Sacred Rituals": Energy Shield counts toward Armour's
   // physical reduction. Both reach the maximum-hit pools (engine.ts).

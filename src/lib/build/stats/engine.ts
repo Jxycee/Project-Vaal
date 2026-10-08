@@ -121,6 +121,8 @@ export interface DerivedStats {
   enduranceCharges: number;
   frenzyCharges: number;
   powerCharges: number;
+  /** PoB's effective health pool: the hits the pools survive x the default enemy's damage per hit (TotalEHP, CalcDefence.lua:3416). */
+  effectiveHealthPool: number;
   /** The largest single hit of each type that leaves the character alive; Infinity = immune. */
   maxHit: Record<HitType, number>;
 }
@@ -238,6 +240,12 @@ const BASE_DEFLECT_EFFECT = 40; // Data.lua:256, gameConstants BasePercentDamage
 const MANA_REGEN_BASE = 0.04; // characterConstants character_inherent_mana_regeneration_rate_per_minute_% 240 / 60 / 100
 const ES_RECHARGE_BASE = 0.125; // energy_shield_recharge_rate_per_minute_% 750 / 60 / 100
 const ES_RECHARGE_DELAY = 4; // Data.lua:265
+const PINNACLE_DPS_MULT = 8 / 4.4; // Misc.lua pinnacleBossDPSMult
+const ENEMY_CRIT_CHANCE = 5; // ConfigOptions.lua:1985 placeholder
+const ENEMY_CRIT_DAMAGE = 30; // monsterConstants base_critical_hit_damage_bonus
+const EHP_SPEEDUP = 8; // Misc.lua ehpCalcSpeedUp
+const EHP_MAX_ITERATIONS = 50; // Misc.lua ehpCalcMaxIterationsToCalc
+const EHP_MAX_DAMAGE = 100000000; // Misc.lua ehpCalcMaxDamage
 const BASE_CHARGES = 3; // characterConstants max_*_charges
 
 /** CalcDefence.lua:41-47 (round half up, clamped 5..100). */
@@ -350,6 +358,36 @@ function computeDerived(input: EngineInput, sheet: Omit<DefenceSheet, 'derived'>
     maxHit[type] = Math.round(Math.floor(Math.max(Math.min(raw, maxDR), noDR)));
   }
 
+  // Effective health pool: CalcDefence.lua:3232-3416. Every hit is the default enemy's, one of each type per hit (the
+  // "Average" damage-type setting), reduced by resistance, armour and flat reduction, then thinned by deflection; the
+  // pools are drained in PoB's order until Life is gone, and evasion multiplies the hits that land by 1/(1 - evade).
+  function effectiveHealthPoolOf(): number {
+    const types = ['physical', 'fire', 'cold', 'lightning', 'chaos'] as const;
+    const table = (monsterTables as unknown as { monsterDamageTable: number[] }).monsterDamageTable;
+    const base = Math.round((table[ENEMY_LEVEL - 1] ?? 0) * 1.5 * PINNACLE_DPS_MULT); // ConfigOptions.lua:2084
+    const enemyDamage: Record<HitType, number> = { physical: base, fire: base, cold: base, lightning: base, chaos: Math.round(base / 2.5) };
+    let critChance = Math.max(Math.min(ENEMY_CRIT_CHANCE * (1 + incOf('enemyCrit') / 100) * (1 - evadeChance / 100), 100), 0); // :2283
+    if (flatOf('unluckyCrit') > 0) critChance = (critChance / 100) * critChance; // :2284-2286
+    const critEffect = 1 + (critChance / 100) * (ENEMY_CRIT_DAMAGE / 100) * (1 - Math.min(flatOf('critReduce'), 100) / 100); // :2289
+    const deflectMulti = deflectChance < 100 ? 1 - (deflectChance * BASE_DEFLECT_EFFECT) / 10000 : 1; // :3278
+    const damageIn = {} as Record<HitType, number>;
+    for (const type of types) {
+      const damage = enemyDamage[type] * critEffect;
+      const res = resistOf(type);
+      const pen = type === 'fire' || type === 'cold' || type === 'lightning' ? ENEMY_ELEMENTAL_PEN : 0;
+      const resMult = Math.max(1 - (res > 0 ? Math.max(res - pen, 0) : res) / 100, 0);
+      const applied = (sheet.armour * armourPercent(type)) / 100 + (type === 'physical' ? (sheet.energyShield * flatOf('esToPhysical')) / 100 : 0);
+      const flatDR = type === 'physical' ? Math.min(flatOf('physReduction'), DAMAGE_REDUCTION_CAP) : 0;
+      const armourReduct = applied > 0 ? Math.min(DAMAGE_REDUCTION_CAP, Math.round((applied / (applied + damage * ARMOUR_RATIO)) * 100)) : 0; // :56-72, 2594
+      const reductMult = 1 - Math.max(Math.min(DAMAGE_REDUCTION_CAP, armourReduct + flatDR), 0) / 100;
+      damageIn[type] = damage * resMult * reductMult * deflectMulti;
+    }
+    const hits = hitsToDie({ life, mana: sheet.mana, energyShield: sheet.energyShield, ward }, damageIn, momOf);
+    if (!Number.isFinite(hits)) return Infinity;
+    const total = hits / (1 - evadeChance / 100);
+    return Math.floor(total * types.reduce((n, t) => n + enemyDamage[t], 0));
+  }
+
   return {
     enemyAccuracy: accuracy,
     evadeChance,
@@ -365,6 +403,99 @@ function computeDerived(input: EngineInput, sheet: Omit<DefenceSheet, 'derived'>
     enduranceCharges: charges('maxEndurance'),
     frenzyCharges: charges('maxFrenzy'),
     powerCharges: charges('maxPower'),
+    effectiveHealthPool: effectiveHealthPoolOf(),
     maxHit,
   };
+}
+
+interface HitPools {
+  life: number;
+  mana: number;
+  energyShield: number;
+  ward: number;
+}
+
+/**
+ * CalcDefence.lua:473-700 (reducePoolsByDamage) for the pools this engine has: Energy Shield first (Chaos takes it at
+ * double), then the Mana Mind over Matter sends damage to, then Life down to 1, Runic Ward, and the last point of Life.
+ * Chaos is reduced first, Physical last (PoB walks dmgTypeList backwards). Returns the pools left and the overkill.
+ */
+function reducePools(pools: HitPools, damage: Partial<Record<HitType, number>>, momOf: (t: HitType) => number): HitPools & { overkill: number } {
+  let { life, mana, energyShield, ward } = pools;
+  let overkill = 0;
+  for (const type of ['chaos', 'fire', 'cold', 'lightning', 'physical'] as const) {
+    let remainder = damage[type];
+    if (remainder === undefined || remainder <= 0) continue;
+    const esMult = type === 'chaos' ? 2 : 1;
+    if (energyShield > 0) {
+      const taken = Math.min(remainder, energyShield / esMult);
+      energyShield -= taken * esMult;
+      remainder -= taken;
+    }
+    const momEffect = momOf(type) / 100;
+    if (momEffect > 0 && mana > 0) {
+      const momPool = momEffect < 1 ? Math.min(life / (1 - momEffect) - life, mana) : mana;
+      const taken = Math.min(remainder * momEffect, momPool);
+      mana -= taken;
+      remainder -= taken;
+    }
+    if (life > 0) {
+      let taken = Math.min(remainder, life - 1);
+      life -= taken;
+      remainder -= taken;
+      if (ward > 0) {
+        taken = Math.min(remainder, ward);
+        ward -= taken;
+        remainder -= taken;
+      }
+      if (remainder > 0) {
+        taken = Math.min(remainder, life);
+        life -= taken;
+        remainder -= taken;
+      }
+    }
+    overkill += remainder;
+  }
+  return { life, mana, energyShield, ward, overkill };
+}
+
+/**
+ * CalcDefence.lua:2040-2224 (numberOfHitsToDie): hits of damageIn the pools survive. PoB speeds the walk up by
+ * running eight hits at once and recursing, which is why the answer is not simply pool / damage; this follows its
+ * control flow so the same rounding falls out. Runic Ward only protects the first hit (cycles > 1 drops it).
+ */
+function hitsToDie(start: HitPools, damageIn: Record<HitType, number>, momOf: (t: HitType) => number): number {
+  const types = ['physical', 'fire', 'cold', 'lightning', 'chaos'] as const;
+  const run = (damage: Record<HitType, number>, cycles: number, state: { iterations: number }): number => {
+    if (types.every((t) => damage[t] === 0)) return Infinity;
+    let pools: HitPools = { ...start, ward: cycles > 1 ? 0 : start.ward };
+    let numHits = 0;
+    let overkill = 0;
+    let multiplier = 1;
+    let cyclesRan = false;
+    const damageTotal = types.reduce((n, t) => n + damage[t], 0);
+    while (pools.life > 0 && state.iterations < EHP_MAX_ITERATIONS) {
+      state.iterations++;
+      const dmg: Partial<Record<HitType, number>> = {};
+      for (const t of types) if (damage[t] > 0) dmg[t] = damage[t] * multiplier;
+      const reduced = reducePools(pools, dmg, momOf);
+      pools = reduced;
+      overkill = reduced.overkill;
+      if (pools.life > 0 && damageTotal >= EHP_MAX_DAMAGE) return Infinity;
+      multiplier = 1;
+      if (!cyclesRan && pools.life > 0 && state.iterations < EHP_MAX_ITERATIONS) {
+        const sped = Object.fromEntries(types.map((t) => [t, damage[t] * EHP_SPEEDUP])) as Record<HitType, number>;
+        const inner = run(sped, cycles * EHP_SPEEDUP, state);
+        multiplier = Math.max((inner - 1) * EHP_SPEEDUP - 1, 1);
+        if (multiplier === Infinity) return Infinity;
+        cyclesRan = true;
+      }
+      numHits += multiplier;
+    }
+    if (pools.life === 0 && cycles === 1) numHits -= overkill / damageTotal;
+    if (pools.life >= 0 && damageTotal * numHits >= EHP_MAX_DAMAGE) return Infinity;
+    if (Number.isNaN(numHits)) return 0;
+    return Math.max(numHits, 0);
+  };
+  return run(damageIn, 1, { iterations: 0 });
 }
