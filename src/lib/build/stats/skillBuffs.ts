@@ -32,8 +32,12 @@
 //  10. A Banner (skillTypes "Banner") is scaled by "increased Aura magnitudes" PLUS "increased Banner Aura magnitudes"
 //      (the pool bannerAuraEffect); its buff counts only with the Configuration's "Is your Banner planted?"
 //      (bannerPlanted -> Condition:BannerPlanted). KNOWN GAP: PoB's Defiance Banner on hybrid-tactician is exactly 60%
-//      more (30 x 2.00), we reach 56.1 (30 x 1.87): the remaining 13% is PoB's Valour (Config bannerValour 50), whose
-//      rule is in PoB's Lua and not in the synced data. Left short rather than guessed.
+//      more (30 x 2.00), we reach 56.1 (30 x 1.87). It is NOT Valour (checked round 5): no skill in PoB's Lua supplies
+//      banner_aura_magnitude_+%_final_per_resource (a removed pre-0.3 quality stat), so Config bannerValour has no effect.
+//      PoB scales an Aura by (1 + inc AuraEffect/100) x more x (1 + inc Magnitude/100) (CalcPerform.lua:2306); "Aura Skills
+//      have N% increased Magnitudes" parses to Magnitude, "Banner Skills have N% increased Aura Magnitudes" to AuraEffect,
+//      but no split of this build's tree (24 Banner, 63 Aura) reaches 2.00 (all-additive 1.87, split 2.02), so a source is
+//      still unidentified. One data point cannot fix it without special-casing; left short rather than guessed.
 //   8. "+N to Level of all skills" from gear is not modelled: the table is read at the gem's own level, which
 //      is exactly right only when no such modifier is worn. (An assumption, listed in `assumed` when it applies.)
 //  11. A support that raises the skill's level by the size of its group (Uhtred's Exodus: +3 with no other support,
