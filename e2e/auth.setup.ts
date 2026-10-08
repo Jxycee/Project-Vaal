@@ -59,9 +59,19 @@ setup('authenticate', async ({ page }) => {
   const warm = await Promise.all([
     page.request.post('/api/builds', { data: {}, timeout: 180_000 }),
     page.request.get('/api/wiki/items?slot=head', { timeout: 180_000 }),
+    // Routes first compiled by whichever spec reaches them first. The token is
+    // well-formed but matches no build (build-page.spec uses it for its
+    // not-found case), so these compile the route and write nothing.
+    page.request.get('/builds/aaaaaaaaaaaaaaaaaaaaa', { timeout: 180_000 }),
+    page.request.get('/builds/aaaaaaaaaaaaaaaaaaaaa?tab=gear', { timeout: 180_000 }),
+    page.request.get('/login', { timeout: 180_000 }),
+    page.request.get('/', { timeout: 180_000 }),
   ]);
   expect(warm[0].status(), 'warm-up POST /api/builds must be rejected, not written').toBe(400);
   expect(warm[1].status(), 'warm-up GET /api/wiki/items').toBe(200);
+  for (const res of warm.slice(2)) {
+    expect(res.status(), `warm-up GET ${res.url()}`).toBeLessThan(500);
+  }
 
   // ---- Sweep debris from previous runs --------------------------------------
   //
@@ -71,8 +81,11 @@ setup('authenticate', async ({ page }) => {
   // leaked E2E- rows are not harmless; they also make the "exactly one row with
   // this name" assertions in build-persistence.spec.ts noisier to debug.
   //
+  // 'sweep' mode also removes E2E-SHARED- rows (which per-spec cleanup skips), so
+  // a crashed run's shared fixture build is cleared here too.
+  //
   // Here is the one place in the run that is guaranteed to execute, so the
   // sweep lives here rather than in a global teardown that a kill would skip
   // just as easily.
-  await cleanupTestBuilds(page);
+  await cleanupTestBuilds('sweep');
 });

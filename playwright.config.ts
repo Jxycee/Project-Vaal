@@ -70,7 +70,11 @@ export default defineConfig({
       // It runs everything except the desktop-only geometry spec.
       name: 'mobile',
       testIgnore: /desktop-layout\.spec\.ts/,
-      use: { ...devices['Pixel 7'], storageState: 'e2e/.auth/user.json' },
+      // deviceScaleFactor 1, not Pixel 7's 2.625: the tree's Pixi canvas renders at
+      // window.devicePixelRatio on headless software WebGL and redraws every
+      // frame, so ~2.6x the pixels per tree mount. Viewport, isMobile, hasTouch
+      // and UA stay Pixel 7; every geometry assertion is in CSS px.
+      use: { ...devices['Pixel 7'], deviceScaleFactor: 1, storageState: 'e2e/.auth/user.json' },
       dependencies: ['setup'],
     },
     {
