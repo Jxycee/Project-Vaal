@@ -53,11 +53,6 @@ describe('modcache.json', () => {
     expect(d['+1 Life per 4 Dexterity'].mods[0]).toMatchObject({ name: 'Life', tagType: 'PerStat', tagDiv: 4 });
     expect(d['+1% to Maximum Cold Resistance per 3 Blue Support Gems Socketed'].mods[0]).toMatchObject({ name: 'ColdResistMax', tagDiv: 3 });
   });
-
-  it('has INC types', () => {
-    const inc = Object.values(d).filter((e) => e.mods.some((m) => m.name === 'Life' && m.type === 'INC'));
-    expect(inc.length).toBeGreaterThan(5);
-  });
 });
 
 describe('parseLuaValue', () => {

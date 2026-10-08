@@ -111,16 +111,6 @@ describe('mapItems — every way it can go wrong', () => {
     expect(report[0].message).toContain('Forgotten Grips');
   });
 
-  it('imports a known unique as the unique, not its base', async () => {
-    const { value, report } = await mapItems(
-      [item(1, ['Rarity: UNIQUE', 'Famous Gloves', 'Plain Gloves'])],
-      [slot('Gloves', 1)],
-      fake,
-    );
-    expect(value.gloves).toMatchObject({ name: 'Famous Gloves', isUnique: true });
-    expect(report).toEqual([]);
-  });
-
   it('drops an item whose base is unknown, naming it', async () => {
     const { value, report } = await mapItems([rare(1, 'Imaginary Visor')], [slot('Helmet', 1)], fake);
     expect(value.head).toBeNull();

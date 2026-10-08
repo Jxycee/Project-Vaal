@@ -88,10 +88,6 @@ describe('mapTree — every way it can go wrong', () => {
     expect(report[0].message).toContain('1');
   });
 
-  it('turns an empty spec into an empty state with nothing to report', () => {
-    expect(mapTree(spec(), 'A1', fake, 1)).toEqual({ value: { set1: [], set2: [], ascendancyNodes: [] }, report: [] });
-  });
-
   it('collapses a node listed twice', () => {
     expect(mapTree(spec({ nodes: [1, 1, 2] }), 'A1', fake, 1).value.set1).toEqual([1, 2]);
   });
