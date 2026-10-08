@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guide tab mock (build guidance layer)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- STATIC MOCK for the user's approval (board item 19). Not wired to anything, no app code.
+     Design: docs/superpowers/specs/2026-10-08-guidance-layer-design.md
+     Tokens are the .dark block of src/app/globals.css, converted from oklch to hex for a static file:
+       background  oklch(.16 .006 70) ~ #0e0d0b      card   oklch(.22 .007 70) ~ #1a1815
+       border      oklch(.30 .008 75) ~ #2d2a25      muted  oklch(.62 .012 80) ~ #8e897f
+       foreground  oklch(.93 .008 85) ~ #ebe8e1      primary (aged gold) oklch(.74 .095 85) ~ #c9a45c
+     Original chrome only: no GGG art, no gradients beyond the gold hairline rule, no glow, no neon.
+     Gem and skill chips are text placeholders here; the real build would use the wiki icons (public/data/wiki).
+     Sideways scroll appears ONLY on the checkpoint chip strip (the allowed exception). Everything else wraps. -->
+<style>
+  :root {
+    --bg:#0e0d0b; --card:#1a1815; --card-2:#15130f; --border:#2d2a25; --input:#38342d;
+    --fg:#ebe8e1; --muted:#8e897f; --gold:#c9a45c; --gold-dim:rgba(201,164,92,.38);
+    --gold-fg:#1b1710; --danger:#b4584a; --ok:#8fae8b;
+  }
+  * { box-sizing:border-box; }
+  html { -webkit-text-size-adjust:100%; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.5 Inter, system-ui, sans-serif; padding:16px; overflow-x:hidden; }
+  h1.page { font:500 12px/1 Inter, sans-serif; color:var(--muted); letter-spacing:.1em; text-transform:uppercase; margin:0 0 14px; }
+  h2, h3 { font-family:Cinzel, Georgia, serif; font-weight:600; margin:0; }
+  .frames { display:grid; gap:28px; grid-template-columns:minmax(0,1fr); max-width:26rem; margin:0 auto; }
+  .frame-label { font:500 11px/1 Inter, sans-serif; color:var(--muted); letter-spacing:.1em; text-transform:uppercase; margin:0 0 8px; }
+  @media (min-width:900px) { .frames { grid-template-columns:repeat(2,minmax(0,26rem)); max-width:56rem; align-items:start; } }
+
+  .phone { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:12px; }
+
+  /* Page tab strip: same row the build page already has (Overview / Gear / Skills / Tree / Stats) plus Guide */
+  .tabs { display:flex; gap:4px; border-bottom:1px solid var(--border); margin:0 -12px 14px; padding:0 12px; overflow-x:auto; scrollbar-width:none; }
+  .tabs a { flex:none; min-height:44px; display:flex; align-items:center; padding:0 12px; color:var(--muted); text-decoration:none; font-size:14px; border-bottom:2px solid transparent; }
+  .tabs a[aria-current="page"] { color:var(--gold); border-bottom-color:var(--gold); }
+
+  .sec { background:var(--card); border:1px solid var(--gold-dim); border-radius:6px; margin:0 0 14px; }
+  .sec > header { padding:12px 14px 8px; display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+  .sec h2 { font-size:16px; color:var(--fg); }
+  .sec .count { font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .rule { height:1px; margin:0 14px 10px; background:linear-gradient(to right, transparent, var(--gold-dim), transparent); }
+  .body { padding:0 14px 14px; }
+  .hint { font-size:12.5px; color:var(--muted); margin:0 0 10px; }
+
+  /* checkpoint strip (the one allowed sideways scroller) */
+  .chips { display:flex; gap:6px; overflow-x:auto; padding:0 14px 10px; scrollbar-width:none; }
+  .chip { flex:none; min-height:44px; padding:0 14px; display:flex; align-items:center; gap:6px; border:1px solid var(--border); border-radius:999px; background:transparent; color:var(--muted); font:inherit; font-size:13.5px; }
+  .chip[aria-pressed="true"] { border-color:var(--gold); color:var(--gold); }
+  .chip .lv { font-variant-numeric:tabular-nums; opacity:.8; }
+  .note { margin:0 14px 14px; padding:10px 12px; border:1px solid var(--border); border-radius:4px; background:var(--card-2); font-size:14px; white-space:pre-line; }
+  .note .who { display:block; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+  .empty { color:var(--muted); font-style:italic; }
+
+  /* ranked stat lists */
+  ol.rank { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; counter-reset:r; }
+  ol.rank li { counter-increment:r; display:grid; grid-template-columns:26px minmax(0,1fr) auto; gap:10px; align-items:start; padding:8px 10px; border:1px solid var(--border); border-radius:4px; background:var(--card-2); }
+  ol.rank li::before { content:counter(r); font:600 15px/1.3 Cinzel, Georgia, serif; color:var(--gold); text-align:center; }
+  .stat { font-weight:500; font-size:14.5px; }
+  .why { display:block; font-size:12.5px; color:var(--muted); margin-top:1px; }
+  .tier { font-size:11px; letter-spacing:.06em; text-transform:uppercase; border:1px solid var(--border); border-radius:3px; padding:1px 6px; color:var(--muted); align-self:start; white-space:nowrap; }
+  .tier.must { border-color:var(--gold-dim); color:var(--gold); }
+  .split { display:grid; gap:14px; }
+
+  /* rotation */
+  ol.steps { list-style:none; margin:0; padding:0 0 0 14px; border-left:1px solid var(--gold-dim); display:flex; flex-direction:column; gap:10px; }
+  ol.steps li { position:relative; font-size:14px; }
+  ol.steps li::before { content:''; position:absolute; left:-18px; top:7px; width:7px; height:7px; background:var(--gold); transform:rotate(45deg); }
+  .skill { display:inline-block; border:1px solid var(--border); border-radius:3px; padding:0 6px; font-size:13px; color:var(--fg); background:var(--card-2); }
+
+  /* gem priority */
+  .gems { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; }
+  .gems li { display:grid; grid-template-columns:32px minmax(0,1fr) auto; gap:10px; align-items:center; padding:6px 10px; border:1px solid var(--border); border-radius:4px; background:var(--card-2); }
+  .gicon { width:32px; height:32px; border:1px solid var(--border); border-radius:4px; display:grid; place-items:center; font-size:9px; color:var(--muted); }
+  .gname { font-size:14px; }
+  .gnote { display:block; font-size:12.5px; color:var(--muted); }
+  .glv { font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; }
+
+  /* FAQ */
+  details { border:1px solid var(--border); border-radius:4px; background:var(--card-2); margin:0 0 6px; }
+  summary { min-height:44px; display:flex; align-items:center; padding:6px 12px; cursor:pointer; font-size:14.5px; list-style:none; }
+  summary::-webkit-details-marker { display:none; }
+  summary::after { content:'+'; margin-left:auto; padding-left:12px; color:var(--gold); }
+  details[open] summary::after { content:'\2212'; }
+  details p { margin:0; padding:0 12px 12px; font-size:14px; color:var(--muted); }
+
+  .meta { font-size:12px; color:var(--muted); text-align:center; margin:4px 0 0; }
+
+  /* owner edit affordances */
+  .edit-banner { display:flex; align-items:center; justify-content:space-between; gap:8px; border:1px solid var(--gold-dim); border-radius:4px; padding:8px 12px; margin:0 0 14px; font-size:13px; color:var(--muted); }
+  .edit-banner b { color:var(--gold); font-weight:500; }
+  .btn { min-height:44px; min-width:44px; padding:0 14px; display:inline-flex; align-items:center; justify-content:center; gap:6px; border:1px solid var(--border); border-radius:4px; background:transparent; color:var(--fg); font:inherit; font-size:14px; }
+  .btn.gold { border-color:var(--gold); color:var(--gold); }
+  .btn.solid { background:var(--gold); border-color:var(--gold); color:var(--gold-fg); font-weight:600; }
+  .btn.danger { color:var(--danger); }
+  .btn[disabled] { opacity:.4; }
+  .field { display:block; width:100%; background:var(--bg); color:var(--fg); border:1px solid var(--input); border-radius:4px; font:inherit; font-size:15px; padding:10px 12px; min-height:44px; resize:vertical; }
+  .field:focus { outline:1px solid var(--gold); border-color:var(--gold); }
+  .counter { display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin:4px 0 0; font-variant-numeric:tabular-nums; }
+  .counter .over { color:var(--danger); }
+  .erow { border:1px solid var(--border); border-radius:4px; background:var(--card-2); padding:10px; margin:0 0 8px; display:grid; gap:8px; }
+  .erow .top { display:flex; align-items:center; gap:6px; }
+  .erow .pos { font:600 15px/1 Cinzel, Georgia, serif; color:var(--gold); width:22px; text-align:center; }
+  .erow .grow { flex:1; min-width:0; }
+  .erow .tools { display:flex; gap:6px; }
+  select.field { appearance:none; }
+  .err { font-size:12.5px; color:var(--danger); margin:4px 0 0; }
+  .sticky { position:sticky; bottom:0; margin:0 -12px -12px; padding:10px 12px; background:var(--bg); border-top:1px solid var(--border); display:flex; gap:8px; }
+  .sticky .btn { flex:1; }
+  .legend { max-width:26rem; margin:24px auto 0; color:var(--muted); font-size:12.5px; }
+  .legend li { margin:0 0 4px; }
+  @media (min-width:900px) { .legend { max-width:56rem; } }
+</style>
+</head>
+<body>
+<h1 class="page">Guide tab mock: reader view (left) and owner edit mode (right)</h1>
+
+<div class="frames">
+
+  <!-- ===================== READER ===================== -->
+  <div>
+    <p class="frame-label">Reader (share link or public build)</p>
+    <div class="phone">
+      <nav class="tabs" aria-label="Build sections">
+        <a href="#">Overview</a><a href="#">Gear</a><a href="#">Skills</a><a href="#">Tree</a><a href="#">Stats</a><a href="#" aria-current="page">Guide</a>
+      </nav>
+
+      <!-- 1. Per-checkpoint note -->
+      <section class="sec" aria-labelledby="g-cp">
+        <header><h2 id="g-cp">At this checkpoint</h2><span class="count">3 of 4</span></header>
+        <div class="rule"></div>
+        <div class="chips" role="group" aria-label="Checkpoint">
+          <button class="chip" aria-pressed="false">Act 3 <span class="lv">Lv 38</span></button>
+          <button class="chip" aria-pressed="false">Maps start <span class="lv">Lv 62</span></button>
+          <button class="chip" aria-pressed="true">Pinnacle <span class="lv">Lv 90</span></button>
+          <button class="chip" aria-pressed="false">Endgame <span class="lv">Lv 96</span></button>
+        </div>
+        <p class="note"><span class="who">Author's note</span>Take Resolute Technique off here and go to the second weapon set. Respec the three points in the left cluster before the boss; the refund is cheap.
+Hold 75% fire and cold resistance. Chaos can wait until the next checkpoint.</p>
+      </section>
+
+      <!-- 2. Stat priorities -->
+      <section class="sec" aria-labelledby="g-stats">
+        <header><h2 id="g-stats">Stat priorities</h2><span class="count">best first</span></header>
+        <div class="rule"></div>
+        <div class="body split">
+          <div>
+            <p class="hint">Offence</p>
+            <ol class="rank">
+              <li><span><span class="stat">+ Levels of Projectile Skills</span><span class="why">Scales every hit; nothing else is close.</span></span><span class="tier must">Must</span></li>
+              <li><span><span class="stat">Increased Attack Speed</span><span class="why">Until the rotation feels fluid.</span></span><span class="tier">Good</span></li>
+              <li><span><span class="stat">Critical Hit Chance</span><span class="why">Only after the weapon is rolled.</span></span><span class="tier">Good</span></li>
+              <li><span><span class="stat">Flat Lightning Damage</span><span class="why">Low priority; skip for defence.</span></span><span class="tier">Nice</span></li>
+            </ol>
+          </div>
+          <div>
+            <p class="hint">Defence</p>
+            <ol class="rank">
+              <li><span><span class="stat">Maximum Life</span></span><span class="tier must">Must</span></li>
+              <li><span><span class="stat">Elemental Resistances</span><span class="why">Cap at 75% before anything else.</span></span><span class="tier must">Must</span></li>
+              <li><span><span class="stat">Chaos Resistance</span><span class="why">Aim for 0% or better by endgame.</span></span><span class="tier">Good</span></li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Skill rotation -->
+      <section class="sec" aria-labelledby="g-rot">
+        <header><h2 id="g-rot">Skill rotation</h2><span class="count">5 steps</span></header>
+        <div class="rule"></div>
+        <div class="body">
+          <ol class="steps">
+            <li>Open with <span class="skill">Lightning Arrow</span> to apply the shock.</li>
+            <li>Use <span class="skill">Rain of Arrows</span> when more than three enemies are packed.</li>
+            <li>Refresh <span class="skill">Herald of Thunder</span> after every rare kill.</li>
+            <li>Dodge-roll out of telegraphed slams, then resume step 1.</li>
+            <li>Save <span class="skill">Ancestral Warriors</span> for boss damage phases.</li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- 4. Gemcutting priority -->
+      <section class="sec" aria-labelledby="g-gems">
+        <header><h2 id="g-gems">Gemcutting priority</h2><span class="count">first to level</span></header>
+        <div class="rule"></div>
+        <div class="body">
+          <ul class="gems">
+            <li><span class="gicon">icon</span><span><span class="gname">Lightning Arrow</span><span class="gnote">Everything scales off this one.</span></span><span class="glv">to 20</span></li>
+            <li><span class="gicon">icon</span><span><span class="gname">Added Lightning Damage</span><span class="gnote">Before any other support.</span></span><span class="glv">to 18</span></li>
+            <li><span class="gicon">icon</span><span><span class="gname">Herald of Thunder</span></span><span class="glv">to 15</span></li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 5. FAQ -->
+      <section class="sec" aria-labelledby="g-faq">
+        <header><h2 id="g-faq">FAQ</h2><span class="count">3 questions</span></header>
+        <div class="rule"></div>
+        <div class="body">
+          <details open><summary>Can I run this without the unique bow?</summary><p>Yes. Use a rare bow with the same two stats, you lose roughly a fifth of the damage but the rotation is unchanged.</p></details>
+          <details><summary>Why Resolute Technique early?</summary><p>It removes the crit roll from the early game and makes damage steady. It is dropped at the Pinnacle checkpoint.</p></details>
+          <details><summary>What if I cannot reach resistance cap?</summary><p>Swap the amulet for the resistance one in the Gear tab; it costs a little damage.</p></details>
+        </div>
+      </section>
+
+      <p class="meta">Guide last edited by the author 3 days ago. Plain text from the build's owner.</p>
+    </div>
+  </div>
+
+  <!-- ===================== OWNER EDIT ===================== -->
+  <div>
+    <p class="frame-label">Owner (edit mode, same tab)</p>
+    <div class="phone">
+      <nav class="tabs" aria-label="Build sections">
+        <a href="#">Overview</a><a href="#">Gear</a><a href="#">Skills</a><a href="#">Tree</a><a href="#">Stats</a><a href="#" aria-current="page">Guide</a>
+      </nav>
+
+      <div class="edit-banner"><span><b>Editing guide.</b> Plain text only. No links or formatting.</span></div>
+
+      <!-- checkpoint note editor -->
+      <section class="sec" aria-labelledby="e-cp">
+        <header><h2 id="e-cp">Checkpoint note</h2><span class="count">Pinnacle, Lv 90</span></header>
+        <div class="rule"></div>
+        <div class="chips" role="group" aria-label="Checkpoint">
+          <button class="chip" aria-pressed="false">Act 3</button>
+          <button class="chip" aria-pressed="false">Maps start</button>
+          <button class="chip" aria-pressed="true">Pinnacle</button>
+          <button class="chip" aria-pressed="false">Endgame</button>
+        </div>
+        <div class="body">
+          <label class="hint" for="e-note">Shown to readers when this checkpoint is selected.</label>
+          <textarea class="field" id="e-note" rows="4" maxlength="600">Take Resolute Technique off here and go to the second weapon set. Respec the three points in the left cluster before the boss; the refund is cheap.
+Hold 75% fire and cold resistance. Chaos can wait until the next checkpoint.</textarea>
+          <div class="counter"><span>Saved with the checkpoint</span><span>214 / 600</span></div>
+        </div>
+      </section>
+
+      <!-- stat priority editor -->
+      <section class="sec" aria-labelledby="e-stats">
+        <header><h2 id="e-stats">Offence priorities</h2><span class="count">4 / 8</span></header>
+        <div class="rule"></div>
+        <div class="body">
+          <div class="erow">
+            <div class="top">
+              <span class="pos">1</span>
+              <div class="grow"><input class="field" type="text" value="+ Levels of Projectile Skills" maxlength="60" aria-label="Stat 1"></div>
+            </div>
+            <input class="field" type="text" value="Scales every hit; nothing else is close." maxlength="140" aria-label="Why, stat 1">
+            <div class="top">
+              <select class="field grow" aria-label="Tier, stat 1"><option>Must</option><option>Good</option><option>Nice</option></select>
+              <div class="tools">
+                <button class="btn" disabled aria-label="Move up">&#8593;</button>
+                <button class="btn" aria-label="Move down">&#8595;</button>
+                <button class="btn danger" aria-label="Remove">&#215;</button>
+              </div>
+            </div>
+            <div class="counter"><span>why</span><span>41 / 140</span></div>
+          </div>
+          <div class="erow">
+            <div class="top">
+              <span class="pos">2</span>
+              <div class="grow"><input class="field" type="text" value="Increased Attack Speed" maxlength="60" aria-label="Stat 2"></div>
+            </div>
+            <div class="top">
+              <select class="field grow" aria-label="Tier, stat 2"><option>Good</option><option>Must</option><option>Nice</option></select>
+              <div class="tools">
+                <button class="btn" aria-label="Move up">&#8593;</button>
+                <button class="btn" aria-label="Move down">&#8595;</button>
+                <button class="btn danger" aria-label="Remove">&#215;</button>
+              </div>
+            </div>
+          </div>
+          <button class="btn gold" style="width:100%">+ Add offence stat</button>
+          <p class="hint" style="margin-top:8px">Defence priorities work the same way (3 / 8).</p>
+        </div>
+      </section>
+
+      <!-- rotation editor -->
+      <section class="sec" aria-labelledby="e-rot">
+        <header><h2 id="e-rot">Skill rotation</h2><span class="count">5 / 12</span></header>
+        <div class="rule"></div>
+        <div class="body">
+          <div class="erow">
+            <div class="top"><span class="pos">1</span><div class="grow"><textarea class="field" rows="2" maxlength="160" aria-label="Step 1">Open with Lightning Arrow to apply the shock.</textarea></div></div>
+            <div class="top">
+              <select class="field grow" aria-label="Skill for step 1"><option>Lightning Arrow</option><option>None</option></select>
+              <div class="tools">
+                <button class="btn" disabled aria-label="Move up">&#8593;</button>
+                <button class="btn" aria-label="Move down">&#8595;</button>
+                <button class="btn danger" aria-label="Remove">&#215;</button>
+              </div>
+            </div>
+            <div class="counter"><span>The skill list comes from this build's Skills tab</span><span>46 / 160</span></div>
+          </div>
+          <div class="erow">
+            <div class="top"><span class="pos">2</span><div class="grow"><textarea class="field" rows="2" maxlength="160" aria-label="Step 2" style="border-color:var(--danger)">See https://example.com/video for the timing</textarea></div></div>
+            <p class="err">Links are not allowed in guides. Describe the timing in words.</p>
+          </div>
+          <button class="btn gold" style="width:100%">+ Add step</button>
+        </div>
+      </section>
+
+      <!-- FAQ editor, collapsed to show the pattern -->
+      <section class="sec" aria-labelledby="e-faq">
+        <header><h2 id="e-faq">FAQ</h2><span class="count">3 / 8</span></header>
+        <div class="rule"></div>
+        <div class="body">
+          <div class="erow">
+            <div class="top"><span class="pos">1</span><div class="grow"><input class="field" type="text" value="Can I run this without the unique bow?" maxlength="100" aria-label="Question 1"></div></div>
+            <textarea class="field" rows="3" maxlength="400" aria-label="Answer 1">Yes. Use a rare bow with the same two stats, you lose roughly a fifth of the damage but the rotation is unchanged.</textarea>
+            <div class="counter"><span>answer</span><span>117 / 400</span></div>
+            <div class="top">
+              <div class="grow"></div>
+              <div class="tools">
+                <button class="btn" disabled aria-label="Move up">&#8593;</button>
+                <button class="btn" aria-label="Move down">&#8595;</button>
+                <button class="btn danger" aria-label="Remove">&#215;</button>
+              </div>
+            </div>
+          </div>
+          <button class="btn gold" style="width:100%">+ Add question</button>
+          <p class="hint" style="margin-top:8px">Gemcutting priority is edited the same way: pick a gem from this build's Skills tab, set a target level, add a short note.</p>
+        </div>
+      </section>
+
+      <div class="sticky">
+        <button class="btn">Discard</button>
+        <button class="btn solid">Save guide</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<ul class="legend">
+  <li>Reorder is up/down buttons, not drag: 44px targets work on a phone and need no gesture library.</li>
+  <li>Every field shows its cap as you type; at the cap the field stops accepting input. The server re-checks and the database refuses anything over.</li>
+  <li>Readers see no empty sections: a section with no items is simply not drawn. A reader of an unauthored build sees one line, "The author has not written a guide for this build."</li>
+  <li>Phase 1 ships the checkpoint note and stat priorities only. Rotation, gemcutting and FAQ are drawn here so the whole shape can be approved once.</li>
+</ul>
+</body>
+</html>
