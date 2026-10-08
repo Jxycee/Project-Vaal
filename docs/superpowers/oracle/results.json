@@ -769,10 +769,7 @@
   },
   "ordinary-armour-1.json": {
     "gaps": {
-      "life": [
-        "more -30 from Runeseeker's Call, Runemastered Runic Fork",
-        "more -15 from Runeseeker's Call, Runemastered Runic Fork"
-      ],
+      "life": [],
       "mana": [
         "flat 180 from Runeseeker's Call, Runemastered Runic Fork",
         "flat 360 from Runeseeker's Call, Runemastered Runic Fork"
@@ -791,7 +788,7 @@
     ],
     "class": "Gemling Legionnaire",
     "source": "https://poe.ninja/poe2/builds/forbiddenrites/character/dota2enjoyer-1809/KingPinUwU_Youtube",
-    "matched": 12,
+    "matched": 13,
     "of": 13,
     "stats": {
       "str": {
@@ -811,8 +808,8 @@
       },
       "life": {
         "want": 987,
-        "got": 904,
-        "ok": false
+        "got": 987,
+        "ok": true
       },
       "mana": {
         "want": 4765,
@@ -920,32 +917,32 @@
       },
       "effectiveHealthPool": {
         "want": 26259,
-        "got": 16657,
+        "got": 16869,
         "ok": false
       },
       "physicalMaxHit": {
         "want": 5510,
-        "got": 6608,
+        "got": 6691,
         "ok": false
       },
       "fireMaxHit": {
         "want": 19332,
-        "got": 23250,
+        "got": 23546,
         "ok": false
       },
       "coldMaxHit": {
         "want": 19332,
-        "got": 23250,
+        "got": 23546,
         "ok": false
       },
       "lightningMaxHit": {
         "want": 19332,
-        "got": 23250,
+        "got": 23546,
         "ok": false
       },
       "chaosMaxHit": {
         "want": 21652,
-        "got": 26040,
+        "got": 26372,
         "ok": false
       }
     }

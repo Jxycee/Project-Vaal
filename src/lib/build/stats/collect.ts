@@ -484,6 +484,8 @@ function collectItem(
   let wornImplicitLines: string[] | undefined;
   /** A unique's lines our data has no typed stat for, numbers filled in: read from their text below. */
   const untypedLines: string[] = [];
+  /** 1 + the item's "N% increased effect of Socketed Runes" (Runeseeker's Call 200% -> 3): how much a printed rune line was scaled. */
+  let runeEffect = 1;
 
   if (item.isUnique) {
     const unique = data.unique(item.name, item.slug);
@@ -515,6 +517,11 @@ function collectItem(
     // every copy). PoB builds their modifiers by name and duplicate count: legacies.ts.
     let legacyEffect: number | undefined;
     unique.lines.forEach((line, i) => {
+      const socketed = /^\(?(\d+(?:\.\d+)?)(?:-(\d+(?:\.\d+)?)\))?% increased effect of Socketed (?:Runes|Augment Items|Soul Cores)/i.exec(line.text.trim());
+      if (socketed) {
+        const rolled = socketed[2] !== undefined ? craft?.uniqueValues[i]?.[0] : undefined;
+        runeEffect += (rolled ?? (socketed[2] !== undefined ? (Number(socketed[1]) + Number(socketed[2])) / 2 : Number(socketed[1]))) / 100;
+      }
       const effectLine = LEGACY_EFFECT_LINE.exec(line.text);
       if (effectLine) {
         const row = craft?.uniqueValues[i] ?? [];
@@ -606,6 +613,23 @@ function collectItem(
   // "Aura Skills have 25% increased Magnitudes" (Kraken Bane), "45% less maximum Life" (Runeseeker's Call), "1% increased
   // maximum Life for each Corrupted Item Equipped" (Morior Invictus). They count like the item's other verbatim lines.
   const runeVerbatim: string[] = [];
+  // FAILURE MODE: "200% increased effect of Socketed Runes" (Runeseeker's Call) prints a rune's "15% less maximum Life" as ONE
+  // "45% less" line, but PoB2 keeps the rune's own mod AND an extra mod for the added effect (-15 and -30). Two lesses multiply
+  // (0.85 x 0.70 = 0.595 -> 0.60), one 45% less does not (0.55): Life 904 instead of 987. Flat and increased lines add, so
+  // splitting them changes nothing; only a "more"/"less" line is split, and only when the scale divides it evenly.
+  for (const l of craft?.verbatim ?? []) {
+    const m = /^(\d+(?:\.\d+)?)% increased effect of Socketed (?:Runes|Augment Items|Soul Cores)\b/i.exec(l.trim());
+    if (m) runeEffect += Number(m[1]) / 100;
+  }
+  const splitRuneMore = (line: string): string[] => {
+    const read = runeEffect > 1 ? readLine(line) : null;
+    if (read === null || 'unmodelled' in read || !read.mods.every((x) => x.kind === 'more')) return [line];
+    const n = Number(line.match(/\d+(?:\.\d+)?/)?.[0]);
+    const base = Math.round((n / runeEffect) * 100) / 100;
+    if (!Number.isFinite(n) || base <= 0 || base >= n || Math.abs(base * runeEffect - n) > 0.01) return [line];
+    const extra = Math.round((n - base) * 100) / 100;
+    return [line.replace(/\d+(?:\.\d+)?/, String(base)), line.replace(/\d+(?:\.\d+)?/, String(extra))];
+  };
   for (const line of printedRunes ?? []) {
     const read = readRuneLine(line);
     if (read !== null && 'stat' in read) {
@@ -613,7 +637,7 @@ function collectItem(
       continue;
     }
     if (!/^Bonded:/i.test(line) && readLine(line) !== null) {
-      runeVerbatim.push(line);
+      runeVerbatim.push(...splitRuneMore(line));
       continue;
     }
     if (read !== null) notCounted.push(`${item.name}: rune line "${read.unmodelled}" not counted`);
