@@ -105,13 +105,26 @@ function rowFor(page: Page, id: string) {
   return page.locator(`[data-testid="checkpoint-row"][data-checkpoint-id="${id}"]`);
 }
 
-/** Taps Duplicate on the row for `id` and waits for the page to land on the copy; returns the copy's id. */
+/** The ids of every checkpoint row currently listed in the manager. */
+async function listedIds(page: Page): Promise<string[]> {
+  return page.locator('[data-testid="checkpoint-row"]').evaluateAll((els) => els.map((el) => el.getAttribute('data-checkpoint-id') ?? ''));
+}
+
+/**
+ * Taps Duplicate on the row for `id` and waits for the page to land on the copy; returns the copy's id.
+ * The URL alone is not a safe signal: while the action runs the page can settle on the build's active checkpoint,
+ * a different id from the source that is NOT the copy. The copy is the one id that was not listed before the tap.
+ */
 async function duplicateAndLand(page: Page, id: string): Promise<string> {
+  const before = await listedIds(page);
   await rowFor(page, id).getByRole('button', { name: /^Duplicate /, exact: false }).click();
-  await page.waitForURL((url) => {
-    const c = url.searchParams.get('checkpoint');
-    return c !== null && c !== id;
-  }, { timeout: 30_000 });
+  await page.waitForURL(
+    (url) => {
+      const c = url.searchParams.get('checkpoint');
+      return c !== null && !before.includes(c);
+    },
+    { timeout: 30_000 },
+  );
   return new URL(page.url()).searchParams.get('checkpoint')!;
 }
 
@@ -252,7 +265,8 @@ test.describe('checkpoint duplicate', () => {
     });
     await page.waitForURL((url) => {
       const c = url.searchParams.get('checkpoint');
-      return c !== null && c !== target.id;
+      // The copy is the one id not present before the taps (the URL can first settle on an existing checkpoint).
+      return c !== null && !before.some((r) => r.id === c);
     }, { timeout: 30_000 });
 
     // Check once as soon as it lands and again after a quiet period: a second
@@ -261,7 +275,8 @@ test.describe('checkpoint duplicate', () => {
     await page.waitForTimeout(3_000);
     const after = await fetchRows(page, buildId);
     expect(after.length, 'a second copy arrived late').toBe(before.length + 1);
-    expect(after.filter((r) => r.name === `${target.name} (copy)`).length).toBe(1);
+    // Exactly one new row (not by name: earlier tests in this serial file renamed this checkpoint).
+    expect(after.filter((r) => !before.some((b) => b.id === r.id)).length).toBe(1);
   });
 
   test('a reader never sees Duplicate', async ({ page }) => {
