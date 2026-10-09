@@ -538,6 +538,7 @@ export default function BuildSessionProvider({
   const defence = useDefenceSheets({
     tree: lite,
     className: treeState.className,
+    ascendancy: treeState.ascendancyId,
     level: meta.level,
     passive: livePassive,
     gear,

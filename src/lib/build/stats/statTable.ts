@@ -22,11 +22,17 @@ export type Pool =
   | 'life'
   | 'mana'
   | 'energyShield'
+  // Discipline's "+N to maximum Energy Shield" is PoB's EnergyShieldTotal BASE: added to the finished Energy Shield, after the
+  // increases (monk-1: Discipline L13 = 162, exactly the gap; not 162 x 6.12). engine.ts adds it after scaling.
+  | 'energyShieldTotal'
   | 'armour'
   | 'evasion'
   | 'str'
   | 'dex'
   | 'int'
+  // Smith of Kitava: Coal Stoker (fireResConvert, percent) and Forged in Flame (fireMaxConvert, percent): PoB FireResConvertToCold/Lightning and FireMaxResConvertToCold/Lightning (CalcDefence.lua:858-902).
+  | 'fireResConvert'
+  | 'fireMaxConvert'
   | 'fireRes'
   | 'coldRes'
   | 'lightningRes'
@@ -40,6 +46,13 @@ export type Pool =
   | 'auraEffect'
   // Percent increased magnitudes of Banner skills only ("banner_aura_effect_+%"): added to auraEffect for a Banner, not for other Auras.
   | 'bannerAuraEffect'
+  // PoB's Magnitude INC tagged SkillType Aura ("Aura Skills have N% increased Magnitudes"): a SEPARATE multiplier from auraEffect.
+  | 'auraMagnitude'
+  // Surrounded (CalcPerform.lua:521-527): "Require N fewer enemies to be Surrounded" is a BASE on SurroundedMinimum (the
+  // flat 5 required is added by the collector), "N% increased Surrounded Area of Effect" an INC on SurroundedArea. Not
+  // sheet numbers: collect.ts derives the Condition:Surrounded from them (surrounded.ts).
+  | 'surroundedMinimum'
+  | 'surroundedArea'
   // The derived defence stats (engine.ts; DERIVED in multiOracle.test.ts). They are PoB's own modifier names in
   // lower camel case: a pool's `flat` is its BASE, `increased` its INC, `more` its MORE.
   | 'maxEndurance'
@@ -95,6 +108,8 @@ export type Pool =
  */
 export interface Effect {
   pool: Pool;
+  /** Parsed by PoB as ElementalResist(Max), not FireResist(Max): the Smith's conversion tabulates only the named modifier, so it skips these. */
+  allElemental?: true;
   kind: 'flat' | 'increased' | 'more';
   slot?: GearSlot;
   /** With a slot: the increase counts only when the item worn there is of this class ("from Equipped Shield" needs a shield, not a focus). */
@@ -106,6 +121,7 @@ export interface Effect {
 }
 
 const flat = (...pools: Pool[]): Effect[] => pools.map((pool) => ({ pool, kind: 'flat' }));
+const flatAllElemental = (...pools: Pool[]): Effect[] => pools.map((pool) => ({ pool, kind: 'flat', allElemental: true }));
 const inc = (...pools: Pool[]): Effect[] => pools.map((pool) => ({ pool, kind: 'increased' }));
 const more = (...pools: Pool[]): Effect[] => pools.map((pool) => ({ pool, kind: 'more' }));
 const perMinute = (pool: Pool, kind: Effect['kind']): Effect[] => [{ pool, kind, scale: 1 / 60 }];
@@ -153,6 +169,8 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   'oracle_maximum_life_+%_final': more('life'),
   'oracle_maximum_mana_+%_final': more('mana'),
   'titan_maximum_life_+%_final': more('life'),
+  // Mercenary (Witchhunter) Obsessive Rituals: "50% less Armour and Evasion Rating" (-50, a MORE on both).
+  'witchhunter_armour_evasion_+%_final': more('armour', 'evasion'),
   // The Titan's Stone Skin: "50% more Armour from Equipped Body Armour" - a more with PoB's SlotName tag, so it multiplies the body
   // armour's Armour alone (engine.ts defence()), on top of the global more.
   'ascendancy_titan_damage_reduction_rating_from_body_armour_+%_final': [{ pool: 'armour', kind: 'more', slot: 'body' }],
@@ -194,7 +212,7 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   'base_cold_damage_resistance_%': flat('coldRes'),
   'base_lightning_damage_resistance_%': flat('lightningRes'),
   'base_chaos_damage_resistance_%': flat('chaosRes'),
-  'base_resist_all_elements_%': flat('fireRes', 'coldRes', 'lightningRes'),
+  'base_resist_all_elements_%': flatAllElemental('fireRes', 'coldRes', 'lightningRes'),
   'fire_and_cold_damage_resistance_%': flat('fireRes', 'coldRes'),
   'fire_and_lightning_damage_resistance_%': flat('fireRes', 'lightningRes'),
   'cold_and_lightning_damage_resistance_%': flat('coldRes', 'lightningRes'),
@@ -205,7 +223,10 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   'base_maximum_cold_damage_resistance_%': flat('coldMax'),
   'base_maximum_lightning_damage_resistance_%': flat('lightningMax'),
   'base_maximum_chaos_damage_resistance_%': flat('chaosMax'),
-  'additional_maximum_all_elemental_resistances_%': flat('fireMax', 'coldMax', 'lightningMax'),
+  'additional_maximum_all_elemental_resistances_%': flatAllElemental('fireMax', 'coldMax', 'lightningMax'),
+  // Smith of Kitava (Coal Stoker / Forged in Flame): the node's number is the percent (50) or 1 (= 100% of the maximum).
+  'modifiers_to_fire_resistance_also_apply_to_cold_lightning_resistance_at_%_value': flat('fireResConvert'),
+  modifiers_to_maximum_fire_resistance_apply_to_maximum_cold_and_lightning_resistance: [{ pool: 'fireMaxConvert', kind: 'flat', scale: 100 }],
   'additional_maximum_all_resistances_%': flat('fireMax', 'coldMax', 'lightningMax', 'chaosMax'),
 
   base_spirit: flat('spirit'),
@@ -265,8 +286,9 @@ export const GLOBAL_EFFECTS: Readonly<Record<string, Effect[]>> = {
   'current_energy_shield_%_as_physical_damage_reduction': flat('esToPhysical'),
 
   // "Aura Skills have N% increased Magnitudes": scales the Auras' own modifiers (skillBuffs.ts), PoB2 AuraEffect.
-  'aura_effect_+%': inc('auraEffect'),
+  'aura_effect_+%': inc('auraMagnitude'),
   'banner_aura_effect_+%': inc('bannerAuraEffect'),
+  'surrounded_area_of_effect_+%': inc('surroundedArea'),
 };
 
 /**
@@ -296,10 +318,27 @@ export const CONDITIONAL_EFFECTS: Readonly<Record<string, ConditionalEffect>> = 
   'evasion_rating_+%_if_consumed_frenzy_charge_recently': { condition: 'UseFrenzyCharges', effects: inc('evasion') },
   // High Alert: "50% increased Evasion Rating when on Full Life". FullLife is derived from unreserved Life (reservation.ts).
   'evasion_rating_+%_when_on_full_life': { condition: 'FullLife', effects: inc('evasion') },
+  // Afterimage: "60% increased Evasion Rating if you have Hit an Enemy Recently". HitRecently follows from the Configuration's
+  // CritRecently tick (reservation.ts withHitRecently).
+  'evasion_rating_+%_if_you_have_hit_an_enemy_recently': { condition: 'HitRecently', effects: inc('evasion') },
   'evasion_rating_+%_if_have_not_been_hit_recently': { condition: 'BeenHitRecently', negate: true, effects: inc('evasion') },
   // Defiance: "80% increased Armour and Evasion Rating when on Low Life". LowLife is derived from Life reservation
   // (reservation.ts) or ticked in the Configuration ("Are you always on Low Life?").
   'armour_and_evasion_on_low_life_+%': { condition: 'LowLife', effects: inc('armour', 'evasion') },
+  // "while Surrounded": PoB derives Condition:Surrounded itself from the enemies required (surrounded.ts), or the
+  // Configuration's "Are you surrounded?" ticks it.
+  'armour_+%_while_surrounded': { condition: 'Surrounded', effects: inc('armour') },
+  'evasion_rating_+%_while_surrounded': { condition: 'Surrounded', effects: inc('evasion') },
+  'deflection_rating_+%_while_surrounded': { condition: 'Surrounded', effects: inc('deflection') },
+  'movement_speed_+%_while_surrounded': { condition: 'Surrounded', effects: inc('movementSpeed') },
+  'life_regeneration_rate_per_minute_%_while_surrounded': { condition: 'Surrounded', effects: perMinute('lifeRegenPercent', 'flat') },
+  // "while Shapeshifted": PoB sets Condition:Shapeshifted while the MAIN skill is a Bear, Wolf or Wyvern form (skillBuffs.ts
+  // withShapeshifted). The maximum-resistance ids carry "_+%_" in their name but are plain +N to the maximum (modcache.json:
+  // "+1% to Maximum Lightning Resistance while Shapeshifted", BASE 1 on LightningResistMax).
+  'maximum_fire_damage_resistance_+%_while_shapeshifted': { condition: 'Shapeshifted', effects: flat('fireMax') },
+  'maximum_cold_damage_resistance_+%_while_shapeshifted': { condition: 'Shapeshifted', effects: flat('coldMax') },
+  'maximum_lightning_damage_resistance_+%_while_shapeshifted': { condition: 'Shapeshifted', effects: flat('lightningMax') },
+  'armour_+%_while_shapeshifted': { condition: 'Shapeshifted', effects: inc('armour') },
 };
 
 /**
@@ -360,6 +399,28 @@ export const PER_ITEM_DEFENCE: Readonly<Record<string, PerItemDefence>> = {
   '+1_spirit_per_X_energy_shield_on_body_armour': { pool: 'spirit', slot: 'body', from: 'energyShield', valueIs: 'div', fixed: 1 },
 };
 
+// FAILURE MODES of the printed per-item line (readPerItemLine), decided before the code:
+//   1. The printed line names a different defence or step than the synced rune data ("+1 to maximum Mana per 2 Item Energy Shield on
+//      Equipped Helmet" on invoker-1's Jiquani's Thesis, where the data says "per 3 Item Armour"): the PRINTED line wins, it is what
+//      Path of Building parsed.
+//   2. The named slot is empty or has none of that defence: zero steps, nothing added (the same floor as the passives above).
+//   3. A line that merely looks similar ("per 10 Strength", "per Item Level") does not match and is left to the other readers.
+const PER_ITEM_LINE =
+  /^\+(\d+(?:\.\d+)?) to (?:maximum )?(Life|Mana|Energy Shield|Evasion Rating|Armour|Spirit) per (\d+(?:\.\d+)?) Item (Armour|Evasion Rating|Energy Shield) on Equipped (Helmet|Body Armour|Gloves|Boots)$/i;
+const PER_ITEM_POOL: Record<string, Pool> = { life: 'life', mana: 'mana', 'energy shield': 'energyShield', 'evasion rating': 'evasion', armour: 'armour', spirit: 'spirit' };
+const PER_ITEM_FROM: Record<string, PerItemDefence['from']> = { armour: 'armour', 'evasion rating': 'evasion', 'energy shield': 'energyShield' };
+const PER_ITEM_SLOT: Record<string, GearSlot> = { helmet: 'head', 'body armour': 'body', gloves: 'gloves', boots: 'boots' };
+
+/** "+N to maximum Mana per D Item Energy Shield on Equipped Helmet" -> the rule and the step size D, or null. */
+export function readPerItemLine(line: string): { rule: PerItemDefence; value: number } | null {
+  const m = PER_ITEM_LINE.exec(line.trim());
+  if (!m) return null;
+  return {
+    rule: { pool: PER_ITEM_POOL[m[2].toLowerCase()], slot: PER_ITEM_SLOT[m[5].toLowerCase()], from: PER_ITEM_FROM[m[4].toLowerCase()], valueIs: 'div', fixed: Number(m[1]) },
+    value: Number(m[3]),
+  };
+}
+
 /**
  * Passives that need N support gems of one colour in the skills ("5% increased maximum Life if you have at least 10
  * Red Support Gems Socketed", Gem Enthusiast). PoB2 tags them MultiplierThreshold on RedSupportGems etc. (modcache.json);
@@ -384,7 +445,6 @@ export const SUPPORT_THRESHOLD: Readonly<Record<string, SupportThreshold>> = {
 export const NOT_MODELLED: Readonly<Record<string, string>> = {
   'spirit_+_per_empty_charm_slot': 'Spirit per empty charm slot',
   'body_armour_grants_spirit_+%': 'increased Spirit from body armour',
-  'ascendancy_beidats_will_spirit_+_per_X_maximum_life': 'Spirit per maximum Life',
   base_physical_damage_reduction_rating_no_display: 'hidden Armour',
   'maximum_fire_resistance_+%_if_at_least_5_red_supports_socketed': 'Maximum Fire Resistance with 5 red supports socketed',
   // Harmony Within: ModCache.lua:8219-8221 leaves this sentence unparsed, so Path of Building 2 counts nothing for it either.

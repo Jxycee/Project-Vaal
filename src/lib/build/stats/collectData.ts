@@ -99,6 +99,7 @@ export function makeCollectData(files: RawCollectFiles): CollectData {
         armour: a ? pobDefences(detail.name, a) : null,
         movementPenalty: (movementPenalties as Record<string, number>)[detail.name] ?? 0,
         spirit: num(detail.spirit),
+        strRequirement: isObject(detail.requirements) ? num(detail.requirements.strength) : 0,
         itemClass: typeof detail.itemClass === 'string' ? detail.itemClass : null,
         weapon: isObject(detail.weapon),
         implicits: files.implicitStats.bases[detail.name],

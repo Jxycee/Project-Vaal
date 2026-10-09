@@ -101,6 +101,35 @@ function keepVerbatim(line: string, verbatim: string[]): boolean {
   return true;
 }
 
+/**
+ * The Adorned: "N% increased Effect of Jewel Socket Passive Skills" + "containing Corrupted Magic|Rare Jewels" on the next
+ * line, once per rarity (the wiki lists only the Magic one, so the Rare pair matched no template and was dropped).
+ *
+ * Failure modes, decided first:
+ *   1. The effect line without a "containing Corrupted ..." line after it (another item, or a wording we do not know):
+ *      left alone for the template matcher, as before.
+ *   2. A pair is joined into ONE verbatim line (SOCKET_EFFECT_LINE) and removed from the printed lines, so it can never
+ *      be matched to a template as a half and counted twice.
+ *   3. The joined line is at most ~100 characters, under the write gate's per-line cap, and unreadable to readLine,
+ *      so readVerbatim passes it over silently; collect.ts reads it.
+ */
+function joinSocketEffectLines(printed: string[], verbatim: string[]): string[] {
+  const effect = /^(\d+(?:\.\d+)?)% increased Effect of Jewel Socket Passive Skills$/;
+  const containing = /^containing Corrupted (Magic|Rare) Jewels$/;
+  const kept: string[] = [];
+  for (let i = 0; i < printed.length; i++) {
+    const head = effect.exec(resolveLine(printed[i]));
+    const tail = i + 1 < printed.length ? containing.exec(resolveLine(printed[i + 1])) : null;
+    if (head && tail) {
+      verbatim.push(`${head[1]}% increased Effect of Jewel Socket Passive Skills containing Corrupted ${tail[1]} Jewels`);
+      i++;
+      continue;
+    }
+    kept.push(printed[i]);
+  }
+  return kept;
+}
+
 /** Whether a mod's display ranges are its roll ranges — then a shown number IS the rolled value. */
 export function sameUnits(mod: CraftMod): boolean {
   const shown = mod.stats.flatMap(rangesIn);
@@ -347,7 +376,10 @@ export function mapCraft(raw: string, isUnique: boolean, lookups: CraftLookups):
     // prints, so a template line with no printed counterpart must not fall back to a mid-roll. Only for a corrupted
     // item: an uncorrupted one missing a line is an export from another patch (the Cloak of Flame fixture), where
     // the data's current line is the better guess.
-    const printed = explicitLines.filter((l) => !l.includes('{rune}'));
+    const printed = joinSocketEffectLines(
+      explicitLines.filter((l) => !l.includes('{rune}')),
+      verbatim,
+    );
     const matched = new Set<number>();
     const templates = lookups.base?.uniqueLines ?? [];
     craft.uniqueValues = matchLines(printed, templates, notes, 'The unique line', verbatim, matched);

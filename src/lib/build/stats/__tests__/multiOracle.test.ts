@@ -154,10 +154,10 @@ function oursDerived(sheet: DefenceSheet): Record<DKey, number> {
 
 /** Ratchet for the derived keys: the least number each build must match. Raise it when a fix lands; never lower it. */
 const DERIVED_FLOOR: Record<string, number> = {
-  'armour-life-gemling.json': 9, // of 19
+  'armour-life-gemling.json': 10, // round 5 (Iron Reflexes, Heavy Armour); was 9 // of 19
   'es-life-stormweaver.json': 8, // of 19
   'evasion-deadeye.json': 14, // of 19
-  'hybrid-tactician.json': 9, // round 10: Defiance Banner partly counted (bannerPlanted, Banner aura magnitudes); was 7 // of 19
+  'hybrid-tactician.json': 10, // round 8 of the engine loop: 10 (Discipline's EnergyShieldTotal); was 9. Round 10: Defiance Banner partly counted (bannerPlanted, Banner aura magnitudes); was 7 // of 19
   'ordinary-armour-1.json': 9, // of 17
   'ordinary-caster-1.json': 9, // of 17
   'ordinary-caster-2.json': 13, // round 9; was 12 // of 19
@@ -181,6 +181,17 @@ const DERIVED_FLOOR: Record<string, number> = {
   'ordinary-spirit-walker-1.json': 12, // of 19
   'ordinary-spirit-walker-2.json': 15, // of 19
   'ordinary-titan-1.json': 15, // round 1 of the accuracy loop: Hulking Form (effect of Small Passive Skills), Stone Skin (slot more); was 10 // of 19
+  // Round-5 class-coverage set (Runes of Aldur): classes with no fixture yet; FLOOR = the match when added.
+  'ordinary-druid-1.json': 11, // of 19
+  'ordinary-huntress-1.json': 19, // of 19
+  'ordinary-infernalist-1.json': 11, // of 19
+  'ordinary-invoker-1.json': 18, // of 19
+  'ordinary-mercenary-1.json': 17, // round 2: charms count through their base buff (Sapphire +25% Cold, Topaz +25% Lightning); was 14 // of 19
+  'ordinary-monk-1.json': 19, // round 8 of the engine loop: Discipline's EnergyShieldTotal (ES recharge, leech and the max hits follow ES); was 12 // of 19
+  'ordinary-shaman-1.json': 10, // round 5; was 9 // of 19
+  'ordinary-smith-of-kitava-1.json': 9, // of 17
+  'ordinary-sorceress-1.json': 11, // of 19
+  'ordinary-witchhunter-1.json': 8, // of 17
   'ordinary-warbringer-1.json': 14, // round 5: Rage and Summoned Totems feed Armour/Evasion, so Life/Armour/Evasion match; was 9 (round 3: Blood Magic; was 8) // of 17
 };
 
@@ -188,10 +199,10 @@ const ours = (sheet: DefenceSheet, k: Key): number => (k === 'fire' || k === 'co
 
 // Ratchet: the least number of the 13 stats each build must match. Raise it when a fix lands; never lower it.
 const FLOOR: Record<string, number> = {
-  'armour-life-gemling.json': 8, // Gem Enthusiast now counted; Mageblood, a RELIC body armour and 36 unreadable item lines: item coverage, not the engine
+  'armour-life-gemling.json': 13, // exotic round 3: 13 of 13, Virtuous Barrier's Strength motes 10 -> 14 (a support that also grants a same-name hidden active skill, Battershout x2, counts: gem-attributes.json); was 12. Round 1 of the exotic loop: The Adorned's 62% Effect of Jewel Socket Passive Skills scales corrupted rare jewels (collect.ts jewelSocketEffect); was 9. round 5: 9 (Iron Reflexes, Heavy Armour); was 8 // Gem Enthusiast now counted; Mageblood, a RELIC body armour and 36 unreadable item lines: item coverage, not the engine
   'es-life-stormweaver.json': 13, // round 8: 13 of 13 (Low Life derived from Atziri's Communion, Defiance); was 11 // Kalandra's Touch reflects the opposite ring (collect.ts); a radius jewel's notables (fire, spirit)
   'evasion-deadeye.json': 12, // the weapon set PoB had active (set 2) now read from the code; still short: chaos resistance via a Time-Lost jewel's radius grant
-  'hybrid-tactician.json': 10, // round 9 (printed-line truth for uniques); was 9 // round 6: Ancient Aegis / Fortified Aegis scale one slot (statTable.ts); was 8
+  'hybrid-tactician.json': 13, // round 6: Aura scaling split into AuraEffect x Magnitude with PoB's ScaleAddMod truncation (Defiance Banner 30 x 1.24 x 1.63 -> 60); was 11. Earlier: exotic round 2: EnergyShieldTotal (Discipline) is floored not rounded, ES 4729; was 10. Short: Armour/Evasion (Defiance Banner 60% more in PoB, 56.1 here: not Valour, that stat is supplied by no skill; the missing aura magnitude source is unidentified, see skillBuffs.ts failure mode 10) // round 9 (printed-line truth for uniques); was 9 // round 6: Ancient Aegis / Fortified Aegis scale one slot (statTable.ts); was 8
   // The ordinary set (board item 30): mid-complexity public builds. The goal is 13 of 13 on every one.
   'ordinary-ci-acolyte.json': 13, // 13 of 13: Purity of Ice (a socketed Aura) puts +43% Cold Resistance on the character - skillBuffs.ts, scaled by 11% increased Aura magnitudes
   'ordinary-ci-disciple.json': 13, // 13 of 13: Time-Lost Sapphire's "Notable Passive Skills in Radius also grant" x7 (collect.ts radiusGrants) + Warding Fetish's Focus ES
@@ -218,13 +229,24 @@ const FLOOR: Record<string, number> = {
   'ordinary-spirit-walker-1.json': 13, // round 4 of the accuracy loop: 13 of 13 (Uhtred's Exodus: +3 gem levels with no other support, so Charge Regulation reads 21% more not 20%: skillBuffs.ts, support-levels.json); was 10: ES, Armour, Evasion off by 1 to 6
   'ordinary-spirit-walker-2.json': 13, // 13 of 13 at the start
   'ordinary-titan-1.json': 13, // round 1 of the accuracy loop: 13 of 13 (Hulking Form scales plain small passives by 50%, floored, never the generic attribute nodes or ascendancy ones; Stone Skin is a body-armour-only more; Kaom's Heart 'You have no Spirit'); was 4 at the start: strength/Life/Mana/ES/Armour/Evasion short, Spirit 200 where PoB has 0 (Grand Spectrum x3, Darkness Enthroned)
+  // Round-5 class-coverage set (Runes of Aldur, no Mageblood, no RELIC item): classes with no fixture yet; FLOOR = the match when added.
+  'ordinary-druid-1.json': 13, // round 8: 13 of 13, the main skill's form sets Condition:Shapeshifted (skillBuffs.ts withShapeshifted) so Scales of the Wyvern's +1% Maximum Lightning Resistance counts. Round 5 of the engine loop: Ingenuity's "N% increased bonuses gained from left/right Equipped Ring" (lineMods.ts EFFECT_OF_BONUSES_LINE) scales both rings; was 8. Short: Lightning (76/75: "+1% Maximum Lightning Resistance while Shapeshifted" needs the Shapeshifted condition PoB derives from the main skill)
+  'ordinary-huntress-1.json': 13, // 13 of 13 at the start
+  'ordinary-infernalist-1.json': 13,
+  'ordinary-invoker-1.json': 13, // round 8: 13 of 13, the printed rune line '+1 to maximum Mana per 2 Item Energy Shield on Equipped Helmet' (statTable.ts readPerItemLine, resolved with the passives' per-item rules)
+  'ordinary-mercenary-1.json': 13, // round 2: 13 of 13, an active charm adds its base buff (collect.ts collectCharms: Sapphire +25% Cold, Topaz +25% Lightning, same-base charms merge); was 11
+  'ordinary-monk-1.json': 13, // round 8: 13 of 13, Discipline's 'maximum Energy Shield' is PoB's EnergyShieldTotal, added after the increases (L13 = 162)
+  'ordinary-shaman-1.json': 13, // round 9: 13 of 13, class-switchable passives (switchableNodes.ts, PoB PassiveSpec.lua:1518): a Druid's three 'Aura Skills have 5% increased Magnitudes' nodes and Bolstering Presence are 'N% increased Damage' for her, so Purity of Lightning is 39 not 49.53 (Lightning 72); was 12. round 7: 12 of 13 (Bear Form: the main skill Rampage is a Bear skill, +10 x level + 10 flat Armour). round 5: 11 of 13 (Undying Hate's Conquered Attribute passives +3 to all Attributes, Wisdom of the Maji's Bonded rune lines, Iron Reflexes from the Legacy rune, Heavy Armour); was 5
+  'ordinary-smith-of-kitava-1.json': 13,
+  'ordinary-sorceress-1.json': 13, // round 8: 13 of 13, Discipline L20 (328) x 1.47 Aura magnitudes = 482.16, added after the rounded Energy Shield (EnergyShieldTotal)
+  'ordinary-witchhunter-1.json': 13, // round 8: 13 of 13. Full Life is Chaos Inoculation's, not every unreserved character's (Hyrri's Ire's Full Life rune lines are in neither PoB total); a CritRecently tick implies HitRecently (Afterimage); 'doubled if you have not been Hit Recently' (Hyrri's Ire) and Obsessive Rituals' final -50% are read; a Time-Lost jewel's Notable effect scales its 'also grant' lines (+5% Chaos Resistance x 1.24 = 6)
   'ordinary-warbringer-1.json': 13, // round 5: 13 of 13 (corrupted-item count excludes jewels, includes flasks and charms; Rage and Summoned Totems multiply Armour and Evasion passives); was 10. round 3: Blood Magic sets Mana 0 (engine.ts); short Life, Armour, Evasion; was 9 // 9 of 13 at the start: Mana 552 where PoB has 0, Armour and Evasion short, Life over
 };
 
 
 // PoB's own per-stat build-up (breakdowns.stats[i].mods = [kind 0 flat|1 inc|2 more, value, sourceIndex]) says WHICH
 // modifiers PoB counts that we do not. Stat index -> our pool, and the diff itself.
-const BREAKDOWN_POOLS: Record<string, Pool> = { '0': 'life', '1': 'mana', '2': 'energyShield', '3': 'spirit', '5': 'evasion', '6': 'str', '7': 'dex', '8': 'int' };
+const BREAKDOWN_POOLS: Record<string, Pool> = { '0': 'life', '1': 'mana', '2': 'energyShield', '3': 'spirit', '4': 'armour', '5': 'evasion', '6': 'str', '7': 'dex', '8': 'int' };
 const KIND = ['flat', 'increased', 'more'] as const;
 type Breakdowns = { stats: Record<string, { mods: [number, number, number][] }>; sources: ([number, string?, string?] | [number])[] };
 
@@ -282,7 +304,7 @@ beforeAll(async () => {
     const run = (config: BuildConfig | undefined) => {
       const { buildConfig: _imported, ...rest } = checkpoint.passive_state;
       const collected = collectContributions(
-        { passive: config ? { ...rest, buildConfig: config } : rest, gear: checkpoint.gear_state, level: fx.level, set: parsed.build.useSecondWeaponSet ? 2 : 1, gems: checkpoint.gem_state },
+        { passive: config ? { ...rest, buildConfig: config } : rest, gear: checkpoint.gear_state, level: fx.level, set: parsed.build.useSecondWeaponSet ? 2 : 1, gems: checkpoint.gem_state, className: mapped.plan.build.class, ascendancy: mapped.plan.build.ascendancy },
         data,
       );
       const sheet = computeDefences({

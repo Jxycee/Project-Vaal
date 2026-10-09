@@ -13,7 +13,7 @@
 // (1 + quality/100)), and that is what reaches the character. When the tree
 // says "Cannot gain Spirit from Equipment", every Spirit an item grants is
 // dropped, as PoB2 does (src/Modules/CalcSetup.lua:1470-1476, 1684).
-// Flasks and charms are left out: their stats apply while used, not always.
+// Flasks are left out: their stats apply while used, not always. Charms count through their base buff (collectCharms).
 // Runes follow PoB2 Item.lua:2179-2198 per item type, see runes.ts.
 // A stat id the table does not know is not dropped silently: if it looks like it
 // could move a reported number (statTable.ts looksLikeDefenceStat) it is named
@@ -31,18 +31,21 @@ import type { GearState } from '../gearState';
 import type { GemState } from '../gemState';
 import { conditionHolds, type BuildConfig } from './buildConfig';
 import { lifeReservation, withDerivedConditions } from './reservation';
-import { skillBuffContributions } from './skillBuffs';
+import { shapeshiftContributions, mainSkillHits, skillBuffContributions, withShapeshifted } from './skillBuffs';
+import { readSurrounded } from './surrounded';
 import { totemsSummoned, type TotemMods } from './totems';
 import type { PassiveState } from '../types';
 import { campaignAt } from './campaign';
 import { DEFENCE_WORDS, implicitStats } from './implicits';
 import { isLegacyLine, LEGACY_EFFECT_LINE, legacyContributions } from './legacies';
-import { RADIUS_GRANT_LINE, readLine, readLocalDefenceLine, type LineMod } from './lineMods';
+import { RADIUS_GRANT_LINE, SOCKET_EFFECT_LINE, readLine, readLocalDefenceLine, type LineMod } from './lineMods';
+import { switchedNode } from './switchableNodes';
 import type { JewelRadiusNode } from '@/lib/tree/treeLite';
 import { categoryApplies, isKnownCategory, readRuneLine } from './runes';
 import type { Contribution } from './engine';
-import { CONDITIONAL_EFFECTS, GLOBAL_EFFECTS, LOCAL_EFFECTS, looksLikeDefenceStat, MULTIPLIED_EFFECTS, NOT_MODELLED, PER_ITEM_DEFENCE, SUPPORT_THRESHOLD, type PerItemDefence, type Pool } from './statTable';
+import { CONDITIONAL_EFFECTS, GLOBAL_EFFECTS, LOCAL_EFFECTS, looksLikeDefenceStat, MULTIPLIED_EFFECTS, NOT_MODELLED, PER_ITEM_DEFENCE, readPerItemLine, SUPPORT_THRESHOLD, type PerItemDefence, type Pool } from './statTable';
 import supportColours from '@/lib/pob/data/support-colours.json';
+import charmBuffs from '@/lib/pob/data/charm-buffs.json';
 
 /**
  * Embrace the Darkness: "You have no Spirit". Its typed stats (base_darkness
@@ -68,6 +71,8 @@ export interface CollectData {
         /** The armour base's movement speed penalty as a fraction (0.03 = 3% slower), 0 for none (base-movement-penalty.json). */
         movementPenalty?: number;
         spirit: number;
+        /** The base's Strength requirement (Heavy Armour reads it from the helmet, gloves and boots). */
+        strRequirement?: number;
         implicits?: [string, number, number][][];
         /** The item file's implicit display lines — what `implicits` describes. */
         implicitLines?: string[];
@@ -100,18 +105,45 @@ const NUMBER_TOKEN = /\((-?\d+(?:\.\d+)?)-(-?\d+(?:\.\d+)?)\)|(-?\d+(?:\.\d+)?)/
 
 export interface Collected {
   contributions: Contribution[];
-  flags: { giantsBlood: boolean; lordOfTheWilds: boolean; noSpirit: boolean; noSpiritFromEquipment: boolean; chaosInoculation: boolean; eldritchBattery: boolean; bloodMagic: boolean };
+  flags: { giantsBlood: boolean; lordOfTheWilds: boolean; noSpirit: boolean; noSpiritFromEquipment: boolean; chaosInoculation: boolean; eldritchBattery: boolean; bloodMagic: boolean; ironReflexes?: boolean; bondedMods?: boolean };
   resistancePenalty: number;
   act: string;
   notCounted: string[];
   assumed: string[];
 }
 
+/** Lines that only set up the derived Surrounded condition (surrounded.ts): "Require 4 fewer enemies to be Surrounded", "42% increased Surrounded Area of Effect". */
+const SURROUNDED_WORDS = /Surrounded Area of Effect|fewer enemies to be Surrounded/;
+
+/** Heavy Armour's typed stat (node 59589): the number is the percent of the Strength requirements. */
+/** Infernalist Beidat's Will: +1 Spirit per `value` (25) maximum Life, resolved in the engine once Life is known. */
+const BEIDATS_WILL = 'ascendancy_beidats_will_spirit_+_per_X_maximum_life';
+const STR_REQUIREMENT_ARMOUR = 'armour_+_from_%_strength_requirements_from_boots_gloves_helmets';
+
 const NOT_ON_CHARACTER: ReadonlySet<GearSlot> = new Set(['flask1', 'flask2', 'charm1', 'charm2', 'charm3']);
 const ATTRIBUTE_POOL: Record<AttributeChoice, Pool> = { str: 'str', dex: 'dex', int: 'int' };
 
+/**
+ * Tree + gear + campaign -> contributions. Surrounded is derived from the first pass's own "Require N fewer enemies to
+ * be Surrounded" and "increased Surrounded Area" lines (surrounded.ts); when it holds and the Configuration does not
+ * already say so, one more pass runs with the condition on. A build with no Configuration is never given one.
+ */
 export function collectContributions(
-  input: { passive: PassiveState; gear: GearState; level: number; set: 1 | 2; gems?: GemState },
+  input: { passive: PassiveState; gear: GearState; level: number; set: 1 | 2; gems?: GemState; className?: string; ascendancy?: string | null },
+  data: CollectData,
+): Collected {
+  const first = collectOnce(input, data);
+  const config = input.passive.buildConfig;
+  if (!config || config.conditions.includes('Surrounded')) return first;
+  const surrounded = readSurrounded(first.contributions, config);
+  if (!surrounded.holds) return first;
+  const second = collectOnce({ ...input, passive: { ...input.passive, buildConfig: { ...config, conditions: [...config.conditions, 'Surrounded'].sort() } } }, data);
+  second.assumed.push(`Surrounded: ${5 - surrounded.required} fewer enemies required and a ${surrounded.radius / 10} metre radius make you Surrounded, so the "while Surrounded" modifiers count`);
+  return second;
+}
+
+function collectOnce(
+  input: { passive: PassiveState; gear: GearState; level: number; set: 1 | 2; gems?: GemState; className?: string; ascendancy?: string | null },
   data: CollectData,
 ): Collected {
   const contributions: Contribution[] = [];
@@ -120,7 +152,11 @@ export function collectContributions(
   const assumed: string[] = [];
   // Low Life is derived when the gems reserve enough Life (reservation.ts); the Configuration's own conditions stay as imported.
   const lifeReserved = lifeReservation(input.gems, input.set);
-  const config = withDerivedConditions(input.passive.buildConfig, lifeReserved.percent);
+  // Chaos Inoculation is what puts a character on Full Life in PoB (Life 1 is always full); an ordinary character is not on Full Life
+  // unless the Configuration ticks it (ordinary-witchhunter-1: Life unreserved, yet "100% increased Evasion Rating when on Full Life"
+  // and "10% increased Movement Speed when on Full Life" are in neither PoB total).
+  const inoculated = [...(input.set === 1 ? input.passive.set1 : input.passive.set2), ...input.passive.ascendancyNodes].some((id) => data.node(id)?.stats.some(([stat]) => stat === 'keystone_chaos_inoculation') === true);
+  const config = withShapeshifted(withDerivedConditions(input.passive.buildConfig, lifeReserved.percent, inoculated, mainSkillHits(input.gems)), input.gems);
   // "Per X" stats wait here until every passive is read: a Multiplier's count is the Configuration's (Rage) or derived from the
   // skills and the passives together (Summoned Totems, totems.ts), so it is known only at the end.
   const multiplierCounts: MultiplierCounts = { known: config !== undefined, pending: [] };
@@ -130,13 +166,21 @@ export function collectContributions(
   }
   /** Mind over Matter allocated: PoB leaves Mana alone beside Blood Magic (ordinary-titan-1, mana 963; ordinary-warbringer-1 without it, mana 0). */
   let manaShield = false;
-  const flags = { giantsBlood: false, lordOfTheWilds: false, noSpirit: false, noSpiritFromEquipment: false, chaosInoculation: false, eldritchBattery: false, bloodMagic: false };
+  /**
+   * flags.bondedMods is Wisdom of the Maji ("Gain the benefits of Bonded modifiers on Runes and Idols", stat ascendancy_shaman_gain_additional_socketable_mods):
+   * without it PoB prints a rune's "Bonded:" lines on the item but parses none of them (Item.lua:2146); with it every one counts
+   * (ordinary-shaman-1: Perfect Body Rune's +20 Life and +20 Mana, 4 of them on Morior Invictus = +80 each). The printed value
+   * already includes the item's "increased effect of Socketed Augment Items".
+   */
+  const flags: Collected['flags'] = { giantsBlood: false, lordOfTheWilds: false, noSpirit: false, noSpiritFromEquipment: false, chaosInoculation: false, eldritchBattery: false, bloodMagic: false };
 
   // ---- Tree: this set's nodes (shared ones are in both lists) and the ascendancy.
   const nodes = new Set([...(input.set === 1 ? input.passive.set1 : input.passive.set2), ...input.passive.ascendancyNodes]);
   let unchosen = 0;
   /** Passives that scale off an item's own defence: resolved once every item is read (statTable PER_ITEM_DEFENCE). */
   const perItem: { rule: PerItemDefence; value: number; source: string }[] = [];
+  /** Heavy Armour: "Gain Armour equal to N% of total Strength Requirements of Equipped Boots, Gloves and Helmet" (resolved with perItem). */
+  const strRequirementArmour: { value: number; source: string }[] = [];
   /** Passives that need N support gems of a colour (statTable SUPPORT_THRESHOLD): resolved once the gems are read. */
   const needsSupports: { stat: string; value: number; source: string }[] = [];
   // ---- Passive effect: "50% increased effect of Small Passive Skills" (Hulking Form) and a jewel's "N% increased Effect of
@@ -154,6 +198,22 @@ export function collectContributions(
       return;
     }
     const effect = nodeEffect.get(id) ?? (node.small === true && !input.passive.ascendancyNodes.includes(id) ? smallEffect : 0);
+    // A class-switchable passive is, for this class, the option PoB gives it (switchableNodes.ts): read like an item line.
+    const switched = switchedNode(id, input.className, input.ascendancy);
+    if (switched) {
+      for (const line of switched.lines) {
+        const read = readLine(line);
+        if (read === null) continue;
+        if ('unmodelled' in read) {
+          notCounted.push(`${switched.name}: "${read.unmodelled}" not counted`);
+          continue;
+        }
+        for (const mod of gate(read.mods, config, line, switched.name, notCounted)) {
+          contributions.push({ pool: mod.pool, kind: mod.kind, value: effect === 0 ? mod.value : scaleNodeValue(mod.value, effect), source: switched.name, ...(mod.slot ? { slot: mod.slot } : {}), ...(mod.itemClass ? { itemClass: mod.itemClass } : {}), ...(mod.allElemental ? { allElemental: true as const } : {}) });
+        }
+      }
+      return;
+    }
     for (const [stat, rawValue] of node.stats) {
       const value = effect === 0 ? rawValue : scaleNodeValue(rawValue, effect);
       if (stat === 'keystone_giants_blood') flags.giantsBlood = true;
@@ -162,12 +222,16 @@ export function collectContributions(
       else if (stat === 'keystone_eldritch_battery') flags.eldritchBattery = true;
       else if (stat === 'keystone_blood_magic') flags.bloodMagic = true;
       else if (stat === 'keystone_mana_shield') manaShield = true;
+      else if (stat === 'keystone_iron_reflexes') flags.ironReflexes = true;
+      else if (stat === 'ascendancy_shaman_gain_additional_socketable_mods') flags.bondedMods = true;
       else if (stat === 'cannot_gain_spirit_from_equipment') flags.noSpiritFromEquipment = true;
       if (stat === 'number_of_additional_totems_allowed') totemMods.global += value;
       else if (stat === 'attack_skills_additional_ballista_totems_allowed') totemMods.ballista += value;
       else if (stat === 'melee_attack_skills_additional_totems_allowed') totemMods.meleeAttack += value;
       if (SUPPORT_THRESHOLD[stat]) needsSupports.push({ stat, value, source: node.name });
       else if (PER_ITEM_DEFENCE[stat]) perItem.push({ rule: PER_ITEM_DEFENCE[stat], value, source: node.name });
+      else if (stat === BEIDATS_WILL) contributions.push({ pool: 'spirit', kind: 'flat', value: 1, perLife: { per: value }, source: node.name });
+      else if (stat === STR_REQUIREMENT_ARMOUR) strRequirementArmour.push({ value, source: node.name });
       else addGlobal(contributions, notCounted, unknown, stat, value, node.name, config, multiplierCounts);
     }
   };
@@ -229,13 +293,16 @@ export function collectContributions(
   };
   /** Radius jewels wait until every item has allocated what it grants (Megalomaniac's "Allocates X"): PoB counts a node in the radius however it was allocated. */
   const radiusJewels: { item: GearItem; socket: number }[] = [];
+  const socketEffect = jewelSocketEffect(equipped);
   for (const { item, slot, socket } of equipped) {
     const from = contributions.length;
-    collectItem(item, slot, data, flags, contributions, notCounted, unknown, assumed, allocate, config, gearCounts, input.level, multiplierCounts);
+    collectItem(item, slot, data, flags, contributions, notCounted, unknown, assumed, allocate, config, gearCounts, input.level, multiplierCounts, perItem);
+    if (socket !== undefined) scaleSocketedJewel(item, socketEffect, contributions, from);
     if (socket !== undefined) radiusJewels.push({ item, socket });
     if (slot) wornAt.set(slot, { from, to: contributions.length, name: item.name });
   }
-  for (const { item, socket } of radiusJewels) radiusGrants(item, socket, nodes, data, contributions, notCounted, config);
+  for (const { item, socket } of radiusJewels) radiusGrants(item, socket, nodes, data, contributions, notCounted, config, nodeEffect);
+  collectCharms(input.gear, data, contributions, notCounted, assumed, config);
   // "N% increased ... from Equipped Shield" carries PoB's Condition UsingShield: a focus in the same off-hand slot
   // is not a shield, so the increase must not scale its Energy Shield. Dropped when the slot's item is another class.
   for (let i = contributions.length - 1; i >= 0; i--) {
@@ -258,6 +325,20 @@ export function collectContributions(
     const steps = rule.valueIs === 'percent' ? Math.floor((have * value) / 100) : div > 0 ? Math.floor(have / div) : 0;
     if (steps * amount !== 0) {
       contributions.push({ pool: rule.pool, kind: 'flat', value: steps * amount, source });
+    }
+  }
+
+  // Heavy Armour: one Armour flat per helmet, gloves and boots worn, each N% of that base's Strength requirement, rounded half up
+  // (ordinary-shaman-1: requirements 44, 101 and 115 give 66, 152 and 173 at 150%). An attribute-requirement modifier on the item
+  // (Adherent's Raiment) is not read, so the base's own figure is used.
+  for (const { value, source } of strRequirementArmour) {
+    for (const slot of ['head', 'gloves', 'boots'] as const) {
+      const worn = input.gear[slot];
+      if (!worn) continue;
+      const unique = worn.isUnique ? data.unique(worn.name, worn.slug) : undefined;
+      const base = unique ? ((worn.craft?.baseSlug ? data.item(worn.craft.baseSlug) : undefined) ?? data.item(unique.baseSlug)) : data.item(worn.slug);
+      const amount = Math.round(((base?.strRequirement ?? 0) * value) / 100);
+      if (amount > 0) contributions.push({ pool: 'armour', kind: 'flat', value: amount, source });
     }
   }
 
@@ -284,9 +365,11 @@ export function collectContributions(
     input.set,
     contributions.filter((c) => c.pool === 'auraEffect' && c.kind === 'increased').reduce((n, c) => n + c.value, 0),
     contributions.filter((c) => c.pool === 'bannerAuraEffect' && c.kind === 'increased').reduce((n, c) => n + c.value, 0),
+    contributions.filter((c) => c.pool === 'auraMagnitude' && c.kind === 'increased').reduce((n, c) => n + c.value, 0),
     config,
   );
   contributions.push(...buffs.contributions);
+  contributions.push(...shapeshiftContributions(input.gems, input.level));
   notCounted.push(...buffs.notCounted);
   if (buffs.counted.length > 0) {
     assumed.push(`${buffs.counted.join(', ')}: read at the gem's own level; "+N to Level of all skills" from gear is not modelled`);
@@ -405,7 +488,8 @@ function jewelNotableEffect(jewels: GearState['jewels'], nodes: ReadonlySet<numb
  *   6. The jewel's socket is not allocated: never reaches here (the jewel is not worn).
  *   8. Another item allocates a passive inside the radius (Megalomaniac's "Allocates X") and sits in a later socket:
  *      radius jewels are measured after every item is read, so the order of sockets never changes the count.
- *   7. Attribute passives, keystones, masteries, sockets and blighted nodes are in neither set (treeLite.ts).
+ *   7. Keystones, masteries, sockets and blighted nodes are in no set (treeLite.ts). Attribute passives are kind 2: only a
+ *      Timeless jewel's "Conquered Attribute Passive Skills also grant ..." reaches them, once per ALLOCATED one in the radius.
  */
 const RADIUS_OUTER: Readonly<Record<string, number>> = { Small: 1000, Medium: 1150, Large: 1300, 'Very Large': 1500 };
 const JEWEL_DISTANCE_MULTIPLIER = 1.2;
@@ -418,6 +502,8 @@ function radiusGrants(
   contributions: Contribution[],
   notCounted: string[],
   config: BuildConfig | undefined,
+  /** Node id -> "increased Effect of Notable Passive Skills in Radius" percent (jewelNotableEffect): it scales a notable's "also grant" line too. */
+  nodeEffect: ReadonlyMap<number, number> = new Map(),
 ): void {
   const grants = (item.craft?.verbatim ?? []).map((l) => RADIUS_GRANT_LINE.exec(l)).filter((m): m is RegExpExecArray => m !== null);
   if (grants.length === 0) return;
@@ -433,8 +519,8 @@ function radiusGrants(
   }
   const limit = outer * JEWEL_DISTANCE_MULTIPLIER;
   for (const [, type, inner] of grants) {
-    const kind = type === 'Notable' ? 0 : 1;
-    const reached = near.filter(([id, distance, k]) => k === kind && distance <= limit && allocated.has(id)).length;
+    const kind = type === 'Notable' ? 0 : type === 'Small' ? 1 : 2;
+    const reached = near.filter(([id, distance, k]) => k === kind && distance <= limit && allocated.has(id));
     const read = readLine(inner);
     if (read === null) continue;
     if ('unmodelled' in read) {
@@ -442,8 +528,11 @@ function radiusGrants(
       continue;
     }
     const counted = gate(read.mods, config, inner, item.name, notCounted);
-    for (let i = 0; i < reached; i++) {
-      for (const mod of counted) contributions.push({ pool: mod.pool, kind: mod.kind, value: mod.value, source: item.name, ...(mod.slot ? { slot: mod.slot } : {}), ...(mod.itemClass ? { itemClass: mod.itemClass } : {}) });
+    // PoB adds the granted modifier to each node's own list (ModParser.lua:7170), so a notable's effect increase scales it like the
+    // notable's own values (plague-vessel on witchhunter-1: +5% Chaos Resistance x 1.24 -> 6, four times).
+    for (const [id] of reached) {
+      const effect = kind === 0 ? (nodeEffect.get(id) ?? 0) : 0;
+      for (const mod of counted) contributions.push({ pool: mod.pool, kind: mod.kind, value: effect === 0 ? mod.value : scaleNodeValue(mod.value, effect), source: item.name, ...(mod.slot ? { slot: mod.slot } : {}), ...(mod.itemClass ? { itemClass: mod.itemClass } : {}), ...(mod.allElemental ? { allElemental: true as const } : {}) });
     }
   }
 }
@@ -484,6 +573,41 @@ function corruptedItemCount(equipped: readonly { item: GearItem; slot?: GearSlot
     if (opposite && !opposite.name.includes("Kalandra's Touch") && corrupted(opposite)) count++;
   }
   return count;
+}
+
+/**
+ * "N% increased Effect of Jewel Socket Passive Skills containing Corrupted Rare Jewels" (The Adorned): a jewel socket holding a
+ * corrupted jewel of that rarity gives its jewel's modifiers N% more value. Oracle armour-life-gemling: six corrupted rare Rubies
+ * and Sapphires under a 62% line, PoB lists floor(24 x 1.62) = 38, floor(29 x 1.62) = 46, floor(+4 Strength x 1.62) = 6 for them.
+ *
+ * Failure modes, decided first:
+ *   1. No such line worn (every other build): the table is empty and nothing is scaled.
+ *   2. The line sits on an item in no allocated socket (not in `equipped`): it does nothing, as in the game.
+ *   3. Only a CORRUPTED jewel of the named rarity is scaled; an uncorrupted rare, a unique, or a jewel of the other rarity is not.
+ *   4. Each modifier value is floored on its own after the scale (verified: 38.88 -> 38, 46.98 -> 46, 6.48 -> 6, 4.86 -> 4).
+ *   5. Two such lines add (PoB sums increases). Only what collectItem pushed for that jewel is scaled: a radius jewel's "also
+ *      grant" lines are added after this and are not.
+ */
+function jewelSocketEffect(equipped: readonly { item: GearItem; socket?: number }[]): { magic: number; rare: number } {
+  const out = { magic: 0, rare: 0 };
+  for (const { item, socket } of equipped) {
+    if (socket === undefined) continue;
+    for (const line of item.craft?.verbatim ?? []) {
+      const m = SOCKET_EFFECT_LINE.exec(line);
+      if (m) out[m[2] === 'Magic' ? 'magic' : 'rare'] += Number(m[1]);
+    }
+  }
+  return out;
+}
+
+function scaleSocketedJewel(item: GearItem, effect: { magic: number; rare: number }, contributions: Contribution[], from: number): void {
+  const rarity = item.craft?.rarity;
+  const percent = rarity === 'magic' ? effect.magic : rarity === 'rare' ? effect.rare : 0;
+  if (percent === 0 || item.isUnique || item.craft?.corrupted !== true) return;
+  for (let i = from; i < contributions.length; i++) {
+    const c = contributions[i];
+    contributions[i] = { ...c, value: Math.floor((c.value * (100 + percent)) / 100) };
+  }
 }
 
 function reflectOppositeRing(wornAt: ReadonlyMap<GearSlot, { from: number; to: number; name: string }>, contributions: Contribution[]): void {
@@ -600,7 +724,7 @@ function addGlobal(
   const effects = GLOBAL_EFFECTS[stat];
   if (effects) {
     for (const e of effects) {
-      out.push({ pool: e.pool, kind: e.kind, value: value * (e.scale ?? 1), source, ...(e.slot ? { slot: e.slot } : {}), ...(e.itemClass ? { itemClass: e.itemClass } : {}), ...(e.perAttribute ? { perAttribute: e.perAttribute } : {}) });
+      out.push({ pool: e.pool, kind: e.kind, value: value * (e.scale ?? 1), source, ...(e.slot ? { slot: e.slot } : {}), ...(e.itemClass ? { itemClass: e.itemClass } : {}), ...(e.perAttribute ? { perAttribute: e.perAttribute } : {}), ...(e.allElemental ? { allElemental: true as const } : {}) });
     }
   } else if (NOT_MODELLED[stat]) {
     notCounted.push(`${source}: ${NOT_MODELLED[stat]}`);
@@ -624,6 +748,8 @@ function collectItem(
   /** The character's level: "Has +3 to Evasion Rating per player level" scales by it. */
   level: number,
   multiplierCounts: MultiplierCounts,
+  /** Printed "+N to maximum X per D Item <defence> on Equipped <slot>" lines wait here until every item's own figure is known. */
+  perItem: { rule: PerItemDefence; value: number; source: string }[],
 ): void {
   const craft = item.craft;
   const stats: [string, number][] = [];
@@ -711,7 +837,7 @@ function collectItem(
           flags.noSpirit = true;
           return;
         }
-        if (DEFENCE_WORDS.test(line.text)) {
+        if (DEFENCE_WORDS.test(line.text) || /bonuses gained from/.test(line.text) || SURROUNDED_WORDS.test(line.text)) {
           const text = resolveLine(line.text, values);
           if (readLine(text) === null) notCounted.push(`${item.name}: "${line.text}" not counted`);
           else untypedLines.push(text);
@@ -789,13 +915,27 @@ function collectItem(
     const extra = Math.round((n - base) * 100) / 100;
     return [line.replace(/\d+(?:\.\d+)?/, String(base)), line.replace(/\d+(?:\.\d+)?/, String(extra))];
   };
-  for (const line of printedRunes ?? []) {
+  for (const printed of printedRunes ?? []) {
+    const perItemLine = readPerItemLine(printed);
+    if (perItemLine) {
+      perItem.push({ ...perItemLine, source: item.name });
+      continue;
+    }
+    // A bare keystone name on a rune ("Iron Reflexes", Legacy of The Knight-errant) gives the character that keystone.
+    if (printed.trim() === 'Iron Reflexes') {
+      flags.ironReflexes = true;
+      continue;
+    }
+    // "Bonded:" lines count only for a character with Wisdom of the Maji (flags.bondedMods); the value is the printed one.
+    const bonded = /^Bonded:\s*/i.test(printed);
+    if (bonded && !flags.bondedMods) continue;
+    const line = bonded ? printed.replace(/^Bonded:\s*/i, '') : printed;
     const read = readRuneLine(line);
     if (read !== null && 'stat' in read) {
       stats.push([runeStat(read.stat), read.value]);
       continue;
     }
-    if (!/^Bonded:/i.test(line) && readLine(line) !== null) {
+    if (readLine(line) !== null) {
       runeVerbatim.push(...splitRuneMore(line));
       continue;
     }
@@ -829,7 +969,13 @@ function collectItem(
   const localFlat: Partial<Record<Pool, number>> = {};
   const localInc: Partial<Record<Pool, number>> = {};
   for (const m of perLevelImplicits) localFlat[m.pool] = (localFlat[m.pool] ?? 0) + m.value * level;
-  readVerbatim([...(craft?.verbatim ?? []), ...untypedLines, ...runeVerbatim], item.name, { defences: detail.armour !== null, spirit: detail.spirit > 0 }, localFlat, localInc, contributions, notCounted, allocate, config, { sockets: filledSockets(craft), gear: gearCounts, level });
+  const notPerItem = (list: readonly string[]) =>
+    list.filter((l) => {
+      const perItemLine = readPerItemLine(l);
+      if (perItemLine) perItem.push({ ...perItemLine, source: item.name });
+      return !perItemLine;
+    });
+  readVerbatim([...notPerItem(craft?.verbatim ?? []), ...notPerItem(untypedLines), ...runeVerbatim], item.name, { defences: detail.armour !== null, spirit: detail.spirit > 0 }, localFlat, localInc, contributions, notCounted, allocate, config, { sockets: filledSockets(craft), gear: gearCounts, level });
   for (const [stat, value] of stats) {
     const local = LOCAL_EFFECTS[stat];
     if (local) {
@@ -929,6 +1075,58 @@ function readVerbatim(
       }
     }
   }
+}
+
+// CHARMS. PoB2 (CalcPerform.lua mergeCharms) adds the buff of every charm in an ACTIVE charm slot to the character: a
+// Sapphire Charm is "+25% to Cold Resistance", a Ruby Charm +25% Fire, a Topaz +25% Lightning, an Amethyst +18% Chaos
+// (Item.lua base.charm.buff, charm-buffs.json). The oracle's mercenary-1 (Breath of the Mountains, Valako's Roar) was 25
+// short on Cold and Lightning with nothing else wrong.
+//
+// How this can go wrong, decided first:
+//   1. Two charms of the SAME base (two Sapphire Charms, a unique and a plain one) stack: PoB merges a base's buff by
+//      modifier, keeping the larger value (mergeBuff), so the second adds nothing. Different bases do add.
+//   2. A third-slot charm beyond the charm limit counted: the limit is 3 slots in the game; a build cannot wear more.
+//   3. An inactive charm counted: the importer does not read a slot's active flag (parse.ts), so every charm worn is
+//      treated as active, which is PoB's own default and what every oracle fixture carries. Named in `assumed`.
+//   4. A buff line that is no defence (Immune to Poison, 15% increased Rarity) read as one: readLine types only what it
+//      knows, and the rest is ignored the way a unique's offence lines are.
+//   5. "N% increased Charm Effect" (a belt or passive) scales the buff in PoB; it is not modelled, so such a build is
+//      short by that share, never over.
+function collectCharms(
+  gear: GearState,
+  data: CollectData,
+  contributions: Contribution[],
+  notCounted: string[],
+  assumed: string[],
+  config: BuildConfig | undefined,
+): void {
+  const table = charmBuffs as Record<string, { name: string; lines: string[] }>;
+  /** Per base: each modifier's larger value (PoB mergeBuff), so a second charm of the same base adds nothing. */
+  const perBase = new Map<string, Map<string, Contribution>>();
+  for (const slot of ['charm1', 'charm2', 'charm3'] as const) {
+    const item = gear[slot];
+    if (!item) continue;
+    const baseSlug = item.isUnique ? (item.craft?.baseSlug ?? data.unique(item.name, item.slug)?.baseSlug) : item.slug;
+    const base = baseSlug === undefined ? undefined : table[baseSlug];
+    if (!base) continue;
+    const read: Contribution[] = [];
+    readVerbatim(base.lines, `${base.name} (charm)`, { defences: false, spirit: false }, {}, {}, read, notCounted, () => undefined, config, { sockets: 0, gear: {}, level: 0 });
+    const best = perBase.get(baseSlug as string) ?? new Map<string, Contribution>();
+    for (const c of read) {
+      const key = `${c.pool}|${c.kind}`;
+      const have = best.get(key);
+      if (!have || c.value > have.value) best.set(key, c);
+    }
+    perBase.set(baseSlug as string, best);
+  }
+  let counted = 0;
+  for (const best of perBase.values()) {
+    for (const c of best.values()) {
+      contributions.push(c);
+      counted++;
+    }
+  }
+  if (counted > 0) assumed.push(`Charms: every charm worn is counted as active (the slot's active flag is not read); "increased Charm Effect" is not modelled`);
 }
 
 /**

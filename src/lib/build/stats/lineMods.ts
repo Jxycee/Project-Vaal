@@ -69,9 +69,35 @@ import type { Pool } from './statTable';
 
 /**
  * A Time-Lost jewel's "Notable / Small Passive Skills in Radius also grant <line>" (PoB2 ModParser.lua:7170). The
- * inner line is read by readLine; how many passives it reaches is collect.ts's job (the jewel's radius).
+ * inner line is read by readLine; how many passives it reaches is collect.ts's job (the jewel's radius). A Timeless jewel
+ * (Undying Hate) words the same thing "Conquered Attribute Passive Skills also grant +3 to all Attributes": once per
+ * allocated "+5 to any Attribute" passive in its radius (oracle ordinary-shaman-1: three of them, +3 to each attribute each).
  */
-export const RADIUS_GRANT_LINE = /^(Small|Notable) Passive Skills in Radius also grant (.+)$/;
+export const RADIUS_GRANT_LINE = /^(Small|Notable|Conquered Attribute) Passive Skills(?: in Radius)? also grant (.+)$/;
+
+/**
+ * The Adorned prints "N% increased Effect of Jewel Socket Passive Skills" and, on the next line, "containing Corrupted
+ * Magic Jewels" (or Rare). The importer joins the two into this one line (mapCraft.ts joinSocketEffectLines) so a
+ * verbatim copy survives alone; collect.ts scales every modifier of each corrupted jewel of that rarity by N%.
+ */
+export const SOCKET_EFFECT_LINE = /^(\d+(?:\.\d+)?)% increased Effect of Jewel Socket Passive Skills containing Corrupted (Magic|Rare) Jewels$/;
+
+/**
+ * "28% increased bonuses gained from left Equipped Ring" (Ingenuity), "... from Equipped Rings", "... from Equipped Amulet",
+ * "... from Equipped Rings and Amulets": PoB's EffectOfBonusesFrom<slot> INC. modcache.json lacks these lines, so the
+ * words decide. The sum per slot becomes a second, scaled copy of that ring or amulet's modifiers (collect.ts
+ * bonusEffectFromJewellery). "reduced" is the negative; the collector clamps the scale at 0.
+ * Failure mode: a wording this does not match (e.g. "...from Equipped Ring" without left/right) stays unread, so the
+ * line is named in notCounted by its caller, never guessed onto a slot.
+ */
+export const EFFECT_OF_BONUSES_LINE = /^(\d+(?:\.\d+)?)% (increased|reduced) bonuses gained from (left Equipped Ring|right Equipped Ring|Equipped Rings and Amulets|Equipped Rings|Equipped Amulet)$/;
+const EFFECT_SLOTS: Record<string, Pool[]> = {
+  'left Equipped Ring': ['effectRing1'],
+  'right Equipped Ring': ['effectRing2'],
+  'Equipped Rings': ['effectRing1', 'effectRing2', 'effectRing3'],
+  'Equipped Amulet': ['effectAmulet'],
+  'Equipped Rings and Amulets': ['effectRing1', 'effectRing2', 'effectRing3', 'effectAmulet'],
+};
 
 export interface LineMod {
   pool: Pool;
@@ -89,6 +115,8 @@ export interface LineMod {
   slot?: GearSlot;
   /** With a slot: counts only while the item there is of this class (a shield in an off-hand slot). */
   itemClass?: string;
+  /** PoB parsed the line as ElementalResist(Max): the Smith's fire-to-cold/lightning conversion skips it. */
+  allElemental?: true;
 }
 
 export type LineRead =
@@ -113,6 +141,7 @@ export const POOLS: Record<string, Pool[]> = {
   Life: ['life'],
   Mana: ['mana'],
   EnergyShield: ['energyShield'],
+  EnergyShieldTotal: ['energyShieldTotal'],
   Armour: ['armour'],
   Evasion: ['evasion'],
   Spirit: ['spirit'],
@@ -132,6 +161,8 @@ export const POOLS: Record<string, Pool[]> = {
   ElementalResistMax: ['fireMax', 'coldMax', 'lightningMax'],
   MaxResist: ['fireMax', 'coldMax', 'lightningMax', 'chaosMax'],
   AuraEffect: ['auraEffect'],
+  SurroundedMinimum: ['surroundedMinimum'],
+  SurroundedArea: ['surroundedArea'],
   // The derived defence stats (engine.ts). Values stay in PoB's own units: percent points, life regen per second.
   MovementSpeed: ['movementSpeed'],
   LifeRegen: ['lifeRegen'],
@@ -158,13 +189,15 @@ const KINDS: Record<string, LineMod['kind']> = { BASE: 'flat', INC: 'increased',
 
 interface Template {
   /** Per modifier: its pools, kind and the sign it applies to the line's number. */
-  mods: { pools: Pool[]; kind: LineMod['kind']; sign: 1 | -1 }[];
+  mods: { pools: Pool[]; kind: LineMod['kind']; sign: 1 | -1; allElemental?: true }[];
   global: boolean;
   condition?: { name: string; negate: boolean };
   perSocket?: boolean;
   multiplier?: string;
   slots?: GearSlot[];
   itemClass?: string;
+  /** A line with no number in it ("Evasion Rating is doubled if you have not been Hit Recently"): the value is the cache's own (100). */
+  fixed?: number;
 }
 
 /**
@@ -222,7 +255,7 @@ function derive(entry: CacheEntry, n: number, text: string): Template | null {
     const kind = KINDS[m.type];
     // The cached value must be the line's number up to sign; anything else is a scaling we cannot invert.
     if (!pools || !kind || typeof m.value !== 'number' || Math.abs(m.value) !== Math.abs(n)) return null;
-    read.push({ pools, kind, sign: Math.sign(m.value) === Math.sign(n) ? 1 : -1 });
+    read.push({ pools, kind, sign: Math.sign(m.value) === Math.sign(n) ? 1 : -1, ...(m.name === 'ElementalResist' || m.name === 'ElementalResistMax' ? { allElemental: true as const } : {}) });
   }
   const condition = gated ? { name: [...conditions][0] as string, negate: NEGATED.test(text) } : undefined;
   return { mods: read, global: mods.some((m) => m.tagType === 'Global'), ...(condition ? { condition } : {}), ...(perSocket ? { perSocket } : {}), ...(multiplier ? { multiplier } : {}), ...(slotted ? { slots: slotted.slots, ...(slotted.itemClass ? { itemClass: slotted.itemClass } : {}) } : {}) };
@@ -236,7 +269,10 @@ function build(): Map<string, Template | null> {
     // A line of "0%" ("0% to Cold Resistance", cached with leftover text) is no real line: letting it share a key
     // with "-15% to Cold Resistance" poisoned that template (failure mode 4) and dropped Sierran Inheritance's -15%.
     if (numbers.length === 1 && Number(numbers[0]) === 0) continue;
-    const template = numbers.length === 1 ? derive(entry, Number(numbers[0]), text) : null;
+    // A line with no number is a fixed-value modifier ("doubled" = MORE 100); read only when the cache gives one plain value.
+    const cached = entry.mods?.[0]?.value;
+    const fixed = numbers.length === 0 && typeof cached === 'number' && cached !== 0 ? derive(entry, cached, text) : null;
+    const template = numbers.length === 1 ? derive(entry, Number(numbers[0]), text) : fixed ? { ...fixed, fixed: cached } : null;
     // A key seen twice must read the same both times (failure mode 4); null poisons the template.
     if (!out.has(key)) out.set(key, template);
     else if (JSON.stringify(out.get(key)) !== JSON.stringify(template)) out.set(key, null);
@@ -249,15 +285,21 @@ function build(): Map<string, Template | null> {
  * null = not a line this reader has a template for (offence, fragments, unknown shapes).
  */
 export function readLine(line: string): LineRead | null {
+  const effect = EFFECT_OF_BONUSES_LINE.exec(line.trim());
+  if (effect) {
+    const value = (effect[2] === 'reduced' ? -1 : 1) * Number(effect[1]);
+    return { mods: EFFECT_SLOTS[effect[3]].map((pool) => ({ pool, kind: 'increased' as const, value })), global: true };
+  }
   templates ??= build();
   const numbers = line.match(NUMBER) ?? [];
-  if (numbers.length !== 1) return null;
+  if (numbers.length > 1) return null;
   const template = templates.get(line.replace(NUMBER, '#'));
   if (template === undefined) return null;
+  if (numbers.length === 0 && template?.fixed === undefined) return null;
   if (template === null) return { unmodelled: line };
-  const n = Number(numbers[0]);
+  const n = numbers.length === 0 ? template.fixed! : Number(numbers[0]);
   return {
-    mods: template.mods.flatMap((m) => m.pools.flatMap((pool) => (template.slots ?? [undefined]).map((slot) => ({ pool, kind: m.kind, value: m.sign * n, ...(slot ? { slot } : {}), ...(slot && template.itemClass ? { itemClass: template.itemClass } : {}), ...(template.condition ? { condition: template.condition } : {}), ...(template.perSocket ? { perSocket: true } : {}), ...(template.multiplier ? { multiplier: template.multiplier } : {}) })))),
+    mods: template.mods.flatMap((m) => m.pools.flatMap((pool) => (template.slots ?? [undefined]).map((slot) => ({ pool, kind: m.kind, value: m.sign * n, ...(m.allElemental ? { allElemental: true as const } : {}), ...(slot ? { slot } : {}), ...(slot && template.itemClass ? { itemClass: template.itemClass } : {}), ...(template.condition ? { condition: template.condition } : {}), ...(template.perSocket ? { perSocket: true } : {}), ...(template.multiplier ? { multiplier: template.multiplier } : {}) })))),
     global: template.global,
   };
 }

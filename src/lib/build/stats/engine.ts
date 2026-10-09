@@ -49,6 +49,10 @@ export interface Contribution {
   itemClass?: string;
   /** Counts once per `per` points of the character's final attribute (PoB's PerStat tag), resolved in computeDefences. */
   perAttribute?: { attr: 'str' | 'dex' | 'int'; per: number };
+  /** Counts once per `per` points of the character's final maximum Life (PoB PerStat on Life; Beidat's Will), resolved in computeDefences. */
+  perLife?: { per: number };
+  /** PoB parsed it as ElementalResist(Max), which the Smith's fire-to-cold/lightning conversion does not tabulate. */
+  allElemental?: true;
 }
 
 export interface EngineInput {
@@ -74,6 +78,12 @@ export interface EngineInput {
     eldritchBattery?: boolean;
     /** Blood Magic: "You have no Mana" (PoB OVERRIDE 0 on Mana: warbringer oracle shows 0, not the usual floor of 1). */
     bloodMagic?: boolean;
+    /**
+     * Iron Reflexes: "Converts all Evasion Rating to Armour" (the keystone, or a rune line of that name: Legacy of The
+     * Knight-errant). Measured on ordinary-shaman-1: Armour 17541 = (3682 Armour base + 922 Evasion base, the 7 constant
+     * included) x 3.81 (only Armour's increases), Evasion 0. See convertEvasionToArmour.
+     */
+    ironReflexes?: boolean;
   };
   /** The build's PoB Configuration (conditions such as EnemyBlinded). Absent = unknown, which reads as nothing ticked. */
   config?: BuildConfig;
@@ -147,7 +157,8 @@ export function computeDefences(given: EngineInput): DefenceSheet {
   const str = attrOf('str');
   const dex = attrOf('dex');
   const int = attrOf('int');
-  const input: EngineInput = { ...given, contributions: resolvePerAttribute(given.contributions, { str, dex, int }) };
+  const ironReflexes = given.flags.ironReflexes === true;
+  const input: EngineInput = { ...given, contributions: convertFireResistance(resolvePerAttribute(ironReflexes ? convertEvasionToArmour(given.contributions) : given.contributions, { str, dex, int })) };
   const flatOf = (pool: Pool) => sum(input.contributions, pool, 'flat', true);
   const incOf = (pool: Pool) => sum(input.contributions, pool, 'increased', false);
   const moreOf = (pool: Pool) => product(input.contributions, pool);
@@ -166,13 +177,14 @@ export function computeDefences(given: EngineInput): DefenceSheet {
   // Each slot's item gets the global increase plus its own slot's (CalcDefence.lua:1445-1453);
   // everything else (class base, global flats) gets the global one only. With no slot-scoped
   // increase this is the same number as scaling the grand total.
-  const defence = (pool: Pool, base = 0) => {
+  const defence = (pool: Pool, base = 0, afterScaling = 0) => {
     const slotted = slotsOf(input.contributions, pool);
     let total = (base + sum(input.contributions, pool, 'flat', false)) * (1 + incOf(pool) / 100) * moreOf(pool);
     for (const slot of slotted) {
       total += sumSlot(input.contributions, pool, 'flat', slot) * (1 + (incOf(pool) + sumSlot(input.contributions, pool, 'increased', slot)) / 100) * product(input.contributions, pool, slot);
     }
-    return Math.max(Math.round(total), 0);
+    // EnergyShieldTotal's fraction is dropped (floor), not rounded: tactician 4226 + 503.66 is PoB's 4729, sorceress 8661 + 482.16 is 9143.
+    return Math.max(Math.floor(Math.round(total) + afterScaling), 0);
   };
 
   const resist = (pool: Pool, maxPool: Pool, penalty: number): Resistance => {
@@ -181,7 +193,9 @@ export function computeDefences(given: EngineInput): DefenceSheet {
     return { value: Math.max(Math.min(uncapped, max), RESIST_FLOOR), max, uncapped };
   };
 
-  let spirit = scaled(flatOf('spirit'), 'spirit');
+  // Beidat's Will: "+1 to Maximum Spirit per 25 Maximum Life" - floor(final Life / 25) steps, the flat is then scaled like any Spirit.
+  const spiritFlat = flatOf('spirit') + input.contributions.filter((c) => c.pool === 'spirit' && c.kind === 'flat' && c.perLife && c.perLife.per > 0).reduce((n, c) => n + (c.value * Math.floor(life / c.perLife!.per) - c.value), 0);
+  let spirit = scaled(spiritFlat, 'spirit');
   if (input.flags.lordOfTheWilds) spirit *= 0.5;
   if (input.flags.noSpirit) spirit = 0;
 
@@ -191,9 +205,10 @@ export function computeDefences(given: EngineInput): DefenceSheet {
     int,
     life,
     mana,
-    energyShield: converted ? 0 : defence('energyShield', Math.round((lifeBase * lifeToEs) / 100)),
-    armour: defence('armour'),
-    evasion: defence('evasion', 7),
+    // EnergyShieldTotal (Discipline) joins the rounded scaled figure (sorceress-1: 8661 + 482.16 -> 9143, where one rounding at the end gives 9144).
+    energyShield: converted ? 0 : defence('energyShield', Math.round((lifeBase * lifeToEs) / 100), flatOf('energyShieldTotal')),
+    armour: defence('armour', ironReflexes ? 7 : 0),
+    evasion: ironReflexes ? 0 : defence('evasion', 7),
     fire: resist('fireRes', 'fireMax', input.resistancePenalty),
     cold: resist('coldRes', 'coldMax', input.resistancePenalty),
     lightning: resist('lightningRes', 'lightningMax', input.resistancePenalty),
@@ -201,6 +216,20 @@ export function computeDefences(given: EngineInput): DefenceSheet {
     spirit: Math.max(Math.round(spirit), 0),
   };
   return { ...sheet, derived: computeDerived(input, sheet, { flatOf, incOf, moreOf }) };
+}
+
+/**
+ * Iron Reflexes. Failure modes, decided before the code:
+ *   1. Every flat Evasion becomes flat Armour of the same slot, so an item's slot increase to Armour still scales it; the
+ *      constant base Evasion (7) moves too (defence() above).
+ *   2. Evasion's own increases and mores are dropped: there is no Evasion left for them to scale. Armour's apply to the sum.
+ *   3. A build without the flag never reaches this.
+ */
+function convertEvasionToArmour(list: readonly Contribution[]): Contribution[] {
+  return list.flatMap((c): Contribution[] => {
+    if (c.pool !== 'evasion') return [c];
+    return c.kind === 'flat' ? [{ ...c, pool: 'armour' }] : [];
+  });
 }
 
 /**
@@ -217,6 +246,25 @@ function resolvePerAttribute(list: readonly Contribution[], attrs: Record<'str' 
 }
 
 /** Sum of one kind for one pool. `withSlots` false skips slot-tagged contributions. */
+/**
+ * Smith of Kitava, Coal Stoker ("Modifiers to Fire Resistance also grant Cold and Lightning Resistance at 50% of their value")
+ * and Forged in Flame (the same for maximum resistance, 100%). PoB (CalcDefence.lua:858-902) adds, to each target, rate x the sum
+ * of the BASE mods literally named FireResist / FireResistMax whose source is not "Base" (the -60% penalty and the 75% cap are
+ * the base here). A mod parsed as ElementalResist (all Elemental Resistances) is not named FireResist, so it is skipped.
+ * Checked on ordinary-smith-of-kitava-1: Cold and Lightning were -24 (nothing converted), PoB 87.
+ */
+function convertFireResistance(list: Contribution[]): Contribution[] {
+  const add: Contribution[] = [];
+  const pass = (rate: number, from: Pool, to: readonly Pool[], source: string) => {
+    if (rate === 0) return;
+    const named = sum(list.filter((c) => !c.allElemental), from, 'flat', true);
+    if (named !== 0) for (const pool of to) add.push({ pool, kind: 'flat', value: (named * rate) / 100, source });
+  };
+  pass(sum(list, 'fireMaxConvert', 'flat', true), 'fireMax', ['coldMax', 'lightningMax'], 'Fire to Cold and Lightning Max Resistance Conversion');
+  pass(sum(list, 'fireResConvert', 'flat', true), 'fireRes', ['coldRes', 'lightningRes'], 'Fire to Cold and Lightning Resistance Conversion');
+  return add.length > 0 ? [...list, ...add] : list;
+}
+
 function sum(list: readonly Contribution[], pool: Pool, kind: Contribution['kind'], withSlots: boolean): number {
   let total = 0;
   for (const c of list) {

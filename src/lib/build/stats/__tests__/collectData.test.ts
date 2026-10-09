@@ -32,6 +32,7 @@ describe('makeCollectData', () => {
       armour: null,
       spirit: 0,
       movementPenalty: 0,
+      strRequirement: 0,
       itemClass: 'Ring',
       weapon: false,
       implicits: [[['base_chaos_damage_resistance_%', 7, 13]]],

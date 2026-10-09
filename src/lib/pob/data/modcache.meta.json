@@ -1,9 +1,9 @@
 {
   "source": "https://raw.githubusercontent.com/PathOfBuildingCommunity/PathOfBuilding-PoE2/dev/src/Data/ModCache.lua",
-  "keptEntries": 1299,
-  "entries": 8724,
+  "keptEntries": 1304,
+  "entries": 8719,
   "unparsed": 1440,
-  "noRelevantMod": 7284,
-  "modsNotKept": 7834,
+  "noRelevantMod": 7279,
+  "modsNotKept": 7829,
   "totalEntries": 10023
 }

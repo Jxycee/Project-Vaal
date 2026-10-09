@@ -29,11 +29,14 @@
 //   9. A charge threshold ("StatThreshold:EnduranceCharges:1", Charge Regulation) holds when the Configuration ticks
 //      the matching "use charges" switch and the threshold is within the base maximum of 3; off when it is not
 //      ticked; named in notCounted with no Configuration at all.
-//  10. A Banner (skillTypes "Banner") is scaled by "increased Aura magnitudes" PLUS "increased Banner Aura magnitudes"
-//      (the pool bannerAuraEffect); its buff counts only with the Configuration's "Is your Banner planted?"
-//      (bannerPlanted -> Condition:BannerPlanted). KNOWN GAP: PoB's Defiance Banner on hybrid-tactician is exactly 60%
-//      more (30 x 2.00), we reach 56.1 (30 x 1.87): the remaining 13% is PoB's Valour (Config bannerValour 50), whose
-//      rule is in PoB's Lua and not in the synced data. Left short rather than guessed.
+//  10. An Aura is scaled by PoB's TWO pools, which multiply (CalcPerform.lua:2306): (1 + AuraEffect/100) x (1 + Magnitude/100).
+//      "Aura Skills have N% increased Magnitudes" is Magnitude (pool auraMagnitude); "Banner Skills have N% increased Aura
+//      Magnitudes" and the untagged AuraEffect lines are AuraEffect (pools bannerAuraEffect, auraEffect). The Banner pool
+//      reaches a Banner skill only. A build with one pool is unchanged by the split. A Banner's buff counts only with the
+//      Configuration's "Is your Banner planted?" (bannerPlanted -> Condition:BannerPlanted). Valour is a dead end (no skill
+//      supplies banner_aura_magnitude_+%_final_per_resource). Hybrid-tactician: 30 x 1.24 x 1.63 = 60.636 -> 60.
+//      Rounding (ModStore ScaleAddMod): an integer base whose mod is not high-precision is truncated to a whole number after
+//      round2; any other value is floored to the mod's precision (1 decimal by default, 2 for the regen/crit mods).
 //   8. "+N to Level of all skills" from gear is not modelled: the table is read at the gem's own level, which
 //      is exactly right only when no such modifier is worn. (An assumption, listed in `assumed` when it applies.)
 //  11. A support that raises the skill's level by the size of its group (Uhtred's Exodus: +3 with no other support,
@@ -41,11 +44,16 @@
 //      mod behind MultiplierThreshold SupportCount): the bonus applies only when the loadout's support count equals
 //      the threshold (the gem itself counted); any other count adds nothing. Level-granting supports that need the
 //      skill's tags (an element Mastery) are not in the data and stay an assumption (8).
+//  12. Discipline's "maximum Energy Shield" is PoB's EnergyShieldTotal (not EnergyShield): it is added to the finished Energy
+//      Shield, not scaled by its increases, and it takes the Aura magnitudes like any Aura (monk-1: level 13 = 162 exactly;
+//      sorceress-1: level 20 = 328 x 1.47 = 482.16). The engine adds the pool 'energyShieldTotal' after rounding the scaled figure.
 // =============================================================================
 
 import buffs from '@/lib/pob/data/skill-buffs.json';
+import shapeshift from '@/lib/pob/data/skill-shapeshift.json';
+import hitSkills from '@/lib/pob/data/skill-hits.json';
 import supportLevels from '@/lib/pob/data/support-levels.json';
-import type { GemState } from '../gemState';
+import { deriveMainSkill, type GemState } from '../gemState';
 import { conditionHolds, MOTE_VARS, moteCounts, NUMBER_INPUTS, type BuildConfig } from './buildConfig';
 import { POOLS as MODIFIER_POOLS } from './lineMods';
 import type { Contribution } from './engine';
@@ -101,16 +109,26 @@ function chargeThreshold(config: BuildConfig | undefined, need: string): boolean
   return wanted <= BASE_MAX_CHARGES ? true : undefined;
 }
 
-/** PoB's ScaleAddMod rounding for a scaled buff modifier. */
-const scale = (value: number, factor: number): number => Math.floor(value * factor * 100) / 100;
+const HIGH_PRECISION_MODS = new Set(['LifeRegenPercent', 'ManaRegenPercent', 'EnergyShieldRegenPercent', 'CritChance', 'LifeRegen', 'ManaRegen']);
+
+/** PoB's ScaleAddMod rounding for a scaled buff modifier (see failure mode 10). */
+function scale(value: number, factor: number, mod: string): number {
+  const scaled = value * factor;
+  const round2 = Math.round(scaled * 100) / 100;
+  if (HIGH_PRECISION_MODS.has(mod)) return Math.floor(round2 * 100) / 100;
+  if (Number.isInteger(value)) return Math.trunc(round2);
+  return Math.floor(round2 * 10) / 10;
+}
 
 export function skillBuffContributions(
   gems: GemState | undefined,
   set: 1 | 2,
-  /** The summed "increased Aura magnitudes" percent from the tree and gear. */
+  /** The summed AuraEffect percent (untagged "increased Aura magnitudes") from the tree and gear. */
   auraEffectPercent: number,
   /** The summed "increased Banner Aura magnitudes"; added to the Aura magnitudes for a Banner skill only. */
   bannerEffectPercent = 0,
+  /** The summed "increased Magnitudes" of Aura Skills (PoB Magnitude): a separate multiplier from the two above. */
+  magnitudePercent = 0,
   /** The build's Path of Building Configuration; undefined = it came without one. */
   config?: BuildConfig,
 ): { contributions: Contribution[]; notCounted: string[]; counted: string[] } {
@@ -172,8 +190,8 @@ export function skillBuffContributions(
         }
       }
       if (value === undefined) continue;
-      const effectPercent = auraEffectPercent + (skill.banner ? bannerEffectPercent : 0);
-      if (e.effect === 'Aura' && effectPercent !== 0) value = scale(value, 1 + effectPercent / 100);
+      const factor = (1 + (auraEffectPercent + (skill.banner ? bannerEffectPercent : 0)) / 100) * (1 + magnitudePercent / 100);
+      if (e.effect === 'Aura' && factor !== 1) value = scale(value, factor, e.mod);
       if (e.multiplier) {
         const count = Math.min(config?.multipliers[e.multiplier.var] ?? motes[e.multiplier.var] ?? 0, e.multiplier.limit ?? Infinity);
         if (count === 0) continue;
@@ -185,4 +203,47 @@ export function skillBuffContributions(
     if (used) counted.push(skill.name);
   }
   return { contributions, notCounted, counted };
+}
+
+// SHAPESHIFT FORMS. PoB2 (CalcPerform.lua:398-416) gives the character a form's bonus while the MAIN skill has the
+// form's type (Bear, Wolf, Wyvern); the poe.ninja simulation is always in combat mode, so the bonus always applies:
+// Bear Form = Armour BASE 10 x character level + 10 (ModStore Multiplier tag: value x count + base), Wolf Form = 30%
+// increased Movement Speed, Wyvern Form = 50% increased Energy Shield recharge rate. (Bear Form also lets 30% of Armour
+// apply to elemental damage taken; that is a damage-reduction figure, not one of the sheet's numbers.)
+// Failure modes, decided first:
+//   1. No skills, or no main skill (deriveMainSkill is null): no form, nothing claimed.
+//   2. The main skill is the build's primary loadout, as imported from Build@mainSocketGroup (mapGems.ts); a form skill
+//      that is merely socketed elsewhere gives nothing, exactly as in PoB.
+//   3. A skill name another kind of skill shares is absent from the data (scripts/derive-skill-buffs.mjs): no bonus.
+//   4. Switching the primary skill in the app to a non-form skill drops the bonus, like PoB's main-skill selector.
+//   5. The same main skill sets PoB's Condition:Shapeshifted (withShapeshifted below), so "+1% to Maximum Lightning
+//      Resistance while Shapeshifted" and the other "while Shapeshifted" passives count (ordinary-druid-1: Lightning 76).
+//      A build with no Configuration is never given one, like the other derived conditions.
+export function isShapeshifted(gems: GemState | undefined): boolean {
+  const main = gems ? deriveMainSkill(gems) : null;
+  if (main === null) return false;
+  const forms = shapeshift as Record<'Bear' | 'Wolf' | 'Wyvern', string[]>;
+  return forms.Bear.includes(main) || forms.Wolf.includes(main) || forms.Wyvern.includes(main);
+}
+
+/** The main skill Hits and is self-cast (data/skill-hits.json): PoB then counts Hit Recently on its own. */
+export function mainSkillHits(gems: GemState | undefined): boolean {
+  const main = gems ? deriveMainSkill(gems) : null;
+  return main !== null && (hitSkills as string[]).includes(main);
+}
+
+/** The Configuration with Condition:Shapeshifted added when the main skill is a form (failure mode 5). */
+export function withShapeshifted(config: BuildConfig | undefined, gems: GemState | undefined): BuildConfig | undefined {
+  if (!config || config.conditions.includes('Shapeshifted') || !isShapeshifted(gems)) return config;
+  return { ...config, conditions: [...config.conditions, 'Shapeshifted'].sort() };
+}
+
+export function shapeshiftContributions(gems: GemState | undefined, level: number): Contribution[] {
+  const main = gems ? deriveMainSkill(gems) : null;
+  if (main === null) return [];
+  const forms = shapeshift as Record<'Bear' | 'Wolf' | 'Wyvern', string[]>;
+  if (forms.Bear.includes(main)) return [{ pool: 'armour', kind: 'flat', value: 10 * level + 10, source: 'Bear Form' }];
+  if (forms.Wolf.includes(main)) return [{ pool: 'movementSpeed', kind: 'increased', value: 30, source: 'Wolf Form' }];
+  if (forms.Wyvern.includes(main)) return [{ pool: 'esRechargeFaster', kind: 'increased', value: 50, source: 'Wyvern Form' }];
+  return [];
 }
