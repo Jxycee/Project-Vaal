@@ -23,6 +23,7 @@
     "sync:pob-modcache": "tsx scripts/sync-pob-modcache.ts",
     "sync:pob-jewel-rune-charm": "tsx scripts/sync-pob-jewel-rune-charm.ts",
     "sync:pob-skills": "tsx scripts/sync-pob-skills.ts",
+    "sync:gem-level-requirements": "tsx scripts/sync-gem-level-requirements.ts",
     "sync:pob-bases": "tsx scripts/sync-pob-bases.ts",
     "sync:pob-switchable-nodes": "tsx scripts/sync-pob-switchable-nodes.ts",
     "db:types": "npx supabase gen types typescript --project-id mjxadehorflhncendqiy > src/types/database.ts",

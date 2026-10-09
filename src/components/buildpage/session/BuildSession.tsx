@@ -41,6 +41,8 @@ import { offHandOccupiedBy, validateCheckpoint } from '@/lib/build/validate';
 import { useCraftData } from '@/components/build/useCraftData';
 import { useDefenceSheets } from '@/components/build/useDefenceSheets';
 import { useReservedSpirit } from '@/components/build/useReservedSpirit';
+import { useGemLevelTable } from '@/components/build/useGemLevelTable';
+import { gemsAtCharacterLevel } from '@/lib/build/gemLevels';
 import {
   addLoadout,
   addSupport,
@@ -535,6 +537,10 @@ export default function BuildSessionProvider({
     () => (lite ? summarizeJewels(lite, treeState.main.allocated, gear.jewels) : null),
     [lite, treeState.main.allocated, gear.jewels],
   );
+  // The numbers read from gems (Spirit reserved, skill-granted buffs) use the level this checkpoint's character level
+  // allows (an imported file holds the final checkpoint's gems for every checkpoint). Stored gems are untouched.
+  const gemLevelTable = useGemLevelTable();
+  const gemsEffective = useMemo(() => gemsAtCharacterLevel(gems, gemLevelTable, meta.level), [gems, gemLevelTable, meta.level]);
   const defence = useDefenceSheets({
     tree: lite,
     className: treeState.className,
@@ -542,10 +548,10 @@ export default function BuildSessionProvider({
     level: meta.level,
     passive: livePassive,
     gear,
-    gems,
+    gems: gemsEffective,
   });
   const sheets = useMemo<Sheets>(() => (liteError ? { error: liteError } : defence), [liteError, defence]);
-  const reserved = useReservedSpirit(gems);
+  const reserved = useReservedSpirit(gemsEffective);
 
   // metaDirty = a name/level/league/notes field changed, compared directly
   // (field by field) rather than through draftDiffersFrom, because meta is

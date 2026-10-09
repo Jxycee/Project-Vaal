@@ -28,7 +28,23 @@ function Heading({ children }: { children: React.ReactNode }) {
   return <p className="px-4 pb-1 text-[11px] uppercase tracking-wider text-muted-foreground">{children}</p>;
 }
 
-export function GemCardView({ card, loading = false, iconUrl }: { card: Card; loading?: boolean; iconUrl?: string | null }) {
+/** Set when the card shows a gem level lower than the file's, because the character level cannot use the higher one. */
+export interface LoweredFrom {
+  fileLevel: number;
+  characterLevel: number;
+}
+
+export function GemCardView({
+  card,
+  loading = false,
+  iconUrl,
+  loweredFrom,
+}: {
+  card: Card;
+  loading?: boolean;
+  iconUrl?: string | null;
+  loweredFrom?: LoweredFrom;
+}) {
   const color = GEM_COLOR[card.color];
   return (
     <article
@@ -56,6 +72,11 @@ export function GemCardView({ card, loading = false, iconUrl }: { card: Card; lo
                   · Quality <span className="tabular-nums text-foreground">{card.quality}%</span>
                 </>
               ) : null}
+            </p>
+          ) : null}
+          {card.slug && loweredFrom ? (
+            <p data-testid="gem-card-level-lowered" className="text-[12px] text-muted-foreground/80">
+              Lv {card.level} at character level {loweredFrom.characterLevel}; the file has Lv {loweredFrom.fileLevel}
             </p>
           ) : null}
         </div>
@@ -132,7 +153,7 @@ export function GemCardView({ card, loading = false, iconUrl }: { card: Card; lo
 }
 
 /** Loads and renders one gem group's card. */
-export default function GemCard({ loadout }: { loadout: GemLoadout }) {
+export default function GemCard({ loadout, loweredFrom }: { loadout: GemLoadout; loweredFrom?: LoweredFrom }) {
   const { card, loading } = useGemCard(loadout);
-  return <GemCardView card={card} loading={loading} iconUrl={loadout.skill?.iconUrl ?? null} />;
+  return <GemCardView card={card} loading={loading} iconUrl={loadout.skill?.iconUrl ?? null} loweredFrom={loweredFrom} />;
 }
