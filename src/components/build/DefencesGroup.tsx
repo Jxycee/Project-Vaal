@@ -9,8 +9,9 @@
 //   2. A hit nothing can kill is Infinity (Chaos Inoculation vs chaos, 100% resist): printed "Immune", never "Infinity".
 //   3. A huge number (maximum hits can reach 2147483647 territory) pushes the value column off a 375px screen: values
 //      are plain digits in a shrink-wrapped right-aligned column and the label column takes the rest (min-w-0, wraps).
-//   4. A hint that cannot be reached on a phone (hover-only tooltips): the label is a 44px button that toggles the hint
-//      inline; `title` is set as well for a mouse.
+//   4. A hint that cannot be reached on a phone (hover-only tooltips): one 44px "What do these mean?" button toggles every
+//      explanation; `title` is set on each label as well for a mouse. Rows are NOT buttons: a 44px button per row made
+//      them twice as tall as the main stat rows, so the sheet looked like two lists.
 //   5. Builds with Chaos Inoculation or Mind over Matter: the engine already folds both into the effective health pool
 //      and maximum hits, so this only has to say so in the hint rather than recompute anything.
 //   6. A reader seeing different numbers from the owner: nothing here is editable and nothing is derived locally; the
@@ -110,39 +111,49 @@ function rowsOf(d: DerivedStats, energyShield: number): Row[] {
 }
 
 export default function DefencesGroup({ derived, energyShield }: { derived: DerivedStats | undefined; energyShield: number }) {
-  const [open, setOpen] = useState<string | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
   if (!derived) return null;
   const rows = rowsOf(derived, energyShield).map(flagApprox);
   return (
     <section className="border-t border-border" data-testid="stat-defences">
       <h3 className="px-3 pt-3 text-xs text-foreground">Defences</h3>
-      <dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 px-3 py-1 text-sm">
+      {/* Same grid, type size and row spacing as the main stat rows above (StatsPanel), so the sheet reads as one list. */}
+      <dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 px-3 py-3 text-sm">
         {rows.map((r) => (
           <div key={r.id} className="contents">
-            <dt className="min-w-0 text-muted-foreground">
-              <button
-                type="button"
-                aria-expanded={open === r.id}
-                aria-controls={`${r.id}-hint`}
-                title={r.hint}
-                onClick={() => setOpen(open === r.id ? null : r.id)}
-                className="flex min-h-11 w-full items-center text-left"
-                data-testid={`${r.id}-label`}
-              >
-                {r.label}
-              </button>
+            <dt data-testid={`${r.id}-label`} title={r.hint} className="min-w-0 text-muted-foreground">
+              {r.label}
             </dt>
-            <dd data-testid={r.id} className="flex min-h-11 items-center justify-end text-right text-foreground tabular-nums">
+            <dd data-testid={r.id} className="text-right text-foreground tabular-nums">
               {r.value}
             </dd>
-            {open === r.id ? (
-              <div id={`${r.id}-hint`} data-testid={`${r.id}-hint`} className="col-span-2 pb-2 text-xs text-muted-foreground">
-                {r.hint}
-              </div>
-            ) : null}
           </div>
         ))}
       </dl>
+      {/* One 44px control for every explanation, instead of a 44px button per row (which made these rows twice as tall as the rest of the sheet). */}
+      <div className="px-3">
+        <button
+          type="button"
+          aria-expanded={helpOpen}
+          aria-controls="stat-defences-help"
+          onClick={() => setHelpOpen((o) => !o)}
+          className="flex min-h-11 w-full items-center justify-between text-left text-xs text-muted-foreground"
+          data-testid="stat-defences-help-toggle"
+        >
+          <span>What do these mean?</span>
+          <span aria-hidden="true">{helpOpen ? '−' : '+'}</span>
+        </button>
+        {helpOpen ? (
+          <dl id="stat-defences-help" data-testid="stat-defences-help" className="flex flex-col gap-2 pb-3 text-xs text-muted-foreground">
+            {rows.map((r) => (
+              <div key={r.id} data-testid={`${r.id}-hint`}>
+                <dt className="text-foreground">{r.label}</dt>
+                <dd>{r.hint}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
+      </div>
       <p className="px-3 pb-3 text-xs text-muted-foreground" data-testid="stat-defences-not-counted">
         Not counted: block, suppression, damage taken modifiers and damage conversion. Figures assume Path of Building&apos;s default enemy, a level 82 boss.
       </p>

@@ -12,7 +12,8 @@ import { cleanupWithFreshPage, importFixture, measureTapTargets, testBuildName }
 // How this can fail (decided first):
 //   1. The group does not render, or renders "—" / "NaN" for a stat (the engine's `derived` not reaching the panel).
 //   2. The panel shows a value other than the oracle's for a stat the oracle says we match (wrong field wired to a row).
-//   3. A label/hint control is under 44px, or a hint cannot be opened by tap (hover-only tooltip).
+//   3. The explanations cannot be opened by tap (hover-only tooltip), the help toggle is under 44px, or the rows are taller
+//      than the main sheet's (once each row carried its own 44px button: twice as tall as the rows above, seen on a phone).
 //   4. A long row or a large number overflows a 375px screen horizontally.
 //   5. A zero-ES build would still list recharge rows: this build has ES, so it only proves the rows appear here.
 // Reads only; the one E2E- build is deleted in afterAll. Reader parity is the same component with no edit branch,
@@ -47,7 +48,7 @@ test.describe('derived defence stats', () => {
     await cleanupWithFreshPage(browser);
   });
 
-  test('the Defences group shows the oracle numbers, has 44px tap targets, opens a hint by tap, and does not overflow', async ({ page }) => {
+  test('the Defences group shows the oracle numbers, keeps the main rows spacing, has one 44px help toggle, opens the explanations by tap, and does not overflow', async ({ page }) => {
     const matched = Object.entries(RESULTS['ordinary-deadeye.json'].derived).filter(([key, v]) => v.ok && key in ROWS);
     // Guard against a results.json that lost the derived block: an empty list would make the loop below vacuous.
     expect(matched.length, 'oracle-matched derived keys for the fixture').toBeGreaterThanOrEqual(8);
@@ -82,24 +83,29 @@ test.describe('derived defence stats', () => {
     // The honesty line is present.
     await expect(group.getByTestId('stat-defences-not-counted')).toContainText('Not counted');
 
-    // Tap targets: every label button is at least 44px each way, and we measured a real number of them.
+    // Row spacing: a Defences value row is no taller than 1.6x a main stat row (they use the same grid and text size).
+    const mainRow = (await page.getByTestId('stats-panel').getByTestId('stat-life').boundingBox())!.height;
+    const defRow = (await group.getByTestId('stat-ehp').boundingBox())!.height;
+    expect(defRow, 'Defences rows are as compact as the main rows').toBeLessThanOrEqual(mainRow * 1.6);
+
+    // The only control in the group is the help toggle, and it is at least 44px each way.
     const taps = await measureTapTargets(page, '[data-testid="stat-defences"]');
-    expect(taps.scanned).toBeGreaterThanOrEqual(14);
+    expect(taps.scanned).toBeGreaterThanOrEqual(1);
     expect(taps.tooSmall).toEqual([]);
 
-    // A hint opens by tap and closes by tapping again.
-    const label = group.getByTestId('stat-ehp-label');
+    // The explanations open by tap and close by tapping again.
+    const toggle = group.getByTestId('stat-defences-help-toggle');
     const hint = group.getByTestId('stat-ehp-hint');
     await expect(hint).toHaveCount(0);
-    await label.click();
+    await toggle.click();
     await expect(hint).toBeVisible();
     await expect(hint).toContainText('adjusted for resistances and armour');
-    expect(await label.getAttribute('aria-expanded')).toBe('true');
-    await label.click();
+    expect(await toggle.getAttribute('aria-expanded')).toBe('true');
+    await toggle.click();
     await expect(hint).toHaveCount(0);
 
     // No horizontal overflow, with the longest hint open.
-    await group.getByTestId('stat-ehp-label').click();
+    await toggle.click();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow, 'horizontal overflow on the Stats tab').toBeLessThanOrEqual(0);
   });
