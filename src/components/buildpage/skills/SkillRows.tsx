@@ -4,12 +4,14 @@ import { useState } from 'react';
 import { loadoutsMainFirst, mainSkillLoadout } from '@/lib/build/buildPage';
 import { WEAPON_SET_DOT } from '@/lib/build/weaponSetColors';
 import type { GemLoadout } from '@/lib/build/gemState';
+import { effectiveGemLevel } from '@/lib/build/gemLevels';
+import { useGemLevelTable } from '@/components/build/useGemLevelTable';
 import { useBuildSession } from '../session/BuildSession';
 import SkillDetail from './SkillDetail';
 
-function rowLabel(loadout: GemLoadout): string {
+function rowLabel(loadout: GemLoadout, shownLevel: number): string {
   const k = loadout.supports.length;
-  return `${loadout.skill ? loadout.skill.name : 'Empty group'}, level ${loadout.level}, ${k} ${k === 1 ? 'support' : 'supports'}`;
+  return `${loadout.skill ? loadout.skill.name : 'Empty group'}, level ${shownLevel},${k} ${k === 1 ? 'support' : 'supports'}`;
 }
 
 function SkillRow({
@@ -18,19 +20,26 @@ function SkillRow({
   expanded,
   onTap,
   edit,
+  characterLevel,
 }: {
   loadout: GemLoadout;
   isMain: boolean;
   expanded: boolean;
   onTap: () => void;
   edit: boolean;
+  /** The viewed checkpoint's character level: a gem level above what it allows shows lowered (read mode only). */
+  characterLevel: number;
 }) {
+  const table = useGemLevelTable();
+  // Edit mode keeps editing the stored level; read mode shows what the character level allows.
+  const shown = !edit && loadout.skill ? effectiveGemLevel(table, loadout.skill.slug, loadout.level, characterLevel) : loadout.level;
+  const lowered = shown < loadout.level;
   return (
     <button
       type="button"
       data-testid="skill-row"
       data-loadout-id={loadout.id}
-      aria-label={rowLabel(loadout)}
+      aria-label={rowLabel(loadout, shown)}
       // Read mode toggles an inline detail; edit mode opens the group's sheet.
       {...(edit ? { 'aria-haspopup': 'dialog' as const } : { 'aria-expanded': expanded })}
       onClick={onTap}
@@ -49,9 +58,18 @@ function SkillRow({
         <span className="truncate text-sm text-foreground">{loadout.skill ? loadout.skill.name : 'Empty group'}</span>
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <span className="shrink-0 tabular-nums">
-            Lv {loadout.level}
+            Lv {shown}
             {loadout.quality > 0 ? ` · ${loadout.quality}%` : ''}
           </span>
+          {lowered ? (
+            <span
+              data-testid="skill-level-lowered"
+              title={`Lv ${shown} at character level ${characterLevel}; the file has Lv ${loadout.level}`}
+              className="shrink-0 text-[10px] text-muted-foreground/70"
+            >
+              file Lv {loadout.level}
+            </span>
+          ) : null}
           {loadout.sets.length < 2
             ? loadout.sets.map((set) => (
                 <span
@@ -96,7 +114,8 @@ function SkillRow({
  * GemGroupSheet on it).
  */
 export default function SkillRows({ edit, onEdit }: { edit: boolean; onEdit: (id: string) => void }) {
-  const { gems } = useBuildSession();
+  const { gems, meta } = useBuildSession();
+  const table = useGemLevelTable();
   const [openId, setOpenId] = useState<string | null>(null);
   if (gems.loadouts.length === 0) {
     return <p className="py-6 text-center text-sm text-muted-foreground">No gems recorded.</p>;
@@ -113,9 +132,12 @@ export default function SkillRows({ edit, onEdit }: { edit: boolean; onEdit: (id
             isMain={loadout.id === mainId}
             expanded={!edit && openId === loadout.id}
             edit={edit}
+            characterLevel={meta.level}
             onTap={() => (edit ? onEdit(loadout.id) : setOpenId((cur) => (cur === loadout.id ? null : loadout.id)))}
           />
-          {!edit && openId === loadout.id ? <SkillDetail loadout={loadout} /> : null}
+          {!edit && openId === loadout.id ? (
+            <SkillDetail loadout={loadout} characterLevel={meta.level} table={table} />
+          ) : null}
         </li>
       ))}
     </ul>
