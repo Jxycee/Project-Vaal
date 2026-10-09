@@ -71,7 +71,8 @@ test.describe('derived defence stats', () => {
 
     for (const [key, v] of matched) {
       const [id, format] = ROWS[key];
-      await expect(group.getByTestId(id), key).toHaveText(format(v.want));
+      // Rows still on DefencesGroup's APPROXIMATE list print a leading "≈"; the oracle number must still follow it.
+      await expect(group.getByTestId(id), key).toHaveText(new RegExp(`^≈?${format(v.want)}$`));
     }
 
     // No row anywhere in the group prints a broken number.
