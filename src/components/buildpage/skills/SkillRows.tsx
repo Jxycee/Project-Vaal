@@ -11,7 +11,7 @@ import SkillDetail from './SkillDetail';
 
 function rowLabel(loadout: GemLoadout, shownLevel: number): string {
   const k = loadout.supports.length;
-  return `${loadout.skill ? loadout.skill.name : 'Empty group'}, level ${shownLevel},${k} ${k === 1 ? 'support' : 'supports'}`;
+  return `${loadout.skill ? loadout.skill.name : 'Empty group'}, level ${shownLevel}, ${k} ${k === 1 ? 'support' : 'supports'}`;
 }
 
 function SkillRow({
