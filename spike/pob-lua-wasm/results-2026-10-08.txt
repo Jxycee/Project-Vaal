@@ -1,0 +1,81 @@
+armour-life-gemling          PlayerStat 81/106  ninja 10/13  ours 8/13  load 1278ms recalc 475ms  NINJA-MISS: life 4075 vs 4133; spirit 220 vs 247; chaosResistance 68 vs 75
+es-life-stormweaver          PlayerStat 82/104  ninja 12/13  ours 13/13  load 752ms recalc 388ms  NINJA-MISS: coldResistance 74 vs 75
+evasion-deadeye              PlayerStat 85/107  ninja 12/13  ours 13/13  load 697ms recalc 426ms  NINJA-MISS: chaosResistance 68 vs 74
+hybrid-tactician             PlayerStat 101/102  ninja 13/13  ours 10/13  load 479ms recalc 248ms
+ordinary-amazon-1            PlayerStat 90/107  ninja 12/13  ours 13/13  load 673ms recalc 442ms  NINJA-MISS: spirit 181 vs 203
+ordinary-amazon-2            PlayerStat 81/107  ninja 13/13  ours 13/13  load 800ms recalc 454ms
+ordinary-armour-1            PlayerStat 85/104  ninja 13/13  ours 13/13  load 777ms recalc 325ms
+ordinary-caster-1            PlayerStat 85/103  ninja 12/13  ours 13/13  load 1348ms recalc 852ms  NINJA-MISS: mana 4532 vs 4600
+ordinary-caster-2            PlayerStat 95/104  ninja 12/13  ours 13/13  load 1680ms recalc 1405ms  NINJA-MISS: mana 2715 vs 2738
+ordinary-ci-acolyte          PlayerStat 98/100  ninja 12/13  ours 13/13  load 313ms recalc 105ms  NINJA-MISS: chaosResistance 100 vs 7
+ordinary-ci-disciple         PlayerStat 96/99  ninja 12/13  ours 13/13  load 930ms recalc 701ms  NINJA-MISS: chaosResistance 100 vs 8
+ordinary-ci-es-disciple      PlayerStat 100/100  ninja 12/13  ours 13/13  load 466ms recalc 338ms  NINJA-MISS: chaosResistance 100 vs 25
+ordinary-deadeye             PlayerStat 90/105  ninja 13/13  ours 13/13  load 611ms recalc 275ms
+ordinary-evasion-1           PlayerStat 110/111  ninja 13/13  ours 13/13  load 1144ms recalc 760ms
+ordinary-evasion-2           PlayerStat 95/105  ninja 13/13  ours 13/13  load 522ms recalc 311ms
+ordinary-hybrid-1            PlayerStat 100/102  ninja 12/13  ours 13/13  load 470ms recalc 202ms  NINJA-MISS: chaosResistance 100 vs 0
+ordinary-hybrid-2            PlayerStat 83/104  ninja 11/13  ours 13/13  load 448ms recalc 273ms  NINJA-MISS: lightningResistance 75 vs 72; chaosResistance 100 vs 0
+ordinary-life-1              PlayerStat 89/107  ninja 13/13  ours 13/13  load 1888ms recalc 1104ms
+ordinary-martial-artist-1    PlayerStat 84/102  ninja 12/13  ours 13/13  load 1235ms recalc 713ms  NINJA-MISS: chaosResistance 100 vs 5
+ordinary-martial-artist-2    PlayerStat 93/105  ninja 13/13  ours 13/13  load 704ms recalc 308ms
+ordinary-oracle              PlayerStat 84/103  ninja 11/13  ours 13/13  load 604ms recalc 165ms  NINJA-MISS: mana 5175 vs 5244; chaosResistance 100 vs 23
+ordinary-pathfinder-1        PlayerStat 89/105  ninja 12/13  ours 13/13  load 370ms recalc 143ms  NINJA-MISS: chaosResistance 100 vs 0
+ordinary-pathfinder-2        PlayerStat 100/100  ninja 12/13  ours 13/13  load 399ms recalc 147ms  NINJA-MISS: chaosResistance 100 vs 0
+ordinary-spirit-walker-1     PlayerStat 90/108  ninja 13/13  ours 13/13  load 852ms recalc 622ms
+ordinary-spirit-walker-2     PlayerStat 89/107  ninja 13/13  ours 13/13  load 672ms recalc 340ms
+ordinary-titan-1             PlayerStat 88/107  ninja 11/13  ours 13/13  load 490ms recalc 164ms  NINJA-MISS: life 7806 vs 7904; chaosResistance 66 vs 70
+ordinary-warbringer-1        PlayerStat 92/108  ninja 13/13  ours 13/13  load 1798ms recalc 807ms
+
+TOTAL PlayerStat (PoB desktop's own saved stats) 2455/2822 (87.0%)
+TOTAL poe.ninja defensive stats, PoB-wasm 330/351; our engine 343/351
+
+Core keys vs PlayerStat (builds where key present in XML): matched/total
+  Life                       25/27
+  Mana                       24/27
+  EnergyShield               27/27
+  Armour                     27/27
+  Evasion                    27/27
+  Spirit                     25/27
+  Str                        27/27
+  Dex                        27/27
+  Int                        27/27
+  TotalEHP                   11/27
+  PhysicalMaximumHitTaken    13/27
+  FireMaximumHitTaken        13/27
+  TotalDPS                   9/27
+  CombinedDPS                8/26
+  Speed                      25/27
+  CritChance                 11/21
+  CritMultiplier             26/27
+  HitChance                  27/27
+  ManaCost                   19/27
+  LifeRegenRecovery          26/27
+  ManaRegenRecovery          23/27
+  MovementSpeedMod           0/0
+
+Most-mismatching PlayerStat keys:
+  AverageBurstDamage 18 e.g. armour-life-gemling: want 339589 got 373547.9
+  TotalDPS 18 e.g. armour-life-gemling: want 33850.57814992 got 37235.635965
+  WithIgniteDPS 18 e.g. armour-life-gemling: want 747377.82676887 got 968667.494407
+  CombinedDPS 18 e.g. armour-life-gemling: want 747377.82676887 got 968667.494407
+  WithBleedDPS 17 e.g. armour-life-gemling: want 33850.57814992 got 37235.635965
+  WithPoisonDPS 17 e.g. armour-life-gemling: want 33850.57814992 got 37235.635965
+  IgniteDPS 16 e.g. armour-life-gemling: want 713527.24861895 got 931431.858442
+  TotalEHP 16 e.g. armour-life-gemling: want 83813.07145276 got 89271.638767
+  TotalDotDPS 15 e.g. armour-life-gemling: want 713527.24861895 got 931431.858442
+  PhysicalMaximumHitTaken 14 e.g. armour-life-gemling: want 8828 got 8844
+  LightningMaximumHitTaken 14 e.g. armour-life-gemling: want 27025 got 27074
+  FireMaximumHitTaken 14 e.g. armour-life-gemling: want 28041 got 28092
+  ColdMaximumHitTaken 14 e.g. armour-life-gemling: want 27025 got 27074
+  MainHandAccuracy 13 e.g. evasion-deadeye: want 2845 got undefined
+  AverageDamage 12 e.g. evasion-deadeye: want 35358.558533731 got 35360.606983
+  ChaosMaximumHitTaken 10 e.g. armour-life-gemling: want 14791 got 18785
+  PreEffectiveCritChance 10 e.g. es-life-stormweaver: want 58.752 got 58.75
+  CritChance 10 e.g. es-life-stormweaver: want 58.752 got 58.75
+  ManaPerSecondCost 9 e.g. es-life-stormweaver: want 687.8691141261 got 688.071429
+  ManaCost 8 e.g. es-life-stormweaver: want 246.92737430168 got 247
+  AverageHit 6 e.g. armour-life-gemling: want 339589 got 373547.9
+  Spec:EnergyShieldInc 5 e.g. ordinary-amazon-1: want 127 got 120
+  Spec:EvasionInc 5 e.g. ordinary-amazon-1: want 47 got 40
+  Spec:ArmourInc 5 e.g. ordinary-amazon-1: want 0 got -7
+  ManaRegenRecovery 4 e.g. armour-life-gemling: want 98.3 got 97
