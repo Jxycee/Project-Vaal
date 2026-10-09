@@ -1,4 +1,4 @@
-import type { Browser, Locator, Page, Route } from '@playwright/test';
+import type { Browser, Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -6,7 +6,6 @@ import type { TreeTestApi, TreeTestState } from '../src/lib/tree/testApi';
 import type { GearSlot } from '../src/lib/build/gearSlots';
 import type { BuildVisibility } from '../src/lib/build/types';
 import { VISIBILITY_LABEL } from '../src/lib/build/visibility';
-import { e2eBaseUrl } from './baseUrl';
 
 const POB_FIXTURE_CODE = readFileSync(path.join(__dirname, '..', 'src', 'lib', 'pob', '__fixtures__', 'sample-pob2-code.txt'), 'utf8');
 
@@ -468,62 +467,89 @@ export async function importFixture(page: Page, name: string, code: string = POB
 }
 
 /**
- * Deletes every row this suite created. Runs through the real UI rather than
- * the database: each E2E- card -> its page -> Build settings -> Delete ->
- * Confirm delete, which exercises the delete path on the way past.
- *
- * The 5.1MB tree export the build page fetches after paint is aborted here:
- * nothing in this loop looks at the tree.
+ * Name prefix for builds that must outlive the per-spec cleanup below (a
+ * worker-scoped fixture shared by read-only specs). It keeps the `E2E-` prefix,
+ * so debris stays obvious and the 'sweep' mode still removes it.
  */
-export async function cleanupTestBuilds(page: Page): Promise<void> {
-  await gotoBuilds(page);
+export const SHARED_PREFIX = `${TEST_PREFIX}SHARED-`;
 
-  const cards = page.getByTestId('build-card').filter({ has: page.getByTestId('build-card-name').getByText(TEST_PREFIX) });
-  const skipTree = (route: Route) => route.abort();
-  await page.route(/\/data\/tree\/.*data\.json/, skipTree);
-  try {
-    for (let pass = 0; pass < 50; pass += 1) {
-      const remaining = await cards.count();
-      if (remaining === 0) return;
+/**
+ * 'spec' (every afterAll) deletes E2E- rows EXCEPT E2E-SHARED- ones, which a
+ * worker fixture owns for the length of the run. 'sweep' (auth.setup only,
+ * start of a run) deletes every E2E- row, so a crashed run's shared row goes.
+ */
+export type CleanupMode = 'spec' | 'sweep';
 
-      const href = await cards.first().getAttribute('href');
-      await page.goto(href!);
-      const menu = await openBuildSettings(page);
-      await menu.getByRole('button', { name: 'Delete build', exact: true }).click();
-      await menu.getByRole('button', { name: 'Confirm delete', exact: true }).click();
-      await page.waitForURL((url) => url.pathname === '/builds', { timeout: 30_000 });
-
-      // deleteBuild revalidates /builds. Asserting the count actually fell is
-      // what proves the delete landed, rather than failing silently and
-      // looping to the cap.
-      await expect(cards).toHaveCount(remaining - 1, { timeout: 30_000 });
-    }
-    throw new Error('Gave up deleting E2E- builds after 50 passes — check /builds by hand.');
-  } finally {
-    await page.unroute(/\/data\/tree\/.*data\.json/, skipTree);
-  }
+/** Reads the Supabase SSR auth cookie out of a cookie list (see accessToken). */
+function tokenFromCookies(cookies: ReadonlyArray<{ name: string; value: string }>): string {
+  const parts = cookies
+    .filter((c) => /^sb-.+-auth-token(\.\d+)?$/.test(c.name))
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  let raw = decodeURIComponent(parts.map((c) => c.value).join(''));
+  if (raw.startsWith('base64-')) raw = Buffer.from(raw.slice('base64-'.length), 'base64url').toString('utf8');
+  return (JSON.parse(raw) as { access_token: string }).access_token;
 }
 
 /**
- * Cleanup for an `afterAll` hook, which is the only place this is subtle.
+ * Deletes every row this suite created, in ONE PostgREST call as the test
+ * account (its bearer token comes from the storageState file auth.setup wrote,
+ * so no browser context is needed).
  *
- * `afterAll` may take worker-scoped fixtures only, so it has to build its own
- * page from `browser` — and a context created that way inherits NONE of the
- * project's `use` options. Passing storageState and baseURL explicitly is not
- * a nicety: without them the cleanup page is signed out and has no base to
- * resolve `/builds` against, so every row the spec created stays in the shared
- * account.
+ * Failure modes this guards, so they are not rediscovered:
+ *  - RLS ("Owners can do everything with their builds", cmd ALL) is what lets
+ *    the owner's bearer delete; a user_id filter from the JWT's `sub` is added
+ *    anyway so a policy change cannot widen this to other users' rows.
+ *  - The old UI loop (card -> settings -> Delete -> Confirm, per row) is gone.
+ *    The UI delete is still asserted on purpose by build-settings.spec.ts and
+ *    scratch-planner.spec.ts.
+ *  - build_checkpoints cascades on delete, and /builds is rendered per request,
+ *    so there is no revalidation or stale list to wait for.
+ *  - A silent no-op (expired token, wrong filter) would leak rows into a shared
+ *    account, so the status is asserted and a follow-up read must find nothing
+ *    left that this mode should have removed.
  */
-export async function cleanupWithFreshPage(browser: Browser): Promise<void> {
-  const context = await browser.newContext({
-    baseURL: e2eBaseUrl(),
-    storageState: STORAGE_STATE,
-  });
-  try {
-    await cleanupTestBuilds(await context.newPage());
-  } finally {
-    await context.close();
-  }
+export async function cleanupTestBuilds(mode: CleanupMode = 'spec'): Promise<void> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  expect(
+    supabaseUrl && supabaseAnonKey,
+    'NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be in .env.local',
+  ).toBeTruthy();
+
+  const state = JSON.parse(readFileSync(STORAGE_STATE, 'utf8')) as {
+    cookies: Array<{ name: string; value: string }>;
+  };
+  const token = tokenFromCookies(state.cookies);
+  const sub = (JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8')) as { sub: string }).sub;
+
+  const headers = {
+    apikey: supabaseAnonKey!,
+    authorization: `Bearer ${token}`,
+    prefer: 'return=representation',
+  };
+  const filter = new URLSearchParams();
+  filter.append('user_id', `eq.${sub}`);
+  filter.append('name', `like.${TEST_PREFIX}*`);
+  if (mode === 'spec') filter.append('name', `not.like.${SHARED_PREFIX}*`);
+
+  const del = await fetch(`${supabaseUrl}/rest/v1/builds?${filter.toString()}&select=id`, { method: 'DELETE', headers });
+  expect([200, 204], `cleanup DELETE returned ${del.status}: ${await del.text()}`).toContain(del.status);
+
+  // Read back with the same filter: anything still matching was not deleted.
+  const left = await fetch(`${supabaseUrl}/rest/v1/builds?${filter.toString()}&select=id,name`, { headers });
+  expect(left.status, 'cleanup verification GET').toBe(200);
+  const rows = (await left.json()) as Array<{ id: string; name: string }>;
+  expect(rows, `E2E- builds survived cleanup (${mode})`).toEqual([]);
+}
+
+/**
+ * Cleanup for an `afterAll` hook. It used to build a signed-in browser context
+ * (afterAll can only take worker fixtures, and a hand-made context inherits
+ * none of the project's `use` options); the PostgREST version needs none, so
+ * the `browser` argument is kept only so every spec's call site stays as is.
+ */
+export async function cleanupWithFreshPage(_browser?: Browser, mode: CleanupMode = 'spec'): Promise<void> {
+  await cleanupTestBuilds(mode);
 }
 
 // ---- Gem groups -------------------------------------------------------------
@@ -670,12 +696,7 @@ export async function createBuildViaApi(
  * large, optionally `base64-` prefixed and base64url encoded).
  */
 export async function accessToken(page: Page): Promise<string> {
-  const parts = (await page.context().cookies())
-    .filter((c) => /^sb-.+-auth-token(\.\d+)?$/.test(c.name))
-    .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
-  let raw = decodeURIComponent(parts.map((c) => c.value).join(''));
-  if (raw.startsWith('base64-')) raw = Buffer.from(raw.slice('base64-'.length), 'base64url').toString('utf8');
-  return (JSON.parse(raw) as { access_token: string }).access_token;
+  return tokenFromCookies(await page.context().cookies());
 }
 
 /**
